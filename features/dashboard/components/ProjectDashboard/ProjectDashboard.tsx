@@ -501,14 +501,19 @@ export function ProjectDashboard({
     <>
       <PageHeader
         divider={false}
+        // Name and color dot only in the dashboard view — in the overview
+        // (`profile`), the hero header right below (`ProjectProfileView`)
+        // already states them, larger and with the avatar image.
         leading={
-          <span
-            className={styles.dot}
-            style={{ background: project.color }}
-            aria-hidden="true"
-          />
+          isDashboard ? (
+            <span
+              className={styles.dot}
+              style={{ background: project.color }}
+              aria-hidden="true"
+            />
+          ) : undefined
         }
-        title={project.name}
+        title={isDashboard ? project.name : ""}
         // No description line — in either view. What the page shows is
         // already stated by the toggle next to it, and in the overview the
         // header card below states it even more precisely. What matters is

@@ -387,14 +387,19 @@ export function WorkspaceDashboard({
     <>
       <PageHeader
         divider={false}
+        // Name and color dot only in the dashboard view — in the overview
+        // (`profile`), the hero header right below (`WorkspaceProfileView`)
+        // already states them, larger and with the avatar image.
         leading={
-          <span
-            className={styles.dot}
-            style={{ background: workspace.color }}
-            aria-hidden="true"
-          />
+          isDashboard ? (
+            <span
+              className={styles.dot}
+              style={{ background: workspace.color }}
+              aria-hidden="true"
+            />
+          ) : undefined
         }
-        title={workspace.name}
+        title={isDashboard ? workspace.name : ""}
         actions={
           <SegmentedControl
             variant="surface"
