@@ -448,6 +448,12 @@
     "issueNotFound": "Issue not found",
     "issueNotFoundHint": "It may have been deleted or moved to another workspace."
   },
+  "notFound": {
+    "title": "This page doesn't exist",
+    "description": "It was moved, deleted, or you don't have access to it.",
+    "home": "Go to homepage",
+    "back": "Go back"
+  },
   "inbox": {
     "scope": {
       "all": "All",

@@ -448,6 +448,12 @@
     "issueNotFound": "Aufgabe nicht gefunden",
     "issueNotFoundHint": "Sie wurde gelöscht oder liegt in einem anderen Workspace."
   },
+  "notFound": {
+    "title": "Diese Seite gibt es nicht",
+    "description": "Sie wurde verschoben, gelöscht — oder du hast keinen Zugriff darauf.",
+    "home": "Zur Startseite",
+    "back": "Zurück"
+  },
   "inbox": {
     "scope": {
       "all": "Alle",
