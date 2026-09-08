@@ -131,7 +131,7 @@ export function IssueProperties({
             width={190}
             stop
             trigger={
-              <button type="button" className={styles.valueBtn}>
+              <button type="button" className={styles.valueBtn} data-field-nav>
                 <TypeIcon type={issue.type} size={14} color={type?.color} />
                 <span className={styles.valueText}>
                   {type?.name ?? issue.type}
@@ -171,7 +171,7 @@ export function IssueProperties({
             open={shortcutField === "status"}
             onOpenChange={(open) => setShortcutField(open ? "status" : null)}
             trigger={
-              <button type="button" className={styles.valueBtn}>
+              <button type="button" className={styles.valueBtn} data-field-nav>
                 <StatusIcon
                   status={issue.status}
                   size={14}
@@ -217,7 +217,7 @@ export function IssueProperties({
             open={shortcutField === "priority"}
             onOpenChange={(open) => setShortcutField(open ? "priority" : null)}
             trigger={
-              <button type="button" className={styles.valueBtn}>
+              <button type="button" className={styles.valueBtn} data-field-nav>
                 <PriorityIcon priority={issue.priority} size={14} />
                 <span className={styles.valueText}>
                   {priority?.name ?? String(issue.priority)}
@@ -260,7 +260,7 @@ export function IssueProperties({
             open={shortcutField === "assignee"}
             onOpenChange={(open) => setShortcutField(open ? "assignee" : null)}
             trigger={
-              <button type="button" className={styles.valueBtn}>
+              <button type="button" className={styles.valueBtn} data-field-nav>
                 <Avatar avatar={assignee} size={20} placeholder />
                 <span className={styles.valueText}>
                   {assignee ? fullName(assignee) : t("fields.unassigned")}

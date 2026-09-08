@@ -347,7 +347,11 @@ export function IssueComments({
           submission happens via the button or Cmd/Ctrl + Enter. */}
       <div className={styles.composer}>
         <Avatar avatar={me} size={28} />
-        <div className={styles.composerBox}>
+        {/* Marks the composer for the panel's field-roving (`IssueDetailView.tsx`):
+            ArrowUp out of it, back to the last field, only while it's still
+            empty — once there's real multi-line text, ArrowUp goes back to
+            being the cursor's, same as the description once editing. */}
+        <div className={styles.composerBox} data-comment-editor>
           <RichTextEditor
             key={round}
             ref={editorHandle}

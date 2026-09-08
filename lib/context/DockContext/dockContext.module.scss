@@ -31,8 +31,15 @@
   max-width: 100%;
   /* Focus lands on the area itself when opening; a ring around the whole
      panel would just be noise there. It only becomes visible on the
-     element inside that you actually navigate to. */
-  outline: none;
+     element inside that you actually navigate to.
+     `!important`: a bare `.panel` and the global `:focus-visible { outline:
+     … }` reset (`styles/globals.scss`) tie on specificity — one class-level
+     selector each — so the module system's own load order decides the tie,
+     and that isn't this rule's to depend on (same reasoning as
+     `modalContext.module.scss`'s `.comp`, which needed the same fix). Most
+     visible in the expanded/overlay state, where this same panel becomes
+     the dialog. */
+  outline: none !important;
   animation: dockIn .18s ease both;
 }
 

@@ -20,6 +20,16 @@
   position: relative;
   z-index: 1;
   animation: pop .16s ease;
+  /* `tabIndex={-1}` on this box (`ModalFrame`) is only a landing spot for
+     the programmatic focus that opens the dialog — not something a real
+     Tab press ever reaches, and not itself a control. A visible ring
+     around the whole dialog on every open would be noise, not guidance.
+     `!important`: the global `:focus-visible { outline: … }` reset
+     (`styles/globals.scss`) ties this rule on plain specificity — a bare
+     `.comp` and a bare `:focus-visible` are both one class-level selector —
+     so the module system's own load order is what actually decides the
+     tie, and that isn't this rule's to rely on. */
+  outline: none !important;
 }
 
 /* ---------- Exactly centered ---------- */

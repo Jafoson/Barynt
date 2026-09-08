@@ -2,9 +2,10 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import { Label as LabelChip } from "@/components/ui/atoms/Label/Label";
+import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import { LabelPickerMenu } from "@/features/issues/components/LabelPickerMenu/LabelPickerMenu";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
 import { useHasOpenModal } from "@/lib/context";
@@ -43,6 +44,8 @@ export function IssueLabels({
   const t = useTranslations();
   const { canEdit } = issue.access;
   const hasOpenModal = useHasOpenModal();
+  const confirm = useConfirm();
+  const isAside = layout === "aside";
 
   // Labels newly created in the label picker aren't known to the server
   // prop yet — until the next refresh, they come from here.
@@ -53,12 +56,54 @@ export function IssueLabels({
   useShortcut("l", () => setShortcutOpen(true), {
     enabled: canEdit && !hasOpenModal,
   });
+
+  // Left/Right between the label chips and the add trigger
+  // (`[data-label-chip]`/`[data-label-add]`) — same idea as the panel's
+  // Up/Down field-roving (`IssueDetailView.tsx`), just horizontal and
+  // scoped to this one row instead of the whole panel. A `document`-level
+  // listener for the same reason as that one: it only ever acts once focus
+  // is already on one of these buttons, so scope doesn't otherwise matter,
+  // and only one issue panel is open at a time.
+  //
+  // In the aside layout, Up/Down step through the same list too: there,
+  // the add trigger sits in its own header row *above* the chips (which
+  // wrap in their own row below, `labelsHead`/`labelsListAside`), not
+  // inline next to them like in the column layout — so Down is the key
+  // that actually matches what's visually below it. The column layout
+  // keeps Left/Right only, since there the add trigger is the last chip
+  // in the same row, and its own Up/Down already belongs to the panel's
+  // field-roving instead (moving to the next/previous section).
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const forward =
+        event.key === "ArrowRight" || (isAside && event.key === "ArrowDown");
+      const backward =
+        event.key === "ArrowLeft" || (isAside && event.key === "ArrowUp");
+      if (!forward && !backward) return;
+      const active = document.activeElement;
+      if (
+        !(active instanceof HTMLElement) ||
+        !active.matches("[data-label-chip], [data-label-add]")
+      )
+        return;
+      const stops = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          "[data-label-chip], [data-label-add]",
+        ),
+      );
+      const next = stops[stops.indexOf(active) + (forward ? 1 : -1)];
+      if (!next) return;
+      event.preventDefault();
+      next.focus();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isAside]);
   const knownLabels = [
     ...labels,
     ...createdLabels.filter((l) => !labels.some((known) => known.id === l.id)),
   ];
 
-  const isAside = layout === "aside";
   const project = projects.find((p) => p.id === issue.project);
   const issueLabels = issue.labels
     .map((id) => knownLabels.find((l) => l.id === id))
@@ -105,7 +150,31 @@ export function IssueLabels({
       // already set. Without issue.update.*/.own, no cross: `onRemove` is
       // left out entirely instead of waiting for a click the server would
       // reject anyway.
-      onRemove={canEdit ? () => toggleLabel(label.id) : undefined}
+      onRemove={
+        canEdit
+          ? async () => {
+              // Backspace/Delete on a roving-focused chip is one keystroke,
+              // easy to hit by accident while arrowing through the row —
+              // unlike the picker's own checkboxes, there's no second
+              // "are you sure" built into the gesture itself, so this asks
+              // outright instead.
+              const ok = await confirm({
+                title: t("actions.removeLabel", { name: label.name }),
+                confirmLabel: t("actions.remove"),
+                cancelLabel: t("actions.cancel"),
+                danger: true,
+              });
+              if (!ok) return;
+              // The chip removing itself unmounts once the patch round-trip
+              // lands and `issue.labels` no longer includes it — leaving
+              // focus stranded on `document.body` if it's still on this
+              // chip's own remove button. The add trigger is the one thing
+              // in this row guaranteed to survive that.
+              document.querySelector<HTMLElement>("[data-label-add]")?.focus();
+              toggleLabel(label.id);
+            }
+          : undefined
+      }
       removeLabel={t("actions.removeLabel", { name: label.name })}
     >
       {label.name}
@@ -124,6 +193,8 @@ export function IssueLabels({
                 className={styles.iconBtn}
                 aria-label={t("actions.addLabel")}
                 title={t("actions.addLabel")}
+                data-field-nav
+                data-label-add
               >
                 <Icon icon="lucide:plus" width={14} />
               </button>,
@@ -156,6 +227,8 @@ export function IssueLabels({
               className={styles.addLabel}
               aria-label={t("actions.addLabel")}
               title={t("actions.addLabel")}
+              data-field-nav
+              data-label-add
             >
               <Icon icon="lucide:plus" width={13} aria-hidden="true" />
               {issueLabels.length === 0 && <span>{t("fields.label")}</span>}

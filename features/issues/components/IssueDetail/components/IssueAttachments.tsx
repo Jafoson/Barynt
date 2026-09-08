@@ -242,6 +242,7 @@ export function IssueAttachments({
             type="button"
             className={styles.attachmentEmptyAction}
             disabled={busy}
+            data-field-nav
           >
             <Icon icon="lucide:paperclip" width={20} aria-hidden="true" />
             <span>{t("attachments.dropHint")}</span>
@@ -251,6 +252,7 @@ export function IssueAttachments({
             type="button"
             className={styles.attachmentTileAdd}
             disabled={busy}
+            data-field-nav
           >
             <Icon icon="lucide:plus" width={18} aria-hidden="true" />
             <span>{t("attachments.add")}</span>

@@ -95,13 +95,28 @@ export function Popover({
     <div
       ref={ref}
       className={styles.menu}
+      // Marks this portaled content as "belongs to an open dropdown" for
+      // anything elsewhere that reacts to arrow keys globally (e.g. the
+      // issue panel's field-roving, `IssueDetailView.tsx`) — it's mounted
+      // straight onto `document.body`, a sibling of the trigger's own
+      // tree, not a descendant, so nothing there can tell "this focus is
+      // still mine" just from DOM position.
+      data-popover-content
       style={{
         position: "fixed",
+        // Off-screen until placed — not `visibility: hidden`. That would
+        // hide the one-frame flash at the wrong spot too, but it also
+        // makes everything inside unfocusable in every major browser: a
+        // `.focus()` call on a hidden descendant silently no-ops instead
+        // of erroring, so whichever content here tries to focus itself on
+        // mount (`SelectMenu`'s first item/search field) would sometimes
+        // lose that race against the `useLayoutEffect` below — and only
+        // sometimes, since it depends on exactly how long that takes.
+        // -9999px alone already keeps the unplaced frame off-screen.
         left: pos?.left ?? -9999,
         top: pos?.top ?? -9999,
         width: width ?? undefined,
         maxWidth: maxWidth ?? undefined,
-        visibility: pos ? "visible" : "hidden",
       }}
     >
       {children}

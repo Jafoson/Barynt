@@ -3,7 +3,7 @@
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/atoms/Button/Button";
-import { Shortcut } from "@/components/ui/atoms/Shortcut/Shortcut";
+import { Tooltip } from "@/components/ui/atoms/Tooltip/Tooltip";
 import { CreateIssueModal } from "@/features/issues/components/CreateIssueModal/CreateIssueModal";
 import type { IssueComposerData } from "@/features/issues/types";
 import { usePathname } from "@/i18n/navigation";
@@ -73,14 +73,19 @@ export function NewIssueButton({ data }: NewIssueButtonProps) {
   if (!project || !initialStatus) return null;
 
   return (
-    <Button
-      variant="primary"
-      full
-      icon={<Icon icon="lucide:plus" width={16} />}
-      iconRight={<Shortcut keys="c" className={styles.shortcut} />}
-      onClick={open}
+    <Tooltip
+      label={t("actions.newIssue")}
+      shortcut="c"
+      className={styles.tooltipWrap}
     >
-      {t("actions.newIssue")}
-    </Button>
+      <Button
+        variant="primary"
+        full
+        icon={<Icon icon="lucide:plus" width={16} />}
+        onClick={open}
+      >
+        {t("actions.newIssue")}
+      </Button>
+    </Tooltip>
   );
 }

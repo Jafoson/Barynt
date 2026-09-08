@@ -52,6 +52,15 @@
     border-color: color-mix(in oklab, var(--label-color) 25%, transparent);
     color: var(--label-color);
   }
+
+  /* Only removable chips are focusable at all (see `Label.tsx`) — same
+     outline + offset as the board's own keyboard cursor
+     (`boardCard.module.scss`), the app-wide convention for "this is where
+     the keyboard is right now". */
+  &.removable:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 1px;
+  }
 }
 
 /* The dot is the same size everywhere: it carries the label's color, not a

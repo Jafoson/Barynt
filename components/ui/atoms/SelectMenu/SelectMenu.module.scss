@@ -36,6 +36,20 @@ position: relative;
   &:hover::after { opacity: var(--opacity-hover); }
   &:active::after { opacity: var(--opacity-active); }
   &:focus-visible::after { opacity: var(--opacity-focus); }
+
+  /* The `::after` overlay above is already this item's focus indicator,
+     contained within its own bounds. The global `:focus-visible` outline
+     reset (`styles/globals.scss`) would additionally ring the whole item —
+     clipped left/right by `.content`'s `overflow-y: auto` (which forces
+     `overflow-x` to clip too, per how the two properties interact), so it
+     never even renders as a clean ring here. `!important`: a bare
+     `.menuItem` and a bare `:focus-visible` tie on specificity, and the
+     load order between this module and the global stylesheet isn't this
+     rule's to depend on (same reasoning as `modalContext.module.scss`'s
+     `.comp`). */
+  &:focus-visible {
+    outline: none !important;
+  }
 }
 
 .active { 

@@ -154,6 +154,12 @@ export function EditableText({
           placeholder={placeholder}
           value={draft}
           rows={1}
+          // Lets a surrounding field-roving handler (e.g. the issue panel)
+          // jump Up/Down to the next field instead of moving the cursor —
+          // only for single-line fields, where there's no second line for
+          // the cursor to go to anyway. A multi-line field keeps its arrow
+          // keys for real cursor movement, so it's never marked.
+          data-field-nav={singleLine || undefined}
           onChange={(e) => setDraft(e.target.value)}
           onFocus={() => setIsEditing(true)}
           onBlur={commit}

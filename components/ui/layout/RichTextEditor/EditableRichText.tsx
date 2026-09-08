@@ -232,6 +232,11 @@ export function EditableRichText({
           role="button"
           tabIndex={0}
           aria-label={label}
+          // Lets a surrounding field-roving handler (e.g. the issue panel)
+          // jump Up/Down to it like any other field. Gone as soon as
+          // editing starts — the Tiptap surface below keeps its own arrow
+          // keys for actual cursor movement, so it's never marked.
+          data-field-nav
           // Whatever is operable within the text itself keeps its click: a
           // link navigates there, the copy button on a code block copies.
           // Only a click on the text in between opens the editor.

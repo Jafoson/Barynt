@@ -21,29 +21,29 @@
     background: var(--surface-container-high);
   }
 
-  /* The card whose issue is currently shown in the panel. Not just another
-     shade of gray, but the accent color: it must be distinguishable from
-     "hovered" at a glance, and the two states inevitably overlap — the
-     second click that closes the panel lands on this very card.
-
-     The ring doubles the border instead of widening it: a one-pixel accent
-     would vanish against the dark background between cards, while a 2px
-     line would shift the content by a pixel. */
-  &[data-active="true"] {
-    border-color: var(--tertiary);
+  /* One ring for every reason a card can be "the one": currently shown in
+     the panel (`data-active`), the keyboard cursor (`data-focused`,
+     j/k/arrows), or real DOM focus (a click, or Tab — the card itself is
+     `tabIndex={0}`). These used to be two different treatments — a
+     border-color change for `data-active`, a separate `outline` for the
+     other two (and, before that, `data-active` *also* added a spread
+     `box-shadow` ring alongside its border, which doesn't nest cleanly with
+     a rounded corner — the shadow's copy of the shape is 1px larger but
+     keeps the same radius, so the two curves visibly don't line up and it
+     reads as two rings instead of one). Just the border color now, nothing
+     layered on top of it — not just another shade of gray, but the accent
+     color, distinguishable from "hovered" at a glance. `outline: none`
+     explicitly drops the global `:focus-visible` reset
+     (`styles/globals.scss`), which would otherwise still draw its own ring
+     on real DOM focus; `!important` on both since a bare `:focus-visible`
+     ties this selector's specificity, and the loser of that tie isn't this
+     rule's to leave to CSS module load order. */
+  &[data-active="true"],
+  &[data-focused="true"],
+  &:focus-visible {
+    border-color: var(--tertiary) !important;
     background: var(--surface-container-high);
-    box-shadow: var(--shadow-card), 0 0 0 1px var(--tertiary);
-  }
-
-  /* The keyboard cursor (j/k/arrows) — an outline rather than another
-     box-shadow: this and `data-active`'s ring both need to show at once
-     without one silently replacing the other. Same color as `data-active`
-     on purpose: focus is always `--tertiary` throughout the app, never a
-     second accent — the outline vs. box-shadow shapes are what tell the
-     two states apart when both apply to the same card. */
-  &[data-focused="true"] {
-    outline: 2px solid var(--tertiary);
-    outline-offset: 1px;
+    outline: none !important;
   }
 
 }

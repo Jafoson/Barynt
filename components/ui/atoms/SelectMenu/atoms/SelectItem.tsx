@@ -17,6 +17,8 @@ function SelectItem({ it, isSel, onPick, onClose, multi }: SelectItemProps) {
       type="button"
       key={String(it.value)}
       className={`${styles.menuItem} ${isSel(it.value) ? styles.active : ""}`}
+      // Lets `SelectMenu`'s Up/Down/Tab roving find every item in one query.
+      data-select-item
       onClick={() => {
         onPick(it.value);
         if (!multi) onClose?.();

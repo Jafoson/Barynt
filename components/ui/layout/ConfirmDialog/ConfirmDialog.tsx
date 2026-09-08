@@ -6,6 +6,7 @@ import { ModalFooter } from "@/components/ui/layout/Modal/components/ModalFooter
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
 import { useModal } from "@/lib/context";
+import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import styles from "./confirmDialog.module.scss";
 
 export interface ConfirmOptions {
@@ -76,6 +77,15 @@ function ConfirmDialog({
   options: ConfirmOptions;
   onAnswer: (value: boolean) => void;
 }) {
+  // Enter answers "yes" directly — the confirm button is already the
+  // dialog's primary/default action (`variant="primary"`), same as Enter
+  // activating the default button in a native dialog. No `hasOpenModal`
+  // guard: that flag would already be true just from this dialog being on
+  // the stack, so it can't tell "am I the topmost" apart — not worth the
+  // extra plumbing since nothing in this app opens a modal on top of an
+  // open confirmation.
+  useShortcut("enter", () => onAnswer(true));
+
   return (
     // Narrower than a form modal: this only holds two sentences and two buttons.
     <Modal width={440}>

@@ -563,6 +563,14 @@
     border-color: var(--tertiary);
     background: color-mix(in oklab, var(--tertiary) 8%, transparent);
   }
+
+  /* The empty state's button (`.attachmentEmptyAction`) fills the whole
+     box and has no border of its own — its focus ring belongs on this
+     dashed edge, not on a separate rectangle inset by the box's padding.
+     `.attachmentEmptyAction` suppresses its own outline for this reason. */
+  &:has(.attachmentEmptyAction:focus-visible) {
+    border-color: var(--tertiary);
+  }
 }
 
 /* One row, horizontally scrollable instead of wrapping — with many
@@ -684,6 +692,11 @@
 
   &:hover { background: var(--surface-container-high); border-color: var(--outline); color: var(--on-surface); }
   &:disabled { opacity: .5; pointer-events: none; }
+  /* Recolors its own dashed border instead of a default outline sitting
+     a couple of pixels outside it — same reasoning as `.attachmentBox`
+     above, just self-contained since this tile already has its own
+     border. */
+  &:focus-visible { outline: none; border-color: var(--tertiary); }
 }
 
 /* The empty box itself is the call to action — no separate empty-state
@@ -702,6 +715,9 @@
 
   &:hover { color: var(--on-surface); }
   &:disabled { opacity: .5; pointer-events: none; }
+  /* The focus ring shows on `.attachmentBox`'s own dashed border instead
+     (see there) — this button has no border of its own to ring. */
+  &:focus-visible { outline: none; }
 }
 
 .attachmentEmpty {

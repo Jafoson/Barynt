@@ -2,7 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { EmptyState } from "@/components/ui/atoms/EmptyState/EmptyState";
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
@@ -56,6 +56,137 @@ function shellClass(isExpanded: boolean) {
   return [styles.detail, isExpanded && styles.expanded]
     .filter(Boolean)
     .join(" ");
+}
+
+/**
+ * Whether a field-roving Up/Down should act on `active`, or leave it alone
+ * because it's a real text cursor's to keep: the Description's Tiptap
+ * surface once editing, the comment composer, a popover's search input, a
+ * stacked modal's own field — none of those carry `data-field-nav`, so
+ * they fall to the generic "editable" check instead. Anything else —
+ * already on a field, or focus sitting on some inert wrapper (the panel's
+ * own region, a header icon button) — is fair game.
+ *
+ * An open dropdown's own items (`SelectMenu`'s `[data-select-item]`
+ * buttons) need their own explicit exclusion here: they're plain buttons,
+ * not inputs/textareas/contentEditable, so the generic check alone would
+ * wave them through as "fair game" — and once `SelectMenu`'s own Up/Down
+ * roving moved focus onto one, this panel-level roving would immediately
+ * hijack the very next arrow press, since a plain button matches nothing
+ * above. `SelectMenu` is portaled onto `document.body` (`Popover.tsx`), a
+ * sibling of the panel's own tree rather than a descendant, so `closest()`
+ * on `data-field-nav`/DOM position can't tell it's still "inside" the
+ * panel — `data-popover-content` on that portal root is what does.
+ *
+ * A label chip (`[data-label-chip]`) needs the same treatment, for the
+ * same reason: it's a focusable `role="button"` span, not an input, so the
+ * generic check alone would also wave it through — and `IssueLabels.tsx`'s
+ * own Left/Right (and, in the aside layout, Up/Down) roving between chips
+ * would lose the race to this one, which mounts first (a parent effect
+ * always runs before a child's) and would hijack the very same keys.
+ */
+function isRovable(active: Element | null): active is HTMLElement {
+  if (!(active instanceof HTMLElement)) return true;
+  if (active.matches("[data-field-nav]")) return true;
+  if (active.closest("[data-popover-content]")) return false;
+  if (active.matches("[data-label-chip]")) return false;
+  return !(
+    active.tagName === "TEXTAREA" ||
+    active.tagName === "INPUT" ||
+    active.isContentEditable
+  );
+}
+
+/**
+ * Up/Down between the panel's fields (`[data-field-nav]`: the title, the
+ * type/status/priority/assignee buttons, the description preview, the
+ * attachments and labels triggers) — the fast path once you're not editing
+ * text, so you don't have to Tab past everything in between.
+ *
+ * A `document`-level listener, like every other keyboard shortcut in this
+ * codebase (`useShortcut`, DockPanel's own Escape handler) — not scoped to
+ * a content ref: focus lands on the panel's own region on open, and the
+ * header's buttons (prev/next, expand, share, close) come before any field
+ * in tab order, both outside the body wrapper. Scoping to a ref down there
+ * would only ever see the keydown once focus had already reached a field
+ * several Tabs in — which is the bug this replaced.
+ *
+ * Only one issue panel is ever open at a time, so a plain, unscoped
+ * `document.querySelectorAll` for `[data-field-nav]` — nothing else in the
+ * app uses that attribute — is exactly this panel's fields; an empty result
+ * means no panel is open, and the listener no-ops. `hasOpenModal` stands
+ * down entirely while a real stacked dialog (Share, delete-confirm, …) has
+ * its own focus trap on top — otherwise a non-editable button in there
+ * (e.g. "Cancel") would count as "not on a field" and get its Down arrow
+ * hijacked into the panel behind it.
+ *
+ * Past the last field (labels), Down hands off to the comment composer via
+ * `dispatchShortcut("m")` — the same binding "m" already fires
+ * (`IssueComments.tsx`) — instead of a ref threaded down from here: it's
+ * always mounted in edit mode, not a button-preview like the description,
+ * so it's never itself `data-field-nav`-marked (an active multi-line editor
+ * needs its own arrow keys back, same reasoning as the description once
+ * editing). Once it's focused, `isRovable` below leaves it alone — with one
+ * escape hatch back the other way: Up out of the composer while it's still
+ * *empty* (`[data-comment-editor]`, checked by `textContent`, not the
+ * ProseMirror doc — simpler, and empty either way looks the same to both)
+ * returns to the last field, since there's no real cursor position there
+ * yet to preserve. Once there's actual multi-line text, Up goes back to
+ * being the cursor's, same as the description once editing.
+ *
+ * Doesn't touch j/k, which live in Board.tsx/ListView.tsx and move the
+ * *board's* cursor, not DOM focus — the two systems don't overlap.
+ */
+function useFieldNav(hasOpenModal: boolean) {
+  useEffect(() => {
+    if (hasOpenModal) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+      // A stronger guard than checking where focus currently is
+      // (`isRovable`'s `data-popover-content` check, below): this doesn't
+      // depend on which of the two `document`-level keydown listeners —
+      // this one, or `SelectMenu`'s own via React's synthetic dispatch —
+      // happens to run first on a given keypress, or on focus having
+      // already landed where expected by the time it does. If a dropdown
+      // exists at all, it owns Up/Down outright; nothing here is worth
+      // risking a race over.
+      if (document.querySelector("[data-popover-content]")) return;
+      const fields = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-field-nav]"),
+      );
+      if (fields.length === 0) return;
+      const active = document.activeElement;
+      if (!isRovable(active)) {
+        if (
+          event.key === "ArrowUp" &&
+          active instanceof HTMLElement &&
+          active.closest("[data-comment-editor]") &&
+          !active.textContent?.trim()
+        ) {
+          event.preventDefault();
+          fields[fields.length - 1]?.focus();
+        }
+        return;
+      }
+      const goingDown = event.key === "ArrowDown";
+      const index = fields.indexOf(active as HTMLElement);
+      const next =
+        index === -1
+          ? fields[goingDown ? 0 : fields.length - 1]
+          : fields[index + (goingDown ? 1 : -1)];
+      if (next) {
+        event.preventDefault();
+        next.focus();
+        return;
+      }
+      if (goingDown && index !== -1) {
+        event.preventDefault();
+        dispatchShortcut("m");
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [hasOpenModal]);
 }
 
 /**
@@ -139,6 +270,7 @@ export function IssueDetailView({
   const hasOpenModal = useHasOpenModal();
   const { toast } = useUI();
   const locale = useLocale() as Locale;
+  useFieldNav(hasOpenModal);
 
   // Mirrors Linear's own bindings — a bare click target for either doesn't
   // exist anywhere in the UI, only these two shortcuts.

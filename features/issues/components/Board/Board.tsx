@@ -59,10 +59,13 @@ export function Board({ issues, projectId, statuses, composer }: BoardProps) {
   const focus = (issue: IssueDetail) => {
     setFocusedId(issue.id);
     // A panel already open stays live-synced to the cursor — Linear's
-    // "peek": arrow keys move through issues while the preview updates
+    // "peek": j/k move through issues while the preview updates
     // immediately, no separate Enter needed for each one. Safe against the
     // toggle-closes-on-second-click behavior in `openPanel`: movement
     // always lands on a *different* issue than the one already open.
+    // (Arrow keys can't reach here while a panel is open — see the
+    // shortcut bindings below — so this only ever fires from j/k once
+    // the panel is up.)
     if (issueOpen.openIssue) issueOpen.openPanel(identifier(issue));
     // One frame later: the row this replaces might not have existed at
     // this scroll position yet (e.g. jumping columns).
@@ -148,14 +151,23 @@ export function Board({ issues, projectId, statuses, composer }: BoardProps) {
     issueOpen.openPanel(identifier(columns[pos.col].issues[pos.row]));
   };
 
-  useShortcut("down", () => move(0, 1), { enabled: !hasOpenModal });
+  // j/k always move the board cursor, even with a panel open — that's the
+  // "peek" navigation in `focus()` above. Arrow keys do the same, but only
+  // while no panel is open: with one open, arrows belong to it (scrolling,
+  // picker focus, etc.) instead of hijacking the board cursor underneath.
+  const noPanelOpen = !hasOpenModal && !issueOpen.openIssue;
+  useShortcut("down", () => move(0, 1), { enabled: noPanelOpen });
   useShortcut("j", () => move(0, 1), { enabled: !hasOpenModal });
-  useShortcut("up", () => move(0, -1), { enabled: !hasOpenModal });
+  useShortcut("up", () => move(0, -1), { enabled: noPanelOpen });
   useShortcut("k", () => move(0, -1), { enabled: !hasOpenModal });
-  useShortcut("right", () => move(1, 0), { enabled: !hasOpenModal });
-  useShortcut("left", () => move(-1, 0), { enabled: !hasOpenModal });
-  useShortcut("enter", openFocused, { enabled: !hasOpenModal && !!focusedId });
-  useShortcut("o", openFocused, { enabled: !hasOpenModal && !!focusedId });
+  useShortcut("right", () => move(1, 0), { enabled: noPanelOpen });
+  useShortcut("left", () => move(-1, 0), { enabled: noPanelOpen });
+  // Disabled once a panel is open, same as the arrows above — otherwise
+  // Enter on a field inside it (a picker button, the description preview)
+  // would also fire this: `openPanel` toggle-closes on the issue that's
+  // already open, so the panel would vanish under you mid-edit.
+  useShortcut("enter", openFocused, { enabled: noPanelOpen && !!focusedId });
+  useShortcut("o", openFocused, { enabled: noPanelOpen && !!focusedId });
 
   return (
     <div

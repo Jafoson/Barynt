@@ -1,9 +1,6 @@
-/* `Shortcut`'s default `kbd` styling assumes a neutral surface — inside
-   this button's solid `--primary` fill it would sit low-contrast and
-   slightly muddy. Overridden relative to `--on-primary` instead of a fixed
-   color, so it stays correct if the primary color itself ever changes. */
-.shortcut kbd {
-  background: color-mix(in oklab, var(--on-primary) 16%, transparent);
-  border-color: color-mix(in oklab, var(--on-primary) 30%, transparent);
-  color: var(--on-primary);
+/* `Tooltip`'s wrapper defaults to `inline-block`, which would shrink the
+   button's `full` (100%) width back down to its content. */
+.tooltipWrap {
+  display: block;
+  width: 100%;
 }

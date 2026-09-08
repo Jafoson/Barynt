@@ -1,0 +1,49 @@
+.wrap {
+  position: relative;
+  display: inline-block;
+}
+
+/* `--inverse-surface`/`--inverse-on-surface`: the high-contrast pair this
+   color system already carries for exactly this — a short hint that needs
+   to read clearly against any background it lands on, unlike `Popover`'s
+   `.menu`, which sits on the regular surface tokens since it's part of the
+   page's own UI, not an overlay annotation on top of it.
+
+   The local custom-property overrides below carry that inversion into the
+   nested `Shortcut` badge (`shortcut.module.scss`'s `.kbd`, `.shortcut`,
+   `.or`) without needing a `:global()` reach into another module's hashed
+   class names — those rules already read their colors from these exact
+   token names, and custom properties resolve through the DOM cascade, not
+   per CSS module, so redefining them here is enough. */
+.bubble {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  translate: -50% 0;
+  z-index: var(--z-popover);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--inverse-surface);
+  color: var(--inverse-on-surface);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  box-shadow: var(--shadow-pop);
+  pointer-events: none;
+  animation: pop .1s ease;
+
+  --outline: var(--inverse-on-surface);
+  --outline-variant: color-mix(in oklab, var(--inverse-on-surface) 30%, transparent);
+  --surface-container-low: color-mix(in oklab, var(--inverse-on-surface) 15%, transparent);
+  --on-surface-variant: var(--inverse-on-surface);
+}
+
+/* Local, even though `pop` also exists globally in styles/globals.scss (and
+   again in Popover.module.scss): CSS modules rename keyframe names even
+   when they aren't defined here at all, so an unqualified reference would
+   point to nothing. Values identical to the global `pop`. */
+@keyframes pop {
+  from { opacity: .2; transform: translateY(-4px) scale(.985); }
+}

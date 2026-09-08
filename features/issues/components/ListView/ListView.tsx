@@ -152,10 +152,13 @@ export function ListView({
   const focusRow = (issue: IssueDetail) => {
     setFocusedId(issue.id);
     // A panel already open stays live-synced to the cursor — Linear's
-    // "peek": arrow keys move through issues while the preview updates
+    // "peek": j/k move through issues while the preview updates
     // immediately, no separate Enter needed for each one. Safe against the
     // toggle-closes-on-second-click behavior in `openPanel`: movement
     // always lands on a *different* issue than the one already open.
+    // (Arrow keys can't reach here while a panel is open — see the
+    // shortcut bindings below — so this only ever fires from j/k once
+    // the panel is up.)
     if (openIssue) issueOpen.openPanel(identifier(issue));
     requestAnimationFrame(() => {
       containerRef.current
@@ -187,12 +190,21 @@ export function ListView({
     if (row) issueOpen.openPanel(identifier(row));
   };
 
-  useShortcut("down", () => moveFocus(1), { enabled: !hasOpenModal });
+  // j/k always move the row cursor, even with a panel open — that's the
+  // "peek" navigation in `focusRow()` above. Arrow keys do the same, but
+  // only while no panel is open: with one open, arrows belong to it
+  // instead of hijacking the row cursor underneath.
+  const noPanelOpen = !hasOpenModal && !openIssue;
+  useShortcut("down", () => moveFocus(1), { enabled: noPanelOpen });
   useShortcut("j", () => moveFocus(1), { enabled: !hasOpenModal });
-  useShortcut("up", () => moveFocus(-1), { enabled: !hasOpenModal });
+  useShortcut("up", () => moveFocus(-1), { enabled: noPanelOpen });
   useShortcut("k", () => moveFocus(-1), { enabled: !hasOpenModal });
-  useShortcut("enter", openFocused, { enabled: !hasOpenModal && !!focusedId });
-  useShortcut("o", openFocused, { enabled: !hasOpenModal && !!focusedId });
+  // Disabled once a panel is open, same as up/down above — otherwise
+  // Enter on a field inside it (a picker button, the description preview)
+  // would also fire this: `openPanel` toggle-closes on the issue that's
+  // already open, so the panel would vanish under you mid-edit.
+  useShortcut("enter", openFocused, { enabled: noPanelOpen && !!focusedId });
+  useShortcut("o", openFocused, { enabled: noPanelOpen && !!focusedId });
 
   const columns: TableColumn<IssueDetail>[] = [
     {
