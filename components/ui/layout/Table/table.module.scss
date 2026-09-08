@@ -250,6 +250,17 @@ tbody.group {
   &[data-active="true"] {
     box-shadow: inset 2px 0 0 0 var(--tertiary);
   }
+
+  /* The keyboard cursor (j/k/arrows) — an outline rather than another
+     box-shadow: this and `data-active`'s bar both need to show at once
+     without one silently replacing the other. Same color as `data-active`
+     on purpose: focus is always `--tertiary` throughout the app, never a
+     second accent — the outline vs. box-shadow shapes are what tell the
+     two states apart when both apply to the same row. */
+  &[data-focused="true"] {
+    outline: 2px solid var(--tertiary);
+    outline-offset: -2px;
+  }
 }
 
 .cell {

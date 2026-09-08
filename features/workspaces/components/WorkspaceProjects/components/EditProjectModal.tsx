@@ -149,7 +149,7 @@ export function EditProjectModal({ project, onDone, close }: Props) {
         )}
       </ModalBody>
 
-      <ModalFooter hint={<ModalShortcut keys={["⌘", "↵"]} />}>
+      <ModalFooter hint={<ModalShortcut keys="mod+enter" />}>
         <Button variant="ghost" disabled={isPending} onClick={close}>
           {t("actions.cancel")}
         </Button>

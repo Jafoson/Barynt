@@ -3,6 +3,7 @@
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/atoms/Button/Button";
+import { Shortcut } from "@/components/ui/atoms/Shortcut/Shortcut";
 import styles from "../sidebar.module.scss";
 
 export function SearchButton() {
@@ -19,9 +20,7 @@ export function SearchButton() {
     >
       <Icon icon="lucide:search" width={15} />
       <span>{t("placeholders.search")}</span>
-      <span className="kbd" style={{ marginLeft: "auto" }}>
-        ⌘K
-      </span>
+      <Shortcut keys="mod+k" className={styles.searchShortcut} />
     </Button>
   );
 }

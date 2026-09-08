@@ -14,7 +14,13 @@ import TaskList from "@tiptap/extension-task-list";
 import { EditorContent, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useTranslations } from "next-intl";
-import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import { Calendar } from "@/components/ui/atoms/Calendar/Calendar";
 import { modKey } from "@/lib/a11y";
@@ -148,6 +154,18 @@ export interface RichTextEditorProps {
    */
   onFilePickerOpen?: () => void;
   className?: string;
+  /**
+   * Imperative escape hatch for the one thing a controlled `value`/`onChange`
+   * pair can't do: move focus into the editor from outside on demand (e.g. a
+   * keyboard shortcut). React 19 passes `ref` through as an ordinary prop —
+   * no `forwardRef` wrapper needed, and it survives this component being
+   * loaded via `next/dynamic` the same way any other prop would.
+   */
+  ref?: React.Ref<RichTextEditorHandle>;
+}
+
+export interface RichTextEditorHandle {
+  focus: () => void;
 }
 
 export function RichTextEditor({
@@ -164,6 +182,7 @@ export function RichTextEditor({
   onAddLinkAttachment,
   onFilePickerOpen,
   className,
+  ref,
 }: RichTextEditorProps) {
   const t = useTranslations("editor");
   // Where the date picker popover sits while it's open. `null` means: closed.
@@ -171,6 +190,9 @@ export function RichTextEditor({
     null,
   );
   const editorRef = useRef<Editor | null>(null);
+  useImperativeHandle(ref, () => ({
+    focus: () => editorRef.current?.commands.focus(),
+  }));
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
 

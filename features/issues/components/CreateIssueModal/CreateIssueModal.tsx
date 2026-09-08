@@ -411,9 +411,7 @@ export function CreateIssueModal({
 
       <ModalFooter
         hint={
-          <ModalShortcut keys={["⌘", "↵"]}>
-            {t("issues.toCreate")}
-          </ModalShortcut>
+          <ModalShortcut keys="mod+enter">{t("issues.toCreate")}</ModalShortcut>
         }
       >
         <Button variant="ghost" onClick={close}>

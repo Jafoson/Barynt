@@ -219,7 +219,7 @@ export function InviteMemberModal({ workspaceId, roles, close }: Props) {
       <ModalFooter
         hint={
           done ? undefined : (
-            <ModalShortcut keys={["⌘", "↵"]}>
+            <ModalShortcut keys="mod+enter">
               {t("projectMembers.toInvite")}
             </ModalShortcut>
           )

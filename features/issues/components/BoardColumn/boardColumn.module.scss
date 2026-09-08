@@ -108,9 +108,10 @@
     border-color: var(--outline);
   }
 
+  // Focus is always `--tertiary` across the app, never another accent.
   &:focus-visible {
     opacity: 1;
     outline: none;
-    border-color: var(--primary);
+    border-color: var(--tertiary);
   }
 }

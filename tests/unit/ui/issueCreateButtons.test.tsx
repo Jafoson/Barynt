@@ -110,6 +110,7 @@ const column = (data: IssueComposerData) =>
       onCardDragEnd={() => {}}
       onCardDragOver={() => () => {}}
       isCardActive={() => false}
+      isCardFocused={() => false}
       onCardOpen={() => {}}
       onCardOpenInNewTab={() => {}}
     />,

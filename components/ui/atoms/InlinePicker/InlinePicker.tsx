@@ -17,6 +17,15 @@ interface InlinePickerProps {
    * still bubble up through the React tree to that element's `onClick`.
    */
   stop?: boolean;
+  /**
+   * Controls the open state from outside — e.g. a keyboard shortcut that
+   * should open the same menu a click would. Omit both this and
+   * `onOpenChange` for the normal, self-managed click-to-toggle behavior;
+   * passing one without the other leaves the picker unable to close (or
+   * unable to tell its caller it did).
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function InlinePicker({
@@ -26,9 +35,19 @@ export function InlinePicker({
   maxWidth,
   align,
   stop,
+  open: openProp,
+  onOpenChange,
 }: InlinePickerProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : internalOpen;
   const ref = useRef<HTMLElement>(null);
+
+  const setOpen = (next: boolean | ((current: boolean) => boolean)) => {
+    const value = typeof next === "function" ? next(open) : next;
+    if (!isControlled) setInternalOpen(value);
+    onOpenChange?.(value);
+  };
   const close = () => setOpen(false);
 
   const triggerWithRef = cloneElement(

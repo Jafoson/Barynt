@@ -3,10 +3,13 @@
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/atoms/Button/Button";
+import { Shortcut } from "@/components/ui/atoms/Shortcut/Shortcut";
 import { CreateIssueModal } from "@/features/issues/components/CreateIssueModal/CreateIssueModal";
 import type { IssueComposerData } from "@/features/issues/types";
 import { usePathname } from "@/i18n/navigation";
-import { useModal } from "@/lib/context";
+import { useHasOpenModal, useModal } from "@/lib/context";
+import { useShortcut } from "@/lib/shortcuts/useShortcut";
+import styles from "./newIssueButton.module.scss";
 
 /** New tasks land in the backlog, provided the workspace has that status. */
 const DEFAULT_STATUS = "backlog";
@@ -22,12 +25,20 @@ interface NewIssueButtonProps {
  *
  * Without `issue.create` in any project, the button doesn't exist. It
  * would otherwise be an invitation into a dialog that ends up rejected —
- * the action re-checks this itself anyway.
+ * the action re-checks this itself anyway. The same gate applies to the
+ * "c" shortcut: `useShortcut` is still called unconditionally (Rules of
+ * Hooks), just disabled via `enabled` instead of skipped.
+ *
+ * "c" (no modifier) is the convention Linear and GitHub both use for "new
+ * issue" — safe precisely because it's a bare letter: it only fires outside
+ * text inputs (`useShortcut`'s default) and while no modal already has
+ * focus, so it can never collide with typing or steal a dialog's own keys.
  */
 export function NewIssueButton({ data }: NewIssueButtonProps) {
   const { projects, statuses, creatableProjectIds } = data;
   const t = useTranslations();
   const { openModal } = useModal();
+  const hasOpenModal = useHasOpenModal();
   const pathname = usePathname();
 
   const creatable = projects.filter((p) => creatableProjectIds.includes(p.id));
@@ -43,9 +54,8 @@ export function NewIssueButton({ data }: NewIssueButtonProps) {
   const initialStatus =
     statuses.find((s) => s.id === DEFAULT_STATUS)?.id ?? statuses[0]?.id;
 
-  if (!project || !initialStatus) return null;
-
-  const open = () =>
+  const open = () => {
+    if (!project || !initialStatus) return;
     openModal(({ close }) => (
       <CreateIssueModal
         projectId={project.id}
@@ -54,12 +64,20 @@ export function NewIssueButton({ data }: NewIssueButtonProps) {
         close={close}
       />
     ));
+  };
+
+  useShortcut("c", open, {
+    enabled: !!project && !!initialStatus && !hasOpenModal,
+  });
+
+  if (!project || !initialStatus) return null;
 
   return (
     <Button
       variant="primary"
       full
       icon={<Icon icon="lucide:plus" width={16} />}
+      iconRight={<Shortcut keys="c" className={styles.shortcut} />}
       onClick={open}
     >
       {t("actions.newIssue")}

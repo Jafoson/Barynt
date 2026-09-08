@@ -1,0 +1,65 @@
+// The scroll container (`ModalBody`) is the actual keyboard-focus target
+// (see ShortcutsHelpModal.tsx) — the browser's default ring would only
+// wrap that inner box, cutting the header off. `:focus-within` on the
+// modal frame itself shows the ring around the *whole* dialog instead
+// (that div already carries `.modal`'s full corner radius on all four
+// sides), while the real DOM focus — needed for arrow keys/Page Down to
+// scroll — stays put on the body underneath. Scoped to this one modal via
+// its own class, not `.modal` itself: that class is shared by every
+// dialog in the app, and most of them focus a real form field, where a
+// ring around the entire frame in addition to the field's own would be
+// visual noise, not this modal's problem to solve.
+.modal {
+  &:focus-within {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 2px;
+  }
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  // Suppressed here — the ring lives on `.modal` (`:focus-within`) instead.
+  outline: none;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.groupTitle {
+  margin: 0 0 4px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--on-surface-variant);
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--outline-variant);
+  font-size: var(--text-base);
+  color: var(--on-surface);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.label {
+  min-width: 0;
+}

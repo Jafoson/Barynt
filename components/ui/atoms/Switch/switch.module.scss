@@ -61,9 +61,10 @@
   background: var(--on-primary);
 }
 
-/* The focus ring sits on the visible part, not on the invisible field on top. */
+/* The focus ring sits on the visible part, not on the invisible field on
+   top. Focus is always `--tertiary` across the app, never another accent. */
 .input:focus-visible + .track {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--tertiary);
   outline-offset: 2px;
 }
 

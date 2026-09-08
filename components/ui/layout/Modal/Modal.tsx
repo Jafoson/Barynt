@@ -52,12 +52,22 @@ export function Modal({
   );
 }
 
-type ModalBodyProps = React.HTMLAttributes<HTMLDivElement>;
+type ModalBodyProps = React.HTMLAttributes<HTMLDivElement> & {
+  /** For content with nothing else focusable — a keyboard user needs a
+   *  landing spot to scroll from (see `ShortcutsHelpModal`). */
+  ref?: React.Ref<HTMLDivElement>;
+};
 
 /** Scrolling content area of the modal. */
-export function ModalBody({ className, children, ...rest }: ModalBodyProps) {
+export function ModalBody({
+  className,
+  children,
+  ref,
+  ...rest
+}: ModalBodyProps) {
   return (
     <div
+      ref={ref}
       className={[styles.body, className].filter(Boolean).join(" ")}
       {...rest}
     >

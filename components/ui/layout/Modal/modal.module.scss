@@ -143,21 +143,6 @@
   color: var(--outline);
 }
 
-.kbd {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 20px;
-  min-width: 20px;
-  padding: 0 4px;
-  background: var(--surface-container-low);
-  border: 1px solid var(--outline-variant);
-  border-radius: 4px;
-  font-size: var(--text-xxs);
-  font-family: inherit;
-  color: var(--on-surface-variant);
-}
-
 /* ---------- Composer fields ---------- */
 
 

@@ -7,6 +7,8 @@ import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import { Label as LabelChip } from "@/components/ui/atoms/Label/Label";
 import { LabelPickerMenu } from "@/features/issues/components/LabelPickerMenu/LabelPickerMenu";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
+import { useHasOpenModal } from "@/lib/context";
+import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import type { IssueDetail, Label } from "@/types";
 import styles from "../issueDetail.module.scss";
 import type { IssueDetailLayout } from "../types";
@@ -40,10 +42,17 @@ export function IssueLabels({
   const { labels, projects } = data;
   const t = useTranslations();
   const { canEdit } = issue.access;
+  const hasOpenModal = useHasOpenModal();
 
   // Labels newly created in the label picker aren't known to the server
   // prop yet — until the next refresh, they come from here.
   const [createdLabels, setCreatedLabels] = useState<Label[]>([]);
+  // "l" opens the same picker a click would — see `IssueProperties` for the
+  // equivalent for status/priority/assignee.
+  const [shortcutOpen, setShortcutOpen] = useState(false);
+  useShortcut("l", () => setShortcutOpen(true), {
+    enabled: canEdit && !hasOpenModal,
+  });
   const knownLabels = [
     ...labels,
     ...createdLabels.filter((l) => !labels.some((known) => known.id === l.id)),
@@ -67,6 +76,8 @@ export function IssueLabels({
       width={240}
       align={isAside ? "end" : "start"}
       stop
+      open={shortcutOpen}
+      onOpenChange={setShortcutOpen}
       trigger={trigger}
     >
       {(close) => (

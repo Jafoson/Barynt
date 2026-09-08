@@ -40,13 +40,15 @@ export function IssueDetail({
   isExpanded = false,
   onToggleExpanded,
 }: IssueDetailProps) {
-  const { issue, isMissing, patch, comment, remove, refresh } = useIssueDetail({
-    issueRef,
-    data,
-    onDeleted: onClose,
-  });
+  const { issue, isMissing, isLoading, patch, comment, remove, refresh } =
+    useIssueDetail({ issueRef, data, onDeleted: onClose });
 
   if (!issue) {
+    // `isLoading` is also true here (a confirmed miss turns it off first —
+    // see `useIssueDetail`), so this is only ever the very first load: once
+    // an issue has shown at all, `issue` stays populated with the previous
+    // one while a later switch loads, and `IssueDetailView` shows that
+    // instead of dropping back to this skeleton.
     return isMissing ? (
       <IssueDetailMissing isExpanded={isExpanded} onClose={onClose} />
     ) : (
@@ -61,6 +63,7 @@ export function IssueDetail({
       onClose={onClose}
       onToggleExpanded={onToggleExpanded}
       isExpanded={isExpanded}
+      isLoading={isLoading}
       onPatch={patch}
       onComment={comment}
       onDelete={remove}

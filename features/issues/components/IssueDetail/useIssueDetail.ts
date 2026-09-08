@@ -25,10 +25,19 @@ interface UseIssueDetailOptions {
 }
 
 export interface IssueDetailState {
-  /** `null` while loading — or if the reference doesn't exist. */
+  /** `null` only before the very first issue has ever loaded, or if the
+   *  reference doesn't exist. */
   issue: IssueDetail | null;
   /** Loaded and found nothing. Distinguishes the empty state from the loading state. */
   isMissing: boolean;
+  /**
+   * A fetch for the current `issueRef` is in flight. `issue` still holds
+   * whatever was showing before — switching to a different issue (e.g. via
+   * the header's prev/next arrows) doesn't null it out first, so the
+   * caller can keep the old one on screen (dimmed, with a spinner) instead
+   * of dropping to the skeleton and back for every switch.
+   */
+  isLoading: boolean;
   patch: (patch: IssuePatch) => void;
   comment: (body: PMDoc) => Promise<void>;
   remove: () => void;
@@ -60,6 +69,7 @@ export function useIssueDetail({
   const router = useRouter();
   const [fetched, setFetched] = useState<IssueDetail | null>(null);
   const [isMissing, setIsMissing] = useState(false);
+  const [isLoading, setIsLoading] = useState(!initialIssue);
   const [, startTransition] = useTransition();
   const issue = fetched ?? initialIssue ?? null;
 
@@ -82,10 +92,15 @@ export function useIssueDetail({
   useEffect(() => {
     if (initialIssue) return;
     let active = true;
-    setFetched(null);
+    // Deliberately not `setFetched(null)` here — the previous issue (if
+    // any) stays on screen, `isLoading` true, until the new one actually
+    // arrives. Only a confirmed miss below clears it: a stale issue
+    // that's quietly wrong is worse than a moment of "loading further".
+    setIsLoading(true);
     setIsMissing(false);
     load(issueRef).then((fresh) => {
       if (!active) return;
+      setIsLoading(false);
       setFetched(fresh);
       setIsMissing(!fresh);
     });
@@ -124,5 +139,13 @@ export function useIssueDetail({
     });
   };
 
-  return { issue, isMissing, patch, comment, remove, refresh: reload };
+  return {
+    issue,
+    isMissing,
+    isLoading,
+    patch,
+    comment,
+    remove,
+    refresh: reload,
+  };
 }

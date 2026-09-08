@@ -25,6 +25,7 @@
     "notifications": "Benachrichtigungen",
     "security": "Sicherheit",
     "connections": "Verbundene Konten",
+    "shortcuts": "Shortcuts",
     "overview": "Übersicht",
     "dashboard": "Dashboard",
     "users": "Benutzer",
@@ -63,7 +64,9 @@
     "newProject": "Neues Projekt",
     "newTab": "Neuer Tab",
     "newTeam": "Neues Team",
+    "nextIssue": "Nächste Aufgabe",
     "openPage": "Als Seite öffnen",
+    "previousIssue": "Vorherige Aufgabe",
     "removeLabel": "{name} entfernen",
     "rename": "Umbenennen",
     "reorder": "{name} verschieben",
@@ -603,7 +606,9 @@
     "labels": "{count, plural, one {# Label} other {# Labels}}"
   },
   "toast": {
-    "issueCreated": "Aufgabe erstellt"
+    "issueCreated": "Aufgabe erstellt",
+    "copiedId": "{id} kopiert",
+    "copiedLink": "Link kopiert"
   },
   "issues": {
     "toCreate": "zum Erstellen"
@@ -868,7 +873,32 @@
     "connectDesc": "Melde dich einmal bei {provider} an, um den Weg an dein Konto zu hängen.",
     "lastMethod": "Dein einziger Weg herein. Lege erst einen Passkey an, dann lässt sich dieses Konto trennen.",
     "connectionsNote": "Du hast einen Passkey — verbundene Konten kannst du jederzeit wieder trennen.",
-    "connectionsNoteNoPassword": "Ohne Passkey ist ein verbundenes Konto dein einziger Weg herein. Der letzte lässt sich deshalb nicht trennen."
+    "connectionsNoteNoPassword": "Ohne Passkey ist ein verbundenes Konto dein einziger Weg herein. Der letzte lässt sich deshalb nicht trennen.",
+    "shortcutsDesc": "Die wichtigsten Tastenkombinationen — überall in der App, unabhängig vom Betriebssystem.",
+    "shortcutsGlobal": "Allgemein",
+    "shortcutsIssue": "In einer geöffneten Aufgabe",
+    "shortcutsNav": "In Board und Liste",
+    "shortcutsDialogs": "In Dialogen",
+    "shortcutsEditor": "Im Editor",
+    "shortcutNewIssue": "Neue Aufgabe erstellen",
+    "shortcutNewIssueDesc": "Solange kein Textfeld fokussiert und kein Dialog offen ist.",
+    "shortcutCloseDialog": "Dialog oder Panel schließen",
+    "shortcutHelp": "Diese Übersicht öffnen",
+    "shortcutStatus": "Status ändern",
+    "shortcutPriority": "Priorität ändern",
+    "shortcutAssignee": "Zuständige Person ändern",
+    "shortcutAssignMe": "Mir selbst zuweisen",
+    "shortcutAssignMeDesc": "Nochmal drücken hebt die Zuweisung wieder auf.",
+    "shortcutLabels": "Labels bearbeiten",
+    "shortcutFocusComment": "In den Kommentar springen",
+    "shortcutCopyId": "Kürzel kopieren",
+    "shortcutCopyLink": "Link zur Aufgabe kopieren",
+    "shortcutNavMove": "Zum nächsten / vorherigen Eintrag",
+    "shortcutNavColumn": "Spalte wechseln (Board)",
+    "shortcutNavOpen": "Fokussierten Eintrag öffnen",
+    "shortcutSubmit": "Speichern oder erstellen",
+    "shortcutSubmitDesc": "Funktioniert auch direkt im Textfeld.",
+    "shortcutLink": "Link einfügen oder bearbeiten"
   },
   "audit": {
     "desc": "Wer war da, wer hat wem Rechte gegeben, wer hat etwas gelöscht — und jeder Notfall-Zugriff.",

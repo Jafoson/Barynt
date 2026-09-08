@@ -145,11 +145,20 @@
 .linkChip:hover > span,
 .linkChip:focus-visible > span {
   background: var(--surface-container-high);
+}
+
+.linkChip:hover > span {
   border-color: var(--outline);
 }
 
+/* Focus is always `--tertiary` across the app, never another accent —
+   split out from the hover rule above, which keeps its neutral border. */
+.linkChip:focus-visible > span {
+  border-color: var(--tertiary);
+}
+
 .linkChip:focus-visible {
-  outline: 2px solid var(--outline);
+  outline: 2px solid var(--tertiary);
   outline-offset: 2px;
 }
 

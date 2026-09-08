@@ -1,3 +1,4 @@
+import { Shortcut } from "@/components/ui/atoms/Shortcut/Shortcut";
 import styles from "../modal.module.scss";
 
 interface ModalFooterProps {
@@ -28,8 +29,8 @@ export function ModalFooter({
 }
 
 interface ModalShortcutProps {
-  /** Keys in display order, e.g. `["⌘", "↵"]`. */
-  keys: string[];
+  /** Spec as passed to `useShortcut`, e.g. "mod+enter", "enter". */
+  keys: string;
   /** Description after the keys, e.g. "to create". */
   children?: React.ReactNode;
 }
@@ -38,12 +39,7 @@ interface ModalShortcutProps {
 export function ModalShortcut({ keys, children }: ModalShortcutProps) {
   return (
     <span className={styles.shortcut}>
-      {keys.map((key, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: static key sequence, may contain repeats
-        <kbd key={`${key}-${i}`} className={styles.kbd}>
-          {key}
-        </kbd>
-      ))}
+      <Shortcut keys={keys} />
       {children}
     </span>
   );

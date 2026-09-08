@@ -109,8 +109,9 @@
     opacity: var(--opacity-hover);
   }
 
+  // Focus is always `--tertiary` across the app, never another accent.
   &:focus-visible {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--tertiary);
     outline-offset: -1px;
   }
 }

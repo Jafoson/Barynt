@@ -30,6 +30,7 @@ export type NavLabelKey =
   | "notifications"
   | "security"
   | "connections"
+  | "shortcuts"
   | "admin"
   | "overview"
   | "users"
@@ -393,6 +394,7 @@ export const ACCOUNT_SETTINGS_NAV: NavEntry[] = [
   { section: "notifications", icon: "lucide:bell", labelKey: "notifications" },
   { section: "security", icon: "lucide:shield-check", labelKey: "security" },
   { section: "connections", icon: "lucide:link", labelKey: "connections" },
+  { section: "shortcuts", icon: "lucide:keyboard", labelKey: "shortcuts" },
 ];
 
 export function workspacePath(workspaceId: string, section: string): string {

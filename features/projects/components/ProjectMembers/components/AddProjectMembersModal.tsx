@@ -341,7 +341,7 @@ export function AddProjectMembersModal({
       <ModalFooter
         hint={
           done ? undefined : (
-            <ModalShortcut keys={["⌘", "↵"]}>
+            <ModalShortcut keys="mod+enter">
               {mode === "workspace"
                 ? t("projectMembers.toAdd")
                 : t("projectMembers.toInvite")}

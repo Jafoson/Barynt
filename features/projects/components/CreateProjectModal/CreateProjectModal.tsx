@@ -156,7 +156,7 @@ export function CreateProjectModal({
 
       <ModalFooter
         hint={
-          <ModalShortcut keys={["⌘", "↵"]}>
+          <ModalShortcut keys="mod+enter">
             {t("projects.toCreate")}
           </ModalShortcut>
         }

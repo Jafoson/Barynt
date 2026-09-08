@@ -33,6 +33,8 @@ interface BoardColumnProps {
   onCardDragOver: (cardId: string) => (e: React.DragEvent) => void;
   /** Whether this issue is currently shown in the side panel. */
   isCardActive: (issue: IssueDetail) => boolean;
+  /** The keyboard cursor (j/k/arrows) — independent of `isCardActive`. */
+  isCardFocused: (issue: IssueDetail) => boolean;
   onCardOpen: (issue: IssueDetail) => void;
   /** Ctrl/Cmd click and middle click on a card: full page in a new tab. */
   onCardOpenInNewTab: (issue: IssueDetail) => void;
@@ -57,6 +59,7 @@ export function BoardColumn({
   onCardDragEnd,
   onCardDragOver,
   isCardActive,
+  isCardFocused,
   onCardOpen,
   onCardOpenInNewTab,
 }: BoardColumnProps) {
@@ -120,6 +123,7 @@ export function BoardColumn({
                 lookups={lookups}
                 isDragging={dragging === issue.id}
                 isActive={isCardActive(issue)}
+                isFocused={isCardFocused(issue)}
                 onDragStart={onCardDragStart(issue)}
                 onDragEnd={onCardDragEnd}
                 onDragOver={onCardDragOver(issue.id)}

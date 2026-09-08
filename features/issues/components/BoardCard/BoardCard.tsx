@@ -42,6 +42,8 @@ interface BoardCardProps {
    * tell what the panel is actually showing.
    */
   isActive?: boolean;
+  /** The keyboard cursor (j/k/arrows on the board) — independent of `isActive`. */
+  isFocused?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
   onDragEnd?: () => void;
   onDragOver?: (e: React.DragEvent) => void;
@@ -64,6 +66,7 @@ export function BoardCard({
   lookups: { members, projects, labels, issueTypes },
   isDragging,
   isActive,
+  isFocused,
   onDragStart,
   onDragEnd,
   onDragOver,
@@ -131,7 +134,12 @@ export function BoardCard({
       // Same convention as the list's rows (`Table`): state lives in the
       // attribute, appearance in the stylesheet.
       data-active={isActive || undefined}
+      data-focused={isFocused || undefined}
       aria-current={isActive || undefined}
+      // Queried by `Board`'s keyboard navigation to scroll the focused card
+      // into view — a plain attribute instead of a ref map, since the board
+      // already has one container ref to search from.
+      data-issue-id={issue.id}
       // Not while editing: a draggable ancestor would otherwise steal mouse
       // text selection from the field. Not without issue.update.any/.own
       // either — dragging changes the status (`moveIssue`/`reorderIssue`),

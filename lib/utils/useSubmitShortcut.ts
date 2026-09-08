@@ -1,32 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useShortcut } from "@/lib/shortcuts/useShortcut";
 
 /**
  * Fires `onSubmit` on ⌘/Ctrl + Enter — the submit gesture used by every
- * composer modal.
- *
- * The callback lives in a ref that's updated after every render. This way
- * the listener stays registered for the whole lifetime and still always
- * sees the current form state — without reattaching the handler on every
- * keystroke.
+ * composer modal. Thin wrapper around `useShortcut`: `allowInEditable` is
+ * what makes this specific combo fire while the title/description field
+ * has focus, which is the whole point of a submit shortcut.
  */
 export function useSubmitShortcut(onSubmit: () => void, enabled = true) {
-  const handler = useRef(onSubmit);
-
-  useEffect(() => {
-    handler.current = onSubmit;
-  });
-
-  useEffect(() => {
-    if (!enabled) return;
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-        e.preventDefault();
-        handler.current();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [enabled]);
+  useShortcut("mod+enter", onSubmit, { enabled, allowInEditable: true });
 }

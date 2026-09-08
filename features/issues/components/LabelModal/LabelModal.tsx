@@ -147,7 +147,7 @@ export function LabelModal({
         </form>
       </ModalBody>
 
-      <ModalFooter hint={<ModalShortcut keys={["↵"]} />}>
+      <ModalFooter hint={<ModalShortcut keys="enter" />}>
         <Button variant="ghost" disabled={isPending} onClick={close}>
           {t("actions.cancel")}
         </Button>

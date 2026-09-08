@@ -3,7 +3,7 @@
 import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useRef, useState, useTransition } from "react";
 import { EmptyState } from "@/components/ui/atoms/EmptyState/EmptyState";
 import {
   Table,
@@ -21,6 +21,8 @@ import { useIssueOpen } from "@/features/issues/issue-links";
 import { rankBetween, sortByRank } from "@/features/issues/rank";
 import type { IssueComposerData } from "@/features/issues/types";
 import { Link } from "@/i18n/navigation";
+import { useHasOpenModal } from "@/lib/context";
+import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import type { IssueDetail } from "@/types";
 import {
   LabelsCell,
@@ -137,6 +139,60 @@ export function ListView({
       ),
       rows,
     }));
+
+  // The keyboard cursor — which row j/k/arrows would move next, independent
+  // of `openIssue` (the one actually shown in the panel). Flattened across
+  // groups in display order, skipping collapsed ones: up/down moves through
+  // the list exactly as it's drawn, not the underlying grouping.
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const flatRows = groups.flatMap((g) => (g.collapsed ? [] : g.rows));
+  const containerRef = useRef<HTMLDivElement>(null);
+  const hasOpenModal = useHasOpenModal();
+
+  const focusRow = (issue: IssueDetail) => {
+    setFocusedId(issue.id);
+    // A panel already open stays live-synced to the cursor — Linear's
+    // "peek": arrow keys move through issues while the preview updates
+    // immediately, no separate Enter needed for each one. Safe against the
+    // toggle-closes-on-second-click behavior in `openPanel`: movement
+    // always lands on a *different* issue than the one already open.
+    if (openIssue) issueOpen.openPanel(identifier(issue));
+    requestAnimationFrame(() => {
+      containerRef.current
+        ?.querySelector(`[data-row-key="${CSS.escape(issue.id)}"]`)
+        ?.scrollIntoView({ block: "nearest" });
+    });
+  };
+
+  const moveFocus = (delta: number) => {
+    // Without a cursor of its own yet, continue from whatever's already
+    // open (e.g. opened by a click) rather than jumping back to the first
+    // row — "further" should mean further from there.
+    const targetId =
+      focusedId ??
+      (openIssue
+        ? (flatRows.find((r) => identifier(r) === openIssue)?.id ?? null)
+        : null);
+    const index = flatRows.findIndex((row) => row.id === targetId);
+    if (index === -1) {
+      if (flatRows.length > 0) focusRow(flatRows[0]);
+      return;
+    }
+    const next = index + delta;
+    if (next >= 0 && next < flatRows.length) focusRow(flatRows[next]);
+  };
+
+  const openFocused = () => {
+    const row = flatRows.find((r) => r.id === focusedId);
+    if (row) issueOpen.openPanel(identifier(row));
+  };
+
+  useShortcut("down", () => moveFocus(1), { enabled: !hasOpenModal });
+  useShortcut("j", () => moveFocus(1), { enabled: !hasOpenModal });
+  useShortcut("up", () => moveFocus(-1), { enabled: !hasOpenModal });
+  useShortcut("k", () => moveFocus(-1), { enabled: !hasOpenModal });
+  useShortcut("enter", openFocused, { enabled: !hasOpenModal && !!focusedId });
+  useShortcut("o", openFocused, { enabled: !hasOpenModal && !!focusedId });
 
   const columns: TableColumn<IssueDetail>[] = [
     {
@@ -264,7 +320,7 @@ export function ListView({
   });
 
   return (
-    <div className={styles.content}>
+    <div className={styles.content} ref={containerRef}>
       <Table
         fill
         variant="card"
@@ -274,6 +330,7 @@ export function ListView({
         getRowKey={(issue) => issue.id}
         dnd={dnd}
         isRowActive={(issue) => identifier(issue) === openIssue}
+        isRowFocused={(issue) => issue.id === focusedId}
         rowOverlay={(issue) => (
           <Link
             {...issueOpen.linkProps(identifier(issue))}

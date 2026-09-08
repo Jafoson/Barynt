@@ -101,9 +101,10 @@
   line-height: 1.5;
   resize: vertical;
 
+  // Focus is always `--tertiary` across the app, never another accent.
   &:focus {
     outline: none;
-    border-color: var(--primary);
+    border-color: var(--tertiary);
   }
 }
 

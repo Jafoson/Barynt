@@ -25,6 +25,7 @@
     "notifications": "Notifications",
     "security": "Security",
     "connections": "Connected accounts",
+    "shortcuts": "Keyboard shortcuts",
     "overview": "Overview",
     "dashboard": "Dashboard",
     "users": "Users",
@@ -63,7 +64,9 @@
     "newProject": "New project",
     "newTab": "New tab",
     "newTeam": "New team",
+    "nextIssue": "Next issue",
     "openPage": "Open as page",
+    "previousIssue": "Previous issue",
     "removeLabel": "Remove {name}",
     "rename": "Rename",
     "reorder": "Reorder {name}",
@@ -603,7 +606,9 @@
     "labels": "{count, plural, one {# label} other {# labels}}"
   },
   "toast": {
-    "issueCreated": "Issue created"
+    "issueCreated": "Issue created",
+    "copiedId": "{id} copied",
+    "copiedLink": "Link copied"
   },
   "issues": {
     "toCreate": "to create"
@@ -868,7 +873,32 @@
     "connectDesc": "Sign in with {provider} once to attach it to your account.",
     "lastMethod": "Your only way in. Add a passkey first, then this account can be disconnected.",
     "connectionsNote": "You have a passkey — connected accounts can be disconnected at any time.",
-    "connectionsNoteNoPassword": "Without a passkey, a connected account is your only way in. The last one therefore cannot be disconnected."
+    "connectionsNoteNoPassword": "Without a passkey, a connected account is your only way in. The last one therefore cannot be disconnected.",
+    "shortcutsDesc": "The most useful keyboard shortcuts — everywhere in the app, regardless of your operating system.",
+    "shortcutsGlobal": "Global",
+    "shortcutsIssue": "While an issue is open",
+    "shortcutsNav": "In board and list views",
+    "shortcutsDialogs": "In dialogs",
+    "shortcutsEditor": "In the editor",
+    "shortcutNewIssue": "Create a new issue",
+    "shortcutNewIssueDesc": "As long as no text field is focused and no dialog is open.",
+    "shortcutCloseDialog": "Close a dialog or panel",
+    "shortcutHelp": "Open this overview",
+    "shortcutStatus": "Change status",
+    "shortcutPriority": "Change priority",
+    "shortcutAssignee": "Change assignee",
+    "shortcutAssignMe": "Assign to yourself",
+    "shortcutAssignMeDesc": "Press again to unassign.",
+    "shortcutLabels": "Edit labels",
+    "shortcutFocusComment": "Jump to the comment box",
+    "shortcutCopyId": "Copy identifier",
+    "shortcutCopyLink": "Copy link to the issue",
+    "shortcutNavMove": "Move to the next / previous item",
+    "shortcutNavColumn": "Switch column (board)",
+    "shortcutNavOpen": "Open the focused item",
+    "shortcutSubmit": "Save or create",
+    "shortcutSubmitDesc": "Also works right inside the text field.",
+    "shortcutLink": "Insert or edit a link"
   },
   "audit": {
     "desc": "Who signed in, who granted whom rights, who deleted something — and every emergency access.",

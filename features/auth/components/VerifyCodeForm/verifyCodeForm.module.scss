@@ -18,10 +18,11 @@
   text-align: center;
   text-transform: uppercase;
 
+  // Focus is always `--tertiary` across the app, never another accent.
   &:focus {
     outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 25%, transparent);
+    border-color: var(--tertiary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--tertiary) 25%, transparent);
   }
 
   &:disabled {

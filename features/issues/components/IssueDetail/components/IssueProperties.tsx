@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
@@ -10,10 +11,15 @@ import {
   TypeIcon,
 } from "@/features/issues/components/IssueIcons/IssueIcons";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
+import { useHasOpenModal } from "@/lib/context";
+import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import { fullName } from "@/lib/utils/string";
 import type { IssueDetail } from "@/types";
 import styles from "../issueDetail.module.scss";
 import type { IssueDetailLayout } from "../types";
+
+/** Which attribute picker a keyboard shortcut ("s"/"p"/"a") should open. */
+type ShortcutField = "status" | "priority" | "assignee" | null;
 
 interface IssuePropertiesProps {
   issue: IssueDetail;
@@ -82,6 +88,33 @@ export function IssueProperties({
   const { members, statuses, priorities, issueTypes } = data;
   const t = useTranslations();
   const { canEdit, canAssign } = issue.access;
+  const hasOpenModal = useHasOpenModal();
+
+  // Which picker a keyboard shortcut opened — not which one is open at all:
+  // a plain click still runs through `InlinePicker`'s own internal state.
+  // Only set while this component is mounted, i.e. only while this issue is
+  // actually showing — the shortcuts below live and die with it.
+  const [shortcutField, setShortcutField] = useState<ShortcutField>(null);
+
+  useShortcut("s", () => setShortcutField("status"), {
+    enabled: canEdit && !hasOpenModal,
+  });
+  useShortcut("p", () => setShortcutField("priority"), {
+    enabled: canEdit && !hasOpenModal,
+  });
+  useShortcut("a", () => setShortcutField("assignee"), {
+    enabled: canAssign && !hasOpenModal,
+  });
+  // "i" assigns to yourself directly — no picker, no precedent either way in
+  // this codebase for what a second press should do, so it toggles: press
+  // again to unassign, the same way it would if you opened the picker
+  // yourself and picked "Unassigned".
+  useShortcut(
+    "i",
+    () =>
+      onPatch({ assignee: issue.assignee === data.me.id ? null : data.me.id }),
+    { enabled: canAssign && !hasOpenModal },
+  );
 
   const type = issueTypes.find((x) => x.id === issue.type);
   const status = statuses.find((s) => s.id === issue.status);
@@ -135,6 +168,8 @@ export function IssueProperties({
           <InlinePicker
             width={200}
             stop
+            open={shortcutField === "status"}
+            onOpenChange={(open) => setShortcutField(open ? "status" : null)}
             trigger={
               <button type="button" className={styles.valueBtn}>
                 <StatusIcon
@@ -179,6 +214,8 @@ export function IssueProperties({
           <InlinePicker
             width={190}
             stop
+            open={shortcutField === "priority"}
+            onOpenChange={(open) => setShortcutField(open ? "priority" : null)}
             trigger={
               <button type="button" className={styles.valueBtn}>
                 <PriorityIcon priority={issue.priority} size={14} />
@@ -220,6 +257,8 @@ export function IssueProperties({
             width={220}
             align="end"
             stop
+            open={shortcutField === "assignee"}
+            onOpenChange={(open) => setShortcutField(open ? "assignee" : null)}
             trigger={
               <button type="button" className={styles.valueBtn}>
                 <Avatar avatar={assignee} size={20} placeholder />

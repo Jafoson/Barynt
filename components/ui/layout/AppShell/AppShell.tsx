@@ -1,4 +1,6 @@
+import { Toast } from "@/components/ui/atoms/Toast/Toast";
 import { Sidebar } from "@/components/ui/layout/Sidebar/Sidebar";
+import { ShortcutsHelpTrigger } from "@/features/account/components/AccountShortcuts/ShortcutsHelpTrigger";
 import { DockOutlet, ModalOutlet } from "@/lib/context";
 import { TabBar } from "../TabBar/TabBar";
 import styles from "./appShell.module.scss";
@@ -24,6 +26,9 @@ function Shell({ children, isAdminRoute }: AppShellProps) {
           props — modals only need the providers from the root layout
           (Intl, Modal) here. */}
       <ModalOutlet />
+      {/* Global "?" → shortcuts help. Renders nothing itself. */}
+      <ShortcutsHelpTrigger />
+      <Toast />
     </div>
   );
 }

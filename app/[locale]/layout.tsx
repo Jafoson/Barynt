@@ -6,6 +6,7 @@ import { setRequestLocale } from "next-intl/server";
 import { getMyPreferences } from "@/features/account/queries";
 import { routing } from "@/i18n/routing";
 import { DockProvider, ModalProvider } from "@/lib/context";
+import { UIProvider } from "@/lib/ui-store";
 
 // Design tokens — imported first so they're available everywhere
 import "@/styles/colors.scss";
@@ -67,11 +68,13 @@ export default async function LocaleLayout({
       <body>
         {/* Messages/locale are picked up automatically from the server configuration. */}
         <NextIntlClientProvider>
-          {/* The dock sits inside the modal provider: its panel needs to
-              know whether a modal is stacked above it so it can yield Escape. */}
-          <ModalProvider>
-            <DockProvider>{children}</DockProvider>
-          </ModalProvider>
+          <UIProvider>
+            {/* The dock sits inside the modal provider: its panel needs to
+                know whether a modal is stacked above it so it can yield Escape. */}
+            <ModalProvider>
+              <DockProvider>{children}</DockProvider>
+            </ModalProvider>
+          </UIProvider>
         </NextIntlClientProvider>
       </body>
     </html>

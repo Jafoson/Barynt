@@ -1,0 +1,36 @@
+/* Duration is coupled to `lib/ui-store.tsx`'s 2600ms auto-dismiss timeout —
+   the fade-out finishes right as React removes the element. Kept as one
+   hardcoded number in each rather than a shared constant: a `.scss`
+   `animation-duration` can't read a `.ts` value, and a mismatch here is
+   cosmetic (an abrupt cut instead of a fade), not a functional bug. */
+@keyframes toastLife {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  8%,
+  88% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: var(--z-toast);
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  background: var(--inverse-surface);
+  color: var(--inverse-on-surface);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  box-shadow: var(--shadow-pop);
+  pointer-events: none;
+  animation: toastLife 2.6s ease forwards;
+}

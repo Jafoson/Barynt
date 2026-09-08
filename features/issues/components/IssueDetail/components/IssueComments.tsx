@@ -8,7 +8,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { ModalShortcut } from "@/components/ui/layout/Modal/components/ModalFooter";
-import type { UploadedAttachment } from "@/components/ui/layout/RichTextEditor/RichTextEditor";
+import type {
+  RichTextEditorHandle,
+  UploadedAttachment,
+} from "@/components/ui/layout/RichTextEditor/RichTextEditor";
 import {
   addComment,
   addIssueLinkAttachment,
@@ -21,8 +24,10 @@ import { useEditorSources } from "@/features/issues/components/IssueRichText/Iss
 import { issuePath } from "@/features/issues/issue-links";
 import type { IssueEditorData } from "@/features/issues/types";
 import { uploadIssueAttachment } from "@/features/issues/uploadAttachment";
+import { useHasOpenModal } from "@/lib/context";
 import { emptyDoc, isEmptyDoc } from "@/lib/richtext/doc";
 import type { PMDoc } from "@/lib/richtext/types";
+import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import type { Comment, User } from "@/types";
 import styles from "../issueDetail.module.scss";
 import { CommentThread } from "./CommentThread";
@@ -148,6 +153,14 @@ export function IssueComments({
   // Without it, ProseMirror would keep its old content — `value` is only
   // its initial value as far as it's concerned.
   const [round, setRound] = useState(0);
+  const hasOpenModal = useHasOpenModal();
+  const editorHandle = useRef<RichTextEditorHandle>(null);
+  // "m" ("comment" — Linear's own binding) — the composer is always
+  // mounted and visible here, unlike status/priority/assignee/labels, so
+  // there's no picker to open: focusing the field is the whole job.
+  useShortcut("m", () => editorHandle.current?.focus(), {
+    enabled: !hasOpenModal,
+  });
   const [flashId, setFlashId] = useState<string | null>(null);
   // Tracks which comment has already been scrolled to — `comments` changes
   // after every `onRefresh()` (new reference); without this flag, every
@@ -337,6 +350,7 @@ export function IssueComments({
         <div className={styles.composerBox}>
           <RichTextEditor
             key={round}
+            ref={editorHandle}
             value={body}
             onChange={setBody}
             onSubmit={submit}
@@ -347,7 +361,7 @@ export function IssueComments({
             {...attachmentHandlers}
           />
           <div className={styles.composerFoot}>
-            <ModalShortcut keys={["⌘", "↵"]}>
+            <ModalShortcut keys="mod+enter">
               {t("comments.toSend")}
             </ModalShortcut>
             <Button

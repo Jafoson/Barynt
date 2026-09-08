@@ -196,6 +196,13 @@
 
 /* ---------- Header ---------- */
 
+/* Prev/next — no gap between the two, so they read as one stepper instead
+   of two unrelated buttons (`ModalHeader`'s own `gap: 8px` already
+   separates this from the reference next to it). */
+.navArrows {
+  display: flex;
+}
+
 .ref {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
@@ -238,6 +245,44 @@
 /* The view's only scroll container. The side padding grows with the width,
    until the content settles at `--detail-content-w` and sits centered —
    without an extra wrapper in the markup. */
+
+/* Takes over `flex: 1 1 auto` from `.body`/`.split` so either one can sit
+   inside it unchanged — `position: relative` gives `.loadingOverlay`
+   something to cover exactly, no more and no less. */
+.contentWrap {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Covers the stale content while a switch (prev/next, or j/k on the board
+   or list underneath) loads the next issue — sitting on top is enough to
+   block interaction with it too, no separate `pointer-events` needed. */
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklab, var(--surface-container-low) 65%, transparent);
+}
+
+.loadingSpinner {
+  color: var(--on-surface-variant);
+  animation: detailLoadingSpin 0.8s linear infinite;
+}
+
+@keyframes detailLoadingSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loadingSpinner { animation: none; }
+}
+
 .body {
   display: flex;
   flex: 1 1 auto;

@@ -28,6 +28,8 @@ interface TableBaseProps<T> {
   rowOverlay?: (row: T) => ReactNode;
   /** Permanently highlights a row, e.g. the currently open object. */
   isRowActive?: (row: T) => boolean;
+  /** The keyboard cursor (j/k/arrows) — independent of `isRowActive`. */
+  isRowFocused?: (row: T) => boolean;
   /** Name of the table for screen readers. */
   label?: string;
   /** Fallback content when there's not a single row. */
@@ -127,6 +129,7 @@ export function Table<T>({
   getRowKey,
   rowOverlay,
   isRowActive,
+  isRowFocused,
   label,
   empty,
   footer,
@@ -336,6 +339,10 @@ export function Table<T>({
                   className={styles.row}
                   role="row"
                   data-active={isRowActive?.(row) || undefined}
+                  data-focused={isRowFocused?.(row) || undefined}
+                  // Queried by callers' own keyboard navigation to scroll
+                  // the focused row into view.
+                  data-row-key={getRowKey(row)}
                   {...(dnd ? dnd.row(row, section.id) : {})}
                 >
                   {columns.map((column, index) => (
