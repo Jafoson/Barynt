@@ -110,6 +110,19 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   // without it, every WebAuthn call (even just listing the provider) returns
   // an `ExperimentalFeatureNotEnabled` error.
   experimental: { enableWebAuthn: true },
+  // Passkeys are the app's normal, primary login method here, not an
+  // experiment we're trying out — silence Auth.js's own
+  // `experimental-webauthn` startup warning about it; every other warning
+  // code still goes through the default logger.
+  logger: {
+    warn(code) {
+      if (code === "experimental-webauthn") return;
+      console.warn(
+        `[auth][warn][${code}]`,
+        "Read more: https://warnings.authjs.dev",
+      );
+    },
+  },
   callbacks: {
     ...authConfig.callbacks,
     /**
