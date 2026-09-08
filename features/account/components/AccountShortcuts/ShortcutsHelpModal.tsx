@@ -40,26 +40,34 @@ export function ShortcutsHelpModal({ close }: ShortcutsHelpModalProps) {
   }, []);
 
   return (
-    <Modal width={440} className={styles.modal}>
+    <Modal width={900}>
       <ModalHeader
         title={t("nav.shortcuts")}
         onClose={close}
         closeLabel={t("actions.close")}
       />
-      <ModalBody ref={bodyRef} className={styles.body} tabIndex={0}>
-        {groups.map((group) => (
-          <section key={group.title} className={styles.group}>
-            <h3 className={styles.groupTitle}>{group.title}</h3>
-            <ul className={styles.rows}>
-              {group.rows.map((row) => (
-                <li key={row.id} className={styles.row}>
-                  <span className={styles.label}>{row.label}</span>
-                  <Shortcut keys={row.keys} />
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+      <ModalBody ref={bodyRef} tabIndex={0}>
+        {/* A fresh class on a child of `ModalBody`, not `ModalBody`'s own
+            `className` prop: that prop lands on the same element as
+            `Modal.module.scss`'s own `.body` (`display: flex`), which
+            fights a multi-column layout for the same property — put here
+            instead, `.columns` is its own element with nothing else
+            targeting it, so there's nothing to `!important` its way past. */}
+        <div className={styles.columns}>
+          {groups.map((group) => (
+            <section key={group.title} className={styles.group}>
+              <h3 className={styles.groupTitle}>{group.title}</h3>
+              <ul className={styles.rows}>
+                {group.rows.map((row) => (
+                  <li key={row.id} className={styles.row}>
+                    <span className={styles.label}>{row.label}</span>
+                    <Shortcut keys={row.keys} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       </ModalBody>
     </Modal>
   );

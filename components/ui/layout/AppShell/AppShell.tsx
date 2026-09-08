@@ -1,6 +1,8 @@
 import { Toast } from "@/components/ui/atoms/Toast/Toast";
 import { Sidebar } from "@/components/ui/layout/Sidebar/Sidebar";
 import { ShortcutsHelpTrigger } from "@/features/account/components/AccountShortcuts/ShortcutsHelpTrigger";
+import { CommandPaletteTrigger } from "@/features/issues/components/CommandPalette/CommandPaletteTrigger";
+import { GoToShortcuts } from "@/features/workspaces/components/GoToShortcuts/GoToShortcuts";
 import { DockOutlet, ModalOutlet } from "@/lib/context";
 import { TabBar } from "../TabBar/TabBar";
 import styles from "./appShell.module.scss";
@@ -28,6 +30,10 @@ function Shell({ children, isAdminRoute }: AppShellProps) {
       <ModalOutlet />
       {/* Global "?" → shortcuts help. Renders nothing itself. */}
       <ShortcutsHelpTrigger />
+      {/* Global "g" + letter → jump to a main view. Renders nothing itself. */}
+      <GoToShortcuts isAdminRoute={isAdminRoute} />
+      {/* Global "mod+k" → search/jump palette (issues, projects, nav). */}
+      <CommandPaletteTrigger isAdminRoute={isAdminRoute} />
       <Toast />
     </div>
   );

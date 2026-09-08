@@ -16,6 +16,16 @@
   &:hover:not(:disabled)::after { opacity: var(--opacity-hover); }
   &:focus-visible:not(:disabled)::after { opacity: var(--opacity-focus); }
   &:active:not(:disabled)::after { opacity: var(--opacity-active); }
+  /* The `::after` tint above is this button's own focus indicator —
+     without this, the global `:focus-visible` outline reset
+     (`styles/globals.scss`) still draws its own ring on top of it too,
+     unopposed, and — inside a scrolling nav list or similar — gets clipped
+     at the edges instead of rendering as a clean ring. `!important`: a
+     bare `:focus-visible` ties this selector's specificity, so without it
+     the loser depends on CSS module load order rather than always being
+     the global rule (same fix already applied to `SelectMenu`'s items,
+     `BoardCard`, `ModalFrame`, and `DockPanel`). */
+  &:focus-visible { outline: none !important; }
 
   &:active:not(:disabled) { transform: translateY(1px); }
   &:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; pointer-events: none; }

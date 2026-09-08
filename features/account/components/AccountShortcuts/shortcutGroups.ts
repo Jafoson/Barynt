@@ -43,6 +43,12 @@ export function shortcutGroups(t: Translator): ShortcutGroup[] {
           keys: "c",
         },
         {
+          id: "palette",
+          label: t("account.shortcutPalette"),
+          desc: t("account.shortcutPaletteDesc"),
+          keys: "mod+k",
+        },
+        {
           id: "close-dialog",
           label: t("account.shortcutCloseDialog"),
           keys: "esc",
@@ -51,6 +57,79 @@ export function shortcutGroups(t: Translator): ShortcutGroup[] {
           id: "help",
           label: t("account.shortcutHelp"),
           keys: "?",
+        },
+      ],
+    },
+    {
+      title: t("account.shortcutsGoTo"),
+      rows: [
+        {
+          id: "goto-dashboard",
+          label: t("account.shortcutGoToDashboard"),
+          keys: "g+d",
+        },
+        {
+          id: "goto-my-issues",
+          label: t("account.shortcutGoToMyIssues"),
+          keys: "g+i",
+        },
+        {
+          id: "goto-projects",
+          label: t("account.shortcutGoToProjects"),
+          keys: "g+p",
+        },
+        {
+          id: "goto-members",
+          label: t("account.shortcutGoToMembers"),
+          desc: t("account.shortcutGoToMembersDesc"),
+          keys: "g+m",
+        },
+        {
+          id: "goto-teams",
+          label: t("account.shortcutGoToTeams"),
+          keys: "g+t",
+        },
+        {
+          id: "goto-settings",
+          label: t("account.shortcutGoToSettings"),
+          desc: t("account.shortcutGoToSettingsDesc"),
+          keys: "g+s",
+        },
+        {
+          id: "goto-board",
+          label: t("account.shortcutGoToBoard"),
+          desc: t("account.shortcutGoToProjectDesc"),
+          keys: "g+b",
+        },
+        {
+          id: "goto-list",
+          label: t("account.shortcutGoToList"),
+          desc: t("account.shortcutGoToProjectDesc"),
+          keys: "g+l",
+        },
+        {
+          id: "goto-project-overview",
+          label: t("account.shortcutGoToProjectOverview"),
+          desc: t("account.shortcutGoToProjectDesc"),
+          keys: "g+o",
+        },
+        {
+          id: "goto-project-prev",
+          label: t("account.shortcutGoToProjectPrev"),
+          desc: t("account.shortcutGoToProjectCycleDesc"),
+          keys: "[",
+        },
+        {
+          id: "goto-project-next",
+          label: t("account.shortcutGoToProjectNext"),
+          desc: t("account.shortcutGoToProjectCycleDesc"),
+          keys: "]",
+        },
+        {
+          id: "goto-project-number",
+          label: t("account.shortcutGoToProjectNumber"),
+          desc: t("account.shortcutGoToProjectNumberDesc"),
+          keys: "mod+1",
         },
       ],
     },

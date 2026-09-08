@@ -109,6 +109,82 @@ export function useShortcut(
   }, [spec, enabled, allowInEditable]);
 }
 
+interface UseShortcutSequenceOptions {
+  enabled?: boolean;
+  /** How long the prefix key stays "armed" before it's forgotten. */
+  windowMs?: number;
+}
+
+/**
+ * A two-key sequence: press `prefixKey`, then within `windowMs` press one of
+ * `bindings`' keys to fire its handler — the Gmail/Linear "go to" pattern
+ * ("g" then "d" for the dashboard, "g" then "i" for your issues, …).
+ * `useShortcut` only ever matches one keydown (plus held modifiers); this
+ * is the small piece on top of it for a prefix key instead.
+ *
+ * Any other key, or a plain repeat of the prefix, cancels the armed state
+ * rather than re-arming or falling through — a mistyped second key
+ * shouldn't silently wait around for a third. Modifier combinations never
+ * arm or match here (`mod`/`shift`/`alt`, or `metaKey`/`ctrlKey` bare):
+ * this is for bare letters only, same restriction `useShortcut` already
+ * applies to a single bare key. `isEditableTarget` gates it the same way
+ * too — typing "g" in a text field must never arm anything.
+ *
+ * Bindings live in a ref and are refreshed after every render, same as
+ * `useShortcut`'s handler — the `document` listener itself only needs
+ * re-attaching when `prefixKey`/`enabled`/`windowMs` change.
+ */
+export function useShortcutSequence(
+  prefixKey: string,
+  bindings: Record<string, () => void>,
+  { enabled = true, windowMs = 1000 }: UseShortcutSequenceOptions = {},
+) {
+  const bindingsRef = useRef(bindings);
+  useEffect(() => {
+    bindingsRef.current = bindings;
+  });
+
+  useEffect(() => {
+    if (!enabled) return;
+    const prefix = prefixKey.toLowerCase();
+    let armed = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const disarm = () => {
+      armed = false;
+      clearTimeout(timer);
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (isEditableTarget(e.target)) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (e.key.length !== 1) return;
+      const key = e.key.toLowerCase();
+
+      if (armed) {
+        disarm();
+        const handler = bindingsRef.current[key];
+        if (handler) {
+          e.preventDefault();
+          handler();
+        }
+        return;
+      }
+
+      if (key === prefix) {
+        armed = true;
+        timer = setTimeout(disarm, windowMs);
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      clearTimeout(timer);
+    };
+  }, [prefixKey, enabled, windowMs]);
+}
+
 /**
  * Fires a bare key (no modifiers) as if it had been pressed — for a button
  * that should do exactly what its keyboard equivalent already does,

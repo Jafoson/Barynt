@@ -1,33 +1,57 @@
-// The scroll container (`ModalBody`) is the actual keyboard-focus target
-// (see ShortcutsHelpModal.tsx) — the browser's default ring would only
-// wrap that inner box, cutting the header off. `:focus-within` on the
-// modal frame itself shows the ring around the *whole* dialog instead
-// (that div already carries `.modal`'s full corner radius on all four
-// sides), while the real DOM focus — needed for arrow keys/Page Down to
-// scroll — stays put on the body underneath. Scoped to this one modal via
-// its own class, not `.modal` itself: that class is shared by every
-// dialog in the app, and most of them focus a real form field, where a
-// ring around the entire frame in addition to the field's own would be
-// visual noise, not this modal's problem to solve.
-.modal {
-  &:focus-within {
-    outline: 2px solid var(--tertiary);
-    outline-offset: 2px;
-  }
-}
+// No focus ring at all here, on the frame or the body: `Modal.module.scss`'s
+// own `.body:focus-visible { outline: none !important; }` already covers
+// the scroll container this modal focuses on open (see
+// `ShortcutsHelpModal.tsx`) — nothing extra to add for this one modal.
+//
+// `.columns` is a plain child of `ModalBody`, deliberately not a class
+// passed into `ModalBody` itself: that prop lands on the very element
+// `Modal.module.scss` already puts `display: flex` on, which flex-out-
+// competes a multi-column layout for the same property no matter how many
+// `!important`s pile onto it — worth the one extra wrapper element to
+// sidestep entirely rather than fight.
+.columns {
+  // Groups flow into two columns instead of one long stack — this list
+  // grew past a dozen groups, and a single column meant a lot of
+  // scrolling to see shortcuts that could otherwise sit side by side.
+  //
+  // A fixed `column-count: 2`, not a minimum column *width*: the latter
+  // left the browser to decide how many columns fit at its own
+  // discretion, and at this dialog's actual width that came out to
+  // three uneven ones — the last one-row group stranded on its own at
+  // the edge with no real gap before it. Two, always, down to exactly one
+  // below the breakpoint instead — deliberate, not left to a formula that
+  // guessed wrong once already.
+  columns: 2;
+  // Wide enough that the rule line doesn't read as sitting right on top
+  // of either column's text — `.row` already pushes its own content
+  // (label vs. badge) out to both edges of the column, so a narrow gap
+  // here compounds the cramped feeling before it even gets to the line.
+  column-gap: 64px;
+  // A visible seam in the gap, not just spacing — the same border color
+  // `.row` already uses between individual shortcuts.
+  column-rule: 1px solid var(--outline-variant);
 
-.body {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  // Suppressed here — the ring lives on `.modal` (`:focus-within`) instead.
-  outline: none;
+  // Below this, two columns at this dialog's own width (`max-width:
+  // calc(100vw - 32px)`, `Modal.module.scss`) would be too narrow to read
+  // comfortably — back to the single stack from before.
+  @media (max-width: 700px) {
+    columns: 1;
+  }
 }
 
 .group {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  // Multi-column layout has no cross-column "don't split this" other than
+  // this — without it, a group's rows could get cut in half at a column
+  // break, with its title on one side and half its rows on the other.
+  break-inside: avoid;
+  margin-bottom: 20px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .groupTitle {

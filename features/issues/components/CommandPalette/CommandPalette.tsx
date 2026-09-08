@@ -4,12 +4,18 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { StatusIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import type { Translator } from "@/i18n/types";
+import { modKey } from "@/lib/a11y";
 import { type NavLabelKey, WORKSPACE_SECTIONS, workspacePath } from "@/lib/nav";
 import type { Project, SearchableIssue, Status } from "@/types";
 import styles from "./commandPalette.module.scss";
+
+/** How many leading results get a `mod+N` quick-select badge — one digit
+ *  row, same as Raycast's own numbered favorites. */
+const QUICK_SELECT_COUNT = 9;
 
 interface NavEntry {
   href: string;
@@ -19,7 +25,7 @@ interface NavEntry {
 
 // Which WORKSPACE_SECTIONS entries show up as "go to" results, and the
 // (differently-phrased) palette label for each — icon/href still come from
-// lib/nav.ts so they can't drift from the Sidebar/TabBar.
+// lib/nav.ts so they can't drift from the Sidebar.
 const PALETTE_GOTO: [NavLabelKey, (t: Translator) => string][] = [
   ["myIssues", (t) => t("palette.goto.my")],
   ["inbox", (t) => t("palette.goto.inbox")],
@@ -28,6 +34,13 @@ const PALETTE_GOTO: [NavLabelKey, (t: Translator) => string][] = [
   ["settings", (t) => t("palette.goto.settings")],
 ];
 
+interface CommandEntry {
+  id: string;
+  label: (t: Translator) => string;
+  icon: string;
+  run: () => void;
+}
+
 interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
@@ -35,6 +48,11 @@ interface CommandPaletteProps {
   projects: Project[];
   statuses: Status[];
   searchIssues: SearchableIssue[];
+  /** Absent wherever the action itself isn't available (e.g. nowhere left
+   *  to create an issue) — the row simply doesn't exist then, rather than
+   *  existing and doing nothing. */
+  onNewIssue?: () => void;
+  onShowShortcuts?: () => void;
 }
 
 export function CommandPalette({
@@ -44,6 +62,8 @@ export function CommandPalette({
   projects,
   statuses,
   searchIssues,
+  onNewIssue,
+  onShowShortcuts,
 }: CommandPaletteProps) {
   const t = useTranslations();
   const router = useRouter();
@@ -63,6 +83,32 @@ export function CommandPalette({
     };
   });
 
+  // Actual actions, not places to go — a real command palette's whole
+  // point, not just a jump list. Each only exists as an entry once its
+  // handler does (see `CommandPaletteProps`).
+  const COMMAND_ENTRIES: CommandEntry[] = [
+    ...(onNewIssue
+      ? [
+          {
+            id: "new-issue",
+            label: (t: Translator) => t("palette.newIssue"),
+            icon: "lucide:plus",
+            run: onNewIssue,
+          },
+        ]
+      : []),
+    ...(onShowShortcuts
+      ? [
+          {
+            id: "show-shortcuts",
+            label: (t: Translator) => t("palette.showShortcuts"),
+            icon: "lucide:keyboard",
+            run: onShowShortcuts,
+          },
+        ]
+      : []),
+  ];
+
   useEffect(() => {
     if (open) {
       setQ("");
@@ -73,18 +119,21 @@ export function CommandPalette({
 
   const lq = q.toLowerCase();
 
+  const commandHits = COMMAND_ENTRIES.filter((c) =>
+    c.label(t).toLowerCase().includes(lq),
+  );
   const navHits = NAV_ENTRIES.filter((e) =>
     e.label(t).toLowerCase().includes(lq),
   );
-  const boardHits = projects
-    .filter((p) => p.name.toLowerCase().includes(lq) || "board".includes(lq))
-    .map((p) => ({
-      href: `${base}/project/${p.slug}`,
-      label: () => p.name,
-      icon: "lucide:layout-dashboard",
-    }));
-
-  const allNavHits = [...navHits, ...boardHits];
+  // Own group, own row shape: a project is an entity with its own color/
+  // image (the same `Avatar` the Sidebar's own project rows use, `shape=
+  // "square"`), not a generic destination — mixing it into `navHits` under
+  // one hardcoded icon was both visually flat and, once there were more
+  // than a couple of projects, harder to scan than the fixed five-item nav
+  // list it was buried in.
+  const boardHits = projects.filter(
+    (p) => p.name.toLowerCase().includes(lq) || "board".includes(lq),
+  );
 
   const issueHits = searchIssues
     .filter((i) => {
@@ -98,7 +147,15 @@ export function CommandPalette({
     .slice(0, 6);
 
   type ResultItem =
+    | {
+        kind: "command";
+        id: string;
+        label: string;
+        icon: string;
+        run: () => void;
+      }
     | { kind: "nav"; href: string; label: string; icon: string }
+    | { kind: "board"; href: string; project: Project }
     | {
         kind: "issue";
         id: string;
@@ -108,11 +165,23 @@ export function CommandPalette({
       };
 
   const results: ResultItem[] = [
-    ...allNavHits.map((e) => ({
+    ...commandHits.map((c) => ({
+      kind: "command" as const,
+      id: c.id,
+      label: c.label(t),
+      icon: c.icon,
+      run: c.run,
+    })),
+    ...navHits.map((e) => ({
       kind: "nav" as const,
       href: e.href,
       label: e.label(t),
       icon: e.icon,
+    })),
+    ...boardHits.map((p) => ({
+      kind: "board" as const,
+      href: `${base}/project/${p.slug}`,
+      project: p,
     })),
     ...issueHits.map((i) => ({
       kind: "issue" as const,
@@ -123,8 +192,29 @@ export function CommandPalette({
     })),
   ];
 
+  // `modKey()` reads `navigator`, so it's client-only — safe to call
+  // directly at render time here (unlike `Shortcut.tsx`'s own two-pass
+  // correction): this whole component returns `null` while `open` is
+  // false, so it never actually paints during SSR/hydration, only after a
+  // client-side interaction opens it.
+  const mod = modKey();
+  // Projects only, not every result: the whole point is jumping straight
+  // to a board by its position — a command or an issue doesn't have a
+  // stable "position" the same way (a shortcut key drifting to a
+  // different action every time the query changes would be worse than not
+  // having one).
+  const quickSelectBadge = (idx: number) =>
+    idx < QUICK_SELECT_COUNT ? (
+      <span className="kbd" style={{ marginLeft: "auto" }}>
+        {mod}
+        {idx + 1}
+      </span>
+    ) : null;
+
   const select = (item: ResultItem) => {
-    if (item.kind === "nav") {
+    if (item.kind === "command") {
+      item.run();
+    } else if (item.kind === "nav" || item.kind === "board") {
       router.push(item.href);
     } else {
       router.push(`${pathname}?issue=${item.identifier}`, { scroll: false });
@@ -135,14 +225,14 @@ export function CommandPalette({
   if (!open) return null;
 
   return createPortal(
-    <div className="orbit-overlay">
+    <div className={styles.overlay}>
       <button
         type="button"
-        className="orbit-backdrop"
+        className={styles.backdrop}
         aria-label="Close"
         onClick={onClose}
       />
-      <div className="orbit-cmd">
+      <div className={styles.panel}>
         <div className={styles.inputWrap}>
           <Icon icon="lucide:search" width={16} className="faint" />
           <input
@@ -165,6 +255,22 @@ export function CommandPalette({
               }
               if (e.key === "Enter" && results[cursor]) select(results[cursor]);
               if (e.key === "Escape") onClose();
+              // "mod+1".."mod+9" jump straight to that project's board —
+              // Raycast's own pattern for its numbered favorites, scoped to
+              // the Projects group specifically (see `quickSelectBadge`).
+              // Never a bare digit: this is a search box, so "1" alone has
+              // to keep typing "1".
+              if ((e.metaKey || e.ctrlKey) && /^[1-9]$/.test(e.key)) {
+                const p = boardHits[Number(e.key) - 1];
+                if (p) {
+                  e.preventDefault();
+                  select({
+                    kind: "board",
+                    href: `${base}/project/${p.slug}`,
+                    project: p,
+                  });
+                }
+              }
             }}
           />
           <span className="kbd">ESC</span>
@@ -174,35 +280,94 @@ export function CommandPalette({
           {results.length === 0 && (
             <div className={styles.empty}>{t("empty.noResults", { q })}</div>
           )}
-          {allNavHits.length > 0 && (
+          {commandHits.length > 0 && (
             <>
-              <div className={styles.groupLabel}>{t("palette.navigation")}</div>
-              {allNavHits.map((e, idx) => (
+              <div className={styles.groupLabel}>{t("palette.commands")}</div>
+              {commandHits.map((c, idx) => (
                 <button
                   type="button"
-                  key={e.href}
+                  key={c.id}
                   className={`${styles.row}${idx === cursor ? ` ${styles.active}` : ""}`}
                   onMouseEnter={() => setCursor(idx)}
                   onClick={() =>
                     select({
-                      kind: "nav",
-                      href: e.href,
-                      label: e.label(t),
-                      icon: e.icon,
+                      kind: "command",
+                      id: c.id,
+                      label: c.label(t),
+                      icon: c.icon,
+                      run: c.run,
                     })
                   }
                 >
-                  <Icon icon={e.icon} width={15} />
-                  <span>{e.label(t)}</span>
+                  <Icon icon={c.icon} width={15} />
+                  <span>{c.label(t)}</span>
                 </button>
               ))}
+            </>
+          )}
+          {navHits.length > 0 && (
+            <>
+              <div className={styles.groupLabel}>{t("palette.navigation")}</div>
+              {navHits.map((e, idx) => {
+                const absIdx = commandHits.length + idx;
+                return (
+                  <button
+                    type="button"
+                    key={e.href}
+                    className={`${styles.row}${absIdx === cursor ? ` ${styles.active}` : ""}`}
+                    onMouseEnter={() => setCursor(absIdx)}
+                    onClick={() =>
+                      select({
+                        kind: "nav",
+                        href: e.href,
+                        label: e.label(t),
+                        icon: e.icon,
+                      })
+                    }
+                  >
+                    <Icon icon={e.icon} width={15} />
+                    <span>{e.label(t)}</span>
+                  </button>
+                );
+              })}
+            </>
+          )}
+          {boardHits.length > 0 && (
+            <>
+              <div className={styles.groupLabel}>{t("palette.projects")}</div>
+              {boardHits.map((p, idx) => {
+                const absIdx = commandHits.length + navHits.length + idx;
+                const href = `${base}/project/${p.slug}`;
+                return (
+                  <button
+                    type="button"
+                    key={p.id}
+                    className={`${styles.row}${absIdx === cursor ? ` ${styles.active}` : ""}`}
+                    onMouseEnter={() => setCursor(absIdx)}
+                    onClick={() => select({ kind: "board", href, project: p })}
+                  >
+                    <Avatar
+                      avatar={{
+                        name: p.name,
+                        color: p.color,
+                        image: p.avatarUrl ?? undefined,
+                      }}
+                      shape="square"
+                      size={17}
+                    />
+                    <span>{p.name}</span>
+                    {quickSelectBadge(idx)}
+                  </button>
+                );
+              })}
             </>
           )}
           {issueHits.length > 0 && (
             <>
               <div className={styles.groupLabel}>{t("palette.issues")}</div>
               {issueHits.map((i, idx) => {
-                const absIdx = allNavHits.length + idx;
+                const absIdx =
+                  commandHits.length + navHits.length + boardHits.length + idx;
                 const identifier = `${projects.find((p) => p.id === i.project)?.prefix ?? "?"}-${i.key}`;
                 return (
                   <button
@@ -245,6 +410,14 @@ export function CommandPalette({
             ↵
           </span>{" "}
           {t("palette.select")}
+          {boardHits.length > 0 && (
+            <>
+              <span className="kbd" style={{ marginLeft: 8 }}>
+                {mod}1-9
+              </span>{" "}
+              {t("palette.jump")}
+            </>
+          )}
           <span className="kbd" style={{ marginLeft: 8 }}>
             ESC
           </span>{" "}

@@ -93,6 +93,19 @@
   min-height: 0;
   padding: 16px var(--modal-pad-x);
   overflow-y: auto;
+  /* Only relevant when a caller passes `ref` (see the prop's own doc
+     comment) to make this the initial-focus landing spot for content with
+     nothing else focusable (e.g. `ShortcutsHelpModal`) — a plain scroll
+     container, not a control, so a ring around the whole thing on open
+     would be noise. `!important`: a bare `:focus-visible` ties this
+     selector's specificity, so without it, the loser depends on CSS
+     module load order rather than always being the global reset (same
+     fix already applied to `ModalFrame`'s `.comp`, `DockPanel`'s
+     `.panel`, `Button`'s `.btn`, `BoardCard`'s `.card`, and `SelectMenu`'s
+     `.menuItem`). */
+  &:focus-visible {
+    outline: none !important;
+  }
 }
 
 /* ---------- Toolbar ---------- */
