@@ -34,6 +34,7 @@ interface ChipProps extends Omit<React.HTMLAttributes<HTMLElement>, "onClick"> {
   onClick?: () => void;
   onRemove?: () => void;
   removeLabel?: string;
+  "data-field-nav"?: boolean;
 }
 
 export function Chip({

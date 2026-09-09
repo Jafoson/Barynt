@@ -191,7 +191,7 @@ export function PlatformWorkspaces({
       width: "minmax(130px, max-content)",
       sortValue: (row) => row.lastActivityAt,
       cell: (row) => (
-        <span className={styles.muted}>
+        <span className={styles.muted} suppressHydrationWarning>
           {row.lastActivityAt
             ? timeAgo(row.lastActivityAt.getTime())
             : t("platformWorkspaces.never")}

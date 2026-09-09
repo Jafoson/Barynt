@@ -3,7 +3,7 @@
 import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { ColorPicker } from "@/components/ui/atoms/ColorPicker/ColorPicker";
 import { Input } from "@/components/ui/atoms/Input/Input";
@@ -39,6 +39,7 @@ export function CreateProjectModal({
 }: CreateProjectModalProps) {
   const t = useTranslations();
   const router = useRouter();
+  const bodyRef = useRef<HTMLDivElement>(null);
   const [isPending, startTransition] = useTransition();
 
   const [name, setName] = useState("");
@@ -75,6 +76,60 @@ export function CreateProjectModal({
 
   useSubmitShortcut(submit);
 
+  // Moves focus to the next/previous `[data-field-nav]` field — name,
+  // description, prefix, the active color swatch, the active visibility
+  // segment — from wherever it currently is. Scoped to this modal's own
+  // body (not `document`, unlike the issue panel's own field-roving in
+  // `IssueDetailView.tsx`): opening this over an already-open issue panel
+  // leaves that panel's fields still in the DOM, just visually covered,
+  // and an unscoped query would rove into those too.
+  //
+  // Shared by the Up/Down listener below and `ColorPicker`'s `onConfirm`:
+  // Enter/Space on a swatch already picks it (native click), so from
+  // there "confirm" and "go to the next field" are the same action.
+  const moveFocus = useCallback(
+    (event: KeyboardEvent | null, direction: 1 | -1) => {
+      const fields = Array.from(
+        bodyRef.current?.querySelectorAll<HTMLElement>("[data-field-nav]") ??
+          [],
+      );
+      if (fields.length === 0) return;
+      const active = document.activeElement;
+      const index = fields.indexOf(active as HTMLElement);
+      const next =
+        index === -1
+          ? fields[direction === 1 ? 0 : fields.length - 1]
+          : fields[index + direction];
+      if (next) {
+        event?.preventDefault();
+        next.focus();
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+      if (document.querySelector("[data-popover-content]")) return;
+      const active = document.activeElement;
+      // A real, unmarked input keeps its arrow keys — only a marked field,
+      // or nothing in particular, is fair game.
+      if (
+        active instanceof HTMLElement &&
+        !active.matches("[data-field-nav]") &&
+        (active.tagName === "TEXTAREA" ||
+          active.tagName === "INPUT" ||
+          active.isContentEditable)
+      ) {
+        return;
+      }
+      moveFocus(event, event.key === "ArrowDown" ? 1 : -1);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [moveFocus]);
+
   return (
     <Modal>
       <ModalHeader
@@ -90,13 +145,16 @@ export function CreateProjectModal({
         closeLabel={t("actions.close")}
       />
 
-      <ModalBody className={styles.body}>
+      <ModalBody className={styles.body} ref={bodyRef}>
         <Input
           autoFocus
           label={t("placeholders.projectName")}
           placeholder="Web App"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          // Single-line — no second line for Up/Down to move the cursor to
+          // anyway, so the field-roving effect above is free to claim them.
+          data-field-nav
         />
 
         {/* The sentence that later appears next to the name in the project
@@ -107,6 +165,7 @@ export function CreateProjectModal({
           placeholder={t("projects.descPlaceholder")}
           value={desc}
           onChange={(e) => setDesc(e.target.value)}
+          data-field-nav
         />
 
         <div className={styles.prefixRow}>
@@ -122,12 +181,18 @@ export function CreateProjectModal({
               setPrefixTouched(true);
               setPrefix(suggestPrefix(e.target.value));
             }}
+            data-field-nav
           />
         </div>
 
         <div className={styles.field}>
           <span className={styles.label}>{t("fields.color")}</span>
-          <ColorPicker value={color} onChange={setColor} />
+          <ColorPicker
+            value={color}
+            onChange={setColor}
+            fieldNav
+            onConfirm={() => moveFocus(null, 1)}
+          />
         </div>
 
         {/* The choice is made here because it decides who gets enrolled:
@@ -143,6 +208,8 @@ export function CreateProjectModal({
             ]}
             value={visibility}
             onChange={(v) => setVisibility(v as ProjectVisibility)}
+            fieldNav
+            onConfirm={() => moveFocus(null, 1)}
           />
           <span className={styles.hint}>
             {visibility === "public"

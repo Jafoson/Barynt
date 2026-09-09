@@ -10,7 +10,7 @@ import { Modal } from "@/components/ui/layout/Modal/Modal";
 import { Resizer } from "@/components/ui/layout/Resizer/Resizer";
 import { issuePath } from "@/features/issues/issue-links";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
-import { getPathname } from "@/i18n/navigation";
+import { getPathname, useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { useHasOpenModal } from "@/lib/context";
 import type { PMDoc } from "@/lib/richtext/types";
@@ -136,8 +136,12 @@ function isRovable(active: Element | null): active is HTMLElement {
  *
  * Doesn't touch j/k, which live in Board.tsx/ListView.tsx and move the
  * *board's* cursor, not DOM focus — the two systems don't overlap.
+ *
+ * Exported: `IssueDetailPageView` (the standalone `/issue/[ref]` page)
+ * shares this same field set and wants the exact same roving behavior —
+ * only the surrounding shell (panel vs. page) differs.
  */
-function useFieldNav(hasOpenModal: boolean) {
+export function useFieldNav(hasOpenModal: boolean) {
   useEffect(() => {
     if (hasOpenModal) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -270,6 +274,7 @@ export function IssueDetailView({
   const hasOpenModal = useHasOpenModal();
   const { toast } = useUI();
   const locale = useLocale() as Locale;
+  const router = useRouter();
   useFieldNav(hasOpenModal);
 
   // Mirrors Linear's own bindings — a bare click target for either doesn't
@@ -298,6 +303,20 @@ export function IssueDetailView({
     },
     { enabled: !hasOpenModal, allowInEditable: true },
   );
+
+  // Same target as `OpenPageButton`, just from the keyboard — leaves the
+  // panel/dialog behind for the full page (its URL carries no `?issue=`,
+  // so `IssuePeek` simply stops rendering it once there).
+  useShortcut("o", () => router.push(issuePath(data.workspaceId, identifier)), {
+    enabled: !hasOpenModal,
+  });
+  // Panel <-> large dialog, both ways — the same toggle as the header's
+  // expand/collapse button, just from the keyboard. `onToggleExpanded` is
+  // optional in the type only for callers that have nothing to toggle;
+  // this component's one real caller (`IssuePeek`) always passes it.
+  useShortcut("e", () => onToggleExpanded?.(), {
+    enabled: !!onToggleExpanded && !hasOpenModal,
+  });
 
   return (
     <Modal

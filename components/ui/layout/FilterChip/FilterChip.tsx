@@ -20,6 +20,9 @@ interface FilterChipProps {
   onClear?: () => void;
   width?: number;
   maxWidth?: number;
+  /** Lets a surrounding field-roving handler (e.g. the create-issue
+   *  window) jump Up/Down to this chip like any other field. */
+  "data-field-nav"?: boolean;
   children: React.ReactNode | ((close: () => void) => React.ReactNode);
 }
 
@@ -38,6 +41,7 @@ export function FilterChip({
   onClear,
   width,
   maxWidth,
+  "data-field-nav": fieldNav,
   children,
 }: FilterChipProps) {
   const t = useTranslations();
@@ -56,6 +60,7 @@ export function FilterChip({
           trailing={<Icon icon="lucide:chevron-down" width={13} />}
           onRemove={active ? onClear : undefined}
           removeLabel={t("actions.clearFilter", { field: name })}
+          data-field-nav={fieldNav || undefined}
         >
           {label}
         </Chip>

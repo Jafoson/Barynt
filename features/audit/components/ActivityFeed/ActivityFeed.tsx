@@ -53,7 +53,7 @@ export function ActivityFeed({ entries, workspaceSlug }: Props) {
                   />
                 )}
               </span>
-              <span className={styles.meta}>
+              <span className={styles.meta} suppressHydrationWarning>
                 <Avatar
                   avatar={
                     entry.actorColor

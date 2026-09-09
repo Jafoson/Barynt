@@ -213,7 +213,9 @@ export function PlatformProjects({
       width: "minmax(120px, max-content)",
       sortValue: (row) => row.createdAt,
       cell: (row) => (
-        <span className={styles.muted}>{timeAgo(row.createdAt.getTime())}</span>
+        <span className={styles.muted} suppressHydrationWarning>
+          {timeAgo(row.createdAt.getTime())}
+        </span>
       ),
     },
     {

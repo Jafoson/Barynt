@@ -155,6 +155,7 @@ export function PendingInvitations({
         <time
           dateTime={row.createdAt.toISOString()}
           title={row.createdAt.toLocaleString()}
+          suppressHydrationWarning
         >
           {timeAgo(row.createdAt.getTime())}
         </time>

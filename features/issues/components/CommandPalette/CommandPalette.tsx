@@ -6,7 +6,9 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { StatusIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
-import { usePathname, useRouter } from "@/i18n/navigation";
+import { issuePath } from "@/features/issues/issue-links";
+import { getRecentIssueIdentifiers } from "@/features/issues/recent-issues";
+import { useRouter } from "@/i18n/navigation";
 import type { Translator } from "@/i18n/types";
 import { modKey } from "@/lib/a11y";
 import { type NavLabelKey, WORKSPACE_SECTIONS, workspacePath } from "@/lib/nav";
@@ -67,11 +69,12 @@ export function CommandPalette({
 }: CommandPaletteProps) {
   const t = useTranslations();
   const router = useRouter();
-  const pathname = usePathname();
   const base = `/${workspaceId}`;
   const [q, setQ] = useState("");
   const [cursor, setCursor] = useState(0);
+  const [recentIdentifiers, setRecentIdentifiers] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   const NAV_ENTRIES: NavEntry[] = PALETTE_GOTO.map(([labelKey, label]) => {
     const entry = WORKSPACE_SECTIONS.find((e) => e.labelKey === labelKey);
@@ -113,9 +116,20 @@ export function CommandPalette({
     if (open) {
       setQ("");
       setCursor(0);
+      setRecentIdentifiers(getRecentIssueIdentifiers());
       setTimeout(() => inputRef.current?.focus(), 30);
     }
   }, [open]);
+
+  // Arrow-key navigation moves `cursor` without touching scroll position,
+  // so once the list is taller than the viewport the active row can end up
+  // below the fold with no visual feedback that anything moved.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cursor drives which row carries styles.active, just not by name in the body
+  useEffect(() => {
+    resultsRef.current
+      ?.querySelector(`.${styles.active}`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [cursor]);
 
   const lq = q.toLowerCase();
 
@@ -135,16 +149,24 @@ export function CommandPalette({
     (p) => p.name.toLowerCase().includes(lq) || "board".includes(lq),
   );
 
-  const issueHits = searchIssues
-    .filter((i) => {
-      const prefix = projects.find((p) => p.id === i.project)?.prefix ?? "?";
-      const identifier = `${prefix}-${i.key}`;
-      return (
-        i.title.toLowerCase().includes(lq) ||
-        identifier.toLowerCase().includes(lq)
-      );
-    })
-    .slice(0, 6);
+  const identifierOf = (i: SearchableIssue) =>
+    `${projects.find((p) => p.id === i.project)?.prefix ?? "?"}-${i.key}`;
+
+  // No query yet: lead with what was actually opened before, not just
+  // whatever this workspace's most-recently-*edited* issues happen to be
+  // (searchIssues' own order) — those two aren't the same list.
+  const issueHits = lq
+    ? searchIssues
+        .filter(
+          (i) =>
+            i.title.toLowerCase().includes(lq) ||
+            identifierOf(i).toLowerCase().includes(lq),
+        )
+        .slice(0, 6)
+    : recentIdentifiers
+        .map((id) => searchIssues.find((i) => identifierOf(i) === id))
+        .filter((i): i is SearchableIssue => i !== undefined)
+        .slice(0, 6);
 
   type ResultItem =
     | {
@@ -172,23 +194,23 @@ export function CommandPalette({
       icon: c.icon,
       run: c.run,
     })),
+    ...boardHits.map((p) => ({
+      kind: "board" as const,
+      href: `${base}/project/${p.slug}`,
+      project: p,
+    })),
     ...navHits.map((e) => ({
       kind: "nav" as const,
       href: e.href,
       label: e.label(t),
       icon: e.icon,
     })),
-    ...boardHits.map((p) => ({
-      kind: "board" as const,
-      href: `${base}/project/${p.slug}`,
-      project: p,
-    })),
     ...issueHits.map((i) => ({
       kind: "issue" as const,
       id: i.id,
       title: i.title,
       status: i.status,
-      identifier: `${projects.find((p) => p.id === i.project)?.prefix ?? "?"}-${i.key}`,
+      identifier: identifierOf(i),
     })),
   ];
 
@@ -217,7 +239,7 @@ export function CommandPalette({
     } else if (item.kind === "nav" || item.kind === "board") {
       router.push(item.href);
     } else {
-      router.push(`${pathname}?issue=${item.identifier}`, { scroll: false });
+      router.push(issuePath(workspaceId, item.identifier));
     }
     onClose();
   };
@@ -276,7 +298,7 @@ export function CommandPalette({
           <span className="kbd">ESC</span>
         </div>
 
-        <div className={styles.results}>
+        <div className={styles.results} ref={resultsRef}>
           {results.length === 0 && (
             <div className={styles.empty}>{t("empty.noResults", { q })}</div>
           )}
@@ -305,38 +327,11 @@ export function CommandPalette({
               ))}
             </>
           )}
-          {navHits.length > 0 && (
-            <>
-              <div className={styles.groupLabel}>{t("palette.navigation")}</div>
-              {navHits.map((e, idx) => {
-                const absIdx = commandHits.length + idx;
-                return (
-                  <button
-                    type="button"
-                    key={e.href}
-                    className={`${styles.row}${absIdx === cursor ? ` ${styles.active}` : ""}`}
-                    onMouseEnter={() => setCursor(absIdx)}
-                    onClick={() =>
-                      select({
-                        kind: "nav",
-                        href: e.href,
-                        label: e.label(t),
-                        icon: e.icon,
-                      })
-                    }
-                  >
-                    <Icon icon={e.icon} width={15} />
-                    <span>{e.label(t)}</span>
-                  </button>
-                );
-              })}
-            </>
-          )}
           {boardHits.length > 0 && (
             <>
               <div className={styles.groupLabel}>{t("palette.projects")}</div>
               {boardHits.map((p, idx) => {
-                const absIdx = commandHits.length + navHits.length + idx;
+                const absIdx = commandHits.length + idx;
                 const href = `${base}/project/${p.slug}`;
                 return (
                   <button
@@ -362,13 +357,42 @@ export function CommandPalette({
               })}
             </>
           )}
+          {navHits.length > 0 && (
+            <>
+              <div className={styles.groupLabel}>{t("palette.navigation")}</div>
+              {navHits.map((e, idx) => {
+                const absIdx = commandHits.length + boardHits.length + idx;
+                return (
+                  <button
+                    type="button"
+                    key={e.href}
+                    className={`${styles.row}${absIdx === cursor ? ` ${styles.active}` : ""}`}
+                    onMouseEnter={() => setCursor(absIdx)}
+                    onClick={() =>
+                      select({
+                        kind: "nav",
+                        href: e.href,
+                        label: e.label(t),
+                        icon: e.icon,
+                      })
+                    }
+                  >
+                    <Icon icon={e.icon} width={15} />
+                    <span>{e.label(t)}</span>
+                  </button>
+                );
+              })}
+            </>
+          )}
           {issueHits.length > 0 && (
             <>
-              <div className={styles.groupLabel}>{t("palette.issues")}</div>
+              <div className={styles.groupLabel}>
+                {t(lq ? "palette.issues" : "palette.recentIssues")}
+              </div>
               {issueHits.map((i, idx) => {
                 const absIdx =
                   commandHits.length + navHits.length + boardHits.length + idx;
-                const identifier = `${projects.find((p) => p.id === i.project)?.prefix ?? "?"}-${i.key}`;
+                const identifier = identifierOf(i);
                 return (
                   <button
                     type="button"

@@ -71,7 +71,7 @@ export default async function NavGroupProjects() {
       <div className={styles.titleWrapper}>
         <span>{t("settings.projects")}</span>
         {access.has("project.create") && (
-          <NewProjectButton workspaceId={workspace.id} compact />
+          <NewProjectButton workspaceId={workspace.id} compact shortcut />
         )}
       </div>
       <div className={styles.projectTabsWrapper}>

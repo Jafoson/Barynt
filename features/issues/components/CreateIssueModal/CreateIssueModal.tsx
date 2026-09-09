@@ -34,6 +34,7 @@ import { LabelPickerMenu } from "@/features/issues/components/LabelPickerMenu/La
 import type { IssueComposerData } from "@/features/issues/types";
 import { emptyDoc } from "@/lib/richtext/doc";
 import type { PMDoc } from "@/lib/richtext/types";
+import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import { fullName } from "@/lib/utils/string";
 import { useSubmitShortcut } from "@/lib/utils/useSubmitShortcut";
 import type { Label } from "@/types";
@@ -65,6 +66,8 @@ export function CreateIssueModal({
   const t = useTranslations();
   const router = useRouter();
   const titleRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
 
   /**
    * Focus belongs in the title field when the modal opens.
@@ -123,6 +126,80 @@ export function CreateIssueModal({
       }),
     );
   };
+
+  const jumpToProject = (index: number) => {
+    const target = creatableProjects[index];
+    if (target) changeProject(target.id);
+  };
+
+  // "Strg/Cmd+1".."9" jump straight to that project — same convention as
+  // the command palette's own quick-select for boards. A fixed run of
+  // calls, not a loop: nine is the ceiling either way (`QUICK_SELECT_COUNT`
+  // there), and Rules of Hooks needs a stable call count regardless.
+  // `allowInEditable`: the title is focused by default when the modal
+  // opens, and Ctrl/Cmd+digit isn't a text-editing shortcut any browser
+  // uses bare — same reasoning as the issue panel's own mod+./mod+shift+,.
+  const jumpOpts = { allowInEditable: true };
+  useShortcut("mod+1", () => jumpToProject(0), jumpOpts);
+  useShortcut("mod+2", () => jumpToProject(1), jumpOpts);
+  useShortcut("mod+3", () => jumpToProject(2), jumpOpts);
+  useShortcut("mod+4", () => jumpToProject(3), jumpOpts);
+  useShortcut("mod+5", () => jumpToProject(4), jumpOpts);
+  useShortcut("mod+6", () => jumpToProject(5), jumpOpts);
+  useShortcut("mod+7", () => jumpToProject(6), jumpOpts);
+  useShortcut("mod+8", () => jumpToProject(7), jumpOpts);
+  useShortcut("mod+9", () => jumpToProject(8), jumpOpts);
+
+  // Up/Down between the modal's fields: the title, the description preview
+  // (`[data-field-nav]` from `EditableRichText` once it isn't being edited),
+  // and the type/status/priority/assignee/label chips in the toolbar below.
+  // Scoped to this modal's own body/toolbar (not `document`, unlike the
+  // issue panel's own field-roving in `IssueDetailView.tsx`): opening this
+  // modal over an already-open side panel leaves that panel's fields still
+  // in the DOM, just visually covered, and an unscoped query would rove
+  // into those too.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+      // An open dropdown (type/status/… itself, or the project switcher)
+      // owns Up/Down outright while it's open.
+      if (document.querySelector("[data-popover-content]")) return;
+      const fields = [
+        ...(bodyRef.current?.querySelectorAll<HTMLElement>(
+          "[data-field-nav]",
+        ) ?? []),
+        ...(toolbarRef.current?.querySelectorAll<HTMLElement>(
+          "[data-field-nav]",
+        ) ?? []),
+      ];
+      if (fields.length === 0) return;
+      const active = document.activeElement;
+      // A real, unmarked input/textarea/contentEditable (the description
+      // once you're actually typing) keeps its arrow keys for the cursor —
+      // only a marked field, or nothing in particular, is fair game.
+      if (
+        active instanceof HTMLElement &&
+        !active.matches("[data-field-nav]") &&
+        (active.tagName === "TEXTAREA" ||
+          active.tagName === "INPUT" ||
+          active.isContentEditable)
+      ) {
+        return;
+      }
+      const goingDown = event.key === "ArrowDown";
+      const index = fields.indexOf(active as HTMLElement);
+      const next =
+        index === -1
+          ? fields[goingDown ? 0 : fields.length - 1]
+          : fields[index + (goingDown ? 1 : -1)];
+      if (next) {
+        event.preventDefault();
+        next.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const statusName = (id: string) =>
     statuses.find((s) => s.id === id)?.name ?? id;
@@ -234,7 +311,7 @@ export function CreateIssueModal({
         closeLabel={t("actions.close")}
       />
 
-      <ModalBody>
+      <ModalBody ref={bodyRef}>
         <Input
           appearance="title"
           ref={titleRef}
@@ -245,6 +322,9 @@ export function CreateIssueModal({
           onKeyDown={(e) => {
             if (e.key === "Enter") e.currentTarget.blur();
           }}
+          // Single-line — no second line for Up/Down to move the cursor to
+          // anyway, so the field-roving effect above is free to claim them.
+          data-field-nav
         />
         {/* Idle state is the committed text (or the placeholder) — the editor
             with its toolbar only appears once clicked into. No check/cross
@@ -267,13 +347,14 @@ export function CreateIssueModal({
       {/* Type, status, and priority are required fields — they always carry a
           value, so they stay neutral and get no clear button. Assignee and
           labels are optional and stand out once set. */}
-      <ModalToolbar>
+      <ModalToolbar ref={toolbarRef}>
         <FilterChip
           name={t("fields.type")}
           label={typeName(type)}
           icon={<TypeIcon type={type} size={14} color={typeColor(type)} />}
           active={false}
           width={190}
+          data-field-nav
         >
           {(closeMenu) => (
             <SelectMenu
@@ -300,6 +381,7 @@ export function CreateIssueModal({
           }
           active={false}
           width={200}
+          data-field-nav
         >
           {(closeMenu) => (
             <SelectMenu
@@ -324,6 +406,7 @@ export function CreateIssueModal({
           icon={<PriorityIcon priority={priority} size={14} />}
           active={false}
           width={190}
+          data-field-nav
         >
           {(closeMenu) => (
             <SelectMenu
@@ -355,6 +438,7 @@ export function CreateIssueModal({
           active={!!assigneeUser}
           onClear={() => setAssignee(null)}
           width={220}
+          data-field-nav
         >
           {(closeMenu) => (
             <SelectMenu
@@ -388,6 +472,7 @@ export function CreateIssueModal({
           active={labels.length > 0}
           onClear={() => setLabels([])}
           maxWidth={320}
+          data-field-nav
         >
           {(closeMenu) => (
             <LabelPickerMenu

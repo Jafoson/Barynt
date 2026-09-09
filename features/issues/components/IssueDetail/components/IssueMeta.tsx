@@ -85,6 +85,7 @@ export function IssueMeta({ issue, data, layout }: IssueMetaProps) {
             dateStyle: "long",
             timeStyle: "short",
           })}
+          suppressHydrationWarning
         >
           {timeAgo(issue.updated)}
         </span>

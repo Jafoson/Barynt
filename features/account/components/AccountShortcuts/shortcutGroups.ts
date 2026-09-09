@@ -43,6 +43,11 @@ export function shortcutGroups(t: Translator): ShortcutGroup[] {
           keys: "c",
         },
         {
+          id: "new-project",
+          label: t("account.shortcutNewProject"),
+          keys: "n",
+        },
+        {
           id: "palette",
           label: t("account.shortcutPalette"),
           desc: t("account.shortcutPaletteDesc"),
@@ -176,6 +181,17 @@ export function shortcutGroups(t: Translator): ShortcutGroup[] {
           id: "copy-link",
           label: t("account.shortcutCopyLink"),
           keys: "mod+shift+,",
+        },
+        {
+          id: "open-page",
+          label: t("account.shortcutOpenPage"),
+          desc: t("account.shortcutOpenPageDesc"),
+          keys: "o",
+        },
+        {
+          id: "toggle-expand",
+          label: t("account.shortcutToggleExpand"),
+          keys: "e",
         },
       ],
     },

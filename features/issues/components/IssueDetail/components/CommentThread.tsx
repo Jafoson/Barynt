@@ -246,7 +246,9 @@ export function CommentThread({
           <span className={styles.commentAuthor}>
             {author ? fullName(author) : "—"}
           </span>
-          <span className={styles.commentTime}>{timeAgo(comment.time)}</span>
+          <span className={styles.commentTime} suppressHydrationWarning>
+            {timeAgo(comment.time)}
+          </span>
           {comment.updated && (
             <span className={styles.commentEdited}>{t("comments.edited")}</span>
           )}

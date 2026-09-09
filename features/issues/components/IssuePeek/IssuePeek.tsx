@@ -2,9 +2,11 @@
 
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { IssueDetail } from "@/features/issues/components/IssueDetail/IssueDetail";
 import { closeIssuePanel, ISSUE_PARAM } from "@/features/issues/issue-links";
+import { recordIssueOpened } from "@/features/issues/recent-issues";
 import type { IssueComposerData } from "@/features/issues/types";
 import { DockPanel, useDock } from "@/lib/context";
 import { useSessionFlag } from "@/lib/utils/useSessionFlag";
@@ -45,6 +47,10 @@ export function IssuePeek({ data }: IssuePeekProps) {
   const { node } = useDock();
   const [isExpanded, setExpanded] = useSessionFlag(EXPANDED_KEY);
   const issueRef = searchParams.get(ISSUE_PARAM);
+
+  useEffect(() => {
+    if (issueRef) recordIssueOpened(issueRef);
+  }, [issueRef]);
 
   if (!issueRef || !node) return null;
 

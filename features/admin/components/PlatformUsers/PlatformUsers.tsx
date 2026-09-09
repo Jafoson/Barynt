@@ -218,7 +218,7 @@ export function PlatformUsers({
       width: "minmax(130px, max-content)",
       sortValue: (row) => row.lastSeenAt,
       cell: (row) => (
-        <span className={styles.muted}>
+        <span className={styles.muted} suppressHydrationWarning>
           {row.lastSeenAt
             ? timeAgo(row.lastSeenAt.getTime())
             : t("platform.never")}

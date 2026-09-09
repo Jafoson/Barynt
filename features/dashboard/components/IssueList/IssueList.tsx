@@ -93,7 +93,9 @@ export function IssueList<T extends DashboardIssue>({
                 <span className={styles.noAvatar} aria-hidden="true" />
               )}
 
-              <span className={styles.time}>{timeAgo(issue.updated)}</span>
+              <span className={styles.time} suppressHydrationWarning>
+                {timeAgo(issue.updated)}
+              </span>
             </Link>
           </li>
         );

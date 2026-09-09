@@ -273,7 +273,9 @@ export function BoardCard({
       <div className={styles.footer}>
         <PriorityIcon priority={issue.priority} size={14} />
         <span className={styles.id}>{identifier}</span>
-        <span className={styles.time}>{timeAgo(issue.updated)}</span>
+        <span className={styles.time} suppressHydrationWarning>
+          {timeAgo(issue.updated)}
+        </span>
         {issue.comments.length > 0 && (
           <span className={styles.comments}>
             <Icon icon="lucide:message-square" width={12} aria-hidden="true" />

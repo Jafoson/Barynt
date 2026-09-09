@@ -585,6 +585,7 @@ export function AuditLog({
           className={styles.when}
           dateTime={row.createdAt.toISOString()}
           title={row.createdAt.toLocaleString()}
+          suppressHydrationWarning
         >
           {timeAgo(row.createdAt.getTime())}
         </time>

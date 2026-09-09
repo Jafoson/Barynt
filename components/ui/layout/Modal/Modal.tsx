@@ -79,6 +79,10 @@ export function ModalBody({
 interface ModalToolbarProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Divider above. Default: true. */
   divider?: boolean;
+  /** For a caller that needs to find its own children — e.g. the
+   *  create-issue window scoping its field-roving to this toolbar's
+   *  buttons. */
+  ref?: React.Ref<HTMLDivElement>;
 }
 
 /**
@@ -89,10 +93,12 @@ export function ModalToolbar({
   divider = true,
   className,
   children,
+  ref,
   ...rest
 }: ModalToolbarProps) {
   return (
     <div
+      ref={ref}
       className={[styles.toolbar, divider && styles.dividerAbove, className]
         .filter(Boolean)
         .join(" ")}

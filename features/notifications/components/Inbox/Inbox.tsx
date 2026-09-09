@@ -188,7 +188,9 @@ export function Inbox({ notifications, workspaceId, filter, statuses }: Props) {
                 <p className={styles.sentence}>{sentence(n)}</p>
                 {meta}
               </div>
-              <span className={styles.time}>{timeAgo(n.createdAt)}</span>
+              <span className={styles.time} suppressHydrationWarning>
+                {timeAgo(n.createdAt)}
+              </span>
             </>
           );
 

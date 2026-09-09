@@ -2,9 +2,14 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/atoms/Button/Button";
+import { issuePath } from "@/features/issues/issue-links";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
+import { useHasOpenModal } from "@/lib/context";
 import type { PMDoc } from "@/lib/richtext/types";
+import { useShortcut } from "@/lib/shortcuts/useShortcut";
+import { useUI } from "@/lib/ui-store";
 import type { IssueDetail, Project } from "@/types";
 import { IssueAttachments } from "./components/IssueAttachments";
 import { IssueComments } from "./components/IssueComments";
@@ -15,6 +20,7 @@ import {
 } from "./components/IssueDetailActions";
 import { IssueSidebar, PAGE_SIDEBAR_W } from "./components/IssueSidebar";
 import { IssueTitle } from "./components/IssueTitle";
+import { useFieldNav } from "./IssueDetailView";
 import styles from "./issueDetail.module.scss";
 
 interface IssueDetailPageViewProps {
@@ -51,10 +57,66 @@ export function IssueDetailPageView({
   onRefresh,
 }: IssueDetailPageViewProps) {
   const t = useTranslations();
+  const router = useRouter();
   const identifier = `${project?.prefix ?? "?"}-${issue.key}`;
   const backLabel = project
     ? t("nav.backToProject", { name: project.name })
     : t("nav.backToWorkspace");
+
+  const hasOpenModal = useHasOpenModal();
+  const { toast } = useUI();
+  useFieldNav(hasOpenModal);
+
+  // Prev/next within the same project, ordered by issue number — the page
+  // has no surrounding list or filter state of its own (unlike the panel,
+  // whose j/k reach the board/list underneath via `dispatchShortcut`), so
+  // this is the one order that's always available and always predictable
+  // regardless of how the issue was reached.
+  const siblings = data.searchIssues
+    .filter((i) => i.project === issue.project)
+    .sort((a, b) => a.key - b.key);
+  const siblingIndex = siblings.findIndex((i) => i.id === issue.id);
+  const prevSibling = siblingIndex > 0 ? siblings[siblingIndex - 1] : null;
+  const nextSibling =
+    siblingIndex !== -1 && siblingIndex < siblings.length - 1
+      ? siblings[siblingIndex + 1]
+      : null;
+
+  const goToSibling = (sibling: (typeof siblings)[number] | null) => {
+    if (!sibling) return;
+    router.push(
+      issuePath(data.workspaceId, `${project?.prefix ?? "?"}-${sibling.key}`),
+    );
+  };
+
+  useShortcut("k", () => goToSibling(prevSibling), {
+    enabled: !!prevSibling && !hasOpenModal,
+  });
+  useShortcut("j", () => goToSibling(nextSibling), {
+    enabled: !!nextSibling && !hasOpenModal,
+  });
+
+  // Same bindings as the side panel (`IssueDetailView.tsx`) — the page is
+  // just a different shell around the same issue, not a different set of
+  // things you can do with it. `window.location.href` stands in for
+  // `IssueDetailView`'s own `issuePath()` build: this page's URL already
+  // *is* the issue's canonical link, nothing to reconstruct.
+  useShortcut(
+    "mod+.",
+    () => {
+      navigator.clipboard.writeText(identifier);
+      toast(t("toast.copiedId", { id: identifier }));
+    },
+    { enabled: !hasOpenModal, allowInEditable: true },
+  );
+  useShortcut(
+    "mod+shift+<",
+    () => {
+      navigator.clipboard.writeText(window.location.href);
+      toast(t("toast.copiedLink"));
+    },
+    { enabled: !hasOpenModal, allowInEditable: true },
+  );
 
   return (
     <article className={styles.page}>
@@ -84,6 +146,26 @@ export function IssueDetailPageView({
         </nav>
 
         <div className={styles.pageActions}>
+          <span className={styles.navArrows}>
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon="lucide:chevron-up" width={15} />}
+              aria-label={t("actions.previousIssue")}
+              title={t("actions.previousIssue")}
+              disabled={!prevSibling}
+              onClick={() => goToSibling(prevSibling)}
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<Icon icon="lucide:chevron-down" width={15} />}
+              aria-label={t("actions.nextIssue")}
+              title={t("actions.nextIssue")}
+              disabled={!nextSibling}
+              onClick={() => goToSibling(nextSibling)}
+            />
+          </span>
           {issue.access.canShare && (
             <ShareIssueButton
               issueId={issue.id}

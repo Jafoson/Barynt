@@ -345,7 +345,10 @@ export function IssueAttachments({
                 </button>
                 <div className={styles.attachmentTileCaption} title={a.name}>
                   <span>{a.name}</span>
-                  <span className={styles.attachmentTileSize}>
+                  <span
+                    className={styles.attachmentTileSize}
+                    suppressHydrationWarning
+                  >
                     {timeAgo(a.createdAt)}
                   </span>
                   {a.size != null && (
