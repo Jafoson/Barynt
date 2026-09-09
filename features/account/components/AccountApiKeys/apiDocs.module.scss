@@ -84,6 +84,11 @@
   color: var(--on-surface);
 }
 
+.pathCopy {
+  flex: none;
+  color: var(--on-surface-variant);
+}
+
 .scope {
   display: inline-flex;
   align-items: center;
@@ -91,6 +96,16 @@
   margin-left: auto;
   font-size: var(--text-xs);
   color: var(--on-surface-variant);
+}
+
+/* Roomier than `Badge`'s own `sm` (built for a tight numeric counter) — a
+   scope name or "Required" needs more breathing room than a single digit.
+   The doubled class beats `Badge`'s own rules regardless of which
+   stylesheet Next.js happens to inject last, without `!important`. */
+.chipRoomy.chipRoomy {
+  height: 22px;
+  padding: 0 9px;
+  font-size: var(--text-xs);
 }
 
 .endpointDesc {

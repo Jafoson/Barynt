@@ -987,6 +987,7 @@
     "docsPathParams": "Pfad-Parameter",
     "docsQueryParams": "Query-Parameter",
     "docsBodyParams": "Body-Parameter",
+    "docsRequestExample": "Request",
     "docsResponse": "Antwort",
     "docsRequired": "erforderlich",
     "docsErrorsTitle": "Fehler",

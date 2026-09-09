@@ -70,10 +70,13 @@ function mapUserRef(user: {
   return { id: user.id, name: fullName(user) };
 }
 
+/** A label as embedded in `ApiIssue.labels` — just enough to identify it.
+ *  Its color is a display detail of the label itself, not something an
+ *  issue's payload needs to carry; `GET .../labels` (`ApiLabelDetail`)
+ *  carries it for whoever's actually managing labels. */
 export interface ApiLabel {
   id: string;
   name: string;
-  color: string;
 }
 
 /**
@@ -93,7 +96,7 @@ async function resolveLabels(
 
   const rows = await db.label.findMany({
     where: { id: { in: ids } },
-    select: { id: true, name: true, color: true },
+    select: { id: true, name: true },
   });
   return new Map(rows.map((row) => [row.id, row]));
 }

@@ -27,6 +27,10 @@ export interface ApiDocEndpoint {
   pathParams?: ApiDocParam[];
   queryParams?: ApiDocParam[];
   bodyParams?: ApiDocParam[];
+  /** Pretty-printed JSON, exactly as a caller would send it — present
+   *  whenever `bodyParams` is, so the shape doesn't have to be assembled by
+   *  hand from the parameter table. */
+  requestExample?: string;
   /** Pretty-printed JSON, exactly as the route returns it. */
   response: string;
 }
@@ -89,6 +93,11 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
             desc: 'A hex color. Default "#6e63e6".',
           },
         ],
+        requestExample: `{
+  "name": "Acme Inc",
+  "slug": "acme",
+  "color": "#6e63e6"
+}`,
         response: `// 201 Created
 {
   "data": {
@@ -110,6 +119,11 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           { name: "color", type: "string", desc: "A hex color." },
           { name: "desc", type: "string", desc: "A one-sentence description." },
         ],
+        requestExample: `{
+  "name": "Acme Corp",
+  "color": "#3b7bd5",
+  "desc": "Product and marketing, together."
+}`,
         response: `{
   "data": { "id": "acme" }
 }`,
@@ -173,6 +187,13 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
             desc: 'A public project enrolls every workspace member. Default "public".',
           },
         ],
+        requestExample: `{
+  "name": "Website Relaunch",
+  "desc": "Marketing site rebuild for Q2.",
+  "prefix": "WEB",
+  "color": "#3b7bd5",
+  "visibility": "public"
+}`,
         response: `// 201 Created
 {
   "data": {
@@ -197,6 +218,13 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           { name: "color", type: "string", desc: "A hex color." },
           { name: "visibility", type: '"public" | "private"', desc: "" },
         ],
+        requestExample: `{
+  "name": "Website Relaunch 2.0",
+  "desc": "Now with a checkout redesign.",
+  "prefix": "WEB2",
+  "color": "#3b7bd5",
+  "visibility": "private"
+}`,
         response: `{
   "data": { "id": "proj_9f8e7d" }
 }`,
@@ -260,7 +288,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
       "priority": 2,
       "type": "bug",
       "labels": [
-        { "id": "l_9f2a1b", "name": "frontend", "color": "#3b7bd5" }
+        { "id": "l_9f2a1b", "name": "frontend" }
       ],
       "assignee": { "id": "u_7h3j2k", "name": "Priya Shah" },
       "reporter": { "id": "u_1a2b3c", "name": "Alex Kim" },
@@ -305,6 +333,15 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
             desc: 'An issue type key. Default "feature".',
           },
         ],
+        requestExample: `{
+  "title": "Fix broken checkout flow",
+  "description": "Checkout fails on Safari when the discount code field is empty.",
+  "status": "todo",
+  "priority": 2,
+  "assignee": "u_7h3j2k",
+  "labels": ["l_9f2a1b"],
+  "type": "bug"
+}`,
         response: `// 201 Created
 {
   "data": {
@@ -315,7 +352,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
     "priority": 2,
     "type": "feature",
     "labels": [
-      { "id": "l_9f2a1b", "name": "frontend", "color": "#3b7bd5" }
+      { "id": "l_9f2a1b", "name": "frontend" }
     ],
     "assignee": null,
     "reporter": { "id": "u_1a2b3c", "name": "Alex Kim" },
@@ -349,7 +386,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
     "priority": 2,
     "type": "bug",
     "labels": [
-      { "id": "l_9f2a1b", "name": "frontend", "color": "#3b7bd5" }
+      { "id": "l_9f2a1b", "name": "frontend" }
     ],
     "assignee": { "id": "u_7h3j2k", "name": "Priya Shah" },
     "reporter": { "id": "u_1a2b3c", "name": "Alex Kim" },
@@ -388,6 +425,15 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           { name: "labels", type: "string[]", desc: "Label ids." },
           { name: "type", type: "string", desc: "An issue type key." },
         ],
+        requestExample: `{
+  "title": "Fix broken checkout flow",
+  "description": "Checkout fails on Safari when the discount code field is empty.",
+  "status": "in_progress",
+  "priority": 2,
+  "assignee": "u_7h3j2k",
+  "labels": ["l_9f2a1b"],
+  "type": "bug"
+}`,
         response: `{
   "data": { "id": "i_4k2n1x" }
 }`,
@@ -436,6 +482,10 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
             desc: "A comment id to reply to. Omit for a top-level comment.",
           },
         ],
+        requestExample: `{
+  "body": "Confirmed on Safari 17.",
+  "parentId": "c_1a2b3c"
+}`,
         response: `// 201 Created
 {
   "data": {
@@ -463,6 +513,9 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
             desc: "Markdown, converted server-side.",
           },
         ],
+        requestExample: `{
+  "body": "Confirmed on Safari 17 and 18."
+}`,
         response: `{
   "data": { "id": "c_5m9p3q" }
 }`,
@@ -520,6 +573,11 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
             desc: "Scope the label to a single project instead of the whole workspace.",
           },
         ],
+        requestExample: `{
+  "name": "frontend",
+  "color": "#3b7bd5",
+  "projectId": "proj_9f8e7d"
+}`,
         response: `// 201 Created
 {
   "data": {
@@ -541,6 +599,10 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           { name: "name", type: "string", desc: "" },
           { name: "color", type: "string", desc: "A hex color." },
         ],
+        requestExample: `{
+  "name": "frontend",
+  "color": "#e0992b"
+}`,
         response: `{
   "data": { "id": "l_9f2a1b" }
 }`,
@@ -601,7 +663,7 @@ export const API_DOC_WEBHOOK_EVENTS: ApiDocWebhookEvent[] = [
     "priority": 2,
     "type": "feature",
     "labels": [
-      { "id": "l_9f2a1b", "name": "frontend", "color": "#3b7bd5" }
+      { "id": "l_9f2a1b", "name": "frontend" }
     ],
     "assignee": null,
     "reporter": { "id": "u_1a2b3c", "name": "Alex Kim" },
@@ -627,7 +689,7 @@ export const API_DOC_WEBHOOK_EVENTS: ApiDocWebhookEvent[] = [
     "priority": 2,
     "type": "bug",
     "labels": [
-      { "id": "l_9f2a1b", "name": "frontend", "color": "#3b7bd5" }
+      { "id": "l_9f2a1b", "name": "frontend" }
     ],
     "assignee": { "id": "u_7h3j2k", "name": "Priya Shah" },
     "reporter": { "id": "u_1a2b3c", "name": "Alex Kim" },

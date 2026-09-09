@@ -43,7 +43,7 @@ function ParamList({
             <code className={styles.paramName}>{param.name}</code>
             <span className={styles.paramType}>{param.type}</span>
             {param.required && (
-              <Badge size="sm" mono={false}>
+              <Badge mono={false} className={styles.chipRoomy}>
                 {t("apiKeys.docsRequired")}
               </Badge>
             )}
@@ -85,9 +85,15 @@ function Endpoint({ endpoint }: { endpoint: ApiDocEndpoint }) {
           {endpoint.method}
         </span>
         <code className={styles.path}>{endpoint.path}</code>
+        <CopyButton
+          value={endpoint.path}
+          label={t("apiKeys.copyLabel")}
+          copiedLabel={t("apiKeys.copiedLabel")}
+          className={styles.pathCopy}
+        />
         <span className={styles.scope}>
           {t("apiKeys.docsScopeLabel")}
-          <Badge size="sm">{endpoint.scope}</Badge>
+          <Badge className={styles.chipRoomy}>{endpoint.scope}</Badge>
         </span>
       </header>
 
@@ -110,6 +116,15 @@ function Endpoint({ endpoint }: { endpoint: ApiDocEndpoint }) {
           title={t("apiKeys.docsBodyParams")}
           params={endpoint.bodyParams}
         />
+      )}
+
+      {endpoint.requestExample && (
+        <div className={styles.section}>
+          <span className={styles.sectionTitle}>
+            {t("apiKeys.docsRequestExample")}
+          </span>
+          <CodeBlock code={endpoint.requestExample} />
+        </div>
       )}
 
       <div className={styles.section}>

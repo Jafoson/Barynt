@@ -987,6 +987,7 @@
     "docsPathParams": "Path parameters",
     "docsQueryParams": "Query parameters",
     "docsBodyParams": "Body parameters",
+    "docsRequestExample": "Request",
     "docsResponse": "Response",
     "docsRequired": "required",
     "docsErrorsTitle": "Errors",

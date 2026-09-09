@@ -160,7 +160,7 @@ export function AccountApiKeys({ keys }: ApiKeysView) {
         </span>
         <span className={styles.keyScopes}>
           {key.scopes.map((scope) => (
-            <Badge key={scope} size="sm">
+            <Badge key={scope} className={styles.scopeChip}>
               {scope}
             </Badge>
           ))}
@@ -182,7 +182,10 @@ export function AccountApiKeys({ keys }: ApiKeysView) {
         ? timeAgo(key.lastUsedAt.getTime())
         : t("apiKeys.neverUsed"),
       status: (
-        <Badge size="sm" active={!key.revokedAt} mono={false}>
+        <Badge
+          mono={false}
+          className={key.revokedAt ? styles.scopeChip : styles.statusActiveChip}
+        >
           {key.revokedAt
             ? t("apiKeys.statusRevoked")
             : t("apiKeys.statusActive")}
