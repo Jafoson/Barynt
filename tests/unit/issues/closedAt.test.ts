@@ -37,12 +37,18 @@ function written() {
   return mockUpdate.mock.calls[0]?.[0]?.data as Record<string, unknown>;
 }
 
-/** The state of an issue, as `issueContext` reads it. */
+/** The state of an issue, as `issueContext` reads it — plus the
+ *  relation-shaped fields `getIssueUnchecked` needs for the webhook payload
+ *  it builds after every update (`key`/`project.prefix`/`reporter`/
+ *  `assignee`), read from the same mocked row via a different `select`. */
 function issue(status: string, closedAt: Date | null) {
   return {
+    key: 1,
     projectId: "p1",
     reporterId: "u1",
+    reporter: { id: "u1", firstName: "Rep", lastName: "Orter" },
     assigneeId: null,
+    assignee: null,
     status,
     priority: 2,
     type: "task",
@@ -50,7 +56,14 @@ function issue(status: string, closedAt: Date | null) {
     closedAt,
     title: "Titel",
     description: null,
-    project: { workspaceId: "ws1" },
+    project: {
+      id: "p1",
+      workspaceId: "ws1",
+      name: "Mobile",
+      slug: "mobile",
+      prefix: "MOB",
+      color: "#3b7bd5",
+    },
   };
 }
 

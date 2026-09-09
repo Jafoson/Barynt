@@ -5,8 +5,10 @@ import type {
   AccountConnectionsView,
   AccountProfileView,
   AccountSecurityView,
+  ApiKeysView,
   Preferences,
 } from "@/features/account/types";
+import type { ApiScope } from "@/lib/api/scopes";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { resolveAvatarUrl } from "@/lib/storage";
@@ -157,6 +159,33 @@ export const getMySecurity = cache(
     };
   },
 );
+
+/** This account's personal API keys, revoked ones included — shown as
+ *  revoked rather than dropped, so a key that's no longer usable doesn't
+ *  just silently disappear from the record. */
+export const getMyApiKeys = cache(async (): Promise<ApiKeysView | null> => {
+  const session = await getSession();
+  if (!session) return null;
+
+  const rows = await db.apiKey.findMany({
+    where: { userId: session.userId },
+    select: {
+      id: true,
+      name: true,
+      prefix: true,
+      scopes: true,
+      createdAt: true,
+      lastUsedAt: true,
+      expiresAt: true,
+      revokedAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return {
+    keys: rows.map((row) => ({ ...row, scopes: row.scopes as ApiScope[] })),
+  };
+});
 
 /** This account's third-party sign-in methods. */
 export const getMyConnections = cache(

@@ -128,6 +128,10 @@ export const PERMISSIONS = {
     desc: "Manage statuses, priorities, and issue types",
     scopes: WORKSPACE_ONLY,
   },
+  "webhook.manage": {
+    desc: "Create, edit, and delete the workspace's webhooks",
+    scopes: WORKSPACE_ONLY,
+  },
   // The same key in all three scopes, three slices of the same log: the
   // whole thing on the platform, only what happened there in the workspace,
   // only what happened there in the project. The permission doesn't set the

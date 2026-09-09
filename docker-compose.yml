@@ -96,6 +96,26 @@ services:
       retries: 15
       start_period: 5s
 
+  # Rate-limit counters for the public API (`lib/api/rateLimit.ts`). No
+  # `profiles:` key, same as `postgres` — starts automatically with a plain
+  # `docker compose up -d --wait` (what `bun run db:up`/`db:dev`/`db:reset`
+  # all do), since the host-run dev server (`bun run dev`) needs to reach it
+  # too, not just the containerized `app`.
+  redis:
+    image: redis:7-alpine
+    container_name: orbit-redis
+    restart: unless-stopped
+    ports:
+      - "${DB_BIND:-127.0.0.1}:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - orbit-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
   # One-off: applies pending migrations, then exits. Runs from the `builder`
   # stage (full toolchain, including the `prisma` CLI) rather than the `app`
   # image itself — that image only ships Next's pruned standalone output and
@@ -192,6 +212,7 @@ services:
       - .env
     environment:
       DATABASE_URL: "${COMPOSE_DATABASE_URL:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-IssueTracker}}"
+      REDIS_URL: "redis://redis:6379"
       AUTH_SECRET: "${AUTH_SECRET:?AUTH_SECRET must be set — generate one with: bunx auth secret}"
       # S3_ENDPOINT alone gets the COMPOSE_-override treatment (see header
       # comment) — the rest (keys, region, bucket names) mean the same
@@ -205,6 +226,8 @@ services:
       S3_BUCKET_ISSUES: "${S3_BUCKET_ISSUES:-issues}"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
@@ -238,6 +261,7 @@ services:
 
 volumes:
   orbit-db:
+  orbit-redis:
   orbit-storage:
   orbit-caddy-data:
   orbit-caddy-config:

@@ -1,0 +1,212 @@
+/* Same card surface as the create form in AccountSecurity — the form
+   belongs with the list above it instead of looking like a foreign insert. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  padding: 18px 20px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.formTop {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+
+  /* The name field takes whatever room the expiry picker doesn't need —
+     otherwise it would stay input-sized while the card around it stretches
+     full width, leaving a wide empty gap next to it. */
+  > :first-child {
+    flex: 1;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.fieldLabel {
+  font-size: var(--text-sm);
+  font-weight: 550;
+  color: var(--on-surface-variant);
+}
+
+.expiryTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--on-surface);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  transition: border-color 0.12s;
+
+  &:hover {
+    border-color: var(--outline);
+  }
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  width: 100%;
+}
+
+/* The scope picker — one card per "resource:action" scope (`API_SCOPES`),
+   the id itself in code font as the primary label (matches what a client
+   actually sends/reads, not a paraphrase of it), the sentence below it as
+   the only translated part. */
+.scopeSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scopeCards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.scopeCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+
+  &:hover {
+    border-color: var(--outline);
+  }
+
+  &[data-checked] {
+    border-color: var(--primary);
+    background: var(--primary-container);
+  }
+
+  input[type="checkbox"] {
+    margin-top: 2px;
+    accent-color: var(--primary);
+  }
+}
+
+.scopeCardText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: var(--text-sm);
+
+  code {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--on-surface);
+  }
+
+  span {
+    color: var(--on-surface-variant);
+  }
+}
+
+/* The key list — name/scopes on the left (via `SettingsList`'s built-in
+   column), prefix/last-used/status/delete as explicit columns. */
+.keyMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-sm);
+  color: var(--on-surface-variant);
+}
+
+.keyScopes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.prefixCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  code {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--on-surface-variant);
+  }
+}
+
+.empty {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  color: var(--on-surface-variant);
+  font-size: var(--text-sm);
+}
+
+/* Access reference card at the bottom — only facts that are actually true
+   today (base URL, header format). No rate limit or IP allowlist here:
+   this app doesn't enforce either yet, and showing a number or a toggle
+   for a limit that isn't real would be misleading. */
+.accessValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-sm);
+
+  code {
+    font-family: var(--font-mono);
+    color: var(--on-surface-variant);
+  }
+}
+
+/* The one-time reveal after creation — set apart with the primary color so
+   it can't be missed: it's the only moment the secret is ever shown. */
+.reveal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 20px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-lg);
+  background: var(--primary-container);
+}
+
+.revealTitle {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--on-primary-container);
+}
+
+.revealDesc {
+  margin: 0 0 4px;
+  font-size: var(--text-sm);
+  color: var(--on-primary-container);
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  background: var(--error-container);
+  color: var(--on-error-container);
+  font-size: var(--text-sm);
+}

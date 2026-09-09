@@ -84,14 +84,30 @@ function reset() {
   mockIssueFindUnique.mockResolvedValue(issueRow());
   mockRequirePermission.mockResolvedValue(ACTOR);
   mockRequirePermissionOr.mockResolvedValue(ACTOR);
-  mockCommentCreate.mockResolvedValue({});
+  mockCommentCreate.mockResolvedValue({ id: "c-new" });
+  // Base fallback for `db.comment.findUnique` — `addComment` calls this
+  // twice when replying: once for the parent-comment tamper check (tests
+  // below override that call specifically via `mockResolvedValueOnce`),
+  // and always a second time via `getCommentUnchecked` to build the
+  // `comment.created` webhook payload, which needs a full row incl.
+  // `author` — this is what that second call falls back to.
+  mockCommentFindUnique.mockResolvedValue({
+    id: "c-new",
+    issueId: ISSUE_ID,
+    authorId: ACTOR,
+    parentId: null,
+    bodyText: "",
+    created: new Date(),
+    updated: null,
+    author: { id: ACTOR, firstName: "Actor", lastName: "Person" },
+  });
 }
 
 describe("addComment() — Replies", () => {
   beforeEach(reset);
 
   it("sets parentId when the parent comment belongs to the same issue", async () => {
-    mockCommentFindUnique.mockResolvedValue({ issueId: ISSUE_ID });
+    mockCommentFindUnique.mockResolvedValueOnce({ issueId: ISSUE_ID });
 
     await addComment(ISSUE_ID, emptyDoc(), ACTOR, "c-parent");
 
@@ -125,7 +141,10 @@ describe("addComment() — Replies", () => {
   it("omits parentId when none is passed (top-level)", async () => {
     await addComment(ISSUE_ID, emptyDoc(), ACTOR);
 
-    expect(mockCommentFindUnique).not.toHaveBeenCalled();
+    // No parent to tamper-check, but still one call: `getCommentUnchecked`
+    // looks the new comment back up to build the `comment.created` webhook
+    // payload (`fireWebhookEvent`).
+    expect(mockCommentFindUnique).toHaveBeenCalledTimes(1);
     expect(mockCommentCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({ parentId: undefined }),
     });
@@ -137,7 +156,7 @@ describe("addComment() — Replies", () => {
     mockIssueFindUnique.mockResolvedValue(
       issueRow({ assigneeId: "u-parent-author" }),
     );
-    mockCommentFindUnique.mockResolvedValue({
+    mockCommentFindUnique.mockResolvedValueOnce({
       issueId: ISSUE_ID,
       authorId: "u-parent-author",
     });
@@ -157,7 +176,7 @@ describe("addComment() — Replies", () => {
   });
 
   it("notifies no one when replying to one's own comment", async () => {
-    mockCommentFindUnique.mockResolvedValue({
+    mockCommentFindUnique.mockResolvedValueOnce({
       issueId: ISSUE_ID,
       authorId: ACTOR,
     });

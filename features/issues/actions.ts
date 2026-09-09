@@ -1,6 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  getCommentUnchecked,
+  getIssueUnchecked,
+} from "@/features/api-v1/queries";
 import type { IssuePatch } from "@/features/issues/types";
 import { recordAudit } from "@/lib/audit";
 import type {
@@ -38,6 +42,7 @@ import {
 } from "@/lib/storage";
 import { uid } from "@/lib/utils/id";
 import { isValidEmail } from "@/lib/utils/parse-emails";
+import { fireWebhookEvent } from "@/lib/webhooks/deliver";
 import { isClosedStatus } from "@/lib/workspace-defaults";
 import type { IssueAttachment } from "@/types";
 
@@ -576,6 +581,10 @@ export async function updateIssue(id: string, patch: IssuePatch) {
     );
   }
 
+  const updated = await getIssueUnchecked(id);
+  if (updated)
+    fireWebhookEvent(issue.project.workspaceId, "issue.updated", updated);
+
   await revalidate();
 }
 
@@ -788,6 +797,9 @@ export async function createIssue(data: {
     userId,
     data.title,
   );
+
+  const created = await getIssueUnchecked(id);
+  if (created) fireWebhookEvent(workspaceId, "issue.created", created);
 
   await revalidate();
 }
@@ -1035,6 +1047,16 @@ export async function deleteIssue(id: string) {
 
   await recordIssueAudit("issue.deleted", id, issue, actorId, issue.title);
 
+  // Minimal payload, not the full `ApiIssue` shape the other events use —
+  // the issue no longer exists to re-fetch, this is a snapshot from just
+  // before the delete.
+  fireWebhookEvent(issue.project.workspaceId, "issue.deleted", {
+    id,
+    ref: `${issue.project.prefix}-${issue.key}`,
+    projectId: issue.projectId,
+    title: issue.title,
+  });
+
   await revalidate();
 }
 
@@ -1214,7 +1236,7 @@ export async function addComment(
     parentAuthorId = parent.authorId;
   }
 
-  await db.comment.create({
+  const comment = await db.comment.create({
     data: {
       id: uid("c"),
       body: body as unknown as Prisma.InputJsonValue,
@@ -1224,6 +1246,15 @@ export async function addComment(
       parentId,
     },
   });
+
+  const commentForWebhook = await getCommentUnchecked(comment.id);
+  if (commentForWebhook) {
+    fireWebhookEvent(
+      issue.project.workspaceId,
+      "comment.created",
+      commentForWebhook,
+    );
+  }
 
   const text = toPreview(body);
   const mentionedIds = mentionedUserIds(body).filter((id) => id !== userId);

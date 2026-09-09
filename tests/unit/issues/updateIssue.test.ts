@@ -62,11 +62,11 @@ const EMPTY_DOC: PMDoc = { type: "doc", content: [] };
 /** The state of an issue, as `issueContext` reads it — default values,
  * individually overridden per test. */
 function issue(overrides: Partial<Record<string, unknown>> = {}) {
-  return {
+  const base = {
     key: 1,
     projectId: "p1",
     reporterId: "u-reporter",
-    assigneeId: null,
+    assigneeId: null as string | null,
     status: "todo",
     priority: 2,
     type: "task",
@@ -74,8 +74,27 @@ function issue(overrides: Partial<Record<string, unknown>> = {}) {
     closedAt: null,
     title: "Ursprünglicher Titel",
     description: EMPTY_DOC,
-    project: { workspaceId: "ws1", prefix: "MOB" },
+    project: {
+      id: "p1",
+      workspaceId: "ws1",
+      name: "Mobile",
+      slug: "mobile",
+      prefix: "MOB",
+      color: "#3b7bd5",
+    },
     ...overrides,
+  };
+  // `getIssueUnchecked` (called after the update, for the webhook payload)
+  // selects `assignee`/`reporter` as relation objects, not the flat
+  // `assigneeId`/`reporterId` scalars `issueContext` itself reads — same
+  // mocked row serves both, so it carries both shapes, derived from
+  // whichever id the test set.
+  return {
+    ...base,
+    reporter: { id: base.reporterId, firstName: "Rep", lastName: "Orter" },
+    assignee: base.assigneeId
+      ? { id: base.assigneeId, firstName: "Ass", lastName: "Ignee" }
+      : null,
   };
 }
 

@@ -29,6 +29,8 @@ export type NavLabelKey =
   | "appearance"
   | "notifications"
   | "security"
+  | "apiKeys"
+  | "webhooks"
   | "connections"
   | "shortcuts"
   | "admin"
@@ -347,6 +349,12 @@ export const WORKSPACE_SETTINGS_NAV: NavEntry[] = [
   { section: "", icon: "lucide:settings", labelKey: "general" },
   { section: "projects", icon: "lucide:folders", labelKey: "projects" },
   { section: "labels", icon: "lucide:tag", labelKey: "labels" },
+  {
+    section: "webhooks",
+    icon: "lucide:webhook",
+    labelKey: "webhooks",
+    permission: "webhook.manage",
+  },
   { section: "teams", icon: "lucide:users-round", labelKey: "teams" },
   {
     section: "roles",
@@ -393,6 +401,7 @@ export const ACCOUNT_SETTINGS_NAV: NavEntry[] = [
   { section: "appearance", icon: "lucide:palette", labelKey: "appearance" },
   { section: "notifications", icon: "lucide:bell", labelKey: "notifications" },
   { section: "security", icon: "lucide:shield-check", labelKey: "security" },
+  { section: "api-keys", icon: "lucide:key-round", labelKey: "apiKeys" },
   { section: "connections", icon: "lucide:link", labelKey: "connections" },
   { section: "shortcuts", icon: "lucide:keyboard", labelKey: "shortcuts" },
 ];

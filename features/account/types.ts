@@ -6,6 +6,8 @@
 // instead is the state of the account — which passkeys and sign-in methods
 // are attached to it, whether the address has been verified.
 
+import type { ApiScope } from "@/lib/api/scopes";
+
 /** The chosen theme — lands as `data-theme` on the document. */
 export type Theme = "dark" | "light" | "system";
 
@@ -87,4 +89,25 @@ export interface AccountSecurityView {
   /** Providers you can sign in with — for linking there. */
   connectedProviders: string[];
   passkeys: PasskeyInfo[];
+}
+
+/** A personal API key for the public REST API (`app/api/v1`). Never carries
+ *  the raw token — that's only ever returned once, at creation. */
+export interface ApiKeyInfo {
+  id: string;
+  name: string;
+  /** First ~12 chars of the raw token, for the masked list display. */
+  prefix: string;
+  /** Jira-style "resource:action" scopes (`lib/api/scopes.ts`). */
+  scopes: ApiScope[];
+  createdAt: Date;
+  lastUsedAt: Date | null;
+  expiresAt: Date | null;
+  /** Set = revoked, shown in the list as such rather than dropped from it —
+   *  otherwise a revoked key would just vanish with no record of it. */
+  revokedAt: Date | null;
+}
+
+export interface ApiKeysView {
+  keys: ApiKeyInfo[];
 }

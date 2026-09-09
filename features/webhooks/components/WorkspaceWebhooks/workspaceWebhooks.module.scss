@@ -1,0 +1,130 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  padding: 18px 20px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.fieldLabel {
+  font-size: var(--text-sm);
+  font-weight: 550;
+  color: var(--on-surface-variant);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  width: 100%;
+}
+
+.eventSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.eventCards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.eventCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+
+  &:hover {
+    border-color: var(--outline);
+  }
+
+  &[data-checked] {
+    border-color: var(--primary);
+    background: var(--primary-container);
+  }
+
+  input[type="checkbox"] {
+    accent-color: var(--primary);
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--on-surface);
+  }
+
+  span {
+    font-size: var(--text-sm);
+    color: var(--on-surface-variant);
+  }
+}
+
+.eventBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.delivery {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  font-size: var(--text-sm);
+  color: var(--on-surface-variant);
+}
+
+.empty {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  color: var(--on-surface-variant);
+  font-size: var(--text-sm);
+}
+
+.reveal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 20px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-lg);
+  background: var(--primary-container);
+}
+
+.revealTitle {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--on-primary-container);
+}
+
+.revealDesc {
+  margin: 0 0 4px;
+  font-size: var(--text-sm);
+  color: var(--on-primary-container);
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  background: var(--error-container);
+  color: var(--on-error-container);
+  font-size: var(--text-sm);
+}

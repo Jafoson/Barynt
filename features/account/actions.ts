@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { unstable_update } from "@/auth";
 import {
@@ -8,6 +9,8 @@ import {
   type NotificationKey,
   type Theme,
 } from "@/features/account/types";
+import { type ApiScope, isApiScope } from "@/lib/api/scopes";
+import { hashApiToken } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import {
@@ -357,6 +360,68 @@ export async function removePasskey(credentialID: string): Promise<Result> {
   }
 
   await db.authenticator.delete({ where: { credentialID } });
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/**
+ * Creates a personal API key for the public REST API (`app/api/v1`).
+ *
+ * The raw token is returned exactly once, here — only its hash and a short
+ * prefix are ever stored (`ApiKey.tokenHash`/`prefix`, see `lib/api-auth.ts`
+ * for why a plain SHA-256 over a high-entropy token is the right choice,
+ * not bcrypt/argon2).
+ */
+export async function createApiKey(input: {
+  name: string;
+  scopes: ApiScope[];
+  expiresAt?: Date;
+}): Promise<{ ok: true; token: string; id: string } | { error: string }> {
+  const session = await getSession();
+  if (!session) return { error: NOT_LOGGED_IN };
+
+  const name = input.name.trim();
+  if (!name) return { error: "Name is required." };
+
+  // A key with no scope could authenticate but do nothing — not a useful
+  // state, and easy to create by accident by unchecking everything.
+  const scopes = [...new Set(input.scopes)].filter(isApiScope);
+  if (scopes.length === 0) return { error: "Select at least one scope." };
+
+  const token = `bry_${randomBytes(32).toString("base64url")}`;
+  const key = await db.apiKey.create({
+    data: {
+      userId: session.userId,
+      name,
+      prefix: token.slice(0, 12),
+      tokenHash: hashApiToken(token),
+      scopes,
+      expiresAt: input.expiresAt ?? null,
+    },
+    select: { id: true },
+  });
+
+  revalidatePath("/", "layout");
+  return { ok: true, token, id: key.id };
+}
+
+/** Revokes one of your own API keys. Ownership check, not an RBAC check —
+ *  same category as `removePasskey`'s credential-ownership check above. */
+export async function revokeApiKey(id: string): Promise<Result> {
+  const session = await getSession();
+  if (!session) return { error: NOT_LOGGED_IN };
+
+  const key = await db.apiKey.findUnique({
+    where: { id },
+    select: { userId: true, revokedAt: true },
+  });
+  if (!key || key.userId !== session.userId) {
+    return { error: "This API key is not on your account." };
+  }
+  if (key.revokedAt) return { ok: true };
+
+  await db.apiKey.update({ where: { id }, data: { revokedAt: new Date() } });
 
   revalidatePath("/", "layout");
   return { ok: true };

@@ -60,6 +60,7 @@ model Workspace {
   notifications Notification[]
   domains       WorkspaceDomain[]
   inviteLinks   InviteLink[]
+  webhooks      Webhook[]
 }
 
 /// Eine E-Mail-Domain, über die neue Konten automatisch in diesen Workspace
@@ -172,6 +173,82 @@ model User {
   workspaceDashboards WorkspaceDashboardPreference[]
   notifications       Notification[]                 @relation("NotificationRecipient")
   notificationsCaused Notification[]                 @relation("NotificationActor")
+  apiKeys             ApiKey[]
+  webhooksCreated     Webhook[]                       @relation("WebhookCreatedBy")
+}
+
+/// Ein persönlicher API-Key ("bry_…"-Token) für die öffentliche REST-API
+/// (`app/api/v1`). Wirkt bei jeder Rechteprüfung wie die eigene Session — `can()`
+/// wird mit `userId` genauso aufgerufen, wie es eine Session auflösen würde
+/// (`lib/api-auth.ts`). Ein Key ist ein User Access Token, kein Service-Account:
+/// `scopes` kann die eigenen Rechte nur einschränken, nie erweitern — die
+/// RBAC-Prüfung entscheidet zusätzlich pro Ressource, genau wie bei einer
+/// Session.
+model ApiKey {
+  id     String @id @default(cuid())
+  userId String
+  /// Frei gewählt, erscheint in der Liste — "CI-Pipeline", "Zapier" usw.
+  name   String
+  /// Die ersten ~12 Zeichen des rohen Tokens, im Klartext für die maskierte
+  /// Anzeige ("bry_a1b2c3d4…") — der einzige Teil des Secrets, der nach der
+  /// Erstellung je wieder sichtbar ist.
+  prefix String
+  /// SHA-256-Hex-Digest des vollen rohen Tokens. `@unique`, das ist der
+  /// Lookup-Schlüssel (`lib/api-auth.ts`) — kein gehärteter Passwort-Hash, das
+  /// rohe Token trägt bereits 256 Bit CSPRNG-Entropie.
+  tokenHash String   @unique
+  /// Granulare Scopes im Jira-Stil ("issues:read", "comments:write", …) statt
+  /// eines groben READ/WRITE — die Werte sind die Schlüssel aus
+  /// `lib/api/scopes.ts#API_SCOPES`, hier bewusst als freier String statt Enum,
+  /// damit ein neuer Scope keine Migration braucht.
+  scopes     String[] @default([])
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  /// Gesetzt heißt: nicht mehr benutzbar, unabhängig von `expiresAt`.
+  revokedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Ein Webhook-Endpunkt eines Workspace — schickt eine signierte HTTP-POST-
+/// Anfrage bei bestimmten Ereignissen (`lib/webhooks/events.ts`), ausgelöst
+/// aus `features/issues/actions.ts` und `features/api-v1/mutations.ts`
+/// (`lib/webhooks/deliver.ts#fireWebhookEvent`). Anders als bei `ApiKey`:
+/// gehört dem Workspace, nicht einer einzelnen Person — Integrationen wie
+/// Slack- oder CI-Benachrichtigungen sind workspaceweite Konfiguration, kein
+/// persönliches Zugriffstoken.
+model Webhook {
+  id          String   @id @default(cuid())
+  workspaceId String
+  url         String
+  /// Klartext, nicht gehasht wie `ApiKey.tokenHash` — wird bei jeder
+  /// Zustellung zum Signieren gebraucht (HMAC-SHA256), ist also kein reiner
+  /// Lookup-Wert, sondern muss lesbar bleiben.
+  secret String
+  /// Werte aus `lib/webhooks/events.ts#WEBHOOK_EVENTS`, z.B. "issue.created".
+  events  String[]
+  enabled Boolean  @default(true)
+
+  createdById String
+  createdAt   DateTime @default(now())
+
+  /// Ergebnis des letzten Zustellversuchs — ein Feld statt einer eigenen
+  /// Log-Tabelle, weil es (noch) keinen Retry gibt: nur der letzte Versuch
+  /// ist überhaupt relevant. `lastDeliveryStatus` ist der HTTP-Status bei
+  /// einer erhaltenen Antwort, `lastDeliveryError` der Fehlertext, wenn gar
+  /// keine Antwort zustande kam (Timeout, DNS, Verbindung abgelehnt) —
+  /// gesetzt wird immer nur genau eines von beiden.
+  lastDeliveryAt     DateTime?
+  lastDeliveryStatus Int?
+  lastDeliveryError  String?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("WebhookCreatedBy", fields: [createdById], references: [id])
+
+  @@index([workspaceId])
 }
 
 /// Was einer Person gehört und keinem Workspace: wie die Oberfläche aussieht und
