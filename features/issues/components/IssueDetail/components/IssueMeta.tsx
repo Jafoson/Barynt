@@ -3,6 +3,7 @@
 import { Icon } from "@iconify/react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
+import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import type { IssueComposerData } from "@/features/issues/types";
 import { fullName } from "@/lib/utils/string";
 import { useTimeAgo } from "@/lib/utils/useTimeAgo";
@@ -65,6 +66,14 @@ export function IssueMeta({ issue, data, layout }: IssueMetaProps) {
           <span className={styles.valueText}>
             {reporter ? fullName(reporter) : "—"}
           </span>
+          {issue.source !== "APP" && (
+            <Badge
+              className={styles.sourceBadge}
+              title={t("fields.createdVia", { source: issue.source })}
+            >
+              {issue.source}
+            </Badge>
+          )}
         </span>
       </Row>
 

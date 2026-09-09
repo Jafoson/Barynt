@@ -1,6 +1,7 @@
 import "server-only";
 import {
   type ApiComment,
+  type ApiContentSource,
   type ApiIssue,
   type ApiLabelDetail,
   type ApiProject,
@@ -79,6 +80,11 @@ export async function createIssueForUser(
   userId: string,
   projectId: string,
   input: CreateIssueInput,
+  /** Which of the two public-API surfaces made this call — never `APP`,
+   *  the web app's own `createIssue()` (`features/issues/actions.ts`)
+   *  doesn't go through here and leaves `Issue.source` at its `APP`
+   *  default instead. */
+  source: Exclude<ApiContentSource, "APP">,
 ): Promise<MutationResult<ApiIssue>> {
   if (!(await can(userId, "issue.create", { projectId }))) return fail(404);
 
@@ -112,6 +118,7 @@ export async function createIssueForUser(
       labels: input.labels ?? [],
       type: input.type ?? "feature",
       reporterId: userId,
+      source,
     },
   });
 
@@ -212,6 +219,8 @@ export async function createCommentForUser(
   userId: string,
   issueId: string,
   input: CreateCommentInput,
+  /** See `createIssueForUser`'s parameter of the same name. */
+  source: Exclude<ApiContentSource, "APP">,
 ): Promise<MutationResult<ApiComment>> {
   const issue = await db.issue.findUnique({
     where: { id: issueId },
@@ -243,6 +252,7 @@ export async function createCommentForUser(
       parentId: input.parentId ?? null,
       body: doc as unknown as Prisma.InputJsonValue,
       bodyText: toPlainText(doc),
+      source,
     },
   });
 

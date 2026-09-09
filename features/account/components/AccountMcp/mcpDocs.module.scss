@@ -1,0 +1,112 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.desc {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--on-surface-variant);
+}
+
+.guideIntro {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--on-surface-variant);
+
+  code {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--on-surface);
+  }
+}
+
+.codeBlock {
+  position: relative;
+
+  pre {
+    margin: 0;
+    padding: 12px 40px 12px 14px;
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--radius);
+    background: var(--surface-container-low);
+    overflow-x: auto;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    line-height: 1.6;
+    color: var(--on-surface-variant);
+    white-space: pre;
+  }
+}
+
+.codeCopy {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.toolGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toolRow {
+  display: grid;
+  grid-template-columns: minmax(140px, max-content) minmax(120px, max-content) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.toolName {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.toolScope {
+  font-size: var(--text-xs);
+  color: var(--on-surface-variant);
+}
+
+.toolDesc {
+  font-size: var(--text-sm);
+  color: var(--on-surface-variant);
+}
+
+/* Roomier than `Badge`'s own `sm` — a scope name needs more breathing room
+   than a single-digit counter. Doubled class beats `Badge`'s own rules
+   regardless of stylesheet injection order, without `!important`. */
+.chipRoomy.chipRoomy {
+  height: 22px;
+  padding: 0 9px;
+  font-size: var(--text-xs);
+}

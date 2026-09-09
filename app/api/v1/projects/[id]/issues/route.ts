@@ -70,7 +70,7 @@ export async function POST(
     );
   }
 
-  const result = await createIssueForUser(auth.userId, id, body);
+  const result = await createIssueForUser(auth.userId, id, body, "API");
   if (!result.ok) {
     const res =
       result.status === 404

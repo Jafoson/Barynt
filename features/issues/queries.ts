@@ -17,6 +17,7 @@ import { toDoc } from "@/lib/richtext/doc";
 import type { PMDoc } from "@/lib/richtext/types";
 import { resolveAttachmentUrl, resolveAvatarUrl } from "@/lib/storage";
 import type {
+  ContentSource,
   Issue,
   IssueAccess,
   IssueAttachment,
@@ -53,6 +54,7 @@ function mapIssue(
     projectId: string;
     created: Date;
     updated: Date;
+    source: ContentSource;
     comments: {
       id: string;
       body: unknown;
@@ -61,6 +63,7 @@ function mapIssue(
       updated: Date | null;
       parentId: string | null;
       reactions: { userId: string; emoji: string }[];
+      source: ContentSource;
     }[];
     shareToken?: string | null;
   },
@@ -83,6 +86,7 @@ function mapIssue(
     project: i.projectId,
     created: i.created.getTime(),
     updated: i.updated.getTime(),
+    source: i.source,
     comments: i.comments.map((c) => ({
       id: c.id,
       body: toDoc(c.body),
@@ -91,6 +95,7 @@ function mapIssue(
       updated: c.updated ? c.updated.getTime() : null,
       parentId: c.parentId,
       reactions: groupReactions(c.reactions, viewerId),
+      source: c.source,
     })),
     shareUrl: i.shareToken ? issueShareUrl(i.shareToken) : null,
   };

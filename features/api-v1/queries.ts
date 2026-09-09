@@ -70,6 +70,13 @@ function mapUserRef(user: {
   return { id: user.id, name: fullName(user) };
 }
 
+/** How an issue or comment was created — `APP` for the web app itself,
+ *  `API`/`MCP` for the two `features/api-v1/mutations.ts` callers
+ *  (`app/api/v1`, `app/api/mcp`). Mirrors the `ContentSource` Prisma enum as
+ *  a plain string union, same convention as `ProjectVisibility`
+ *  (`features/projects/types.ts`) — callers never see the generated enum. */
+export type ApiContentSource = "APP" | "API" | "MCP";
+
 /** A label as embedded in `ApiIssue.labels` — just enough to identify it.
  *  Its color is a display detail of the label itself, not something an
  *  issue's payload needs to carry; `GET .../labels` (`ApiLabelDetail`)
@@ -134,6 +141,7 @@ const issueSelect = {
   created: true,
   updated: true,
   closedAt: true,
+  source: true,
   project: { select: projectRefSelect },
 } satisfies Prisma.IssueSelect;
 
@@ -157,6 +165,7 @@ export interface ApiIssue {
   created: Date;
   updated: Date;
   closedAt: Date | null;
+  source: ApiContentSource;
 }
 
 function mapApiIssue(row: IssueRow, labelMap: Map<string, ApiLabel>): ApiIssue {
@@ -175,6 +184,7 @@ function mapApiIssue(row: IssueRow, labelMap: Map<string, ApiLabel>): ApiIssue {
     created: row.created,
     updated: row.updated,
     closedAt: row.closedAt,
+    source: row.source,
   };
 }
 
@@ -259,6 +269,7 @@ export interface ApiComment {
   body: string;
   created: Date;
   updated: Date | null;
+  source: ApiContentSource;
 }
 
 const commentSelect = {
@@ -269,6 +280,7 @@ const commentSelect = {
   bodyText: true,
   created: true,
   updated: true,
+  source: true,
 } satisfies Prisma.CommentSelect;
 
 type CommentRow = Prisma.CommentGetPayload<{ select: typeof commentSelect }>;
@@ -282,6 +294,7 @@ function mapApiComment(row: CommentRow): ApiComment {
     body: row.bodyText,
     created: row.created,
     updated: row.updated,
+    source: row.source,
   };
 }
 

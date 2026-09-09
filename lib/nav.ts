@@ -30,6 +30,7 @@ export type NavLabelKey =
   | "notifications"
   | "security"
   | "apiKeys"
+  | "mcp"
   | "webhooks"
   | "connections"
   | "shortcuts"
@@ -402,6 +403,7 @@ export const ACCOUNT_SETTINGS_NAV: NavEntry[] = [
   { section: "notifications", icon: "lucide:bell", labelKey: "notifications" },
   { section: "security", icon: "lucide:shield-check", labelKey: "security" },
   { section: "api-keys", icon: "lucide:key-round", labelKey: "apiKeys" },
+  { section: "mcp", icon: "lucide:plug-zap", labelKey: "mcp" },
   { section: "connections", icon: "lucide:link", labelKey: "connections" },
   { section: "shortcuts", icon: "lucide:keyboard", labelKey: "shortcuts" },
 ];

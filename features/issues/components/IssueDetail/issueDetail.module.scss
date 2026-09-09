@@ -909,6 +909,18 @@
   color: var(--outline);
 }
 
+/* The "API"/"MCP" source badge next to a creator/author — sized like the
+   scope chips on the API docs page (`chipRoomy`,
+   `features/account/components/AccountApiKeys/apiDocs.module.scss`), not
+   `Badge`'s own `sm` (built for a single digit/icon, too cramped for three
+   letters). Doubled class beats `Badge`'s own rules regardless of
+   stylesheet injection order, without `!important`. */
+.sourceBadge.sourceBadge {
+  height: 22px;
+  padding: 0 9px;
+  font-size: var(--text-xs);
+}
+
 .commentActions {
   display: flex;
   align-items: center;

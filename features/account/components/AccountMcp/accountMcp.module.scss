@@ -1,0 +1,24 @@
+.accessValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-sm);
+
+  code {
+    font-family: var(--font-mono);
+    color: var(--on-surface-variant);
+  }
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--on-surface);
+  font-size: var(--text-sm);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--primary);
+  }
+}

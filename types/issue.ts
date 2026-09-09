@@ -1,5 +1,13 @@
 import type { PMDoc } from "@/lib/richtext/types";
 
+/** How an issue or comment was created — `APP` for the web app itself,
+ *  `API`/`MCP` for the two `features/api-v1/mutations.ts` callers
+ *  (`app/api/v1`, `app/api/mcp`). Drives the small source badge next to the
+ *  reporter/author (`IssueMeta`, `CommentThread`). Mirrors the
+ *  `ContentSource` Prisma enum as a plain string union, same convention as
+ *  every other enum in this file. */
+export type ContentSource = "APP" | "API" | "MCP";
+
 export interface Status {
   id: string;
   name: string;
@@ -57,6 +65,7 @@ export interface Comment {
   /** ProseMirror document — rendered by `components/ui/atoms/RichText`. */
   body: PMDoc;
   reactions: CommentReactionSummary[];
+  source: ContentSource;
 }
 
 /**
@@ -99,6 +108,7 @@ export interface Issue {
    *  never builds URLs itself, since `lib/app-url.ts` reads environment
    *  variables that never reach the browser. */
   shareUrl: string | null;
+  source: ContentSource;
 }
 
 /**

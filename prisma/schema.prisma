@@ -824,6 +824,18 @@ model ProjectHiddenLabel {
   @@index([labelId])
 }
 
+/// Wie ein Issue oder Kommentar entstanden ist — für die kleine Quelle-Badge
+/// neben Reporter/Autor in der UI (nach dem Vorbild von GitLabs Pipeline-
+/// Quellen wie „API"/„Web"). `APP` ist der Normalfall (die eigentliche
+/// Web-App) und deshalb der Default — nur `features/api-v1/mutations.ts`
+/// setzt `API` oder `MCP` explizit, je nachdem ob der Aufruf über
+/// `app/api/v1` oder `app/api/mcp` kam.
+enum ContentSource {
+  APP
+  API
+  MCP
+}
+
 // ─── Issues ──────────────────────────────────────────────────────────────────
 
 model Issue {
@@ -876,6 +888,11 @@ model Issue {
   reporterId String
   projectId  String
 
+  /// Wie das Issue entstanden ist (`ContentSource`) — Default `APP`, da nur
+  /// die öffentliche API und der MCP-Server (`features/api-v1/mutations.ts`)
+  /// hier je nach Aufrufer explizit `API`/`MCP` setzen.
+  source ContentSource @default(APP)
+
   assignee      User?          @relation("IssueAssignee", fields: [assigneeId], references: [id])
   reporter      User           @relation("IssueReporter", fields: [reporterId], references: [id])
   sharedBy      User?          @relation("IssueSharedBy", fields: [shareTokenCreatedById], references: [id], onDelete: SetNull)
@@ -907,6 +924,8 @@ model Comment {
   authorId String
   /// Selbstbezug für echtes, beliebig tiefes Threading. `null` = Top-Level.
   parentId String?
+  /// Wie der Kommentar entstanden ist (`ContentSource`) — siehe `Issue.source`.
+  source   ContentSource @default(APP)
 
   issue     Issue             @relation(fields: [issueId], references: [id], onDelete: Cascade)
   author    User              @relation(fields: [authorId], references: [id])

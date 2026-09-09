@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { Fragment, useState } from "react";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
+import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import type { ReactionSummary } from "@/components/ui/atoms/ReactionBar/ReactionBar";
 import { ReactionBar } from "@/components/ui/atoms/ReactionBar/ReactionBar";
@@ -251,6 +252,14 @@ export function CommentThread({
           </span>
           {comment.updated && (
             <span className={styles.commentEdited}>{t("comments.edited")}</span>
+          )}
+          {comment.source !== "APP" && (
+            <Badge
+              className={styles.sourceBadge}
+              title={t("fields.createdVia", { source: comment.source })}
+            >
+              {comment.source}
+            </Badge>
           )}
         </div>
 
