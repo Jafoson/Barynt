@@ -39,6 +39,9 @@ jobs:
     name: Dependency Review
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    # Same as CodeQL: needs GitHub Advanced Security on a private repo
+    # ("Dependency review is not supported on this repository").
+    continue-on-error: true
     permissions:
       contents: read
       pull-requests: write
@@ -56,6 +59,13 @@ jobs:
   secret-scan:
     name: Secret Scan
     runs-on: ubuntu-latest
+    # On a pull_request run from Dependabot, GITHUB_TOKEN gets restricted
+    # permissions regardless of the `permissions:` block below (GitHub's
+    # own anti-supply-chain-attack measure) — gitleaks-action's own PR
+    # commit lookup then 403s with "Resource not accessible by integration".
+    # Doesn't affect push runs (e.g. after merging to main), which still
+    # gate normally.
+    continue-on-error: true
     permissions:
       contents: read
 
