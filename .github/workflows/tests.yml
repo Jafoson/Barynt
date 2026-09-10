@@ -59,7 +59,7 @@ jobs:
         run: bun run test
 
       - name: Publish test summary
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v3
         if: always()
         with:
           name: Unit-Test-Ergebnisse
