@@ -2,8 +2,10 @@
   <img src="public/Logo/color/Logo_horizontal.svg" alt="Barynt" width="360">
 </p>
 
+<p align="center"><b>The open-source Linear/Jira alternative you self-host.</b></p>
+
 <p align="center">
-  A self-hostable, open-source issue tracker for teams — workspaces, projects, issues, and role-based access control, built on Next.js.
+  Workspaces, projects, issues, and role-based access control — run on your own infrastructure.
 </p>
 
 <p align="center">
@@ -11,6 +13,7 @@
   <a href="https://github.com/Jafoson/Barynt/actions/workflows/docker-build.yml"><img src="https://github.com/Jafoson/Barynt/actions/workflows/docker-build.yml/badge.svg" alt="Docker Build"></a>
   <a href="https://github.com/Jafoson/Barynt/actions/workflows/security.yml"><img src="https://github.com/Jafoson/Barynt/actions/workflows/security.yml/badge.svg" alt="Security"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://github.com/Jafoson/Barynt/stargazers"><img src="https://img.shields.io/github/stars/Jafoson/Barynt" alt="GitHub Stars"></a>
 </p>
 
 ---
