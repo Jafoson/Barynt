@@ -27,8 +27,10 @@ Barynt is a Linear/Jira-style issue tracker you run yourself. Workspaces contain
 - **Invitations** — invite by email or shareable link, to a workspace or directly into a project
 - **Audit log** — tracked changes across workspaces for accountability
 - **Public API** (`/api/v1`) — API keys with Redis-backed rate limiting
+- **MCP server** (`/api/mcp`) — a remote [Model Context Protocol](https://modelcontextprotocol.io) server exposing workspaces, projects, issues, comments, and labels as tools, authenticated with the same API keys as the REST API. Point Claude Desktop, Claude Code, or any other MCP client at it to manage issues from your AI assistant.
 - **Webhooks** — outgoing event notifications for integrating with other tools
-- **Authentication** — passkeys (WebAuthn) by default, plus optional GitHub, Google, GitLab, Microsoft Entra ID, Apple, and generic OIDC/SSO providers, and email magic links via SMTP
+- **Keyboard-driven UI** — command palette (`⌘K`/`Ctrl+K`), Vim-style list navigation (`j`/`k`), single-key issue actions (status, priority, assignee, labels, …) and `g`+letter "go to" navigation, all listed in an in-app `?` shortcut reference
+- **Authentication, including SSO, at no extra cost** — passkeys (WebAuthn) by default, plus GitHub, Google, GitLab, Microsoft Entra ID, Apple, and any generic OIDC/SSO provider (Keycloak, Authentik, Okta, …), and email magic links via SMTP — every provider is a free config addition, not a paid/enterprise tier
 - **Object storage** — avatars and issue attachments via any S3-compatible provider (bundled: [RustFS](https://github.com/rustfs/rustfs))
 - **Internationalization** — English and German out of the box (`next-intl`)
 - **Admin panel** — instance-wide administration and permission auditing
@@ -45,6 +47,7 @@ Barynt is a Linear/Jira-style issue tracker you run yourself. Workspaces contain
 | Rich text | [Tiptap](https://tiptap.dev) / ProseMirror |
 | Rate limiting | Redis |
 | Object storage | S3-compatible (RustFS bundled, or any AWS S3-compatible provider) |
+| AI integration | [Model Context Protocol](https://modelcontextprotocol.io) server (`/api/mcp`) |
 | i18n | [next-intl](https://next-intl.dev) |
 | Package manager / runtime | [Bun](https://bun.sh) |
 | Linting / formatting | [Biome](https://biomejs.dev) |
