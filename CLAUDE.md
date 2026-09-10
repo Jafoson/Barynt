@@ -403,8 +403,14 @@ applies to the rich-text tests: `issues/getLabels.test.ts` replaces `react`
 with a stub that only has `cache`, and `react-dom/server` then refuses to
 work. And `permissions/roleActions.test.ts` mocks `@/lib/permissions` away
 entirely — in the same process, `permissions/resolver.test.ts` would then be
-checking the mock instead of the resolver. That's why the `test` script in
-`package.json` splits the invocation into several processes:
+checking the mock instead of the resolver. That's why `bun run test` (the
+`test` script in `package.json`) doesn't call `bun test` directly, but
+`scripts/run-tests.ts` — it spawns one `bun test` process per segment below,
+in order, stopping at the first failure so the gate still behaves like a
+single `&&` chain would. Segments live there (a plain array) rather than as
+one 2000-character shell string in `package.json`, specifically so this list
+stays reviewable and editable without the off-by-one risk a giant `&&`-joined
+string invites:
 
 Conversely: **never mock a module whose own tests run in the same process.**
 `auth/acceptInvitation.test.ts` checks a function that uses
@@ -460,6 +466,27 @@ runtime where it is not available` instead of running as a no-op. This
 previously surfaced as ten unrelated failures in `workspace/removeMember.ts`
 and `workspace/pendingInvitations.ts` whenever `proxy.test.ts` ran in the
 same process — isolating it is the fix, not touching those actions.
+
+### GitHub Actions job summary
+
+`scripts/run-tests.ts` writes two files per segment into `test-results/`:
+`part-NN.xml` (`--reporter=junit`) and `part-NN.log` (segment's raw stderr —
+Bun writes everything, including the error detail, there; stdout only ever
+carries the version banner). `scripts/test-summary.ts` reads both and
+appends a collapsible, per-file, per-test breakdown (status, duration, and
+for a failure the console block Bun printed for it) to
+`$GITHUB_STEP_SUMMARY` — wired up as its own step in `tests.yml`, after
+`bun run test`, with `if: always()` so it also runs when tests fail.
+
+Don't reach for `dorny/test-reporter` here: Bun nests each `describe()` as
+its own `<testsuite>` instead of flattening to `<testcase>`, which
+`dorny/test-reporter`'s parser reads as "no tests found". `<failure>`
+elements in Bun's JUnit output also carry no message or stack — that's why
+the summary script matches XML testcases to log blocks by reconstructing
+the label Bun prints on its `(fail) <describe path> > <name> [<time>]` line
+(`classname`, reversed since Bun nests it innermost-first, plus `name`)
+rather than by file position, and why `classname` gets XML-unescaped
+*twice* — Bun double-escapes the `>` it joins nested describe names with.
 
 ```
 # Correct:
