@@ -429,6 +429,21 @@ with environment variables set and cleared. If both ran in the same process,
 function. `send.test.ts` therefore gets its own invocation; `config.test.ts`
 and `templates.test.ts` (neither of which uses `mock.module`) share one.
 
+`proxy/proxy.test.ts` gets its own invocation too, for a different reason
+than the others above: it's the only test that touches the real
+`next/server` (`require("next/server")`, plus
+`next/experimental/testing/server`), not a mock. Importing that for real
+installs Next's edge-runtime instrumentation — the patched global `fetch`
+and the request-scoped `AsyncLocalStorage` it relies on — process-wide, since
+Bun doesn't sandbox globals per test file. Anything elsewhere that reaches
+real Next server internals afterwards (e.g. `revalidatePath`, whenever some
+other file's `mock.module("next/cache", …)` loses the module-cache race
+described above) then throws `Invariant: AsyncLocalStorage accessed in
+runtime where it is not available` instead of running as a no-op. This
+previously surfaced as ten unrelated failures in `workspace/removeMember.ts`
+and `workspace/pendingInvitations.ts` whenever `proxy.test.ts` ran in the
+same process — isolating it is the fix, not touching those actions.
+
 ```
 # Correct:
 bun run test
