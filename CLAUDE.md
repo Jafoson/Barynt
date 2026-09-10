@@ -429,6 +429,23 @@ with environment variables set and cleared. If both ran in the same process,
 function. `send.test.ts` therefore gets its own invocation; `config.test.ts`
 and `templates.test.ts` (neither of which uses `mock.module`) share one.
 
+The same conflict exists a third time around `@/lib/project-membership`:
+`workspace/inviteLinks.test.ts`, `workspace/inviteWorkspaceMember.test.ts`,
+`workspace/removeMember.test.ts`, and `workspace/teams.test.ts` all mock it
+away entirely (they only care that it gets *called*, not what it does), while
+`projects/projectMembership.test.ts` (its own tests), `workspace/createWorkspace.test.ts`,
+`auth/userProvisioning.test.ts`, and `auth/acceptInvitation.test.ts` all rely
+on the real implementation running against their own `@/lib/db` mock. The
+four mockers get their own invocation; every other file that touches
+`@/lib/project-membership` stays together. This one is Bun-version-sensitive
+in a nasty way: on 1.3.14 the real module happened to win the race in every
+observed run, so it went unnoticed until `oven-sh/setup-bun@v2` picked up
+1.4.2 in CI (`bun-version: latest`) and 14 unrelated tests across three
+directories failed at once with no code change. `tests.yml` now pins an
+exact Bun version instead of `latest`, precisely so a future Bun release
+can't silently flip one of these races again — bump it deliberately, and
+re-run the full suite before doing so.
+
 `proxy/proxy.test.ts` gets its own invocation too, for a different reason
 than the others above: it's the only test that touches the real
 `next/server` (`require("next/server")`, plus
