@@ -94,7 +94,7 @@ jobs:
       # Nur amd64, nur lokal geladen — Trivy kann kein Multi-Arch-Manifest
       # scannen, und diese Plattform läuft ohnehin nativ.
       - name: Build image for scanning
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64
@@ -153,7 +153,7 @@ jobs:
 
       - name: Build and push by digest
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: ${{ matrix.platform }}
