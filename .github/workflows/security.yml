@@ -13,6 +13,12 @@ jobs:
   codeql:
     name: CodeQL
     runs-on: ubuntu-latest
+    # Code scanning on a private repo needs GitHub Advanced Security (paid
+    # per active committer) — without it, "Analyze" fails with "Code
+    # scanning is not enabled for this repository". continue-on-error keeps
+    # that from blocking the rest of Security/main; if GHAS gets enabled
+    # later, this job just starts passing with no further changes needed.
+    continue-on-error: true
     permissions:
       security-events: write
       contents: read
@@ -109,7 +115,7 @@ jobs:
           persist-credentials: false
 
       - name: Run Scorecard
-        uses: ossf/scorecard-action@v2
+        uses: ossf/scorecard-action@v2.4.4
         continue-on-error: true
         with:
           results_file: scorecard-results.sarif
