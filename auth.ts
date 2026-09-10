@@ -8,6 +8,7 @@ import {
   authConfig,
   passkeyLoginEnabled,
   passkeyRegistrationEnabled,
+  registrationEnabled,
 } from "@/auth.config";
 import { appBaseUrl } from "@/lib/app-url";
 import { recordAudit } from "@/lib/audit";
@@ -144,6 +145,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       // `getUserByAccount()` in `handleLoginOrRegister` (which runs after
       // this callback) then finds the row we just linked here as already
       // connected and signs in normally instead of throwing the error.
+      let linkedShadowAccount = false;
       if (
         !user.id &&
         user.email &&
@@ -179,7 +181,20 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
               id_token: account.id_token ?? null,
             },
           });
+          linkedShadowAccount = true;
         }
+      }
+
+      // `!user.id` at this point always means a brand-new account is about
+      // to be created in `createUser` (right below in `handleLoginOrRegister`
+      // — this callback runs first) — unless it's an invited shadow account
+      // we just linked above, or (for magic link) `getUserByEmail` already
+      // found an existing row, in which case `user.id` is set and we never
+      // get here. `AUTH_REGISTRATION_ENABLED=false` blocks exactly that
+      // remaining case: a genuinely unknown email/provider account. Returning
+      // `false` makes next-auth redirect with `?error=AccessDenied`.
+      if (!user.id && !linkedShadowAccount && !registrationEnabled) {
+        return false;
       }
 
       if (!user.id) return true;

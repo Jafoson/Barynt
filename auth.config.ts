@@ -86,6 +86,16 @@ export const passkeyLoginEnabled =
 export const passkeyRegistrationEnabled =
   process.env.AUTH_PASSKEY_REGISTRATION_ENABLED !== "false";
 
+// Gates brand-new account creation across all three sign-in paths at once
+// (passkey, OAuth/OIDC, magic link) — see the `signIn` callback in auth.ts,
+// the single place all three funnel through. Default on (open
+// registration). Set to "false" for invite-only mode: someone with an
+// invitation still gets in fine, because `createInvitation` already created
+// their account row up front — this switch only ever stops a genuinely
+// unknown email/provider account from becoming a *new* one.
+export const registrationEnabled =
+  process.env.AUTH_REGISTRATION_ENABLED !== "false";
+
 export const authConfig = {
   trustHost: true,
   session: { strategy: "jwt" },

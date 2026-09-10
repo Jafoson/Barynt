@@ -536,6 +536,7 @@
     "verifyCode": "Verify code",
     "codeInvalid": "This code is invalid or has expired. Request a new link.",
     "signInError": "Sign-in failed. Please try again.",
+    "accessDenied": "Access denied. Ask an administrator for an invitation.",
     "resendCode": "Resend code",
     "resendSent": "Sent again",
     "backToLogin": "Back to sign in"

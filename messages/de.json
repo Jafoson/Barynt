@@ -536,6 +536,7 @@
     "verifyCode": "Code bestätigen",
     "codeInvalid": "Dieser Code ist ungültig oder abgelaufen. Fordere einen neuen Link an.",
     "signInError": "Anmeldung fehlgeschlagen. Bitte versuch es erneut.",
+    "accessDenied": "Zugriff verweigert. Bitte eine Einladung von einer Administratorin oder einem Administrator anfragen.",
     "resendCode": "Code erneut senden",
     "resendSent": "Erneut gesendet",
     "backToLogin": "Zurück zur Anmeldung"

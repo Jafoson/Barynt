@@ -24,12 +24,18 @@ export default async function LoginPage({
 
   // `error` comes from next-auth's own error redirect (`auth.config.ts`'s
   // `pages.error`) — e.g. an expired or already-used magic-link code,
-  // redeemed via the code path on this page.
+  // redeemed via the code path on this page. `AccessDenied` is what the
+  // `signIn` callback in `auth.ts` produces for a blocked new-account
+  // creation (`AUTH_REGISTRATION_ENABLED=false`) or a deactivated account.
   let initialError: string | undefined;
   if (error) {
     const t = await getTranslations("login");
     initialError =
-      error === "Verification" ? t("codeInvalid") : t("signInError");
+      error === "Verification"
+        ? t("codeInvalid")
+        : error === "AccessDenied"
+          ? t("accessDenied")
+          : t("signInError");
   }
 
   return (
