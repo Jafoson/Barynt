@@ -48,7 +48,7 @@
     "baseline-browser-mapping": "2.11.0",
     "bcryptjs": "^3.0.3",
     "highlight.js": "^11.11.1",
-    "immutable": "5.1.8",
+    "immutable": "5.1.9",
     "ioredis": "^6.0.0",
     "ldapts": "^9.0.0",
     "lowlight": "^3.3.0",
