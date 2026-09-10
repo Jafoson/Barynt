@@ -74,6 +74,7 @@ export function AccountApiKeys({ keys }: ApiKeysView) {
     "projects:write": t("apiKeys.descProjectsWrite"),
     "workspaces:read": t("apiKeys.descWorkspacesRead"),
     "workspaces:write": t("apiKeys.descWorkspacesWrite"),
+    "members:read": t("apiKeys.descMembersRead"),
   };
 
   const activeCount = keys.filter((key) => !key.revokedAt).length;

@@ -50,24 +50,29 @@ export async function listProjectsForUser(
 }
 
 /** A user, reduced to what's useful in someone else's response — not the
- *  full account (no email, no color). */
+ *  full account (no email, no color). `handle` is included so a caller can
+ *  `@mention` this person in a later write (`features/api-v1/richtext.ts`)
+ *  without a dedicated members endpoint to look it up from. */
 export interface ApiUserRef {
   id: string;
   name: string;
+  handle: string;
 }
 
 const userRefSelect = {
   id: true,
   firstName: true,
   lastName: true,
+  handle: true,
 } satisfies Prisma.UserSelect;
 
 function mapUserRef(user: {
   id: string;
   firstName: string;
   lastName: string;
+  handle: string;
 }): ApiUserRef {
-  return { id: user.id, name: fullName(user) };
+  return { id: user.id, name: fullName(user), handle: user.handle };
 }
 
 /** How an issue or comment was created — `APP` for the web app itself,
@@ -373,4 +378,89 @@ export async function listLabelsForUser(
     select: { id: true, name: true, slug: true, color: true, projectId: true },
   });
   return rows;
+}
+
+// ─── Members ─────────────────────────────────────────────────────────────────
+
+/** A workspace or project member — `handle` so a caller can `@mention` them
+ *  in a later write (`features/api-v1/richtext.ts`), `role` the stable role
+ *  key (`Role.key`, e.g. `"admin"`), not the editable display name. */
+export interface ApiMember {
+  id: string;
+  name: string;
+  email: string | null;
+  handle: string;
+  role: string;
+}
+
+const memberUserSelect = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  handle: true,
+} satisfies Prisma.UserSelect;
+
+function mapApiMember(row: {
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string | null;
+    handle: string;
+  };
+  role: { key: string };
+}): ApiMember {
+  return {
+    id: row.user.id,
+    name: fullName(row.user),
+    email: row.user.email,
+    handle: row.user.handle,
+    role: row.role.key,
+  };
+}
+
+/** Every member of a workspace. `null` means the workspace doesn't exist or
+ *  isn't visible to this user. */
+export async function listWorkspaceMembersForUser(
+  userId: string,
+  workspaceId: string,
+): Promise<ApiMember[] | null> {
+  if (!(await canEnterWorkspace(userId, workspaceId))) return null;
+
+  const rows = await db.workspaceMember.findMany({
+    where: { workspaceId },
+    select: {
+      user: { select: memberUserSelect },
+      role: { select: { key: true } },
+    },
+    orderBy: [{ user: { firstName: "asc" } }, { user: { lastName: "asc" } }],
+  });
+  return rows.map(mapApiMember);
+}
+
+/**
+ * Every member of a project — the `ProjectMember` rows themselves, not the
+ * full effective access list: a workspace owner/admin who can reach into a
+ * *private* project without an explicit row there (`getProjectMembersView`,
+ * `features/projects/queries.ts`) won't appear here. Known simplification,
+ * same category as the rest of `features/api-v1` — revisit if it turns out
+ * to matter once there's real API usage to look at. `null` means the
+ * project doesn't exist or isn't visible to this user.
+ */
+export async function listProjectMembersForUser(
+  userId: string,
+  projectId: string,
+): Promise<ApiMember[] | null> {
+  if (!(await can(userId, "project.view", { projectId }))) return null;
+
+  const rows = await db.projectMember.findMany({
+    where: { projectId },
+    select: {
+      user: { select: memberUserSelect },
+      role: { select: { key: true } },
+    },
+    orderBy: [{ user: { firstName: "asc" } }, { user: { lastName: "asc" } }],
+  });
+  return rows.map(mapApiMember);
 }

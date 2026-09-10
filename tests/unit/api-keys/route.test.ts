@@ -68,6 +68,7 @@ const mockWorkspaceIssueTypeCreateMany = mock();
 const mockWorkspaceMemberFindMany = mock();
 const mockWorkspaceMemberCreate = mock();
 const mockProjectMemberCreateMany = mock();
+const mockProjectMemberFindMany = mock();
 
 // `db.$transaction` in the real mutations either takes a callback (given
 // the same `db` this test mocks) or an array of already-built promises —
@@ -122,7 +123,10 @@ const db = {
     findMany: mockWorkspaceMemberFindMany,
     create: mockWorkspaceMemberCreate,
   },
-  projectMember: { createMany: mockProjectMemberCreateMany },
+  projectMember: {
+    createMany: mockProjectMemberCreateMany,
+    findMany: mockProjectMemberFindMany,
+  },
   $transaction: mockTransaction,
 };
 
@@ -148,6 +152,7 @@ import {
   GET as getIssues,
   POST as postIssue,
 } from "@/app/api/v1/projects/[id]/issues/route";
+import { GET as getProjectMembers } from "@/app/api/v1/projects/[id]/members/route";
 import {
   DELETE as deleteProject,
   PATCH as patchProject,
@@ -156,6 +161,7 @@ import {
   GET as getLabels,
   POST as postLabel,
 } from "@/app/api/v1/workspaces/[id]/labels/route";
+import { GET as getWorkspaceMembers } from "@/app/api/v1/workspaces/[id]/members/route";
 import { POST as postProject } from "@/app/api/v1/workspaces/[id]/projects/route";
 import {
   DELETE as deleteWorkspace,
@@ -194,6 +200,7 @@ const AUTH_FULL = {
     "comments:write",
     "labels:read",
     "labels:write",
+    "members:read",
   ],
 };
 
@@ -249,6 +256,7 @@ function reset() {
     mockWorkspaceMemberFindMany,
     mockWorkspaceMemberCreate,
     mockProjectMemberCreateMany,
+    mockProjectMemberFindMany,
     mockTransaction,
   ]) {
     m.mockReset();
@@ -563,7 +571,7 @@ describe("PATCH/DELETE /api/v1/comments/:id", () => {
     mockResolveApiUser.mockResolvedValue(AUTH_FULL);
     mockCommentFindUnique.mockResolvedValue({
       authorId: "u-1",
-      issue: { projectId: "p-1" },
+      issue: { projectId: "p-1", project: { workspaceId: "ws-1" } },
     });
     // Only `comment.update.own` is granted — proves the own-comment path
     // doesn't depend on `comment.update.any`.
@@ -946,5 +954,119 @@ describe("POST /api/v1/workspaces/:id/projects and PATCH/DELETE /projects/:id", 
     const res = await deleteProject(req(), params("p-1"));
     expect(res.status).toBe(200);
     expect(mockIssueDeleteMany).toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/v1/workspaces/:id/members", () => {
+  beforeEach(reset);
+
+  it("401s without a valid token", async () => {
+    mockResolveApiUser.mockResolvedValue(null);
+    const res = await getWorkspaceMembers(req(), params("ws-1"));
+    expect(res.status).toBe(401);
+  });
+
+  it("403s a key without members:read scope", async () => {
+    mockResolveApiUser.mockResolvedValue({
+      userId: "u-1",
+      keyId: "k-1",
+      scopes: [],
+    });
+    const res = await getWorkspaceMembers(req(), params("ws-1"));
+    expect(res.status).toBe(403);
+    expect(mockCanEnterWorkspace).not.toHaveBeenCalled();
+  });
+
+  it("404s when the caller can't enter the workspace", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_FULL);
+    mockCanEnterWorkspace.mockResolvedValue(false);
+    const res = await getWorkspaceMembers(req(), params("ws-1"));
+    expect(res.status).toBe(404);
+  });
+
+  it("200s with the workspace's members when visible", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_FULL);
+    mockCanEnterWorkspace.mockResolvedValue(true);
+    mockWorkspaceMemberFindMany.mockResolvedValue([
+      {
+        user: {
+          id: "u-2",
+          firstName: "Priya",
+          lastName: "Shah",
+          email: "priya@example.com",
+          handle: "priya",
+        },
+        role: { key: "admin" },
+      },
+    ]);
+    const res = await getWorkspaceMembers(req(), params("ws-1"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data).toEqual([
+      {
+        id: "u-2",
+        name: "Priya Shah",
+        email: "priya@example.com",
+        handle: "priya",
+        role: "admin",
+      },
+    ]);
+  });
+});
+
+describe("GET /api/v1/projects/:id/members", () => {
+  beforeEach(reset);
+
+  it("401s without a valid token", async () => {
+    mockResolveApiUser.mockResolvedValue(null);
+    const res = await getProjectMembers(req(), params("p-1"));
+    expect(res.status).toBe(401);
+  });
+
+  it("403s a key without members:read scope", async () => {
+    mockResolveApiUser.mockResolvedValue({
+      userId: "u-1",
+      keyId: "k-1",
+      scopes: [],
+    });
+    const res = await getProjectMembers(req(), params("p-1"));
+    expect(res.status).toBe(403);
+    expect(mockCan).not.toHaveBeenCalled();
+  });
+
+  it("404s when the caller can't view the project", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_FULL);
+    mockCan.mockResolvedValue(false);
+    const res = await getProjectMembers(req(), params("p-1"));
+    expect(res.status).toBe(404);
+  });
+
+  it("200s with the project's members when visible", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_FULL);
+    mockCan.mockResolvedValue(true);
+    mockProjectMemberFindMany.mockResolvedValue([
+      {
+        user: {
+          id: "u-2",
+          firstName: "Priya",
+          lastName: "Shah",
+          email: "priya@example.com",
+          handle: "priya",
+        },
+        role: { key: "contributor" },
+      },
+    ]);
+    const res = await getProjectMembers(req(), params("p-1"));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data).toEqual([
+      {
+        id: "u-2",
+        name: "Priya Shah",
+        email: "priya@example.com",
+        handle: "priya",
+        role: "contributor",
+      },
+    ]);
   });
 });

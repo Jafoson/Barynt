@@ -124,6 +124,19 @@ describe("fromMarkdown", () => {
     ).toBe(true);
   });
 
+  test("a bare URL doesn't swallow a following ]", () => {
+    // Same reasoning as the existing `()` exclusion: a URL directly
+    // followed by a closing bracket (e.g. `features/api-v1/richtext.ts`'s
+    // `[label|url]` syntax, or an ordinary citation-style "See https://x
+    // [1]") must stop at the bracket, not fold it into the href.
+    const node = first("Siehe [Text|https://example.com] dort");
+    const linked = node.content?.find((n) =>
+      (n.marks ?? []).some((m) => m.type === "link"),
+    );
+    expect(linked?.marks?.[0]?.attrs?.href).toBe("https://example.com");
+    expect(text(node)).toContain("]");
+  });
+
   test("turns images into their own node", () => {
     const node = first("![Alt-Text](/bild.png)");
     expect(node.content?.[0]).toMatchObject({

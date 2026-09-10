@@ -22,7 +22,9 @@ import {
   listCommentsForUser,
   listIssuesForUser,
   listLabelsForUser,
+  listProjectMembersForUser,
   listProjectsForUser,
+  listWorkspaceMembersForUser,
   listWorkspacesForUser,
 } from "@/features/api-v1/queries";
 import { encodeCursor } from "@/lib/api/cursor";
@@ -210,6 +212,43 @@ export function registerBaryntTools(server: McpServer): void {
     },
   );
 
+  // ─── Members ───────────────────────────────────────────────────────────
+
+  server.registerTool(
+    "list_workspace_members",
+    {
+      title: "List workspace members",
+      description:
+        "List every member of a workspace, with id, name, email, and handle (for @mentions).",
+      inputSchema: z.object({ workspaceId: z.string() }),
+    },
+    async ({ workspaceId }, ctx) => {
+      const auth = await authorize(ctx, "members:read");
+      if (!auth.ok) return auth.result;
+      const data = await listWorkspaceMembersForUser(
+        auth.auth.userId,
+        workspaceId,
+      );
+      return data ? jsonResult(data) : notFoundResult();
+    },
+  );
+
+  server.registerTool(
+    "list_project_members",
+    {
+      title: "List project members",
+      description:
+        "List every member of a project, with id, name, email, and handle (for @mentions).",
+      inputSchema: z.object({ projectId: z.string() }),
+    },
+    async ({ projectId }, ctx) => {
+      const auth = await authorize(ctx, "members:read");
+      if (!auth.ok) return auth.result;
+      const data = await listProjectMembersForUser(auth.auth.userId, projectId);
+      return data ? jsonResult(data) : notFoundResult();
+    },
+  );
+
   // ─── Labels ────────────────────────────────────────────────────────────
 
   server.registerTool(
@@ -349,7 +388,12 @@ export function registerBaryntTools(server: McpServer): void {
       inputSchema: z.object({
         projectId: z.string(),
         title: z.string(),
-        description: z.string().optional().describe("Markdown."),
+        description: z
+          .string()
+          .optional()
+          .describe(
+            "Markdown. `@handle` mentions a workspace member (notifies them); `#PREFIX-123` links another issue; `//2026-08-14` (or `//14.8.2026`) becomes a date chip; `[label|https://...]` (or bare `[https://...]`) becomes a link chip. All resolved server-side; unresolved ones are left as plain text.",
+          ),
         status: z.string().optional(),
         priority: z.number().int().optional(),
         assignee: z.string().nullable().optional().describe("User id."),
@@ -399,7 +443,12 @@ export function registerBaryntTools(server: McpServer): void {
       inputSchema: z.object({
         issueId: z.string(),
         title: z.string().optional(),
-        description: z.string().optional().describe("Markdown."),
+        description: z
+          .string()
+          .optional()
+          .describe(
+            "Markdown. `@handle` mentions a workspace member (notifies them); `#PREFIX-123` links another issue; `//2026-08-14` (or `//14.8.2026`) becomes a date chip; `[label|https://...]` (or bare `[https://...]`) becomes a link chip. All resolved server-side; unresolved ones are left as plain text.",
+          ),
         status: z.string().optional(),
         priority: z.number().int().optional(),
         assignee: z.string().nullable().optional().describe("User id."),
@@ -440,7 +489,11 @@ export function registerBaryntTools(server: McpServer): void {
       description: "Post a comment on an issue, optionally as a reply.",
       inputSchema: z.object({
         issueId: z.string(),
-        body: z.string().describe("Markdown."),
+        body: z
+          .string()
+          .describe(
+            "Markdown. `@handle` mentions a workspace member (notifies them); `#PREFIX-123` links another issue; `//2026-08-14` (or `//14.8.2026`) becomes a date chip; `[label|https://...]` (or bare `[https://...]`) becomes a link chip. All resolved server-side; unresolved ones are left as plain text.",
+          ),
         parentId: z
           .string()
           .optional()
@@ -463,7 +516,11 @@ export function registerBaryntTools(server: McpServer): void {
       description: "Edit a comment's body.",
       inputSchema: z.object({
         commentId: z.string(),
-        body: z.string().describe("Markdown."),
+        body: z
+          .string()
+          .describe(
+            "Markdown. `@handle` mentions a workspace member (notifies them); `#PREFIX-123` links another issue; `//2026-08-14` (or `//14.8.2026`) becomes a date chip; `[label|https://...]` (or bare `[https://...]`) becomes a link chip. All resolved server-side; unresolved ones are left as plain text.",
+          ),
       }),
     },
     async ({ commentId, body }, ctx) => {

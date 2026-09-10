@@ -27,6 +27,7 @@ export type {
   DateChipAttrs,
   EmojiAttrs,
   IssueLinkAttrs,
+  LinkChipAttrs,
   MentionAttrs,
   PMDoc,
   PMMark,

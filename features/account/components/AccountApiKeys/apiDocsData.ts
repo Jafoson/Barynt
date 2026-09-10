@@ -40,7 +40,8 @@ export type ApiDocGroupId =
   | "projects"
   | "issues"
   | "comments"
-  | "labels";
+  | "labels"
+  | "members";
 
 export interface ApiDocGroup {
   id: ApiDocGroupId;
@@ -313,7 +314,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           {
             name: "description",
             type: "string",
-            desc: "Markdown, converted server-side.",
+            desc: "Markdown, converted server-side. `@handle` mentions a workspace member (notifies them, except on comment edits); `#PREFIX-123` links another issue; `//2026-08-14` (or `//14.8.2026`) becomes a date chip; `[label|https://...]` (or bare `[https://...]`) becomes a link chip. All resolve server-side; unresolved ones are left as plain text.",
           },
           {
             name: "status",
@@ -409,7 +410,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           {
             name: "description",
             type: "string",
-            desc: "Markdown, converted server-side.",
+            desc: "Markdown, converted server-side. `@handle` mentions a workspace member (notifies them, except on comment edits); `#PREFIX-123` links another issue; `//2026-08-14` (or `//14.8.2026`) becomes a date chip; `[label|https://...]` (or bare `[https://...]`) becomes a link chip. All resolve server-side; unresolved ones are left as plain text.",
           },
           {
             name: "status",
@@ -474,7 +475,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
             name: "body",
             type: "string",
             required: true,
-            desc: "Markdown, converted server-side.",
+            desc: "Markdown, converted server-side. `@handle` mentions a workspace member (notifies them, except on comment edits); `#PREFIX-123` links another issue; `//2026-08-14` (or `//14.8.2026`) becomes a date chip; `[label|https://...]` (or bare `[https://...]`) becomes a link chip. All resolve server-side; unresolved ones are left as plain text.",
           },
           {
             name: "parentId",
@@ -510,7 +511,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
             name: "body",
             type: "string",
             required: true,
-            desc: "Markdown, converted server-side.",
+            desc: "Markdown, converted server-side. `@handle` mentions a workspace member (notifies them, except on comment edits); `#PREFIX-123` links another issue; `//2026-08-14` (or `//14.8.2026`) becomes a date chip; `[label|https://...]` (or bare `[https://...]`) becomes a link chip. All resolve server-side; unresolved ones are left as plain text.",
           },
         ],
         requestExample: `{
@@ -615,6 +616,47 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
         pathParams: [idParam("label")],
         response: `{
   "data": { "id": "l_9f2a1b" }
+}`,
+      },
+    ],
+  },
+  {
+    id: "members",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/v1/workspaces/{id}/members",
+        scope: "members:read",
+        desc: "List every member of a workspace.",
+        pathParams: [idParam("workspace")],
+        response: `{
+  "data": [
+    {
+      "id": "u_7h3j2k",
+      "name": "Priya Shah",
+      "email": "priya@example.com",
+      "handle": "priya",
+      "role": "admin"
+    }
+  ]
+}`,
+      },
+      {
+        method: "GET",
+        path: "/api/v1/projects/{id}/members",
+        scope: "members:read",
+        desc: "List every member of a project — the project's own membership rows. A workspace owner/admin who can reach into a private project without being listed there explicitly won't appear here.",
+        pathParams: [idParam("project")],
+        response: `{
+  "data": [
+    {
+      "id": "u_7h3j2k",
+      "name": "Priya Shah",
+      "email": "priya@example.com",
+      "handle": "priya",
+      "role": "contributor"
+    }
+  ]
 }`,
       },
     ],

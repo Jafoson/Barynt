@@ -14,7 +14,8 @@ export type McpToolGroupId =
   | "projects"
   | "issues"
   | "comments"
-  | "labels";
+  | "labels"
+  | "members";
 
 export interface McpToolDoc {
   name: string;
@@ -89,7 +90,7 @@ export const MCP_TOOL_GROUPS: McpToolGroup[] = [
       {
         name: "create_issue",
         scope: "issues:write",
-        desc: "Create a new issue in a project.",
+        desc: "Create a new issue in a project. The description can @mention a workspace member by handle, #link another issue by ref (PREFIX-123), //date a day (//2026-08-14 or //14.8.2026), and [label|https://...] a link — all resolve to real, clickable chips, and a mention notifies the person.",
       },
       {
         name: "get_issue",
@@ -99,7 +100,7 @@ export const MCP_TOOL_GROUPS: McpToolGroup[] = [
       {
         name: "update_issue",
         scope: "issues:write",
-        desc: "Update an issue's title, description, status, priority, assignee, labels, or type.",
+        desc: "Update an issue's title, description, status, priority, assignee, labels, or type. The description supports the same @mention/#issue-link/date/link-chip syntax as create_issue.",
       },
     ],
   },
@@ -114,12 +115,12 @@ export const MCP_TOOL_GROUPS: McpToolGroup[] = [
       {
         name: "create_comment",
         scope: "comments:write",
-        desc: "Post a comment on an issue, optionally as a reply.",
+        desc: "Post a comment on an issue, optionally as a reply. Supports @mention/#issue-link/date/link-chip syntax — see create_issue.",
       },
       {
         name: "update_comment",
         scope: "comments:write",
-        desc: "Edit a comment's body.",
+        desc: "Edit a comment's body. @mention/#issue-link/date/link-chip syntax still resolves to chips, but (like editing in the app) doesn't send a new mention notification.",
       },
       {
         name: "delete_comment",
@@ -150,6 +151,21 @@ export const MCP_TOOL_GROUPS: McpToolGroup[] = [
         name: "delete_label",
         scope: "labels:write",
         desc: "Delete a label and unassign it from every issue that carries it.",
+      },
+    ],
+  },
+  {
+    id: "members",
+    tools: [
+      {
+        name: "list_workspace_members",
+        scope: "members:read",
+        desc: "List every member of a workspace, with id, name, email, and handle (for @mentions).",
+      },
+      {
+        name: "list_project_members",
+        scope: "members:read",
+        desc: "List every member of a project, with id, name, email, and handle (for @mentions).",
       },
     ],
   },

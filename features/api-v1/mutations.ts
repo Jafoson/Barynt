@@ -9,17 +9,20 @@ import {
   getCommentUnchecked,
   getIssueUnchecked,
 } from "@/features/api-v1/queries";
+import { richTextFromApiMarkdown } from "@/features/api-v1/richtext";
 import type { ProjectVisibility } from "@/features/projects/types";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
+import { notify } from "@/lib/notify";
 import { can } from "@/lib/permissions";
 import { enrollMember, enrollWorkspaceMembers } from "@/lib/project-membership";
 import { OWNER_ROLE_KEY, systemRoleId } from "@/lib/rbac";
 import {
   emptyDoc,
-  fromMarkdown,
+  mentionedUserIds,
   stripAttachmentAttrs,
   toPlainText,
+  toPreview,
 } from "@/lib/richtext";
 import { slugify } from "@/lib/slug";
 import { uid } from "@/lib/utils/id";
@@ -39,9 +42,41 @@ import {
 // same shared helpers (`toPlainText`, `stripAttachmentAttrs`, `uid`,
 // `isClosedStatus`) so the two paths can't drift on *how* a write happens,
 // only on the plumbing around it. Known duplication, accepted for this MVP
-// slice — revisit once real API usage patterns are clear. Audit logging and
-// in-app notifications (`recordIssueAudit`/`notify` in actions.ts) are out
-// of scope here for the same reason: both are private to that file.
+// slice — revisit once real API usage patterns are clear. Audit logging
+// (`recordIssueAudit` in actions.ts) stays out of scope for the same
+// reason: it's private to that file. Mention *notifications* are the one
+// exception — `notifyMentions()` below mirrors actions.ts's own helper of
+// the same name closely enough (down to the diffing on update) that
+// leaving it out would make an API-authored `@handle` a chip that quietly
+// never tells the person it named.
+
+/** Who was newly mentioned in a document, minus whoever wrote it — mirrors
+ *  `notifyMentions()` in `features/issues/actions.ts` (private there, so
+ *  duplicated here rather than imported; see the file comment above). */
+async function notifyMentions(
+  ids: string[],
+  ctx: {
+    workspaceId: string;
+    projectId: string;
+    issueId: string;
+    text: string;
+  },
+  actorId: string,
+): Promise<void> {
+  const recipients = ids.filter((userId) => userId !== actorId);
+  if (recipients.length === 0) return;
+  await notify(
+    recipients.map((userId) => ({
+      userId,
+      type: "mentioned" as const,
+      actorId,
+      workspaceId: ctx.workspaceId,
+      projectId: ctx.projectId,
+      issueId: ctx.issueId,
+      text: ctx.text,
+    })),
+  );
+}
 
 export type MutationResult<T> =
   | { ok: true; data: T }
@@ -91,9 +126,6 @@ export async function createIssueForUser(
   const title = input.title?.trim();
   if (!title) return fail(422);
 
-  const doc = stripAttachmentAttrs(
-    input.description ? fromMarkdown(input.description) : emptyDoc(),
-  );
   const status = input.status ?? "backlog";
 
   const { lastIssueKey, workspaceId } = await db.project.update({
@@ -101,6 +133,16 @@ export async function createIssueForUser(
     data: { lastIssueKey: { increment: 1 } },
     select: { lastIssueKey: true, workspaceId: true },
   });
+
+  // Markdown → doc, with `@handle`/`#PREFIX-123`/`//date`/`[label|url]`
+  // resolved into real chips scoped to the project's workspace — see
+  // `features/api-v1/richtext.ts`. Needs `workspaceId`, so this can't run
+  // until after the `project.update` above resolves it.
+  const doc = input.description
+    ? stripAttachmentAttrs(
+        await richTextFromApiMarkdown(input.description, workspaceId),
+      )
+    : emptyDoc();
 
   const id = uid("i");
   await db.issue.create({
@@ -130,6 +172,11 @@ export async function createIssueForUser(
   const data = await getIssueUnchecked(id);
   if (!data) return fail(404);
   fireWebhookEvent(workspaceId, "issue.created", data);
+  await notifyMentions(
+    mentionedUserIds(doc),
+    { workspaceId, projectId, issueId: id, text: toPreview(doc) },
+    userId,
+  );
 
   return { ok: true, data };
 }
@@ -157,6 +204,9 @@ export async function updateIssueForUser(
       assigneeId: true,
       status: true,
       closedAt: true,
+      // Only read for the mention diff below (`mentionedUserIds`) — the
+      // rest of this function never looks at the current description.
+      description: true,
       project: { select: { workspaceId: true } },
     },
   });
@@ -178,7 +228,12 @@ export async function updateIssueForUser(
 
   const doc =
     patch.description !== undefined
-      ? stripAttachmentAttrs(fromMarkdown(patch.description))
+      ? stripAttachmentAttrs(
+          await richTextFromApiMarkdown(
+            patch.description,
+            issue.project.workspaceId,
+          ),
+        )
       : null;
 
   await db.issue.update({
@@ -206,6 +261,23 @@ export async function updateIssueForUser(
   const updated = await getIssueUnchecked(issueId);
   if (updated)
     fireWebhookEvent(issue.project.workspaceId, "issue.updated", updated);
+
+  if (doc !== null) {
+    const before = new Set(mentionedUserIds(issue.description));
+    const newlyMentioned = mentionedUserIds(doc).filter(
+      (id) => !before.has(id),
+    );
+    await notifyMentions(
+      newlyMentioned,
+      {
+        workspaceId: issue.project.workspaceId,
+        projectId: issue.projectId,
+        issueId,
+        text: toPreview(doc),
+      },
+      userId,
+    );
+  }
 
   return { ok: true, data: { id: issueId } };
 }
@@ -243,7 +315,7 @@ export async function createCommentForUser(
     if (!parent || parent.issueId !== issueId) return fail(422);
   }
 
-  const doc = fromMarkdown(body);
+  const doc = await richTextFromApiMarkdown(body, issue.project.workspaceId);
   const row = await db.comment.create({
     data: {
       id: uid("c"),
@@ -259,6 +331,16 @@ export async function createCommentForUser(
   const data = await getCommentUnchecked(row.id);
   if (!data) return fail(404);
   fireWebhookEvent(issue.project.workspaceId, "comment.created", data);
+  await notifyMentions(
+    mentionedUserIds(doc),
+    {
+      workspaceId: issue.project.workspaceId,
+      projectId: issue.projectId,
+      issueId,
+      text: toPreview(doc),
+    },
+    userId,
+  );
 
   return { ok: true, data };
 }
@@ -276,7 +358,12 @@ export async function updateCommentForUser(
 ): Promise<MutationResult<{ id: string }>> {
   const comment = await db.comment.findUnique({
     where: { id: commentId },
-    select: { authorId: true, issue: { select: { projectId: true } } },
+    select: {
+      authorId: true,
+      issue: {
+        select: { projectId: true, project: { select: { workspaceId: true } } },
+      },
+    },
   });
   if (!comment) return fail(404);
 
@@ -290,7 +377,14 @@ export async function updateCommentForUser(
   const body = input.body?.trim();
   if (!body) return fail(422);
 
-  const doc = fromMarkdown(body);
+  // No mention notification here, deliberately — `updateComment()`
+  // (`features/issues/actions.ts`) doesn't send one on edit either
+  // (only `addComment` does), so an edited comment stays consistent
+  // between the two surfaces. The chips still resolve, just quietly.
+  const doc = await richTextFromApiMarkdown(
+    body,
+    comment.issue.project.workspaceId,
+  );
   await db.comment.update({
     where: { id: commentId },
     data: {

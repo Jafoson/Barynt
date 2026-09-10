@@ -90,6 +90,7 @@ export function McpDocs({ mcpUrl }: { mcpUrl: string }) {
             { value: "issues", label: t("apiKeys.docsTabIssues") },
             { value: "comments", label: t("apiKeys.docsTabComments") },
             { value: "labels", label: t("apiKeys.docsTabLabels") },
+            { value: "members", label: t("apiKeys.docsTabMembers") },
           ]}
           value={group}
           onChange={(value) => setGroup(value as McpToolGroupId)}

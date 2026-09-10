@@ -4,9 +4,12 @@ import type { PMDoc, PMMark, PMNode } from "./types";
 /**
  * Markdown → ProseMirror JSON.
  *
- * Two jobs: the one-time conversion of existing data
- * (`scripts/migrate-richtext.ts`) and the seed, which continues to be
- * written conveniently in Markdown.
+ * Three callers: the one-time conversion of existing data
+ * (`scripts/migrate-richtext.ts`), the seed, which continues to be written
+ * conveniently in Markdown, and `features/api-v1/mutations.ts`, which
+ * converts a public API/MCP caller's `description`/`body` before its own
+ * `resolveInlineChips()` pass (`features/api-v1/richtext.ts`) resolves
+ * `@`/`#`/`//`/`[...]` tokens on top.
  *
  * The grammar is deliberately the same as in the retired `Markdown`
  * renderer — same expressions, same order. What readers saw before the
@@ -32,7 +35,7 @@ const INLINE_PATTERN = [
   "(\\*[^*\\n]+?\\*)",
   "(_[^_\\n]+?_)",
   "(!?\\[[^\\]]*\\]\\([^)\\s]+\\))",
-  "(https?://[^\\s<>()]+)",
+  "(https?://[^\\s<>()[\\]]+)",
 ].join("|");
 
 const LINK = /^(!?)\[([^\]]*)\]\(([^)\s]+)\)$/;

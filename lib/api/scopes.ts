@@ -10,7 +10,9 @@
 //
 // Order matters here: the settings UI (`AccountApiKeys`) renders this list
 // as a two-column grid in exactly this order — read/write pairs of the same
-// resource stay next to each other.
+// resource stay next to each other. `members:read` has no write half: the
+// public API has no endpoint that adds or removes a member, only invite
+// flows already in the app.
 
 export const API_SCOPES = [
   "issues:read",
@@ -23,6 +25,7 @@ export const API_SCOPES = [
   "projects:write",
   "workspaces:read",
   "workspaces:write",
+  "members:read",
 ] as const;
 
 export type ApiScope = (typeof API_SCOPES)[number];

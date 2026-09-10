@@ -33,7 +33,12 @@ export interface PMDoc {
  * Adding one here means touching both sides: the extension in the editor
  * and the branch in `RichText`.
  */
-export type ChipNodeType = "mention" | "issueLink" | "dateChip" | "emoji";
+export type ChipNodeType =
+  | "mention"
+  | "issueLink"
+  | "dateChip"
+  | "linkChip"
+  | "emoji";
 
 /** Attributes of the chips — the display reads them without loading the editor. */
 export interface MentionAttrs {
@@ -51,6 +56,12 @@ export interface IssueLinkAttrs {
 export interface DateChipAttrs {
   /** ISO date without time, e.g. `2026-08-14`. */
   date: string;
+}
+
+export interface LinkChipAttrs {
+  href: string;
+  /** Shown label; falls back to the host name (`hostOf`, `lib/richtext/link.ts`) when empty. */
+  label: string;
 }
 
 export interface EmojiAttrs {
