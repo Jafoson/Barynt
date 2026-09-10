@@ -1080,6 +1080,7 @@
       "workspaceDeleted": "Workspace gelöscht",
       "mailTemplateUpdated": "Mail-Vorlage bearbeitet",
       "mailTemplateReset": "Mail-Vorlage zurückgesetzt",
+      "systemSettingsUpdated": "Systemeinstellungen geändert",
       "projectCreated": "Projekt angelegt",
       "projectVisibilityChanged": "Sichtbarkeit geändert",
       "memberAdded": "Mitglied hinzugefügt",
@@ -1209,5 +1210,14 @@
     "deleteDesc": "Der Workspace verschwindet mit allem, was darin liegt. Es gibt keinen Weg zurück und keine Sicherung.",
     "deleteConfirmLabel": "Tippe „{name}“, um es zu bestätigen",
     "deleteConfirm": "Endgültig löschen"
+  },
+  "systemSettings": {
+    "desc": "Plattformweites Verhalten, das für jeden Workspace gilt.",
+    "allowCreation": "Neue Workspaces erlauben",
+    "allowCreationDesc": "Aus heißt: niemand kann mehr einen neuen Workspace anlegen — Konten ohne Mitgliedschaft kommen stattdessen in den Default-Workspace.",
+    "defaultWorkspace": "Default-Workspace",
+    "defaultWorkspaceDesc": "Wohin Konten ohne Mitgliedschaft kommen, sobald das Anlegen aus ist. Ohne Auswahl bleibt das Anlegen faktisch erlaubt, bis einer gewählt wurde.",
+    "none": "Keiner",
+    "searchWorkspaces": "Workspaces durchsuchen"
   }
 }

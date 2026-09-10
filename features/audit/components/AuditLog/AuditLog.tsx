@@ -129,6 +129,10 @@ export const AUDIT_ACTION_META = {
     icon: "lucide:mail-x",
     message: "mailTemplateReset",
   },
+  "system.settings.updated": {
+    icon: "lucide:settings",
+    message: "systemSettingsUpdated",
+  },
   "project.created": { icon: "lucide:folder-plus", message: "projectCreated" },
   "project.visibility.changed": {
     icon: "lucide:eye",

@@ -84,6 +84,10 @@ export const PERMISSIONS = {
     desc: "Edit the subject, heading, and intro text of the mail templates",
     scopes: PLATFORM_ONLY,
   },
+  "system.settings.manage": {
+    desc: "Manage platform-wide settings: whether workspace creation is allowed, and the default workspace",
+    scopes: PLATFORM_ONLY,
+  },
 
   // ── Platform: core data and break-glass ─────────────────────────────────────
   //

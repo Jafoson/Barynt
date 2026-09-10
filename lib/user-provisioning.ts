@@ -15,9 +15,31 @@ import { DEFAULT_WORKSPACE_ROLE_KEY, systemRoleId } from "@/lib/rbac";
 type Db = Prisma.TransactionClient;
 
 /**
+ * Adds an account to a workspace as an ordinary member and enrolls it into
+ * the workspace's public projects — the join step shared by domain
+ * auto-join (below) and the "no workspace, creation is off" fallback in
+ * `app/[locale]/page.tsx`.
+ */
+export async function joinWorkspaceAsMember(
+  db: Db,
+  data: { workspaceId: string; userId: string },
+): Promise<void> {
+  await db.workspaceMember.create({
+    data: {
+      workspaceId: data.workspaceId,
+      userId: data.userId,
+      roleId: systemRoleId("WORKSPACE", DEFAULT_WORKSPACE_ROLE_KEY),
+      pending: false,
+    },
+  });
+  await enrollInWorkspaceProjects(db, data);
+}
+
+/**
  * Assigns a freshly created account to a workspace if its email domain is
  * claimed. No match means: nothing to do, the account stays without a
- * workspace for now (`/create-workspace`).
+ * workspace for now (`/create-workspace`, or the default workspace if
+ * creation is off — see `lib/system-settings.ts`).
  */
 export async function provisionNewUser(
   db: Db,
@@ -31,15 +53,7 @@ export async function provisionNewUser(
   });
   if (!claim) return;
 
-  await db.workspaceMember.create({
-    data: {
-      workspaceId: claim.workspaceId,
-      userId: data.userId,
-      roleId: systemRoleId("WORKSPACE", DEFAULT_WORKSPACE_ROLE_KEY),
-      pending: false,
-    },
-  });
-  await enrollInWorkspaceProjects(db, {
+  await joinWorkspaceAsMember(db, {
     workspaceId: claim.workspaceId,
     userId: data.userId,
   });

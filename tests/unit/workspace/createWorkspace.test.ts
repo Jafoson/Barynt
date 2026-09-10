@@ -23,6 +23,23 @@ mock.module("@/lib/session", () => ({
   getSession: mock(),
 }));
 
+const mockGetSystemSettings = mock(
+  async (): Promise<{
+    allowWorkspaceCreation: boolean;
+    defaultWorkspaceId: string | null;
+  }> => ({
+    allowWorkspaceCreation: true,
+    defaultWorkspaceId: null,
+  }),
+);
+mock.module("@/lib/system-settings", () => ({
+  getSystemSettings: mockGetSystemSettings,
+  canCreateWorkspace: (s: {
+    allowWorkspaceCreation: boolean;
+    defaultWorkspaceId: string | null;
+  }) => s.allowWorkspaceCreation || !s.defaultWorkspaceId,
+}));
+
 mock.module("@/lib/workspace-defaults", () => ({
   DEFAULT_STATUSES: [{ id: "status-1" }, { id: "status-2" }],
   DEFAULT_PRIORITIES: [{ id: "prio-1" }],
@@ -91,6 +108,43 @@ describe("createWorkspace()", () => {
         await fn(mockTx);
       },
     );
+    mockGetSystemSettings.mockReset();
+    mockGetSystemSettings.mockResolvedValue({
+      allowWorkspaceCreation: true,
+      defaultWorkspaceId: null,
+    });
+  });
+
+  describe("Workspace creation disabled", () => {
+    beforeEach(() => {
+      mockGetSession.mockResolvedValue({ userId: "user-1" });
+      mockGetSystemSettings.mockResolvedValue({
+        allowWorkspaceCreation: false,
+        defaultWorkspaceId: "acme",
+      });
+    });
+
+    it("returns an error instead of creating a workspace", async () => {
+      const result = await createWorkspace(
+        makeFormData({ name: "My Workspace", slug: "my-workspace" }),
+      );
+      expect(result).toEqual({
+        error: "Workspace creation is currently disabled by the administrator.",
+      });
+      expect(mockTransaction).not.toHaveBeenCalled();
+    });
+
+    it("stays allowed when no default workspace is set yet", async () => {
+      mockGetSystemSettings.mockResolvedValue({
+        allowWorkspaceCreation: false,
+        defaultWorkspaceId: null,
+      });
+
+      const result = await createWorkspace(
+        makeFormData({ name: "My Workspace", slug: "my-workspace" }),
+      );
+      expect(result).toMatchObject({ redirectTo: expect.any(String) });
+    });
   });
 
   describe("Auth check", () => {

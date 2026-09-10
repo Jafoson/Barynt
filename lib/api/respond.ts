@@ -18,6 +18,15 @@ export function insufficientScope(): NextResponse {
   );
 }
 
+/** Workspace creation is off platform-wide (`lib/system-settings.ts`) — not
+ *  a scope problem, so it gets its own code instead of `insufficient_scope`. */
+export function workspaceCreationDisabled(): NextResponse {
+  return NextResponse.json(
+    { error: { code: "workspace_creation_disabled" } },
+    { status: 403 },
+  );
+}
+
 /** A resource doesn't exist, or `can()` said no — same response either way,
  *  so a missing permission doesn't reveal that the resource exists (mirrors
  *  `app/api/issues/[id]/route.ts`). */

@@ -1080,6 +1080,7 @@
       "workspaceDeleted": "Workspace deleted",
       "mailTemplateUpdated": "Mail template edited",
       "mailTemplateReset": "Mail template reset",
+      "systemSettingsUpdated": "System settings changed",
       "projectCreated": "Project created",
       "projectVisibilityChanged": "Visibility changed",
       "memberAdded": "Member added",
@@ -1209,5 +1210,14 @@
     "deleteDesc": "The workspace goes with everything inside it. There is no way back and no backup.",
     "deleteConfirmLabel": "Type “{name}” to confirm",
     "deleteConfirm": "Delete for good"
+  },
+  "systemSettings": {
+    "desc": "Platform-wide behavior that applies to every workspace.",
+    "allowCreation": "Allow workspace creation",
+    "allowCreationDesc": "When off, no one can start a new workspace — accounts without a membership join the default workspace instead.",
+    "defaultWorkspace": "Default workspace",
+    "defaultWorkspaceDesc": "Where accounts without a membership land once workspace creation is off. Leave it unset and creation stays effectively on until one is chosen.",
+    "none": "None",
+    "searchWorkspaces": "Search workspaces"
   }
 }

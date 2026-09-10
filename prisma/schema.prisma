@@ -61,6 +61,9 @@ model Workspace {
   domains       WorkspaceDomain[]
   inviteLinks   InviteLink[]
   webhooks      Webhook[]
+  // Zeigt hierher, wenn dieser Workspace als globaler Default eingetragen ist
+  // (SystemSettings.defaultWorkspaceId) — siehe dort.
+  defaultForSystemSettings SystemSettings[]
 }
 
 /// Eine E-Mail-Domain, über die neue Konten automatisch in diesen Workspace
@@ -1176,4 +1179,35 @@ model MailTemplate {
   bodyText String
 
   updatedAt DateTime @updatedAt
+}
+
+// ─── Plattformweite Einstellungen (Singleton) ──────────────────────────────
+//
+// Genau eine Zeile, immer mit `id = 1` — gelesen über
+// `findUnique({ where: { id: 1 } })`, geschrieben über `upsert` auf dieselbe
+// Id (`lib/system-settings.ts`, `features/system-settings/actions.ts`).
+// Fehlt die Zeile (frische Installation), gelten die Spalten-Defaults, genau
+// wie bei `MailTemplate` ohne Override — es gibt deshalb auch keinen
+// Seed-Eintrag dafür.
+model SystemSettings {
+  id Int @id @default(1)
+
+  /// Aus, heißt: niemand kann mehr über `/create-workspace`, die REST-API
+  /// oder das MCP-Tool einen neuen Workspace anlegen — nur noch
+  /// `defaultWorkspace` nimmt neue Konten auf. Mit `defaultWorkspaceId`
+  /// zusammen ausgewertet in `lib/system-settings.ts#canCreateWorkspace`:
+  /// solange kein Default gesetzt ist, bleibt das Anlegen faktisch offen,
+  /// damit niemand sich selbst aussperrt.
+  allowWorkspaceCreation Boolean @default(true)
+
+  /// Wohin ein Konto ohne Workspace-Mitgliedschaft kommt, wenn
+  /// `allowWorkspaceCreation` aus ist (`app/[locale]/page.tsx`). `SetNull`
+  /// beim Löschen des Workspace, statt die Löschung zu blockieren — dann
+  /// gilt wieder "kein Default gesetzt", nicht "Löschen verboten".
+  defaultWorkspaceId String?
+  defaultWorkspace   Workspace? @relation(fields: [defaultWorkspaceId], references: [id], onDelete: SetNull)
+
+  updatedAt DateTime @updatedAt
+
+  @@index([defaultWorkspaceId])
 }

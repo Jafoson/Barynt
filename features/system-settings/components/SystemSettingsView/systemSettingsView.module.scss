@@ -1,0 +1,72 @@
+/* Same `card`-table setting layout as `WorkspaceSettings`/`ProjectSettings`:
+   a row's height comes from the two-line label+desc, not from the table's
+   plain-list default. */
+.content {
+  --table-row-height: 62px;
+  --table-divider: var(--outline-variant);
+  --table-hover: transparent;
+
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.setting {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+  padding-block: 10px;
+}
+
+.label {
+  font-size: var(--text-md);
+  font-weight: 550;
+  line-height: var(--leading-tight);
+}
+
+.desc {
+  color: var(--on-surface-variant);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--on-surface);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container-high);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  background: var(--error-container);
+  color: var(--on-error-container);
+  font-size: var(--text-sm);
+}

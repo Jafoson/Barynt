@@ -45,6 +45,7 @@ export const AUDIT_ACTIONS = {
   "workspace.deleted": "Workspace deleted",
   "mail.template.updated": "Mail template edited",
   "mail.template.reset": "Mail template reset to default",
+  "system.settings.updated": "System settings changed",
 
   // ── Everyday events in project and workspace ───────────────────────────────
   //
@@ -106,6 +107,7 @@ export type AuditTargetType =
   | "workspace"
   | "role"
   | "mailTemplate"
+  | "systemSettings"
   | "issue"
   | "label";
 

@@ -81,15 +81,24 @@ export const notFoundResult = (): CallToolResult =>
 export const invalidBodyResult = (): CallToolResult =>
   errorResult("invalid_input", "The provided input was invalid.");
 
+/** Workspace creation is off platform-wide (`lib/system-settings.ts`). */
+export const workspaceCreationDisabledResult = (): CallToolResult =>
+  errorResult(
+    "workspace_creation_disabled",
+    "Workspace creation is currently disabled by the administrator.",
+  );
+
 export function jsonResult(data: unknown): CallToolResult {
   return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
 }
 
 /** Maps a `features/api-v1/mutations.ts` `MutationResult` onto a
- *  `CallToolResult`, same 404/422 split every route handler already makes. */
+ *  `CallToolResult`, same 403/404/422 split every route handler already makes. */
 export function mutationResult<T>(result: MutationResult<T>): CallToolResult {
   if (!result.ok) {
-    return result.status === 404 ? notFoundResult() : invalidBodyResult();
+    if (result.status === 404) return notFoundResult();
+    if (result.status === 403) return workspaceCreationDisabledResult();
+    return invalidBodyResult();
   }
   return jsonResult(result.data);
 }

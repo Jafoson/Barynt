@@ -13,11 +13,16 @@ import styles from "../SidebarMenu.module.scss";
 interface WorkspaceMenuProps {
   workspace: Workspace;
   userWorkspaces: Workspace[];
+  /** Off when an admin has disabled workspace creation platform-wide
+   *  (`lib/system-settings.ts`) — hides the "New workspace" entry instead of
+   *  offering a button that would just bounce back. */
+  canCreateWorkspace: boolean;
 }
 
 export function WorkspaceMenuClient({
   workspace,
   userWorkspaces,
+  canCreateWorkspace,
 }: WorkspaceMenuProps) {
   const t = useTranslations("nav");
   const router = useRouter();
@@ -85,19 +90,23 @@ export function WorkspaceMenuClient({
           </Button>
         ))}
 
-        <div className="divider" style={{ margin: "5px 0" }} />
+        {canCreateWorkspace && (
+          <>
+            <div className="divider" style={{ margin: "5px 0" }} />
 
-        <Button
-          variant="elevated"
-          full
-          onClick={() => {
-            setOpen(false);
-            router.push("/create-workspace");
-          }}
-        >
-          <Icon icon="lucide:plus" width={16} />
-          {t("newWorkspace")}
-        </Button>
+            <Button
+              variant="elevated"
+              full
+              onClick={() => {
+                setOpen(false);
+                router.push("/create-workspace");
+              }}
+            >
+              <Icon icon="lucide:plus" width={16} />
+              {t("newWorkspace")}
+            </Button>
+          </>
+        )}
       </Popover>
     </div>
   );

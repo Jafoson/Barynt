@@ -25,6 +25,7 @@ import {
   toPreview,
 } from "@/lib/richtext";
 import { slugify } from "@/lib/slug";
+import { canCreateWorkspace, getSystemSettings } from "@/lib/system-settings";
 import { uid } from "@/lib/utils/id";
 import { fireWebhookEvent } from "@/lib/webhooks/deliver";
 import {
@@ -80,9 +81,9 @@ async function notifyMentions(
 
 export type MutationResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: 404 | 422 };
+  | { ok: false; status: 403 | 404 | 422 };
 
-function fail(status: 404 | 422): { ok: false; status: 404 | 422 } {
+function fail(status: 403 | 404 | 422): { ok: false; status: 403 | 404 | 422 } {
   return { ok: false, status };
 }
 
@@ -597,6 +598,8 @@ export async function createWorkspaceForUser(
   userId: string,
   input: CreateWorkspaceInput,
 ): Promise<MutationResult<ApiWorkspace>> {
+  if (!canCreateWorkspace(await getSystemSettings())) return fail(403);
+
   const name = input.name?.trim();
   const slug = input.slug?.trim();
   if (!name || !slug) return fail(422);

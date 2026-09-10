@@ -40,7 +40,8 @@ export type NavLabelKey =
   | "audit"
   | "activity"
   | "mailTemplates"
-  | "invitations";
+  | "invitations"
+  | "adminSettings";
 
 export interface NavEntry {
   section: string;
@@ -250,6 +251,12 @@ export const ADMIN_NAV: NavEntry[] = [
     icon: "lucide:mail",
     labelKey: "mailTemplates",
     permission: "mail.template.manage",
+  },
+  {
+    section: "settings",
+    icon: "lucide:settings",
+    labelKey: "adminSettings",
+    permission: "system.settings.manage",
   },
 ];
 

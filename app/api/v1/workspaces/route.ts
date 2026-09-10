@@ -8,6 +8,7 @@ import {
   rateLimited,
   unauthorized,
   withRateLimitHeaders,
+  workspaceCreationDisabled,
 } from "@/lib/api/respond";
 import { hasScope, resolveApiUser } from "@/lib/api-auth";
 
@@ -49,10 +50,12 @@ export async function POST(req: Request) {
     const res =
       result.status === 404
         ? notFoundJson()
-        : NextResponse.json(
-            { error: { code: "invalid_body" } },
-            { status: 422 },
-          );
+        : result.status === 403
+          ? workspaceCreationDisabled()
+          : NextResponse.json(
+              { error: { code: "invalid_body" } },
+              { status: 422 },
+            );
     return withRateLimitHeaders(res, info);
   }
 

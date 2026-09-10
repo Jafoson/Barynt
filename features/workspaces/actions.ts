@@ -58,6 +58,7 @@ import {
   finalizeAvatarUpload,
   requestAvatarUpload,
 } from "@/lib/storage";
+import { canCreateWorkspace, getSystemSettings } from "@/lib/system-settings";
 import { generateHandle, pickUserColor } from "@/lib/user-defaults";
 import { uid } from "@/lib/utils/id";
 import {
@@ -128,6 +129,12 @@ export async function createWorkspace(
 ): Promise<WorkspaceResult> {
   const session = await getSession();
   if (!session) return { error: "You must be logged in." };
+
+  if (!canCreateWorkspace(await getSystemSettings())) {
+    return {
+      error: "Workspace creation is currently disabled by the administrator.",
+    };
+  }
 
   const name = (formData.get("name") as string | null)?.trim() ?? "";
   const slug = (formData.get("slug") as string | null)?.trim() ?? "";

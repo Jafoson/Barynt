@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { canCreateWorkspace, getSystemSettings } from "@/lib/system-settings";
+import { joinWorkspaceAsMember } from "@/lib/user-provisioning";
 
 export default async function LocaleRootPage({
   params,
@@ -30,5 +32,24 @@ export default async function LocaleRootPage({
   });
 
   if (membership) redirect(`/${locale}/${membership.workspaceId}`);
+
+  // No membership, and workspace creation is off with a default configured
+  // (`lib/system-settings.ts`) — join that workspace instead of sending the
+  // account to a creation form it isn't allowed to use.
+  const settings = await getSystemSettings();
+  if (!canCreateWorkspace(settings) && settings.defaultWorkspaceId) {
+    const defaultWorkspace = await db.workspace.findUnique({
+      where: { id: settings.defaultWorkspaceId },
+      select: { id: true, suspended: true },
+    });
+    if (defaultWorkspace && !defaultWorkspace.suspended) {
+      await joinWorkspaceAsMember(db, {
+        workspaceId: defaultWorkspace.id,
+        userId: session.userId,
+      });
+      redirect(`/${locale}/${defaultWorkspace.id}`);
+    }
+  }
+
   redirect(`/${locale}/create-workspace`);
 }

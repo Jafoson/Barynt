@@ -132,6 +132,18 @@ const db = {
 
 mock.module("@/lib/db", () => ({ db }));
 
+const mockGetSystemSettings = mock(async () => ({
+  allowWorkspaceCreation: true,
+  defaultWorkspaceId: null as string | null,
+}));
+mock.module("@/lib/system-settings", () => ({
+  getSystemSettings: mockGetSystemSettings,
+  canCreateWorkspace: (s: {
+    allowWorkspaceCreation: boolean;
+    defaultWorkspaceId: string | null;
+  }) => s.allowWorkspaceCreation || !s.defaultWorkspaceId,
+}));
+
 import {
   DELETE as deleteComment,
   PATCH as patchComment,
@@ -258,10 +270,15 @@ function reset() {
     mockProjectMemberCreateMany,
     mockProjectMemberFindMany,
     mockTransaction,
+    mockGetSystemSettings,
   ]) {
     m.mockReset();
   }
   mockCheckRateLimit.mockResolvedValue(ALLOW_RATE_LIMIT);
+  mockGetSystemSettings.mockResolvedValue({
+    allowWorkspaceCreation: true,
+    defaultWorkspaceId: null,
+  });
   // `resolveLabels` (`features/api-v1/queries.ts`) always calls this once
   // an issue has any labels — irrelevant to what these tests are about, so
   // it defaults to "resolves to nothing" rather than being set up per test.
@@ -824,6 +841,17 @@ describe("POST /api/v1/workspaces and PATCH/DELETE /:id", () => {
     mockResolveApiUser.mockResolvedValue(AUTH_FULL);
     const res = await postWorkspace(req({ name: "Acme" }));
     expect(res.status).toBe(422);
+  });
+
+  it("403s when workspace creation is disabled platform-wide", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_FULL);
+    mockGetSystemSettings.mockResolvedValue({
+      allowWorkspaceCreation: false,
+      defaultWorkspaceId: "acme",
+    });
+    const res = await postWorkspace(req({ name: "Acme", slug: "acme" }));
+    expect(res.status).toBe(403);
+    expect(mockWorkspaceCreate).not.toHaveBeenCalled();
   });
 
   it("creates a workspace and enrolls the caller as owner", async () => {
