@@ -98,9 +98,22 @@ function collectTestcases(node: XmlNode, out: TestCase[]) {
 }
 
 const dir = "test-results";
-const parts = readdirSync(dir)
-  .filter((f) => f.endsWith(".xml"))
-  .sort();
+let parts: string[];
+try {
+  parts = readdirSync(dir)
+    .filter((f) => f.endsWith(".xml"))
+    .sort();
+} catch {
+  // `bun run test` never got as far as running a segment — e.g. `bun
+  // install` itself failed. Nothing to summarize; say so instead of
+  // crashing this `if: always()` step on top of the real failure.
+  const output =
+    "## Testergebnisse\n\n⚠️ Keine Ergebnisse — die Tests sind gar nicht erst gelaufen (siehe vorherigen Schritt).\n";
+  const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+  if (summaryPath) appendFileSync(summaryPath, output);
+  else console.log(output);
+  process.exit(0);
+}
 
 const files: FileResult[] = [];
 const byLabel = new Map<string, TestCase>();
