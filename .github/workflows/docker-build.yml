@@ -1,6 +1,9 @@
 name: Docker Build
 
 on:
+  push:
+    branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
@@ -20,6 +23,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+      security-events: write
+      id-token: write
 
     steps:
       - name: Checkout
@@ -29,11 +34,26 @@ jobs:
         id: vars
         run: |
           if [ -n "${{ inputs.tag }}" ]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+            tag="${{ inputs.tag }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            tag="${{ github.ref_name }}"
           else
-            echo "tag=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+            tag="$(git rev-parse --short HEAD)"
           fi
-          echo "image=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+          image="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "platforms=${{ inputs.platforms || 'linux/amd64,linux/arm64' }}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "tags<<EOF"
+            echo "$image:$tag"
+            if [ "${{ github.ref_type }}" != "tag" ]; then
+              echo "$image:latest"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -48,14 +68,51 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      # Einzelnes Arch-Image, nur lokal geladen — Trivy kann kein Multi-Arch-Manifest scannen.
+      - name: Build image for scanning
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: ${{ inputs.platforms }}
-          push: true
-          tags: |
-            ${{ steps.vars.outputs.image }}:${{ steps.vars.outputs.tag }}
-            ${{ steps.vars.outputs.image }}:latest
+          platforms: linux/amd64
+          load: true
+          tags: ${{ steps.vars.outputs.image }}:scan
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.vars.outputs.image }}:scan
+          format: sarif
+          output: trivy-image-results.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Upload scan results to Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        continue-on-error: true
+        with:
+          sarif_file: trivy-image-results.sarif
+          category: trivy-docker-image
+
+      # Erst ab hier wird tatsächlich in die Registry geschrieben — nur wenn der Scan oben bestanden hat.
+      - name: Build and push
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ steps.vars.outputs.platforms }}
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: ${{ steps.vars.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign image (keyless)
+        run: cosign sign --yes "${{ steps.vars.outputs.image }}@${{ steps.push.outputs.digest }}"

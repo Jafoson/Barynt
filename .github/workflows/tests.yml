@@ -6,7 +6,36 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  checks: write
+
 jobs:
+  lint:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: bun prisma generate
+
+      - name: Biome check
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun x tsc --noEmit
+
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
@@ -21,10 +50,19 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Generate Prisma Client
         run: bun prisma generate
 
       - name: Run unit tests
         run: bun run test
+
+      - name: Publish test summary
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Unit-Test-Ergebnisse
+          path: "test-results/*.xml"
+          reporter: java-junit
+          fail-on-error: false
