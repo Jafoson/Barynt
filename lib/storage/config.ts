@@ -8,7 +8,16 @@ import "server-only";
 // avatars, same as before this file existed.
 
 export interface StorageConfig {
+  /** Used for calls the server itself makes (HEAD/DELETE) — reachable from
+   *  wherever the app process runs (e.g. the `rustfs` service name inside
+   *  Docker Compose). */
   endpoint: string;
+  /** Used for presigned PUT/GET URLs handed to the browser, which connects
+   *  to S3 directly — must be reachable from the browser, not just from the
+   *  app process. Defaults to `endpoint` (correct for `bun run dev`, and for
+   *  an external S3 provider, both equally reachable from either side; only
+   *  the bundled Docker Compose RustFS needs the two to differ). */
+  publicEndpoint: string;
   region: string;
   accessKeyId: string;
   secretAccessKey: string;
@@ -37,6 +46,7 @@ export function storageConfig(): StorageConfig | null {
 
   return {
     endpoint,
+    publicEndpoint: process.env.S3_PUBLIC_ENDPOINT || endpoint,
     region: process.env.S3_REGION || "us-east-1",
     accessKeyId,
     secretAccessKey,

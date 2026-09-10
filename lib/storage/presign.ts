@@ -29,7 +29,7 @@ export async function presignPutUrl(
   const client = getClient();
   if (!config || !client) return null;
 
-  const url = new URL(objectUrl(config.endpoint, bucket, key));
+  const url = new URL(objectUrl(config.publicEndpoint, bucket, key));
   url.searchParams.set("X-Amz-Expires", String(PUT_EXPIRES_IN));
 
   const request = await client.sign(url.toString(), {
@@ -48,7 +48,7 @@ export async function presignGetUrl(
   const client = getClient();
   if (!config || !client) return null;
 
-  const url = new URL(objectUrl(config.endpoint, bucket, key));
+  const url = new URL(objectUrl(config.publicEndpoint, bucket, key));
   url.searchParams.set("X-Amz-Expires", String(GET_EXPIRES_IN));
 
   const request = await client.sign(url.toString(), {

@@ -19,6 +19,7 @@ import {
 
 const S3_VARS = [
   "S3_ENDPOINT",
+  "S3_PUBLIC_ENDPOINT",
   "S3_REGION",
   "S3_ACCESS_KEY_ID",
   "S3_SECRET_ACCESS_KEY",

@@ -26,6 +26,7 @@ for (const name of [
 // `tests/unit/storage/config.test.ts` sets the variables deliberately, on its own.
 for (const name of [
   "S3_ENDPOINT",
+  "S3_PUBLIC_ENDPOINT",
   "S3_REGION",
   "S3_ACCESS_KEY_ID",
   "S3_SECRET_ACCESS_KEY",

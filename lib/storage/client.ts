@@ -38,6 +38,7 @@ export function getClient(): AwsClient | null {
 function sameConfig(a: StorageConfig, b: StorageConfig): boolean {
   return (
     a.endpoint === b.endpoint &&
+    a.publicEndpoint === b.publicEndpoint &&
     a.region === b.region &&
     a.accessKeyId === b.accessKeyId &&
     a.secretAccessKey === b.secretAccessKey &&

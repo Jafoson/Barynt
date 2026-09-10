@@ -171,6 +171,15 @@ services:
   # manual "click Create Bucket in the console" step. `aws s3 mb` exits
   # non-zero when a bucket already exists — `|| true` keeps this safe to
   # run on every start.
+  #
+  # Also sets a CORS policy on both buckets: avatar/attachment uploads go
+  # through a presigned URL the *browser* PUTs to directly (see
+  # S3_PUBLIC_ENDPOINT above), a different origin than the app itself
+  # (different port, and RustFS has no HTTPS of its own) — without this,
+  # the browser's preflight OPTIONS request gets back no
+  # Access-Control-Allow-* headers at all and silently blocks every upload.
+  # `*` is safe here (no CORS credentials mode involved — presigned URLs
+  # authenticate via the query string, not cookies/Authorization).
   rustfs-init:
     profiles: ["app"]
     image: amazon/aws-cli:latest
@@ -182,7 +191,15 @@ services:
         aws --endpoint-url http://rustfs:9000 s3 mb
         s3://${S3_BUCKET_AVATARS:-avatars} || true;
         aws --endpoint-url http://rustfs:9000 s3 mb
-        s3://${S3_BUCKET_ISSUES:-issues} || true
+        s3://${S3_BUCKET_ISSUES:-issues} || true;
+        aws --endpoint-url http://rustfs:9000 s3api put-bucket-cors
+        --bucket ${S3_BUCKET_AVATARS:-avatars}
+        --cors-configuration '{"CORSRules":[{"AllowedOrigins":["*"],"AllowedMethods":["GET","PUT","HEAD"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3000}]}'
+        || true;
+        aws --endpoint-url http://rustfs:9000 s3api put-bucket-cors
+        --bucket ${S3_BUCKET_ISSUES:-issues}
+        --cors-configuration '{"CORSRules":[{"AllowedOrigins":["*"],"AllowedMethods":["GET","PUT","HEAD"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3000}]}'
+        || true
     environment:
       AWS_ACCESS_KEY_ID: "${S3_ACCESS_KEY_ID:-rustfsadmin}"
       AWS_SECRET_ACCESS_KEY: "${S3_SECRET_ACCESS_KEY:-rustfsadmin}"
@@ -219,11 +236,33 @@ services:
       # thing from the host and from inside a container, so they're safe
       # to default directly.
       S3_ENDPOINT: "${COMPOSE_S3_ENDPOINT:-http://rustfs:9000}"
+      # Presigned PUT/GET URLs are handed to the *browser*, which connects to
+      # S3 directly — "rustfs" above only resolves inside this Compose
+      # network, not on whatever machine the browser runs on. Defaults to the
+      # bundled RustFS's published host port so a same-machine browser (the
+      # common case: this stack tested/self-hosted on one box) can reach it;
+      # override to your public DOMAIN if you expose S3_PORT externally
+      # (S3_BIND — see header comment) instead of using the default
+      # loopback-only binding. An external S3 provider is equally reachable
+      # from both sides, so COMPOSE_S3_ENDPOINT alone is enough there — this
+      # only needs overriding for the bundled RustFS case.
+      S3_PUBLIC_ENDPOINT: "${COMPOSE_S3_PUBLIC_ENDPOINT:-http://${DOMAIN:-localhost}:${S3_PORT:-9000}}"
       S3_REGION: "${S3_REGION:-us-east-1}"
       S3_ACCESS_KEY_ID: "${S3_ACCESS_KEY_ID:-rustfsadmin}"
       S3_SECRET_ACCESS_KEY: "${S3_SECRET_ACCESS_KEY:-rustfsadmin}"
       S3_BUCKET_AVATARS: "${S3_BUCKET_AVATARS:-avatars}"
       S3_BUCKET_ISSUES: "${S3_BUCKET_ISSUES:-issues}"
+      # Same reasoning as COMPOSE_DATABASE_URL/COMPOSE_S3_ENDPOINT above:
+      # .env's own SMTP_HOST is for the host-run dev server (e.g. "localhost"
+      # reaching a locally-installed Mailpit) — inside the container,
+      # "localhost" means the container itself. Falls back to .env's
+      # SMTP_HOST unchanged (real external SMTP servers work the same from
+      # both sides), so this only needs setting for a local catch-all like
+      # Mailpit. Point COMPOSE_SMTP_HOST at "host.docker.internal" (see
+      # extra_hosts below) to reach one running on the host.
+      SMTP_HOST: "${COMPOSE_SMTP_HOST:-${SMTP_HOST-}}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy

@@ -7,6 +7,7 @@ import {
 
 const S3_VARS = [
   "S3_ENDPOINT",
+  "S3_PUBLIC_ENDPOINT",
   "S3_REGION",
   "S3_ACCESS_KEY_ID",
   "S3_SECRET_ACCESS_KEY",
@@ -43,6 +44,7 @@ describe("storageConfig()", () => {
 
     expect(storageConfig()).toEqual({
       endpoint: "http://localhost:9000",
+      publicEndpoint: "http://localhost:9000",
       region: "eu-central-1",
       accessKeyId: "rustfsadmin",
       secretAccessKey: "rustfsadmin",
@@ -51,6 +53,26 @@ describe("storageConfig()", () => {
     });
     expect(isStorageConfigured()).toBe(true);
     expect(isAttachmentsConfigured()).toBe(false);
+  });
+
+  it("falls back publicEndpoint to endpoint without S3_PUBLIC_ENDPOINT", () => {
+    process.env.S3_ENDPOINT = "http://rustfs:9000";
+    process.env.S3_ACCESS_KEY_ID = "id";
+    process.env.S3_SECRET_ACCESS_KEY = "secret";
+    process.env.S3_BUCKET_AVATARS = "avatars";
+
+    expect(storageConfig()?.publicEndpoint).toBe("http://rustfs:9000");
+  });
+
+  it("uses S3_PUBLIC_ENDPOINT for the browser-facing endpoint when set", () => {
+    process.env.S3_ENDPOINT = "http://rustfs:9000";
+    process.env.S3_PUBLIC_ENDPOINT = "http://localhost:9000";
+    process.env.S3_ACCESS_KEY_ID = "id";
+    process.env.S3_SECRET_ACCESS_KEY = "secret";
+    process.env.S3_BUCKET_AVATARS = "avatars";
+
+    expect(storageConfig()?.endpoint).toBe("http://rustfs:9000");
+    expect(storageConfig()?.publicEndpoint).toBe("http://localhost:9000");
   });
 
   it("falls back to us-east-1 without S3_REGION", () => {

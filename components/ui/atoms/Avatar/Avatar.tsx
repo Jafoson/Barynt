@@ -61,7 +61,20 @@ export function Avatar({
   placeholderLabel,
   className,
 }: AvatarProps) {
+  const image = avatar && "image" in avatar ? avatar.image?.trim() : undefined;
   const [imgFailed, setImgFailed] = useState(false);
+
+  // Tied to the URL itself, not just "did it ever fail": a stale `true` from
+  // a previous, now-replaced image (re-upload, or an initially broken
+  // presigned URL that later resolves) would otherwise hide a perfectly
+  // loadable image behind the initials forever. Adjusting state during
+  // render (React's own pattern for "reset on prop change") instead of a
+  // useEffect, since the reset itself doesn't need a commit to have happened.
+  const [trackedImage, setTrackedImage] = useState(image);
+  if (image !== trackedImage) {
+    setTrackedImage(image);
+    setImgFailed(false);
+  }
 
   if (!avatar) {
     if (!placeholder) {
@@ -124,9 +137,9 @@ export function Avatar({
         } as CSSProperties
       }
     >
-      {avatar.image && !imgFailed ? (
+      {image && !imgFailed ? (
         <img
-          src={avatar.image}
+          src={image}
           alt=""
           className={styles.img}
           onError={() => setImgFailed(true)}
