@@ -1,4 +1,5 @@
 import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
+import { appUrl } from "@/lib/app-url";
 import { verifyMcpToken } from "@/lib/mcp/auth";
 import { registerBaryntTools } from "@/lib/mcp/tools";
 
@@ -35,10 +36,19 @@ const mcp = createMcpHandler(async () => {
 
 const BEARER = /^Bearer\s+(\S+)$/i;
 
+// Points an MCP client (Claude, ...) at the OAuth flow the moment it hits
+// this route without a token — RFC 9728 / the MCP authorization spec's own
+// discovery sequence starts here: 401 → parse `resource_metadata` off this
+// header → GET that URL → find `authorization_servers` → OAuth flow.
 function unauthorized(): Response {
   return Response.json(
     { error: { code: "unauthorized" } },
-    { status: 401, headers: { "WWW-Authenticate": 'Bearer realm="barynt"' } },
+    {
+      status: 401,
+      headers: {
+        "WWW-Authenticate": `Bearer realm="barynt", resource_metadata="${appUrl("/.well-known/oauth-protected-resource")}"`,
+      },
+    },
   );
 }
 

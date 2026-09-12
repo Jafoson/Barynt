@@ -175,7 +175,7 @@ export type McpClientId = "claude-code" | "direct" | "desktop";
 
 export interface McpClientGuide {
   id: McpClientId;
-  snippetLang: "bash" | "json";
+  snippetLang: "bash" | "json" | "text";
   /** Built lazily from the page's own origin (`appUrl("/api/mcp")`) — there's
    *  no fixed placeholder to bake in ahead of time. */
   snippet: (mcpUrl: string) => string;
@@ -206,24 +206,10 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
   },
   {
     id: "desktop",
-    snippetLang: "json",
-    snippet: (mcpUrl) =>
-      `{
-  "mcpServers": {
-    "barynt": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote",
-        "${mcpUrl}",
-        "--header",
-        "Authorization:\${BARYNT_API_KEY}"
-      ],
-      "env": {
-        "BARYNT_API_KEY": "Bearer <YOUR_API_KEY>"
-      }
-    }
-  }
-}`,
+    snippetLang: "text",
+    // No JSON, no bridge process, no key to paste — the connector picker
+    // takes just this URL and drives the OAuth flow itself
+    // (`/.well-known/oauth-authorization-server`, `/oauth/authorize`).
+    snippet: (mcpUrl) => mcpUrl,
   },
 ];

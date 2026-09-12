@@ -28,6 +28,27 @@ const nextConfig: NextConfig = {
       "node_modules/@prisma/client-*/**/*",
     ],
   },
+  // The MCP/OAuth authorization spec (RFC 9728, RFC 8414) mandates these
+  // exact `/.well-known/...` paths — but the App Router silently never
+  // registers a route under a literally dot-prefixed folder (`app/.well-known/`
+  // is treated like `.git`/`.next`, invisible to the router), and every
+  // other top-level path here falls through to `app/[locale]/...`, which
+  // 404s trying to read ".well-known" as a locale. Rewriting to real routes
+  // under `app/api/oauth/well-known/` (a path shape the router does
+  // register, and one `proxy.ts`'s matcher already excludes as `/api/*`)
+  // is what actually exposes them at the spec-required URLs.
+  async rewrites() {
+    return [
+      {
+        source: "/.well-known/oauth-protected-resource",
+        destination: "/api/oauth/well-known/protected-resource",
+      },
+      {
+        source: "/.well-known/oauth-authorization-server",
+        destination: "/api/oauth/well-known/authorization-server",
+      },
+    ];
+  },
 };
 
 export default withNextIntl(nextConfig);

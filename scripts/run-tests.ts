@@ -72,6 +72,12 @@ const SEGMENTS: string[][] = [
   // mocks that module away entirely, and the mock would otherwise win the
   // module-cache race for the rest of segment 0 — see CLAUDE.md.
   ["tests/unit/admin/systemSettings.test.ts"],
+  // Mocks `@/lib/app-url` (for a deterministic canonical MCP resource URI
+  // in the exchange/verify tests) — `lib/invitations.ts`,
+  // `lib/invite-links.ts`, `lib/issue-share.ts`, and the mail templates all
+  // import the real `appUrl`/`appBaseUrl`, and plenty of segment-0 tests
+  // exercise those. Same module-cache-race risk as every other case here.
+  ["tests/unit/oauth"],
   // Real `next/server` import — patches process-wide globals, see CLAUDE.md.
   ["tests/unit/proxy"],
   // Mocks `@/lib/project-membership` away entirely — see CLAUDE.md.

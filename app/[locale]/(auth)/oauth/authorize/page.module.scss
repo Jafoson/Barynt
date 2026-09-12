@@ -1,0 +1,52 @@
+/* Same stage as `AuthCard` — the expired invitation shouldn't look like a
+   different app from the sign-in page it sends you to. */
+.page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background);
+  padding: 24px;
+}
+
+.card {
+  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius);
+  background: var(--surface-container);
+  color: var(--on-surface-variant);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--on-background);
+}
+
+.text {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--on-surface-variant);
+}
+
+.link {
+  font-size: var(--text-base);
+  color: var(--primary);
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

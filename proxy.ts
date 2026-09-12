@@ -38,8 +38,13 @@ export default auth((request) => {
     const locale = hasLocalePrefix ? segments[0] : routing.defaultLocale;
     const loginUrl = new URL(`/${locale}/login`, request.url);
     // callbackUrl without a locale prefix – the client navigates via
-    // next-intl, which adds the active locale automatically.
-    loginUrl.searchParams.set("callbackUrl", restPath);
+    // next-intl, which adds the active locale automatically. Carries the
+    // original query string too (`request.nextUrl.search`) — dropping it
+    // silently broke `/oauth/authorize`: an unauthenticated visit there
+    // lost client_id/code_challenge/state/resource on the login
+    // round-trip, since a bare pathname reaches the callback with nothing
+    // left to resume the OAuth flow with.
+    loginUrl.searchParams.set("callbackUrl", restPath + request.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   }
 

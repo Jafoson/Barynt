@@ -10,9 +10,7 @@ import { sendMagicLink } from "@/features/auth/actions";
 
 function authErrorOfType(type: string): AuthError {
   const err = new AuthError("test");
-  // biome-ignore lint/suspicious/noExplicitAny: `.type` is set by the real
-  // subclass constructor (AccessDenied.type etc.), not assignable on the
-  // base class from userland — this stands in for one of those subclasses.
+  // biome-ignore lint/suspicious/noExplicitAny: `.type` is set by subclass constructors (AccessDenied.type etc.), not assignable on the base class from userland.
   (err as any).type = type;
   return err;
 }

@@ -178,6 +178,9 @@ model User {
   notificationsCaused Notification[]                 @relation("NotificationActor")
   apiKeys             ApiKey[]
   webhooksCreated     Webhook[]                       @relation("WebhookCreatedBy")
+  oauthAuthorizationCodes OAuthAuthorizationCode[]
+  oauthAccessTokens       OAuthAccessToken[]
+  oauthRefreshTokens      OAuthRefreshToken[]
 }
 
 /// Ein persönlicher API-Key ("bry_…"-Token) für die öffentliche REST-API
@@ -212,6 +215,99 @@ model ApiKey {
   revokedAt  DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Ein registrierter OAuth-Client für den MCP-Server (`app/api/mcp`) —
+/// entsteht praktisch immer per Dynamic Client Registration (RFC 7591),
+/// wenn sich ein MCP-Client wie Claude selbst anmeldet, statt manuell im
+/// Admin-Bereich angelegt zu werden. Ausschließlich öffentliche Clients:
+/// kein `clientSecret`, PKCE ist im Autorisierungscode-Flow Pflicht
+/// (`lib/oauth/`).
+model OAuthClient {
+  id String @id @default(cuid())
+  /// Vom Client selbst angegeben (RFC 7591 `client_name`), z. B. "Claude".
+  name String
+  /// Exakter Abgleich ist Pflicht (Spec-Vorgabe gegen Open Redirect) —
+  /// mehrere erlaubt, für Desktop-Clients mit wechselndem Loopback-Port.
+  redirectUris String[]
+  createdAt    DateTime @default(now())
+
+  authorizationCodes OAuthAuthorizationCode[]
+  accessTokens       OAuthAccessToken[]
+  refreshTokens      OAuthRefreshToken[]
+}
+
+/// Kurzlebiger Autorisierungscode zwischen `/oauth/authorize` und
+/// `/oauth/token` — einmal verwendbar (`usedAt`), `codeChallenge` bindet
+/// ihn an den PKCE-Verifier, den nur der ursprüngliche Client kennt.
+model OAuthAuthorizationCode {
+  id                  String    @id @default(cuid())
+  /// SHA-256-Hex-Digest des rohen Codes, wie bei `ApiKey.tokenHash`.
+  codeHash            String    @unique
+  clientId            String
+  userId              String
+  redirectUri         String
+  codeChallenge       String
+  codeChallengeMethod String
+  /// RFC 8707 — die kanonische MCP-Server-URI, an die der spätere Access
+  /// Token gebunden wird. Optional, weil nicht jeder Client den Parameter
+  /// mitschickt (nur MUST für den Client laut Spec, nicht für den Server,
+  /// solche zu verlangen).
+  resource  String?
+  scopes    String[]  @default([])
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  client OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([userId])
+}
+
+/// Access Token aus dem OAuth-Flow — spielt für `lib/mcp/auth.ts` dieselbe
+/// Rolle wie `ApiKey`, nur kurzlebig und vom Client statt vom Nutzer selbst
+/// verwaltet.
+model OAuthAccessToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  clientId  String
+  userId    String
+  scopes    String[]  @default([])
+  resource  String?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  client       OAuthClient        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken OAuthRefreshToken?
+
+  @@index([userId])
+}
+
+/// Rotierender Refresh Token (OAuth-2.1-Pflicht für Public Clients) — jede
+/// Einlösung erzeugt ein neues Access/Refresh-Paar und widerruft dieses hier
+/// (`revokedAt`); die Wiederverwendung eines bereits eingelösten Tokens
+/// widerruft die gesamte Kette (Diebstahl-Erkennung, siehe `lib/oauth/token.ts`).
+model OAuthRefreshToken {
+  id            String    @id @default(cuid())
+  tokenHash     String    @unique
+  clientId      String
+  userId        String
+  scopes        String[]  @default([])
+  resource      String?
+  accessTokenId String?   @unique
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+  revokedAt     DateTime?
+
+  client      OAuthClient       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken OAuthAccessToken? @relation(fields: [accessTokenId], references: [id], onDelete: SetNull)
 
   @@index([userId])
 }
