@@ -4,11 +4,16 @@ import { Pool } from "pg";
 import { type Prisma, PrismaClient } from "../lib/generated/prisma/client";
 import { enrollWorkspaceMembers } from "../lib/project-membership";
 import { systemRoleId } from "../lib/rbac";
-import { provisionSystemRbac } from "../lib/rbac-provision";
 import { fromMarkdown } from "../lib/richtext/fromMarkdown";
 import { toPlainText } from "../lib/richtext/text";
 import { uid } from "../lib/utils/id";
-import { isClosedStatus } from "../lib/workspace-defaults";
+import {
+  DEFAULT_ISSUE_TYPES,
+  DEFAULT_PRIORITIES,
+  DEFAULT_STATUSES,
+  isClosedStatus,
+} from "../lib/workspace-defaults";
+import { bootstrapSystemData } from "./bootstrap";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = new PrismaClient({ adapter: new PrismaPg(pool) });
@@ -30,73 +35,9 @@ const PLATFORM_SUPPORT_IDS = new Set(["u18"]);
 const DEACTIVATED_USER_IDS = new Set(["u20"]);
 
 // ─── Workspace Config ─────────────────────────────────────────────────────────
-
-const STATUSES = [
-  {
-    id: "backlog",
-    name: "Backlog",
-    short: "Backlog",
-    color: "#8a9099",
-    isColumn: true,
-    position: 0,
-  },
-  {
-    id: "todo",
-    name: "Todo",
-    short: "Todo",
-    color: "#b8bcc4",
-    isColumn: true,
-    position: 1,
-  },
-  {
-    id: "in_progress",
-    name: "In Progress",
-    short: "Progress",
-    color: "#e2b340",
-    isColumn: true,
-    position: 2,
-  },
-  {
-    id: "in_review",
-    name: "In Review",
-    short: "Review",
-    color: "#5b9bd5",
-    isColumn: true,
-    position: 3,
-  },
-  {
-    id: "done",
-    name: "Done",
-    short: "Done",
-    color: "#5ab98a",
-    isColumn: true,
-    position: 4,
-  },
-  {
-    id: "canceled",
-    name: "Canceled",
-    short: "Canceled",
-    color: "#7a7f87",
-    isColumn: false,
-    position: 5,
-  },
-];
-
-const PRIORITIES = [
-  { id: 0, key: "none", name: "No priority", color: "#8a9099", position: 0 },
-  { id: 1, key: "low", name: "Low", color: "#3b9d6e", position: 1 },
-  { id: 2, key: "medium", name: "Medium", color: "#e2b340", position: 2 },
-  { id: 3, key: "high", name: "High", color: "#d5733b", position: 3 },
-  { id: 4, key: "urgent", name: "Urgent", color: "#e05252", position: 4 },
-];
-
-const ISSUE_TYPES = [
-  { id: "feature", name: "Feature", color: "#6e63e6", position: 0 },
-  { id: "bug", name: "Bug", color: "#e5664a", position: 1 },
-  { id: "improvement", name: "Improvement", color: "#3b9d6e", position: 2 },
-  { id: "task", name: "Task", color: "#3b7bd5", position: 3 },
-  { id: "chore", name: "Chore", color: "#8a7f6b", position: 4 },
-];
+// Statuses/priorities/issue types themselves now live in `./bootstrap.ts`
+// (shared with the production bootstrap path) — only the demo workspace's
+// join rows are set up here, looping over the same `DEFAULT_*` arrays.
 
 const LABELS = [
   { id: "l1", workspaceId: WS, name: "Bug", slug: "bug", color: "#e5664a" },
@@ -979,28 +920,28 @@ async function main() {
   });
   console.log("   ✓ 1 workspace");
 
-  for (const s of STATUSES) {
-    await db.status.upsert({ where: { id: s.id }, update: s, create: s });
+  // Global Status/Priority/IssueType rows + RBAC — shared with the
+  // production bootstrap path (see bootstrap.ts) instead of duplicated here.
+  await bootstrapSystemData(db);
+  console.log(
+    "   ✓ statuses, priorities, issue types, RBAC permissions & shared system roles",
+  );
+
+  for (const s of DEFAULT_STATUSES) {
     await db.workspaceStatus.upsert({
       where: { workspaceId_statusId: { workspaceId: WS, statusId: s.id } },
       update: {},
       create: { workspaceId: WS, statusId: s.id },
     });
   }
-  console.log(`   ✓ ${STATUSES.length} statuses`);
-
-  for (const p of PRIORITIES) {
-    await db.priority.upsert({ where: { id: p.id }, update: p, create: p });
+  for (const p of DEFAULT_PRIORITIES) {
     await db.workspacePriority.upsert({
       where: { workspaceId_priorityId: { workspaceId: WS, priorityId: p.id } },
       update: {},
       create: { workspaceId: WS, priorityId: p.id },
     });
   }
-  console.log(`   ✓ ${PRIORITIES.length} priorities`);
-
-  for (const t of ISSUE_TYPES) {
-    await db.issueType.upsert({ where: { id: t.id }, update: t, create: t });
+  for (const t of DEFAULT_ISSUE_TYPES) {
     await db.workspaceIssueType.upsert({
       where: {
         workspaceId_issueTypeId: { workspaceId: WS, issueTypeId: t.id },
@@ -1009,12 +950,7 @@ async function main() {
       create: { workspaceId: WS, issueTypeId: t.id },
     });
   }
-  console.log(`   ✓ ${ISSUE_TYPES.length} issue types`);
-
-  // System roles exist exactly once in the database and are shared by
-  // all tenants — nothing is copied per workspace.
-  await provisionSystemRbac(db);
-  console.log("   ✓ RBAC permissions & shared system roles");
+  console.log("   ✓ Nimbus workspace wired to all of the above");
 
   for (const u of USERS) {
     const id = ref(realUserId, u.id, "user");

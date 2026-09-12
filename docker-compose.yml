@@ -116,11 +116,16 @@ services:
       retries: 15
       start_period: 5s
 
-  # One-off: applies pending migrations, then exits. Runs from the `builder`
-  # stage (full toolchain, including the `prisma` CLI) rather than the `app`
-  # image itself — that image only ships Next's pruned standalone output and
-  # deliberately has no `prisma` CLI (~200MB of engine binaries it would
-  # otherwise never use). `app` waits for this to exit 0 before starting.
+  # One-off: applies pending migrations, then bootstraps the system data
+  # migrations alone don't cover — the global Status/Priority/IssueType rows
+  # and RBAC permissions/system roles every workspace needs (see
+  # prisma/bootstrap.ts; skipped here, a fresh instance could migrate clean
+  # and still fail its very first "Create workspace" on a foreign-key
+  # violation). Runs from the `builder` stage (full toolchain, including the
+  # `prisma` CLI) rather than the `app` image itself — that image only ships
+  # Next's pruned standalone output and deliberately has no `prisma` CLI
+  # (~200MB of engine binaries it would otherwise never use). `app` waits for
+  # this to exit 0 before starting.
   migrate:
     profiles: ["app"]
     build:
@@ -128,7 +133,7 @@ services:
       dockerfile: Dockerfile
       target: builder
     image: barynt-migrate:latest
-    command: ["bun", "prisma", "migrate", "deploy"]
+    command: ["sh", "-c", "bun prisma migrate deploy && bun prisma/bootstrap.ts"]
     restart: "no"
     environment:
       DATABASE_URL: "${COMPOSE_DATABASE_URL:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-IssueTracker}}"
