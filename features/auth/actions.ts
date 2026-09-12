@@ -18,6 +18,18 @@ type AuthResult = { redirectTo: string } | { error: string };
  * the person. `redirect: false` returns the result instead of throwing —
  * `sendVerificationRequest` (`auth.ts`) has already handed the mail off to
  * `sendMail()` by this point.
+ *
+ * `auth.ts`'s `signIn` callback runs here too, not just on the eventual
+ * click-through (@auth/core calls it before `sendVerificationRequest`,
+ * specifically so a blocked attempt never sends mail at all) — so an
+ * unknown address with AUTH_REGISTRATION_ENABLED=false throws `AccessDenied`
+ * right here. That must not turn into a *different* response than a real
+ * address gets: telling the caller "no account for that address" is exactly
+ * the account-enumeration leak invite-only mode is supposed to close, not
+ * just at the login form but for this trickle-down case too. Reported to
+ * the caller the same way either way — `{ ok: true }` — and only a genuine,
+ * unrelated failure (SMTP down, provider misconfigured) still surfaces as
+ * an error.
  */
 export async function sendMagicLink(
   email: string,
@@ -34,6 +46,7 @@ export async function sendMagicLink(
     });
   } catch (error) {
     if (error instanceof AuthError) {
+      if (error.type === "AccessDenied") return { ok: true };
       return { error: "Could not send the magic link. Please try again." };
     }
     throw error;

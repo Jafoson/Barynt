@@ -190,14 +190,27 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         }
       }
 
-      // `!user.id` at this point always means a brand-new account is about
-      // to be created in `createUser` (right below in `handleLoginOrRegister`
-      // — this callback runs first) — unless it's an invited shadow account
-      // we just linked above, or (for magic link) `getUserByEmail` already
-      // found an existing row, in which case `user.id` is set and we never
-      // get here. `AUTH_REGISTRATION_ENABLED=false` blocks exactly that
-      // remaining case: a genuinely unknown email/provider account. Returning
-      // `false` makes next-auth redirect with `?error=AccessDenied`.
+      // `!user.id` normally means a brand-new account is about to be
+      // created in `createUser` (right below, in `handleLoginOrRegister` —
+      // this callback runs first) — true for passkey and OAuth/OIDC. The
+      // email/magic-link provider is the one exception: @auth/core's
+      // `callback/index.js` resolves an unknown address to a *freshly
+      // generated random UUID* as a stand-in `user.id`, not `undefined`,
+      // before this callback ever runs — the real row is only created
+      // afterward, in `createUser`. `!user.id` is therefore always false
+      // for that provider, existing address or not, and would let a brand
+      // new email straight through regardless of AUTH_REGISTRATION_ENABLED.
+      // Checked directly against the database instead, for that provider
+      // only — an *existing* row there is exactly the invited-shadow-account
+      // or already-registered case that's supposed to sign in normally.
+      const isNewAccount =
+        account?.type === "email" && user.email
+          ? !(await db.user.findUnique({ where: { email: user.email } }))
+          : !user.id;
+
+      // `AUTH_REGISTRATION_ENABLED=false` blocks exactly the remaining case:
+      // a genuinely unknown email/provider account. Returning `false` makes
+      // next-auth redirect with `?error=AccessDenied`.
       //
       // Except on a genuinely empty instance: without this, setting
       // AUTH_REGISTRATION_ENABLED=false before anyone has ever signed in
@@ -206,7 +219,7 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       // there'd be no admin left to flip the flag back. Invite-only mode is
       // meant to close registration once *you're* already in, not before.
       if (
-        !user.id &&
+        isNewAccount &&
         !linkedShadowAccount &&
         !registrationEnabled &&
         !(await isFirstAccount(db))
