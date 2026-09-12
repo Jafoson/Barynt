@@ -28,7 +28,11 @@ const SEGMENTS: string[][] = [
     "tests/unit/tabbar",
     "tests/unit/projects",
     "tests/unit/invitations",
-    "tests/unit/admin",
+    "tests/unit/admin/breakGlass.test.ts",
+    "tests/unit/admin/mailTemplates.test.ts",
+    "tests/unit/admin/platformAccounts.test.ts",
+    "tests/unit/admin/platformQueries.test.ts",
+    "tests/unit/admin/platformWorkspaces.test.ts",
     "tests/unit/audit",
     "tests/unit/i18n",
     "tests/unit/dashboard",
@@ -64,6 +68,10 @@ const SEGMENTS: string[][] = [
   ],
   ["tests/unit/api-keys/route.test.ts"],
   ["tests/unit/api-keys/richtext.test.ts"],
+  // Tests `@/lib/system-settings` for real; `workspace/createWorkspace.test.ts`
+  // mocks that module away entirely, and the mock would otherwise win the
+  // module-cache race for the rest of segment 0 — see CLAUDE.md.
+  ["tests/unit/admin/systemSettings.test.ts"],
   // Real `next/server` import — patches process-wide globals, see CLAUDE.md.
   ["tests/unit/proxy"],
   // Mocks `@/lib/project-membership` away entirely — see CLAUDE.md.

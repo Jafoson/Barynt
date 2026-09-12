@@ -452,6 +452,19 @@ exact Bun version instead of `latest`, precisely so a future Bun release
 can't silently flip one of these races again — bump it deliberately, and
 re-run the full suite before doing so.
 
+The same pattern shows up a fourth time around `@/lib/system-settings`:
+`workspace/createWorkspace.test.ts` mocks it away entirely (it only needs
+`getSystemSettings()` to return a fixed value), while
+`admin/systemSettings.test.ts` tests that module for real against its own
+`@/lib/db` mock. Both used to run in the shared segment 0 process, and
+`createWorkspace.test.ts`'s mock module registration won the race — every
+`getSystemSettings()` call in `systemSettings.test.ts` silently returned
+`createWorkspace.test.ts`'s fixed `{ allowWorkspaceCreation: true,
+defaultWorkspaceId: null }` instead of reading its own mocked DB row,
+failing three assertions with no code change to explain it.
+`admin/systemSettings.test.ts` now gets its own invocation in
+`scripts/run-tests.ts`; the rest of `tests/unit/admin/` stays in segment 0.
+
 `proxy/proxy.test.ts` gets its own invocation too, for a different reason
 than the others above: it's the only test that touches the real
 `next/server` (`require("next/server")`, plus
