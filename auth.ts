@@ -18,7 +18,7 @@ import { magicLinkEmail } from "@/lib/mail/templates/magicLink";
 import { touchLastSeen } from "@/lib/presence";
 import { DEFAULT_PLATFORM_ROLE_KEY, systemRoleId } from "@/lib/rbac";
 import { generateHandle, pickUserColor } from "@/lib/user-defaults";
-import { provisionNewUser } from "@/lib/user-provisioning";
+import { isFirstAccount, provisionNewUser } from "@/lib/user-provisioning";
 import { splitName } from "@/lib/utils/string";
 
 // PrismaAdapter with a createUser override: OAuth/mail users only supply
@@ -80,6 +80,12 @@ function createAdapter(): Adapter {
         ? splitName(data.name)
         : { firstName: "", lastName: "" };
       const handle = await generateHandle(email ?? data.name ?? "user");
+      // Every new account starts without platform permissions — except the
+      // very first one on a fresh instance, which would otherwise have no
+      // way to ever reach the admin panel at all (see isFirstAccount()).
+      const platformRoleKey = (await isFirstAccount(db))
+        ? "platform_admin"
+        : DEFAULT_PLATFORM_ROLE_KEY;
       const user = await db.user.create({
         data: {
           firstName,
@@ -89,8 +95,7 @@ function createAdapter(): Adapter {
           image: data.image,
           handle,
           color: pickUserColor(),
-          // Every new account starts without platform permissions.
-          platformRoleId: systemRoleId("PLATFORM", DEFAULT_PLATFORM_ROLE_KEY),
+          platformRoleId: systemRoleId("PLATFORM", platformRoleKey),
         },
       });
       if (email) {

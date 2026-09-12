@@ -36,6 +36,24 @@ export async function joinWorkspaceAsMember(
 }
 
 /**
+ * True only for the very first account ever created on this instance —
+ * checked right before `db.user.create()` in `auth.ts`'s `createUser()`, the
+ * one hook every sign-in method (passkey, OAuth/OIDC, magic link) goes
+ * through. A fresh self-hosted deployment otherwise has no way to ever reach
+ * `platform_admin`: every account starts as `platform_member`, and nothing
+ * short of a manual database edit could promote one — `prisma/bootstrap.ts`
+ * seeds the *system* data (statuses, RBAC roles), never a person.
+ *
+ * A `count()` right before `create()` isn't transactionally atomic, but two
+ * people registering in the exact instant a brand-new instance goes live is
+ * not a real-world race worth guarding against here — the failure mode
+ * (both become admin) isn't a security hole, just a shared first login.
+ */
+export async function isFirstAccount(db: Db): Promise<boolean> {
+  return (await db.user.count()) === 0;
+}
+
+/**
  * Assigns a freshly created account to a workspace if its email domain is
  * claimed. No match means: nothing to do, the account stays without a
  * workspace for now (`/create-workspace`, or the default workspace if

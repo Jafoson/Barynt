@@ -9,6 +9,7 @@ const mockWorkspaceMemberCreate = mock();
 const mockWorkspaceMemberFindUnique = mock();
 const mockProjectFindMany = mock();
 const mockProjectMemberCreateMany = mock();
+const mockUserCount = mock();
 
 const tx = {
   workspaceDomain: { findUnique: mockWorkspaceDomainFindUnique },
@@ -18,10 +19,11 @@ const tx = {
   },
   project: { findMany: mockProjectFindMany },
   projectMember: { createMany: mockProjectMemberCreateMany },
+  user: { count: mockUserCount },
   // biome-ignore lint/suspicious/noExplicitAny: test double for Prisma.TransactionClient
 } as any;
 
-import { provisionNewUser } from "@/lib/user-provisioning";
+import { isFirstAccount, provisionNewUser } from "@/lib/user-provisioning";
 
 describe("provisionNewUser()", () => {
   beforeEach(() => {
@@ -71,5 +73,21 @@ describe("provisionNewUser()", () => {
 
     expect(mockWorkspaceMemberCreate).not.toHaveBeenCalled();
     expect(mockProjectFindMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("isFirstAccount()", () => {
+  beforeEach(() => {
+    mockUserCount.mockReset();
+  });
+
+  it("is true when no account exists yet — the fresh-instance bootstrap case", async () => {
+    mockUserCount.mockResolvedValue(0);
+    expect(await isFirstAccount(tx)).toBe(true);
+  });
+
+  it("is false once at least one account exists", async () => {
+    mockUserCount.mockResolvedValue(1);
+    expect(await isFirstAccount(tx)).toBe(false);
   });
 });
