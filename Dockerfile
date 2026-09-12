@@ -91,6 +91,16 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     PORT=3000
 
+# oven/bun:*-slim pins a Debian snapshot at publish time, so it drifts
+# behind Debian's own security updates (gzip, perl-base, libsqlite3-0,
+# libpcre2-8-0 CVEs — all "fixed" upstream but not yet in the base image)
+# between Bun releases. `apt-get upgrade` pulls those patched packages in
+# at build time instead of waiting on the next Bun bump; the Trivy scan in
+# docker-build.yml (`ignore-unfixed: true`) fails the build on exactly
+# this class of gap, since a fix is available even though Bun hasn't
+# republished the base image yet.
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+
 # The base image already ships an unprivileged "bun" user (uid/gid 1000).
 # Chown the still-empty WORKDIR and switch to it *before* copying anything
 # in: a `RUN chown -R` after the fact would force an overlayfs copy-up of
