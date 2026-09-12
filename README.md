@@ -100,19 +100,23 @@ Open [http://localhost:3000](http://localhost:3000). Passkey login works with no
 
 ## Deployment
 
-Barynt ships as a single `docker-compose.yml` used for both local dev and production, split by [Compose profiles](https://docs.docker.com/compose/how-tos/profiles/):
+Barynt ships as a single `docker-compose.yml` used for both local dev and production, split by [Compose profiles](https://docs.docker.com/compose/how-tos/profiles/). `app`/`migrate` default to the prebuilt, multi-arch images CI publishes to `ghcr.io/jafoson/barynt` — no build step, and no full clone of this repo either: `docker-compose.yml`, `Caddyfile`, and a `.env` are the only three files a deployment actually needs.
 
 ```bash
-cp example.env .env
+# Only these three files, no git clone required:
+curl -O https://raw.githubusercontent.com/Jafoson/Barynt/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/Jafoson/Barynt/main/Caddyfile
+curl -o .env https://raw.githubusercontent.com/Jafoson/Barynt/main/example.env
+
 bunx auth secret   # paste the result into AUTH_SECRET in .env
 # set POSTGRES_PASSWORD and DOMAIN in .env for a real deployment
 
-docker compose --profile app up -d --build
+docker compose --profile app up -d
 ```
 
-This builds and starts the app, a one-off migration runner, bundled RustFS object storage, and [Caddy](https://caddyserver.com) as a reverse proxy with automatic Let's Encrypt HTTPS once `DOMAIN` points at the host. Every service besides Caddy binds to `127.0.0.1` by default — only ports 80/443 are meant to be exposed publicly. See the comments at the top of [docker-compose.yml](docker-compose.yml) and [example.env](example.env) for the full set of options (external Postgres/S3/SMTP, custom ports, etc.).
+This pulls and starts the app, a one-off migration runner (applies pending migrations, then bootstraps the system data every workspace needs — see [prisma/bootstrap.ts](prisma/bootstrap.ts)), bundled RustFS object storage, and [Caddy](https://caddyserver.com) as a reverse proxy with automatic Let's Encrypt HTTPS once `DOMAIN` points at the host. Every service besides Caddy binds to `127.0.0.1` by default — only ports 80/443 are meant to be exposed publicly. See the comments at the top of [docker-compose.yml](docker-compose.yml) and [example.env](example.env) for the full set of options (external Postgres/S3/SMTP, custom ports, etc.).
 
-A multi-arch image is also published to `ghcr.io/jafoson/barynt` via [.github/workflows/docker-build.yml](.github/workflows/docker-build.yml).
+Working on Barynt itself? Clone the repo and uncomment the `build:` lines on `app`/`migrate` in `docker-compose.yml` to run your own changes instead: `docker compose --profile app up -d --build`.
 
 ## Testing
 

@@ -47,11 +47,12 @@ name: orbit
 # from inside the containers. Don't want file storage at all? Run with
 # `--scale rustfs=0 --scale rustfs-init=0`.
 #
-# Multi-arch app image: build once per architecture with
-#   docker buildx build --platform linux/amd64,linux/arm64 -t barynt:latest --push .
-# and set `app.image`/`migrate.image` below to that tag instead of building
-# locally, or just let `--profile app up --build` build natively for
-# whatever architecture the host actually is.
+# Multi-arch app image: `app`/`migrate` below default to the prebuilt,
+# multi-arch images CI publishes to ghcr.io (.github/workflows/docker-build.yml)
+# — `docker compose --profile app up -d` alone is enough, no build step, no
+# full source checkout. Uncomment the `build:` lines on both services instead
+# to build your own changes locally (natively for whatever architecture the
+# host actually is), e.g. while working on Barynt itself.
 #
 # Ports: postgres, rustfs and the app itself publish to 127.0.0.1 by
 # default, not 0.0.0.0 — on a real server, a database and an object-storage
@@ -121,18 +122,21 @@ services:
   # and RBAC permissions/system roles every workspace needs (see
   # prisma/bootstrap.ts; skipped here, a fresh instance could migrate clean
   # and still fail its very first "Create workspace" on a foreign-key
-  # violation). Runs from the `builder` stage (full toolchain, including the
-  # `prisma` CLI) rather than the `app` image itself — that image only ships
-  # Next's pruned standalone output and deliberately has no `prisma` CLI
-  # (~200MB of engine binaries it would otherwise never use). `app` waits for
-  # this to exit 0 before starting.
+  # violation). Pulls the `builder` stage (full toolchain, including the
+  # `prisma` CLI) from the registry rather than the `app` image itself —
+  # that image only ships Next's pruned standalone output and deliberately
+  # has no `prisma` CLI (~200MB of engine binaries it would otherwise never
+  # use) — and rather than building locally: a `next build` is the one step
+  # in this whole stack that genuinely needs real CPU/RAM (a small VPS can
+  # swap-thrash or crash trying), and CI already produced this exact image.
+  # `app` waits for this to exit 0 before starting.
   migrate:
     profiles: ["app"]
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: builder
-    image: barynt-migrate:latest
+    image: ghcr.io/jafoson/barynt-migrate:latest
+    # build:                        # uncomment to build from source instead
+    #   context: .
+    #   dockerfile: Dockerfile
+    #   target: builder
     command: ["sh", "-c", "bun prisma migrate deploy && bun prisma/bootstrap.ts"]
     restart: "no"
     environment:
@@ -215,10 +219,14 @@ services:
 
   app:
     profiles: ["app"]
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: barynt:latest
+    # Prebuilt, multi-arch, Trivy-scanned, cosign-signed image from CI — no
+    # local build needed to self-host this (see `migrate` above for why that
+    # matters on a small box). Uncomment `build:` below instead if you're
+    # working on Barynt itself and want your own changes reflected.
+    image: ghcr.io/jafoson/barynt:latest
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     restart: unless-stopped
     ports:
       - "${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:3000"
