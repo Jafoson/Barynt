@@ -198,7 +198,19 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       // get here. `AUTH_REGISTRATION_ENABLED=false` blocks exactly that
       // remaining case: a genuinely unknown email/provider account. Returning
       // `false` makes next-auth redirect with `?error=AccessDenied`.
-      if (!user.id && !linkedShadowAccount && !registrationEnabled) {
+      //
+      // Except on a genuinely empty instance: without this, setting
+      // AUTH_REGISTRATION_ENABLED=false before anyone has ever signed in
+      // locks the operator out permanently — nobody could ever create the
+      // first (self-promoting, see isFirstAccount() below) account, and
+      // there'd be no admin left to flip the flag back. Invite-only mode is
+      // meant to close registration once *you're* already in, not before.
+      if (
+        !user.id &&
+        !linkedShadowAccount &&
+        !registrationEnabled &&
+        !(await isFirstAccount(db))
+      ) {
         return false;
       }
 
