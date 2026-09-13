@@ -213,6 +213,36 @@ describe("RichText", () => {
     ).toContain('src="/bild.png"');
   });
 
+  test("renders an attachment's blob: preview — the create-issue composer's draft image before upload", () => {
+    const html = render(
+      doc({
+        type: "attachment",
+        attrs: {
+          id: "draft-1",
+          url: "blob:https://example.com/deadbeef",
+          name: "screenshot.png",
+          mimeType: "image/png",
+        },
+      }),
+    );
+    expect(html).toContain('src="blob:https://example.com/deadbeef"');
+  });
+
+  test("falls back to the removed-attachment placeholder for an unsafe source", () => {
+    const html = render(
+      doc({
+        type: "attachment",
+        attrs: {
+          id: "draft-1",
+          url: "javascript:alert(1)",
+          name: "x",
+          mimeType: "image/png",
+        },
+      }),
+    );
+    expect(html).not.toContain("<img");
+  });
+
   test("survives broken input", () => {
     // Whatever doesn't look like a document becomes an empty document — a
     // single empty paragraph, no crash, and no foreign content.
