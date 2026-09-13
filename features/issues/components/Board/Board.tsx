@@ -1,7 +1,10 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useRef, useState } from "react";
 import { BoardColumn } from "@/features/issues/components/BoardColumn/BoardColumn";
+import { UpdateBanner } from "@/features/issues/components/UpdateBanner/UpdateBanner";
+import { useProjectUpdates } from "@/features/issues/components/UpdateBanner/useProjectUpdates";
 import { useIssueOpen } from "@/features/issues/issue-links";
 import type { IssueComposerData, IssueLookups } from "@/features/issues/types";
 import { useHasOpenModal } from "@/lib/context";
@@ -33,9 +36,15 @@ export function Board({ issues, projectId, statuses, composer }: BoardProps) {
     issueTypes: composer.issueTypes,
   };
   const t = useTranslations();
+  const router = useRouter();
   const columnStatuses = statuses.filter((s) => s.isColumn);
   const issueOpen = useIssueOpen(composer.workspaceId);
   const hasOpenModal = useHasOpenModal();
+  // BARY-26: flags when someone else changed a card in this project while
+  // this board is open — a banner, not an auto-refresh, since an unannounced
+  // `router.refresh()` here would race the drag transition's own optimistic
+  // revert the same way BARY-25's infinite loop did.
+  const updates = useProjectUpdates({ projectId, userId: composer.me.id });
 
   const board = useBoardDnd(issues);
   // Shift + wheel scrolls the columns horizontally, no matter where the pointer is.
@@ -185,41 +194,54 @@ export function Board({ issues, projectId, statuses, composer }: BoardProps) {
   useShortcut("o", openFocused, { enabled: noPanelOpen && !!focusedId });
 
   return (
-    <div ref={setContainer} className={styles.board}>
-      {columns.map(({ status, issues: columnIssues }) => {
-        const { isOver, onDragOver, onDragLeave, onDrop } =
-          board.columnHandlers(status.id);
-        return (
-          <BoardColumn
-            key={status.id}
-            status={status}
-            issues={columnIssues}
-            projectId={projectId}
-            // Without a fixed project the cards come from various ones — so
-            // each one states which.
-            showProject={projectId === undefined}
-            lookups={lookups}
-            composer={composer}
-            newIssueLabel={t("actions.newIssue")}
-            isOver={isOver}
-            dragging={board.dragging}
-            dragOverCard={board.dragOverCard}
-            insertAbove={board.insertAbove}
-            onColumnDragOver={onDragOver}
-            onColumnDragLeave={onDragLeave}
-            onColumnDrop={onDrop}
-            onCardDragStart={board.onDragStart}
-            onCardDragEnd={board.onDragEnd}
-            onCardDragOver={board.onCardDragOver}
-            isCardActive={(issue) => identifier(issue) === issueOpen.openIssue}
-            isCardFocused={(issue) => issue.id === focusedId}
-            onCardOpen={(issue) => issueOpen.openPanel(identifier(issue))}
-            onCardOpenInNewTab={(issue) =>
-              issueOpen.openPageInNewTab(identifier(issue))
-            }
-          />
-        );
-      })}
-    </div>
+    <>
+      <UpdateBanner
+        visible={updates.stale}
+        label={t("realtime.staleBoard")}
+        refreshLabel={t("realtime.refresh")}
+        onRefresh={() => {
+          updates.dismiss();
+          router.refresh();
+        }}
+      />
+      <div ref={setContainer} className={styles.board}>
+        {columns.map(({ status, issues: columnIssues }) => {
+          const { isOver, onDragOver, onDragLeave, onDrop } =
+            board.columnHandlers(status.id);
+          return (
+            <BoardColumn
+              key={status.id}
+              status={status}
+              issues={columnIssues}
+              projectId={projectId}
+              // Without a fixed project the cards come from various ones — so
+              // each one states which.
+              showProject={projectId === undefined}
+              lookups={lookups}
+              composer={composer}
+              newIssueLabel={t("actions.newIssue")}
+              isOver={isOver}
+              dragging={board.dragging}
+              dragOverCard={board.dragOverCard}
+              insertAbove={board.insertAbove}
+              onColumnDragOver={onDragOver}
+              onColumnDragLeave={onDragLeave}
+              onColumnDrop={onDrop}
+              onCardDragStart={board.onDragStart}
+              onCardDragEnd={board.onDragEnd}
+              onCardDragOver={board.onCardDragOver}
+              isCardActive={(issue) =>
+                identifier(issue) === issueOpen.openIssue
+              }
+              isCardFocused={(issue) => issue.id === focusedId}
+              onCardOpen={(issue) => issueOpen.openPanel(identifier(issue))}
+              onCardOpenInNewTab={(issue) =>
+                issueOpen.openPageInNewTab(identifier(issue))
+              }
+            />
+          );
+        })}
+      </div>
+    </>
   );
 }

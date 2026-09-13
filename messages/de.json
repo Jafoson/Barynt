@@ -627,6 +627,11 @@
   "issues": {
     "toCreate": "zum Erstellen"
   },
+  "realtime": {
+    "staleBoard": "Es gibt Änderungen an diesem Board.",
+    "staleIssue": "Diese Aufgabe wurde aktualisiert.",
+    "refresh": "Aktualisieren"
+  },
   "projects": {
     "modalDescription": "Ein Projekt bündelt zusammengehörige Aufgaben unter einem gemeinsamen Kürzel.",
     "toCreate": "zum Erstellen",

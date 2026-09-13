@@ -29,6 +29,7 @@ import {
   requirePermission,
   requirePermissionOr,
 } from "@/lib/permissions";
+import { emitProjectChange } from "@/lib/realtime/bus";
 import { stripAttachmentAttrs } from "@/lib/richtext/attachments";
 import { hostOf } from "@/lib/richtext/link";
 import { mentionedUserIds, toPlainText, toPreview } from "@/lib/richtext/text";
@@ -47,8 +48,33 @@ import { fireWebhookEvent } from "@/lib/webhooks/deliver";
 import { isClosedStatus } from "@/lib/workspace-defaults";
 import type { IssueAttachment, SearchableIssue } from "@/types";
 
-async function revalidate() {
+/**
+ * Revalidates the acting user's own view (`revalidatePath`, as before) and,
+ * given a project, publishes a "this project changed" event for everyone
+ * else's open board/issue tabs (BARY-26) — the acting user's own view
+ * already refreshes through the Server Action's RSC response, so they don't
+ * need the same event fed back to themselves; `emitProjectChange` compares
+ * `actorId` against each subscriber's own id to skip that.
+ *
+ * `projectId` is omitted only for actions that change nothing a subscriber
+ * would render (e.g. a workspace-wide label, which has no single project).
+ */
+async function revalidate(ctx?: {
+  projectId?: string | null;
+  issueId?: string;
+}) {
   revalidatePath("/", "layout");
+  if (ctx?.projectId) {
+    const actorId = await currentUserId();
+    if (actorId) {
+      emitProjectChange({
+        projectId: ctx.projectId,
+        issueId: ctx.issueId,
+        actorId,
+        at: Date.now(),
+      });
+    }
+  }
 }
 
 /**
@@ -384,7 +410,7 @@ export async function moveIssue(id: string, status: string) {
   if (status !== issue.status) {
     await recordStatusChangeAudit(id, issue, actorId, issue.status, status);
   }
-  await revalidate();
+  await revalidate({ projectId: issue.projectId, issueId: id });
 }
 
 export async function reorderIssue(id: string, status: string, rank: number) {
@@ -408,7 +434,7 @@ export async function reorderIssue(id: string, status: string, rank: number) {
   if (status !== issue.status) {
     await recordStatusChangeAudit(id, issue, actorId, issue.status, status);
   }
-  await revalidate();
+  await revalidate({ projectId: issue.projectId, issueId: id });
 }
 
 export async function updateIssue(id: string, patch: IssuePatch) {
@@ -600,7 +626,7 @@ export async function updateIssue(id: string, patch: IssuePatch) {
   if (updated)
     fireWebhookEvent(issue.project.workspaceId, "issue.updated", updated);
 
-  await revalidate();
+  await revalidate({ projectId: issue.projectId, issueId: id });
 }
 
 // ── Attachments ────────────────────────────────────────────────────────────
@@ -619,7 +645,7 @@ async function requireAttachmentAccess(issueId: string) {
       ownerIds: [issue.reporterId, issue.assigneeId],
     },
   ]);
-  return actorId;
+  return { actorId, projectId: issue.projectId };
 }
 
 export async function requestIssueAttachmentUpload(
@@ -635,7 +661,7 @@ export async function confirmIssueAttachmentUpload(
   key: string,
   input: { fileName: string; contentType: string },
 ): Promise<{ ok: true; attachment: IssueAttachment } | { error: string }> {
-  const actorId = await requireAttachmentAccess(issueId);
+  const { actorId, projectId } = await requireAttachmentAccess(issueId);
 
   const finalized = await finalizeAttachmentUpload(issueId, key);
   if ("error" in finalized) return finalized;
@@ -653,7 +679,7 @@ export async function confirmIssueAttachmentUpload(
     },
   });
 
-  await revalidate();
+  await revalidate({ projectId, issueId });
   return {
     ok: true,
     attachment: {
@@ -683,7 +709,7 @@ export async function addIssueLinkAttachment(
   issueId: string,
   input: { url: string; name?: string; mimeType?: string | null },
 ): Promise<{ ok: true; attachment: IssueAttachment } | { error: string }> {
-  const actorId = await requireAttachmentAccess(issueId);
+  const { actorId, projectId } = await requireAttachmentAccess(issueId);
 
   const href = input.url.trim();
   if (!isWebUrl(href)) return { error: "Only http(s) links are allowed." };
@@ -700,7 +726,7 @@ export async function addIssueLinkAttachment(
     },
   });
 
-  await revalidate();
+  await revalidate({ projectId, issueId });
   return {
     ok: true,
     attachment: {
@@ -720,7 +746,7 @@ export async function deleteIssueAttachment(
   issueId: string,
   attachmentId: string,
 ): Promise<{ ok: true } | { error: string }> {
-  await requireAttachmentAccess(issueId);
+  const { projectId } = await requireAttachmentAccess(issueId);
 
   const row = await db.attachment.findUnique({ where: { id: attachmentId } });
   if (!row || row.issueId !== issueId) return { error: "Not found." };
@@ -728,7 +754,7 @@ export async function deleteIssueAttachment(
   await db.attachment.delete({ where: { id: attachmentId } });
   if (row.kind === "file") await deleteAttachmentObject(row.key);
 
-  await revalidate();
+  await revalidate({ projectId, issueId });
   return { ok: true };
 }
 
@@ -816,7 +842,7 @@ export async function createIssue(data: {
   const created = await getIssueUnchecked(id);
   if (created) fireWebhookEvent(workspaceId, "issue.created", created);
 
-  await revalidate();
+  await revalidate({ projectId: data.projectId, issueId: id });
   return { id };
 }
 
@@ -871,7 +897,7 @@ export async function createLabel(data: {
     projectId: data.projectId ?? null,
   });
 
-  await revalidate();
+  await revalidate({ projectId: data.projectId ?? null });
   return {
     id: label.id,
     name: label.name,
@@ -939,7 +965,7 @@ export async function updateLabel(
       ...(data.color !== undefined ? { color: data.color } : {}),
     },
   });
-  await revalidate();
+  await revalidate({ projectId: scoped.label.projectId });
   return { ok: true };
 }
 
@@ -984,7 +1010,7 @@ export async function deleteLabel(labelId: string): Promise<LabelResult> {
     projectId: scoped.label.projectId,
   });
 
-  await revalidate();
+  await revalidate({ projectId: scoped.label.projectId });
   return { ok: true };
 }
 
@@ -1042,7 +1068,7 @@ export async function setLabelHidden(
     await db.projectHiddenLabel.deleteMany({ where: { projectId, labelId } });
   }
 
-  await revalidate();
+  await revalidate({ projectId });
   return { ok: true };
 }
 
@@ -1073,7 +1099,9 @@ export async function deleteIssue(id: string) {
     title: issue.title,
   });
 
-  await revalidate();
+  // No `issueId` here — the issue is gone, so a subscriber's card just needs
+  // to disappear on the next board refresh, not a targeted single-issue update.
+  await revalidate({ projectId: issue.projectId });
 }
 
 /** New token + the metadata `/share/[token]` displays about the current link
@@ -1109,6 +1137,9 @@ export async function enableIssueShare(
 
   await recordIssueAudit("issue.shared", id, issue, actorId);
 
+  // No `projectId` — the share link isn't part of the board card or the
+  // fields shown in the detail view, so a stale-view banner would have
+  // nothing to point at.
   await revalidate();
   return { ok: true, url: issueShareUrl(data.shareToken) };
 }
@@ -1331,13 +1362,17 @@ export async function addComment(
     );
   }
 
-  await revalidate();
+  await revalidate({ projectId: issue.projectId, issueId });
 }
 
 export async function deleteComment(commentId: string) {
   const comment = await db.comment.findUnique({
     where: { id: commentId },
-    select: { authorId: true, issue: { select: { projectId: true } } },
+    select: {
+      authorId: true,
+      issueId: true,
+      issue: { select: { projectId: true } },
+    },
   });
   if (!comment) throw new PermissionError("comment.delete.any");
   const ctx = { projectId: comment.issue.projectId };
@@ -1350,13 +1385,20 @@ export async function deleteComment(commentId: string) {
     },
   ]);
   await db.comment.delete({ where: { id: commentId } });
-  await revalidate();
+  await revalidate({
+    projectId: comment.issue.projectId,
+    issueId: comment.issueId,
+  });
 }
 
 export async function updateComment(commentId: string, body: PMDoc) {
   const comment = await db.comment.findUnique({
     where: { id: commentId },
-    select: { authorId: true, issue: { select: { projectId: true } } },
+    select: {
+      authorId: true,
+      issueId: true,
+      issue: { select: { projectId: true } },
+    },
   });
   if (!comment) throw new PermissionError("comment.update.any");
   const ctx = { projectId: comment.issue.projectId };
@@ -1376,7 +1418,10 @@ export async function updateComment(commentId: string, body: PMDoc) {
       updated: new Date(),
     },
   });
-  await revalidate();
+  await revalidate({
+    projectId: comment.issue.projectId,
+    issueId: comment.issueId,
+  });
 }
 
 /**
@@ -1389,7 +1434,7 @@ export async function updateComment(commentId: string, body: PMDoc) {
 export async function toggleCommentReaction(commentId: string, emoji: string) {
   const comment = await db.comment.findUnique({
     where: { id: commentId },
-    select: { issue: { select: { projectId: true } } },
+    select: { issueId: true, issue: { select: { projectId: true } } },
   });
   if (!comment) throw new PermissionError("comment.react");
   const userId = await requirePermission("comment.react", {
@@ -1412,5 +1457,8 @@ export async function toggleCommentReaction(commentId: string, emoji: string) {
       throw err;
     }
   }
-  await revalidate();
+  await revalidate({
+    projectId: comment.issue.projectId,
+    issueId: comment.issueId,
+  });
 }

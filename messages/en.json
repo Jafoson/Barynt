@@ -627,6 +627,11 @@
   "issues": {
     "toCreate": "to create"
   },
+  "realtime": {
+    "staleBoard": "This board has changes.",
+    "staleIssue": "This issue was updated.",
+    "refresh": "Refresh"
+  },
   "projects": {
     "modalDescription": "A project groups related issues under a shared prefix.",
     "toCreate": "to create",

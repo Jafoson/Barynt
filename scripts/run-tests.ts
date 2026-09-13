@@ -25,6 +25,7 @@ const SEGMENTS: string[][] = [
     "tests/unit/workspace/workspaceDomains.test.ts",
     "tests/unit/workspace/workspaceSettings.test.ts",
     "tests/unit/issues",
+    "tests/unit/realtime",
     "tests/unit/tabbar",
     "tests/unit/projects",
     "tests/unit/invitations",
