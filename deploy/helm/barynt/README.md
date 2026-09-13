@@ -7,6 +7,20 @@ BARY-22.
 
 ## Schnellstart
 
+Ab dem ersten `Helm Release`-Lauf (`.github/workflows/helm-release.yml`,
+manuell ausgelöst) liegt das Chart als OCI-Artefakt auf GHCR — dann reicht,
+ohne Checkout dieses Repos:
+
+```sh
+helm install barynt oci://ghcr.io/jafoson/charts/barynt --version 0.1.0 \
+  -n barynt --create-namespace
+kubectl port-forward -n barynt svc/barynt 3000:80
+```
+
+Kein `helm repo add` nötig — `helm install oci://...` spricht die Registry
+direkt an (Helm ≥ 3.8). Ohne veröffentlichtes Release, oder für lokale
+Änderungen an den Templates, aus dem Checkout heraus:
+
 ```sh
 helm install barynt ./deploy/helm/barynt -n barynt --create-namespace
 kubectl port-forward -n barynt svc/barynt 3000:80
@@ -109,6 +123,19 @@ Chart-Version (`Chart.yaml: version`, SemVer) und `appVersion` sind getrennte
 Zähler. `image.app.tag`/`image.migrate.tag` fallen auf `appVersion` zurück,
 wenn leer — in Produktion trotzdem explizit auf einen Commit-SHA oder
 Release-Tag pinnen statt `latest`, für reproduzierbare Rollouts/Rollbacks.
+
+## Chart veröffentlichen
+
+`Chart.yaml`s `version` erhöhen, committen, dann in GitHub Actions
+`Helm Release` manuell auslösen (`gh workflow run helm-release.yml`, analog
+zu `Docker Build`) — packt das Chart und pusht es als OCI-Artefakt nach
+`oci://ghcr.io/jafoson/charts/barynt`. **Nach dem allerersten Lauf** einmalig
+manuell in den GitHub-Package-Einstellungen die Sichtbarkeit des neuen
+`charts/barynt`-Package auf „Public" stellen — GHCR legt ein neues Package
+unabhängig von der Sichtbarkeit dieses Repos zunächst privat an, das kann
+der `GITHUB_TOKEN` des Workflows nicht selbst ändern. Ohne diesen Schritt
+schlägt `helm install oci://...` bei jedem außer den Repo-Mitgliedern mit
+„unauthorized" fehl.
 
 ## Testen
 
