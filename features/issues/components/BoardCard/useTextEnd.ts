@@ -54,8 +54,16 @@ export function useTextEnd(
       const last = lines[lines.length - 1];
       // Without text (or without a line) there is no end — the stylesheet's
       // default then applies.
-      setEnd(
-        last ? { x: last.right - box.left, y: last.bottom - box.top } : null,
+      const next = last
+        ? { x: last.right - box.left, y: last.bottom - box.top }
+        : null;
+      // Skip the update when the position is unchanged — see the same
+      // guard in `useRowFit` (BARY-25): setting state on every observed
+      // resize regardless of whether anything moved risks a render loop
+      // once some other effect (e.g. the board's post-drag re-render)
+      // keeps nudging this element's box without ever settling.
+      setEnd((prev) =>
+        prev?.x === next?.x && prev?.y === next?.y ? prev : next,
       );
     };
 
