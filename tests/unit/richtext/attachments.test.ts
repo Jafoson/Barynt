@@ -5,8 +5,8 @@ import {
   ATTACHMENT_IMAGE_MIN_WIDTH,
   clampAttachmentWidth,
   formatBytes,
-  remapAttachmentIds,
   type ResolvedAttachmentRef,
+  remapAttachmentIds,
   stripAttachmentAttrs,
   withResolvedAttachments,
 } from "@/lib/richtext/attachments";
