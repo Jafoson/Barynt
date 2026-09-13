@@ -158,3 +158,51 @@ export function stripAttachmentAttrs(doc: PMDoc): PMDoc {
     })),
   };
 }
+
+function transformAttachmentNodes(
+  nodes: PMNode[] | undefined,
+  fn: (
+    attrs: Record<string, unknown> | null | undefined,
+  ) => Record<string, unknown> | null,
+): PMNode[] | undefined {
+  if (!nodes) return nodes;
+  return nodes.flatMap((node) => {
+    if (node.type === "attachment") {
+      const attrs = fn(node.attrs);
+      return attrs ? [{ ...node, attrs }] : [];
+    }
+    if (node.content) {
+      return [{ ...node, content: transformAttachmentNodes(node.content, fn) }];
+    }
+    return [node];
+  });
+}
+
+/**
+ * Create-issue composer only: before the issue exists there's no
+ * `Attachment` row yet to reference, so a pasted/dropped image there gets a
+ * locally generated draft id and a `blob:` URL for preview instead of going
+ * through the upload endpoints (those all require an `issueId`). Once the
+ * issue is actually created and the pending files/links turn into real
+ * `Attachment` rows, this swaps each draft id in `doc` for the real one —
+ * `idMap` maps draft id → real id, or `null` for an upload that failed, in
+ * which case the node is dropped instead of pointing at nothing.
+ */
+export function remapAttachmentIds(
+  doc: PMDoc,
+  idMap: Map<string, string | null>,
+): PMDoc {
+  return {
+    ...doc,
+    content: transformAttachmentNodes(doc.content, (attrs) => {
+      const draftId = typeof attrs?.id === "string" ? attrs.id : null;
+      if (!draftId || !idMap.has(draftId)) return attrs ?? null;
+      const realId = idMap.get(draftId);
+      if (!realId) return null;
+      return {
+        id: realId,
+        width: typeof attrs?.width === "number" ? attrs.width : null,
+      };
+    }),
+  };
+}

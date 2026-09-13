@@ -5,6 +5,7 @@ import {
   ATTACHMENT_IMAGE_MIN_WIDTH,
   clampAttachmentWidth,
   formatBytes,
+  remapAttachmentIds,
   type ResolvedAttachmentRef,
   stripAttachmentAttrs,
   withResolvedAttachments,
@@ -124,6 +125,50 @@ describe("stripAttachmentAttrs()", () => {
       ],
     };
     expect(stripAttachmentAttrs(doc).content?.[0].content?.[0].attrs).toEqual({
+      id: "att-1",
+      width: null,
+    });
+  });
+});
+
+describe("remapAttachmentIds()", () => {
+  test("swaps a mapped draft id for the real one", () => {
+    const doc = docWith({ id: "draft-1" });
+    const remapped = remapAttachmentIds(doc, new Map([["draft-1", "att-1"]]));
+    expect(remapped.content?.[1].attrs).toEqual({ id: "att-1", width: null });
+  });
+
+  test("keeps the width stored in the document unchanged", () => {
+    const doc = docWith({ id: "draft-1", width: 480 });
+    const remapped = remapAttachmentIds(doc, new Map([["draft-1", "att-1"]]));
+    expect(remapped.content?.[1].attrs).toEqual({ id: "att-1", width: 480 });
+  });
+
+  test("drops the node for a draft id mapped to null — a failed upload", () => {
+    const doc = docWith({ id: "draft-1" });
+    const remapped = remapAttachmentIds(doc, new Map([["draft-1", null]]));
+    expect(remapped.content).toHaveLength(2);
+    expect(remapped.content?.some((n) => n.type === "attachment")).toBe(false);
+  });
+
+  test("leaves an id absent from the map untouched", () => {
+    const doc = docWith({ id: "att-existing" });
+    const remapped = remapAttachmentIds(doc, new Map());
+    expect(remapped.content?.[1].attrs).toEqual({ id: "att-existing" });
+  });
+
+  test("recurses through nested nodes", () => {
+    const doc: PMDoc = {
+      type: "doc",
+      content: [
+        {
+          type: "blockquote",
+          content: [{ type: "attachment", attrs: { id: "draft-1" } }],
+        },
+      ],
+    };
+    const remapped = remapAttachmentIds(doc, new Map([["draft-1", "att-1"]]));
+    expect(remapped.content?.[0].content?.[0].attrs).toEqual({
       id: "att-1",
       width: null,
     });

@@ -21,7 +21,11 @@ import {
   ModalBody,
   ModalToolbar,
 } from "@/components/ui/layout/Modal/Modal";
-import { createIssue } from "@/features/issues/actions";
+import {
+  addIssueLinkAttachment,
+  createIssue,
+  updateIssue,
+} from "@/features/issues/actions";
 import {
   LabelDots,
   LabelIcon,
@@ -32,6 +36,8 @@ import {
 import { IssueRichText } from "@/features/issues/components/IssueRichText/IssueRichText";
 import { LabelPickerMenu } from "@/features/issues/components/LabelPickerMenu/LabelPickerMenu";
 import type { IssueComposerData } from "@/features/issues/types";
+import { uploadIssueAttachment } from "@/features/issues/uploadAttachment";
+import { remapAttachmentIds } from "@/lib/richtext/attachments";
 import { emptyDoc } from "@/lib/richtext/doc";
 import type { PMDoc } from "@/lib/richtext/types";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
@@ -100,6 +106,31 @@ export function CreateIssueModal({
   const [assignee, setAssignee] = useState<string | null>(null);
   const [labels, setLabels] = useState<string[]>([]);
   const [localLabels, setLocalLabels] = useState<Label[]>([]);
+
+  /**
+   * Images/links dropped into the description before the issue itself
+   * exists — the real upload endpoints all require an `issueId`, which
+   * doesn't exist yet at this point. Each gets a draft id and (for a file) a
+   * local `blob:` preview URL instead; `submit()` turns them into real
+   * `Attachment` rows once the issue has been created and swaps the draft
+   * ids in the description for the real ones.
+   */
+  const pendingFiles = useRef<Map<string, { file: File; url: string }>>(
+    new Map(),
+  );
+  const pendingLinks = useRef<
+    Map<string, { url: string; name?: string; mimeType: string | null }>
+  >(new Map());
+
+  // Any preview URL still pending when the modal unmounts without a submit
+  // (cancelled, or closed) would otherwise leak until the tab is closed.
+  useEffect(() => {
+    return () => {
+      for (const { url } of pendingFiles.current.values()) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, []);
 
   const combinedLabels = [
     ...allLabels,
@@ -213,7 +244,7 @@ export function CreateIssueModal({
   const submit = () => {
     if (!title.trim() || !project) return;
     startTransition(async () => {
-      await createIssue({
+      const { id: issueId } = await createIssue({
         title: title.trim(),
         description,
         status,
@@ -224,12 +255,76 @@ export function CreateIssueModal({
         projectId: project.id,
         reporterId: me.id,
       });
+
+      // Draft images/links only turn into real `Attachment` rows now that
+      // the issue — and with it, an `issueId` to attach them to — exists.
+      if (pendingFiles.current.size > 0 || pendingLinks.current.size > 0) {
+        const idMap = new Map<string, string | null>();
+
+        for (const [draftId, { file, url }] of pendingFiles.current) {
+          const result = await uploadIssueAttachment(issueId, file);
+          idMap.set(draftId, "error" in result ? null : result.attachment.id);
+          URL.revokeObjectURL(url);
+        }
+        for (const [draftId, link] of pendingLinks.current) {
+          const result = await addIssueLinkAttachment(issueId, link);
+          idMap.set(draftId, "error" in result ? null : result.attachment.id);
+        }
+
+        await updateIssue(issueId, {
+          description: remapAttachmentIds(description, idMap),
+        });
+      }
+
       router.refresh();
       close();
     });
   };
 
   useSubmitShortcut(submit);
+
+  const onUploadAttachment = async (file: File) => {
+    const id = crypto.randomUUID();
+    const url = URL.createObjectURL(file);
+    pendingFiles.current.set(id, { file, url });
+    return {
+      id,
+      url,
+      name: file.name,
+      mimeType: file.type || null,
+      size: file.size,
+    };
+  };
+
+  const onAddLinkAttachment = async ({
+    url,
+    name,
+    mimeType,
+  }: {
+    url: string;
+    name?: string;
+    mimeType?: string | null;
+  }) => {
+    const id = crypto.randomUUID();
+    pendingLinks.current.set(id, { url, name, mimeType: mimeType ?? null });
+    return {
+      id,
+      url,
+      name: name || url,
+      mimeType: mimeType ?? null,
+      size: null,
+    };
+  };
+
+  const onRemoveAttachment = async (id: string) => {
+    const file = pendingFiles.current.get(id);
+    if (file) {
+      URL.revokeObjectURL(file.url);
+      pendingFiles.current.delete(id);
+      return;
+    }
+    pendingLinks.current.delete(id);
+  };
 
   if (!project) return null;
 
@@ -341,6 +436,9 @@ export function CreateIssueModal({
           actions={false}
           label={t("fields.description")}
           placeholder={t("placeholders.addDescription")}
+          onUploadAttachment={onUploadAttachment}
+          onRemoveAttachment={onRemoveAttachment}
+          onAddLinkAttachment={onAddLinkAttachment}
         />
       </ModalBody>
 
