@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
+import { searchIssuesForPalette } from "@/features/issues/actions";
 import { StatusIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import { issuePath } from "@/features/issues/issue-links";
 import { getRecentIssueIdentifiers } from "@/features/issues/recent-issues";
@@ -73,6 +74,13 @@ export function CommandPalette({
   const [q, setQ] = useState("");
   const [cursor, setCursor] = useState(0);
   const [recentIdentifiers, setRecentIdentifiers] = useState<string[]>([]);
+  // Ranked, server-side full-text results (title, description, and
+  // comments — see `searchIssuesForPalette`) for the current query. Not
+  // derived from `searchIssues`: that's an unranked, title-only snapshot
+  // meant for the `#` mention trigger and the no-query "recent" list below,
+  // not for real search.
+  const [liveIssueHits, setLiveIssueHits] = useState<SearchableIssue[]>([]);
+  const searchSeq = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -131,6 +139,24 @@ export function CommandPalette({
       ?.scrollIntoView({ block: "nearest" });
   }, [cursor]);
 
+  // Debounced, ranked full-text search (title, description, comments) —
+  // `searchSeq` guards against an in-flight request from an earlier
+  // keystroke overwriting a later one that resolved first.
+  useEffect(() => {
+    const query = q.trim();
+    if (!query) {
+      setLiveIssueHits([]);
+      return;
+    }
+    const seq = ++searchSeq.current;
+    const timer = setTimeout(() => {
+      searchIssuesForPalette(workspaceId, query).then((results) => {
+        if (seq === searchSeq.current) setLiveIssueHits(results);
+      });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [q, workspaceId]);
+
   const lq = q.toLowerCase();
 
   const commandHits = COMMAND_ENTRIES.filter((c) =>
@@ -154,15 +180,11 @@ export function CommandPalette({
 
   // No query yet: lead with what was actually opened before, not just
   // whatever this workspace's most-recently-*edited* issues happen to be
-  // (searchIssues' own order) — those two aren't the same list.
+  // (searchIssues' own order) — those two aren't the same list. With a
+  // query, `liveIssueHits` is the debounced, ranked full-text result for it
+  // (see the effect above) rather than a local filter over `searchIssues`.
   const issueHits = lq
-    ? searchIssues
-        .filter(
-          (i) =>
-            i.title.toLowerCase().includes(lq) ||
-            identifierOf(i).toLowerCase().includes(lq),
-        )
-        .slice(0, 6)
+    ? liveIssueHits.slice(0, 6)
     : recentIdentifiers
         .map((id) => searchIssues.find((i) => identifierOf(i) === id))
         .filter((i): i is SearchableIssue => i !== undefined)

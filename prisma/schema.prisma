@@ -952,6 +952,13 @@ model Issue {
   // Wird in `features/issues/actions.ts` bei jedem Schreibvorgang neu gesetzt.
   descriptionText String @default("")
 
+  /// Generierte tsvector-Spalte für die Postgres-Volltextsuche
+  /// (`searchIssueIds` in `features/issues/queries.ts`) — aus `title`
+  /// (Gewicht A) und `descriptionText` (Gewicht B), von Postgres bei jedem
+  /// INSERT/UPDATE selbst neu berechnet (siehe Migration), kann also nicht
+  /// aus dem Tritt geraten wie ein von der App gepflegtes Duplikat.
+  searchVector Unsupported("tsvector")?
+
   type    String   @default("feature")
   labels  String[]
   rank    Float    @default(0)
@@ -1005,6 +1012,7 @@ model Issue {
   @@index([assigneeId])
   // Der Durchsatz des Dashboards gruppiert je Projekt über diese Spalte.
   @@index([projectId, closedAt])
+  @@index([searchVector], type: Gin)
 }
 
 // ─── Comments ────────────────────────────────────────────────────────────────
@@ -1015,6 +1023,9 @@ model Comment {
   // für Vorschauen (Inbox) und spätere Suche.
   body     Json
   bodyText String    @default("")
+  /// Wie `Issue.searchVector`, aus `bodyText` — lässt `searchIssueIds` auch
+  /// über Kommentare hinweg treffen, nicht nur über Titel/Beschreibung.
+  searchVector Unsupported("tsvector")?
   created  DateTime  @default(now())
   /// `null` = nie bearbeitet — steuert den „bearbeitet"-Hinweis in der UI.
   updated  DateTime?
@@ -1036,6 +1047,8 @@ model Comment {
   parent    Comment?          @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   Comment[]         @relation("CommentReplies")
   reactions CommentReaction[]
+
+  @@index([searchVector], type: Gin)
 }
 
 /// Eine Zeile je Person, Kommentar und Emoji — `@@unique` verhindert doppelte

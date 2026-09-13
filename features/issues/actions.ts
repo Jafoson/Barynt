@@ -5,6 +5,7 @@ import {
   getCommentUnchecked,
   getIssueUnchecked,
 } from "@/features/api-v1/queries";
+import { searchWorkspaceIssues } from "@/features/issues/queries";
 import type { IssuePatch } from "@/features/issues/types";
 import { recordAudit } from "@/lib/audit";
 import type {
@@ -44,10 +45,24 @@ import { uid } from "@/lib/utils/id";
 import { isValidEmail } from "@/lib/utils/parse-emails";
 import { fireWebhookEvent } from "@/lib/webhooks/deliver";
 import { isClosedStatus } from "@/lib/workspace-defaults";
-import type { IssueAttachment } from "@/types";
+import type { IssueAttachment, SearchableIssue } from "@/types";
 
 async function revalidate() {
   revalidatePath("/", "layout");
+}
+
+/**
+ * The one read in this file, not a mutation: the command palette (`⌘K`,
+ * `CommandPalette.tsx`) is a client component and needs a ranked,
+ * per-keystroke search, which only a Server Function it can call directly
+ * provides. `searchWorkspaceIssues` (`features/issues/queries.ts`) does the
+ * actual work.
+ */
+export async function searchIssuesForPalette(
+  workspaceId: string,
+  q: string,
+): Promise<SearchableIssue[]> {
+  return searchWorkspaceIssues(workspaceId, q);
 }
 
 // Build a workspace-unique slug for a label (slug is unique per workspace).

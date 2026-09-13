@@ -11,6 +11,7 @@ mock.module("@/lib/db", () => ({
     user: { findMany: mock() },
     label: { findMany: mock() },
     project: { findMany: mock() },
+    $queryRaw: mock(),
   },
 }));
 
@@ -31,6 +32,7 @@ const priorityFindMany = db.priority.findMany as ReturnType<typeof mock>;
 const userFindMany = db.user.findMany as ReturnType<typeof mock>;
 const labelFindMany = db.label.findMany as ReturnType<typeof mock>;
 const projectFindMany = db.project.findMany as ReturnType<typeof mock>;
+const queryRaw = db.$queryRaw as unknown as ReturnType<typeof mock>;
 
 /** The `where` condition of the last `issue.findMany` call. */
 function lastWhere(): Record<string, unknown> {
@@ -46,6 +48,7 @@ describe("getMyIssues()", () => {
       userFindMany,
       labelFindMany,
       projectFindMany,
+      queryRaw,
     ])
       m.mockReset();
     issueFindMany.mockResolvedValue([]);
@@ -53,6 +56,7 @@ describe("getMyIssues()", () => {
     userFindMany.mockResolvedValue([]);
     labelFindMany.mockResolvedValue([]);
     projectFindMany.mockResolvedValue([]);
+    queryRaw.mockResolvedValue([]);
   });
 
   it("searches for the user's own issues across all accessible projects", async () => {
@@ -110,13 +114,20 @@ describe("getMyIssues()", () => {
     expect(lastWhere().projectId).toEqual({ in: ["p-1", "p-2"] });
   });
 
-  it("searches in title, description text, and number", async () => {
+  it("searches by full text (title, description, comments) and by number", async () => {
+    // `searchIssueIds`'s raw query — id + rank per match.
+    queryRaw.mockResolvedValue([{ id: "i-1", rank: 0.5 }]);
+
     await getMyIssues("u-1", "ws-1", { q: "FUX-12" });
 
-    expect(lastWhere().OR).toEqual([
-      { title: { contains: "FUX-12", mode: "insensitive" } },
-      { descriptionText: { contains: "FUX-12", mode: "insensitive" } },
-      { key: 12 },
-    ]);
+    expect(lastWhere().OR).toEqual([{ id: { in: ["i-1"] } }, { key: 12 }]);
+  });
+
+  it("doesn't add a key match for a query that isn't a number or `PREFIX-number`", async () => {
+    queryRaw.mockResolvedValue([{ id: "i-1", rank: 0.5 }]);
+
+    await getMyIssues("u-1", "ws-1", { q: "onboarding" });
+
+    expect(lastWhere().OR).toEqual([{ id: { in: ["i-1"] } }]);
   });
 });

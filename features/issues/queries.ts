@@ -414,6 +414,42 @@ export interface IssueFilters {
 }
 
 /**
+ * Ranked full-text matches for a search string: title (weight A) and
+ * descriptionText (weight B) via `Issue.searchVector`, plus any issue that
+ * has a matching comment (`Comment.searchVector`), ranked at that comment's
+ * own score. Both columns are Postgres-generated (see migration
+ * `add_fulltext_search`), so they can't fall out of sync with the text they
+ * were built from.
+ *
+ * Not scoped by project — callers already AND the returned ids into a
+ * project-restricted `where` (or, for `searchWorkspaceIssues`, an explicit
+ * visibility filter), and a single GIN-indexed top-N pass is cheap enough at
+ * this scale not to need scoping twice. `websearch_to_tsquery` turns an
+ * empty/punctuation-only `q` into an empty tsquery, which matches nothing —
+ * the same "no results" a blank substring search produced before.
+ */
+async function searchIssueIds(q: string): Promise<Map<string, number>> {
+  const rows = await db.$queryRaw<{ id: string; rank: number }[]>`
+    WITH query AS (SELECT websearch_to_tsquery('simple', ${q}) AS tsq)
+    SELECT i.id,
+           GREATEST(
+             MAX(ts_rank(i."searchVector", query.tsq)),
+             COALESCE(MAX(ts_rank(c."searchVector", query.tsq)), 0)
+           ) AS rank
+      FROM "Issue" i
+      CROSS JOIN query
+      LEFT JOIN "Comment" c
+        ON c."issueId" = i.id
+       AND c."searchVector" @@ query.tsq
+     WHERE i."searchVector" @@ query.tsq OR c.id IS NOT NULL
+     GROUP BY i.id
+     ORDER BY rank DESC
+     LIMIT 500
+  `;
+  return new Map(rows.map((r) => [r.id, Number(r.rank)]));
+}
+
+/**
  * Translates the slugs from the URL into the issue's internal values and
  * builds the `where` conditions from them — once for all views, so the
  * same filter means the same thing everywhere.
@@ -489,6 +525,12 @@ async function resolveIssueFilters(
   const q = filters.q?.trim();
   const keyDigits = q?.match(/^(?:[a-z]+-)?(\d{1,9})$/i)?.[1];
   const key = keyDigits ? Number(keyDigits) : undefined;
+  // Full-text match against title/descriptionText/comments (see
+  // `searchIssueIds`) — resolved to a concrete id list here so it can sit
+  // in the same `OR` as the exact key match. Board/list order stays
+  // `rank`/`created` regardless (see `getIssuesByProject`): a search filters
+  // which rows show up, it doesn't reshuffle a manually-ordered board.
+  const matchedIds = q ? await searchIssueIds(q) : null;
 
   return {
     where: {
@@ -498,8 +540,7 @@ async function resolveIssueFilters(
       ...(labels.length && { labels: { hasSome: labels } }),
       ...(q && {
         OR: [
-          { title: { contains: q, mode: "insensitive" as const } },
-          { descriptionText: { contains: q, mode: "insensitive" as const } },
+          { id: { in: matchedIds ? [...matchedIds.keys()] : [] } },
           ...(key !== undefined ? [{ key }] : []),
         ],
       }),
@@ -904,3 +945,58 @@ export const getSearchIssues = cache(
     }));
   },
 );
+
+/**
+ * Ranked, cross-project issue search for the command palette (`⌘K`) —
+ * unlike `getSearchIssues` (an unranked snapshot of up to 500 issues, meant
+ * for local substring-filtering and the `#` mention trigger, both of which
+ * need an instant, already-in-memory list rather than a round trip per
+ * keystroke), this runs `searchIssueIds` server-side per query and returns
+ * only actual matches, best match first.
+ *
+ * A bare number or `PREFIX-12` additionally does an exact key lookup, same
+ * shortcut `resolveIssueFilters` gives the topbar filter — full-text search
+ * alone wouldn't find an issue by its number, since the key isn't part of
+ * `searchVector`. Ranked above every text match (arbitrarily high score):
+ * typing an exact identifier means you already know which issue you want.
+ */
+export async function searchWorkspaceIssues(
+  workspaceId: string,
+  q: string,
+): Promise<SearchableIssue[]> {
+  const query = q.trim();
+  if (!query) return [];
+
+  const visible = await visibleProjectIds(workspaceId);
+  if (visible.size === 0) return [];
+
+  const keyDigits = query.match(/^(?:[a-z]+-)?(\d{1,9})$/i)?.[1];
+  const key = keyDigits ? Number(keyDigits) : undefined;
+  const matches = await searchIssueIds(query);
+  if (matches.size === 0 && key === undefined) return [];
+
+  const rows = await db.issue.findMany({
+    where: {
+      projectId: { in: [...visible] },
+      OR: [
+        ...(matches.size ? [{ id: { in: [...matches.keys()] } }] : []),
+        ...(key !== undefined ? [{ key }] : []),
+      ],
+    },
+    select: { id: true, key: true, title: true, status: true, projectId: true },
+  });
+
+  const rankOf = (row: { id: string; key: number }) =>
+    key !== undefined && row.key === key ? 1000 : (matches.get(row.id) ?? 0);
+
+  return rows
+    .sort((a, b) => rankOf(b) - rankOf(a))
+    .slice(0, 20)
+    .map((i) => ({
+      id: i.id,
+      key: i.key,
+      title: i.title,
+      status: i.status,
+      project: i.projectId,
+    }));
+}
