@@ -12,36 +12,27 @@ interface ProjectChangePayload {
 }
 
 interface UseProjectUpdatesOptions {
-  /** Every page that can show this feature has one — the subscription is
-   *  always workspace-scoped (see `lib/realtime/bus.ts`), since a board can
-   *  show issues from more than one project at once ("My issues"). */
   workspaceId: string;
   /** The viewer's own id — an event they caused themselves is ignored,
    *  their own view already refreshed via the Server Action's own
    *  `revalidatePath`. */
   userId: string;
-  /** Narrows the banner to one project's changes — a single-project board.
-   *  Omitted for a cross-project board ("My issues"), where any change in
-   *  the workspace is relevant since it could touch one of the shown issues. */
-  projectId?: string;
-  /** Narrows to one issue's changes, for the detail view. */
-  issueId?: string;
 }
 
 /**
  * Subscribes to `/api/workspaces/[id]/updates` (Server-Sent Events, backed
  * by `lib/realtime/bus.ts`) and flags when something changed elsewhere
- * (BARY-26) — Jira-style "this view is stale" banner. Deliberately doesn't
- * auto-apply the change: `reorderIssue`'s optimistic drag state
- * (`useBoardDnd.ts`) would race an unannounced `router.refresh()` the same
- * way BARY-25 did, so the caller shows a banner and only refreshes on an
- * explicit click.
+ * (BARY-26) — a global "there are changes" notification, mounted once per
+ * workspace (`[workspace]/layout.tsx`, next to `PasskeyNudge`) rather than
+ * per board, so it doesn't matter which page happens to be open when a
+ * teammate changes something. Deliberately doesn't auto-apply the change:
+ * `reorderIssue`'s optimistic drag state (`useBoardDnd.ts`) would race an
+ * unannounced `router.refresh()` the same way BARY-25 did, so the caller
+ * shows a banner and only refreshes on an explicit click.
  */
 export function useProjectUpdates({
   workspaceId,
   userId,
-  projectId,
-  issueId,
 }: UseProjectUpdatesOptions) {
   const [stale, setStale] = useState(false);
 
@@ -62,13 +53,11 @@ export function useProjectUpdates({
       // nothing before this, since every event from `userId` was dropped
       // regardless of which tab caused it).
       if (event.actorId === userId && recentLocalMutation()) return;
-      if (projectId && event.projectId !== projectId) return;
-      if (issueId && event.issueId !== issueId) return;
       setStale(true);
     };
 
     return () => source.close();
-  }, [workspaceId, userId, projectId, issueId]);
+  }, [workspaceId, userId]);
 
   return { stale, dismiss: () => setStale(false) };
 }

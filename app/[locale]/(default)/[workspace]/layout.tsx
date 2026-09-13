@@ -3,6 +3,7 @@ import { passkeyLoginEnabled } from "@/auth.config";
 import { AppShell } from "@/components/ui/layout/AppShell/AppShell";
 import { getMySecurity } from "@/features/account/queries";
 import { PasskeyNudge } from "@/features/auth/components/PasskeyNudge/PasskeyNudge";
+import { GlobalUpdateBanner } from "@/features/issues/components/UpdateBanner/GlobalUpdateBanner";
 import { getCurrentWorkspace } from "@/features/workspaces/queries";
 import { setCurrentWorkspaceId } from "@/lib/current-workspace";
 import { accountPath } from "@/lib/nav";
@@ -44,6 +45,7 @@ export default async function AppLayout({
       {passkeyLoginEnabled && security && security.passkeys.length === 0 && (
         <PasskeyNudge securityHref={accountPath(workspaceId, "security")} />
       )}
+      <GlobalUpdateBanner workspaceId={workspace.id} userId={session.userId} />
       {children}
     </AppShell>
   );

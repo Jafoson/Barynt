@@ -9,5 +9,12 @@
 # "localhost" can never pass public domain validation. Browsers will warn
 # about that certificate; that's expected for local/loopback testing.
 {$DOMAIN:localhost} {
-	reverse_proxy app:3000
+	# `flush_interval -1` flushes every write immediately instead of
+	# buffering. Without it, live-update Server-Sent Events
+	# (/api/workspaces/[id]/updates, BARY-26) can sit in Caddy's buffer
+	# indefinitely — the app's own dev server (no proxy in front) never
+	# showed this, only the deployed stack behind Caddy did.
+	reverse_proxy app:3000 {
+		flush_interval -1
+	}
 }

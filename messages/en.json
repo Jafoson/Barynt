@@ -628,8 +628,7 @@
     "toCreate": "to create"
   },
   "realtime": {
-    "staleBoard": "This board has changes.",
-    "staleIssue": "This issue was updated.",
+    "staleGlobal": "There are changes.",
     "refresh": "Refresh"
   },
   "projects": {
