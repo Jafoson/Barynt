@@ -94,9 +94,19 @@ export function useRowFit(
 
     // If the column gets narrower, fewer labels fit side by side.
     const observer = new ResizeObserver(() => {
-      if (widths.current) {
-        setState({ key, fit: fitCount(element, widths.current) });
-      }
+      if (!widths.current) return;
+      const next = fitCount(element, widths.current);
+      // Skip the update when nothing actually changed — the board's own
+      // re-render after a drag (new column widths, cards remounting)
+      // resizes this row without changing how many labels fit. Setting
+      // state anyway there still schedules a render; if that render's own
+      // layout pass reports the row as "resized" again to the observer
+      // (a card's cross-column remount briefly does), it looped without
+      // ever converging — the exact shape of React error #185, "Maximum
+      // update depth exceeded" (BARY-25).
+      setState((prev) =>
+        prev.key === key && prev.fit === next ? prev : { key, fit: next },
+      );
     });
     observer.observe(element);
     return () => observer.disconnect();
