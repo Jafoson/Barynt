@@ -29,7 +29,7 @@ import {
   requirePermission,
   requirePermissionOr,
 } from "@/lib/permissions";
-import { emitProjectChange } from "@/lib/realtime/bus";
+import { recordProjectChange } from "@/lib/realtime/store";
 import { stripAttachmentAttrs } from "@/lib/richtext/attachments";
 import { hostOf } from "@/lib/richtext/link";
 import { mentionedUserIds, toPlainText, toPreview } from "@/lib/richtext/text";
@@ -50,17 +50,26 @@ import type { IssueAttachment, SearchableIssue } from "@/types";
 
 /**
  * Revalidates the acting user's own view (`revalidatePath`, as before) and,
- * given a workspace, publishes a "something changed" event for everyone
- * else's open board/issue tabs (BARY-26) — the acting user's own view
- * already refreshes through the Server Action's RSC response, so they don't
- * need the same event fed back to themselves; `emitProjectChange` compares
- * `actorId` against each subscriber's own id to skip that.
+ * given a workspace, records a "something changed" timestamp that everyone
+ * else's global update banner polls for (BARY-26) — the acting user's own
+ * view already refreshes through the Server Action's RSC response, so it
+ * doesn't need to be told about its own write; `useProjectUpdates` compares
+ * `actorId` against the polling user's own id to skip that.
  *
- * Published per workspace, not per project — a board can show issues from
- * more than one project ("My issues"), so `lib/realtime/bus.ts` channels by
- * workspace and lets a single-project board filter on `projectId` itself.
- * Both are omitted together only for actions that change nothing a
- * subscriber would render (e.g. a share link, see `enableIssueShare`).
+ * Polling, not Server-Sent Events: a first attempt used SSE
+ * (`/api/workspaces/[id]/updates` as a long-lived stream), which worked
+ * against the local dev server but never delivered anything in production —
+ * the production path runs through a Cloudflare Tunnel whose ingress/
+ * buffering config lives in the Cloudflare dashboard, not in this repo, so
+ * there was nothing here left to fix. A plain polled GET has no persistent
+ * connection for any intermediary to buffer, mirroring how Jira itself
+ * surfaces this kind of notice.
+ *
+ * `projectId`/`issueId` are accepted but currently unused by the store — the
+ * banner is workspace-wide (`GlobalUpdateBanner`, mounted once in
+ * `[workspace]/layout.tsx`), not scoped to a single board or issue. Kept on
+ * the call sites so a future per-project or per-issue narrowing doesn't need
+ * to touch every action again.
  */
 async function revalidate(ctx?: {
   workspaceId?: string | null;
@@ -71,13 +80,7 @@ async function revalidate(ctx?: {
   if (ctx?.workspaceId && ctx.projectId) {
     const actorId = await currentUserId();
     if (actorId) {
-      emitProjectChange({
-        workspaceId: ctx.workspaceId,
-        projectId: ctx.projectId,
-        issueId: ctx.issueId,
-        actorId,
-        at: Date.now(),
-      });
+      recordProjectChange(ctx.workspaceId, actorId);
     }
   }
 }
