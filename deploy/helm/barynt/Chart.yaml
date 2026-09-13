@@ -1,0 +1,21 @@
+apiVersion: v2
+name: barynt
+description: Issue-Tracker (Next.js/Postgres/Redis) — Kubernetes-Chart für dieselben Images, die docker-compose.yml auf einem Single-Host-Deployment fährt.
+type: application
+
+# Chart-Version (SemVer, unabhängig von appVersion) und appVersion (die
+# tatsächlich ausgelieferte Image-Version) sind getrennte Zähler — siehe
+# README.md "Versionierung". Kein `dependencies:`-Block: Postgres, Redis und
+# RustFS sind eigene, minimale Templates statt externer Subcharts (siehe
+# README.md "Warum keine Bitnami-Subcharts").
+version: 0.1.0
+appVersion: "latest"
+
+keywords:
+  - issue-tracker
+  - nextjs
+home: https://github.com/Jafoson/Barynt
+sources:
+  - https://github.com/Jafoson/Barynt
+maintainers:
+  - name: Jason Mund

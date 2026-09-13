@@ -1,0 +1,43 @@
+{{/*
+Nicht-sensible Env-Vars der App — Zugangsdaten und die zusammengesetzte
+DATABASE_URL/S3-Keys kommen aus Secrets (siehe deployment.yaml),
+nicht von hier.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "barynt.fullname" . }}-env
+  labels:
+    {{- include "barynt.labels" . | nindent 4 }}
+data:
+  NODE_ENV: "production"
+  HOSTNAME: "0.0.0.0"
+  PORT: "3000"
+  REDIS_URL: {{ include "barynt.redisUrl" . | quote }}
+  {{- if .Values.env.authUrl }}
+  AUTH_URL: {{ .Values.env.authUrl | quote }}
+  {{- end }}
+  {{- if or .Values.s3.endpoint .Values.rustfs.enabled }}
+  S3_ENDPOINT: {{ include "barynt.s3Endpoint" . | quote }}
+  S3_PUBLIC_ENDPOINT: {{ .Values.s3.publicEndpoint | default (include "barynt.s3Endpoint" .) | quote }}
+  S3_REGION: {{ .Values.s3.region | quote }}
+  S3_BUCKET_AVATARS: {{ .Values.s3.bucketAvatars | quote }}
+  S3_BUCKET_ISSUES: {{ .Values.s3.bucketIssues | quote }}
+  {{- end }}
+  {{- if .Values.smtp.host }}
+  SMTP_HOST: {{ .Values.smtp.host | quote }}
+  SMTP_PORT: {{ .Values.smtp.port | quote }}
+  SMTP_SECURE: {{ .Values.smtp.secure | quote }}
+  {{- if .Values.smtp.user }}
+  SMTP_USER: {{ .Values.smtp.user | quote }}
+  {{- end }}
+  {{- if .Values.smtp.from }}
+  SMTP_FROM: {{ .Values.smtp.from | quote }}
+  {{- end }}
+  {{- if .Values.smtp.companyName }}
+  MAIL_COMPANY_NAME: {{ .Values.smtp.companyName | quote }}
+  {{- end }}
+  {{- if .Values.smtp.companyAddress }}
+  MAIL_COMPANY_ADDRESS: {{ .Values.smtp.companyAddress | quote }}
+  {{- end }}
+  {{- end }}

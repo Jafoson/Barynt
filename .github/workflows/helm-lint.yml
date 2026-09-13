@@ -1,0 +1,60 @@
+name: Helm Lint
+
+# Nur bei tatsächlichen Änderungen am Chart — kein Grund, das bei jedem
+# Push im gesamten Repo mitlaufen zu lassen (anders als tests.yml).
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "deploy/helm/barynt/**"
+      - ".github/workflows/helm-lint.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "deploy/helm/barynt/**"
+      - ".github/workflows/helm-lint.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: helm lint + template + kubeconform
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.16.4"
+
+      - name: helm lint
+        run: helm lint deploy/helm/barynt
+
+      # Zwei Renderdurchläufe: die gebündelten Defaults (values.yaml) und
+      # das externe Produktions-Beispiel (examples/values-production.yaml)
+      # — beide Zweige jedes bedingten Templates (postgresql.enabled,
+      # rustfs.enabled, ingress.enabled, ...) mindestens einmal geprüft.
+      - name: helm template (defaults)
+        run: helm template barynt deploy/helm/barynt > /tmp/rendered-default.yaml
+
+      - name: helm template (production example)
+        run: |
+          helm template barynt deploy/helm/barynt \
+            -f deploy/helm/barynt/examples/values-production.yaml \
+            > /tmp/rendered-production.yaml
+
+      - name: Set up kubeconform
+        run: |
+          curl -fsSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
+            | tar xz kubeconform
+          sudo mv kubeconform /usr/local/bin/kubeconform
+
+      - name: kubeconform (defaults)
+        run: kubeconform -strict -summary /tmp/rendered-default.yaml
+
+      - name: kubeconform (production example)
+        run: kubeconform -strict -summary /tmp/rendered-production.yaml

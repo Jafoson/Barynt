@@ -1,0 +1,123 @@
+{{- if .Values.rustfs.enabled }}
+{{/*
+Kein offizielles Helm-Chart für RustFS vorhanden — dieses Deployment bildet
+1:1 nach, was der `rustfs`-Service in docker-compose.yml tut. Nur eine
+Replica: RustFS selbst hat hier keine Multi-Node-Konfiguration (wie im
+Compose-Setup auch), Skalierung ist über `rustfs.enabled: false` +
+`s3.endpoint` auf einen echten S3-Anbieter der vorgesehene Weg.
+*/}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "barynt.fullname" . }}-rustfs
+  labels:
+    {{- include "barynt.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rustfs
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "barynt.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: rustfs
+  template:
+    metadata:
+      labels:
+        {{- include "barynt.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: rustfs
+    spec:
+      containers:
+        - name: rustfs
+          image: "{{ .Values.rustfs.image.repository }}:{{ .Values.rustfs.image.tag }}"
+          ports:
+            - name: api
+              containerPort: 9000
+            - name: console
+              containerPort: 9001
+          env:
+            - name: RUSTFS_VOLUMES
+              value: /data
+            - name: RUSTFS_ADDRESS
+              value: "0.0.0.0:9000"
+            - name: RUSTFS_CONSOLE_ADDRESS
+              value: "0.0.0.0:9001"
+            - name: RUSTFS_CONSOLE_ENABLE
+              value: "true"
+            - name: RUSTFS_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  {{- include "barynt.s3AccessKeyRef" . | nindent 18 }}
+            - name: RUSTFS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  {{- include "barynt.s3SecretKeyRef" . | nindent 18 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          # Kein `host:` auf der Probe (anders als der docker-compose.yml-
+          # Healthcheck, der explizit 127.0.0.1 statt "localhost" braucht,
+          # weil er im Netzwerk-Namespace des Containers selbst läuft): eine
+          # Kubernetes-httpGet-Probe läuft im Namespace des Kubelets auf dem
+          # Node und zielt ohne `host`-Override schon korrekt auf die
+          # Pod-IP — ein hier gesetztes `host: 127.0.0.1` hätte den Kubelet
+          # stattdessen gegen sich selbst statt gegen den Pod proben lassen
+          # (Ursache eines zunächst nur schwer erklärbaren CrashLoopBackOff
+          # beim Testinstall gegen einen lokalen kind-Cluster).
+          #
+          # startupProbe statt eines großzügigen initialDelaySeconds auf
+          # Readiness/Liveness: unter Last (frisch provisionierte PVC,
+          # ausgelasteter Node) hat RustFS in der Praxis deutlich länger
+          # als die anfangs veranschlagten ~80s gebraucht, bis Port 9000
+          # antwortet — die Liveness-Probe hat den Container in dem
+          # Fenster wiederholt (sauber, exitCode 0) beendet, bevor er
+          # fertig hochfahren konnte. Solange die startupProbe nicht
+          # einmal erfolgreich war, sind Readiness/Liveness inaktiv; das
+          # Budget hier ist bewusst großzügig (bis zu 5 Minuten).
+          startupProbe:
+            httpGet:
+              path: /health
+              port: api
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: api
+            periodSeconds: 3
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: api
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.rustfs.resources | nindent 12 }}
+      volumes:
+        - name: data
+          {{- if .Values.rustfs.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "barynt.fullname" . }}-rustfs-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+---
+{{- if .Values.rustfs.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "barynt.fullname" . }}-rustfs-data
+  labels:
+    {{- include "barynt.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rustfs
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- if .Values.rustfs.persistence.storageClassName }}
+  storageClassName: {{ .Values.rustfs.persistence.storageClassName }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.rustfs.persistence.size }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,75 @@
+# Beispiel für einen echten Cluster: nichts Gebündeltes, alles extern —
+# gemanagte Datenbank/Redis/S3, Ingress mit cert-manager. Vorher die drei
+# referenzierten Secrets im Ziel-Namespace anlegen (siehe README.md
+# "Secrets"), dann:
+#
+#   helm install barynt ./deploy/helm/barynt -f examples/values-production.yaml -n barynt --create-namespace
+
+replicaCount: 3
+
+image:
+  app:
+    tag: "695d477" # in Produktion immer auf einen konkreten Commit/Tag pinnen, nie "latest"
+  migrate:
+    tag: "695d477"
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  host: issues.example.com
+  tls:
+    enabled: true
+
+env:
+  authUrl: "https://issues.example.com"
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 8
+
+auth:
+  # kubectl create secret generic barynt-auth -n barynt \
+  #   --from-literal=AUTH_SECRET="$(bunx auth secret)"
+  existingSecret: barynt-auth
+  existingSecretKey: AUTH_SECRET
+
+postgresql:
+  enabled: false
+
+externalDatabase:
+  # kubectl create secret generic barynt-db -n barynt \
+  #   --from-literal=url="postgresql://user:pass@db.example.com:5432/barynt"
+  existingSecret: barynt-db
+  existingSecretUrlKey: url
+
+redis:
+  enabled: false
+
+externalRedis:
+  host: redis.example.com
+  port: 6379
+
+rustfs:
+  enabled: false
+
+s3:
+  endpoint: "https://s3.eu-central-1.amazonaws.com"
+  publicEndpoint: "https://s3.eu-central-1.amazonaws.com"
+  region: eu-central-1
+  bucketAvatars: barynt-avatars
+  bucketIssues: barynt-issues
+  # kubectl create secret generic barynt-s3 -n barynt \
+  #   --from-literal=accessKeyId=... --from-literal=secretAccessKey=...
+  existingSecret: barynt-s3
+
+smtp:
+  host: smtp.example.com
+  port: 587
+  secure: false
+  user: no-reply@example.com
+  from: "Barynt <no-reply@example.com>"
+  # kubectl create secret generic barynt-smtp -n barynt --from-literal=password=...
+  existingSecret: barynt-smtp

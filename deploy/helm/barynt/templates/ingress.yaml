@@ -1,0 +1,37 @@
+{{/*
+Ersetzt den Caddy-Service aus docker-compose.yml: automatisches HTTPS
+übernimmt hier der Ingress-Controller zusammen mit cert-manager (Beispiel-
+Annotation dafür in examples/values-production.yaml), statt eines eigenen
+Caddy-Containers im Cluster.
+*/}}
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "barynt.fullname" . }}
+  labels:
+    {{- include "barynt.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      secretName: {{ .Values.ingress.tls.secretName | default (printf "%s-tls" (include "barynt.fullname" .)) }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "barynt.fullname" . }}
+                port:
+                  number: {{ .Values.service.port }}
+{{- end }}

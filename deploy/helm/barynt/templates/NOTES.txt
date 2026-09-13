@@ -1,0 +1,22 @@
+Barynt wurde als Release "{{ .Release.Name }}" im Namespace "{{ .Release.Namespace }}" ausgerollt.
+
+{{- if .Values.ingress.enabled }}
+
+Erreichbar unter:
+  http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.host }}
+{{- else }}
+
+Kein Ingress aktiviert (ingress.enabled: false) — Port-Forward zum Testen:
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "barynt.fullname" . }} 3000:{{ .Values.service.port }}
+  open http://localhost:3000
+{{- end }}
+
+Status prüfen:
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+{{- if not .Values.auth.existingSecret }}
+
+AUTH_SECRET wurde automatisch generiert und liegt im Secret
+"{{ include "barynt.generatedSecretName" . }}" — für einen reproduzierbaren
+Wert stattdessen `auth.existingSecret` setzen (siehe README.md "Secrets").
+{{- end }}

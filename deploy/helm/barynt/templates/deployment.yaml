@@ -1,0 +1,164 @@
+{{/*
+Migrationen laufen bewusst NICHT als separater pre-install/pre-upgrade-Hook-
+Job (der naheliegende Standard-Pattern aus der Recherche im Ticket):
+Postgres ist bei postgresql.enabled Teil desselben Charts, und ein
+pre-install-Hook läuft VOR allen normalen Chart-Ressourcen — bei der
+allerersten Installation existiert die Postgres-StatefulSet zu dem
+Zeitpunkt noch gar nicht, der Hook würde gegen eine nicht existierende
+Datenbank laufen. initContainer auf dem App-Pod selbst umgeht das: sie
+laufen erst, wenn der Pod tatsächlich gestartet wird, Prismas
+`migrate deploy` ist über eine Advisory-Lock idempotent und
+nebenläufig-sicher (mehrere Replicas dürfen gleichzeitig starten),
+`prisma/bootstrap.ts` nutzt `skipDuplicates` — beide vertragen es
+problemlos, bei jedem Rollout erneut zu laufen.
+*/}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "barynt.fullname" . }}
+  labels:
+    {{- include "barynt.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "barynt.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: app
+  template:
+    metadata:
+      labels:
+        {{- include "barynt.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: app
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "barynt.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: migrate
+          image: "{{ .Values.image.migrate.repository }}:{{ .Values.image.migrate.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.migrate.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          command:
+            - sh
+            - -c
+            # Kurze Warteschleife auf Postgres, bevor Prisma überhaupt
+            # versucht zu verbinden — sonst nur abhängig vom initialen
+            # Kubernetes-Backoff (startet bei ~10s), was bei einer frisch
+            # provisionierten Postgres-PVC unnötig lange bis zum ersten
+            # erfolgreichen Versuch dauern kann.
+            - |
+              set -e
+              host=$(echo "$DATABASE_URL" | sed -E 's#.*@([^:/]+).*#\1#')
+              for i in $(seq 1 30); do
+                (echo > /dev/tcp/$host/5432) >/dev/null 2>&1 && break
+                echo "warte auf $host:5432 ($i/30)"; sleep 2
+              done
+              bun prisma migrate deploy
+              bun prisma/bootstrap.ts
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  {{- include "barynt.databaseUrlRef" . | nindent 18 }}
+          resources:
+            {{- toYaml .Values.migration.resources | nindent 12 }}
+        {{- if and .Values.rustfs.enabled (not .Values.s3.existingSecret) }}
+        - name: rustfs-init
+          # Gleiches Image wie der `rustfs-init`-Service in docker-compose.yml:
+          # legt die beiden Buckets an und setzt die CORS-Policy, die
+          # Presigned-Upload-URLs aus dem Browser erfordern. `|| true` macht
+          # den Schritt sicher wiederholbar, wie im Compose-Pendant.
+          image: amazon/aws-cli:latest
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              for i in $(seq 1 30); do
+                (echo > /dev/tcp/{{ include "barynt.fullname" . }}-rustfs/{{ .Values.rustfs.service.apiPort }}) >/dev/null 2>&1 && break
+                echo "warte auf rustfs ($i/30)"; sleep 2
+              done
+              endpoint="http://{{ include "barynt.fullname" . }}-rustfs:{{ .Values.rustfs.service.apiPort }}"
+              cors='{"CORSRules":[{"AllowedOrigins":["*"],"AllowedMethods":["GET","PUT","HEAD"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3000}]}'
+              aws --endpoint-url "$endpoint" s3 mb "s3://{{ .Values.s3.bucketAvatars }}" || true
+              aws --endpoint-url "$endpoint" s3 mb "s3://{{ .Values.s3.bucketIssues }}" || true
+              aws --endpoint-url "$endpoint" s3api put-bucket-cors --bucket "{{ .Values.s3.bucketAvatars }}" --cors-configuration "$cors" || true
+              aws --endpoint-url "$endpoint" s3api put-bucket-cors --bucket "{{ .Values.s3.bucketIssues }}" --cors-configuration "$cors" || true
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  {{- include "barynt.s3AccessKeyRef" . | nindent 18 }}
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  {{- include "barynt.s3SecretKeyRef" . | nindent 18 }}
+            - name: AWS_DEFAULT_REGION
+              value: {{ .Values.s3.region | quote }}
+          resources:
+            {{- toYaml .Values.migration.resources | nindent 12 }}
+        {{- end }}
+      containers:
+        - name: app
+          image: "{{ .Values.image.app.repository }}:{{ .Values.image.app.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.app.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: {{ include "barynt.fullname" . }}-env
+          env:
+            - name: AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  {{- include "barynt.authSecretRef" . | nindent 18 }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  {{- include "barynt.databaseUrlRef" . | nindent 18 }}
+            {{- if or .Values.s3.endpoint .Values.rustfs.enabled }}
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  {{- include "barynt.s3AccessKeyRef" . | nindent 18 }}
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  {{- include "barynt.s3SecretKeyRef" . | nindent 18 }}
+            {{- end }}
+            {{- if and .Values.smtp.host .Values.smtp.existingSecret }}
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.smtp.existingSecret }}
+                  key: {{ .Values.smtp.existingSecretKey | default "password" }}
+            {{- end }}
+          # Kein dedizierter Health-Endpunkt (siehe values.yaml `probes`) —
+          # spiegelt exakt den bestehenden Docker-HEALTHCHECK: GET "/",
+          # < 500 gilt als gesund.
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+            failureThreshold: {{ .Values.probes.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+            failureThreshold: {{ .Values.probes.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

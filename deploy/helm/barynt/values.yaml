@@ -1,0 +1,211 @@
+# Default-Werte für den Chart "barynt". Deckt sich bewusst mit dem, was
+# docker-compose.yml lokal tut: alles gebündelt, per `helm install` ohne
+# weitere Flags lauffähig. Für einen echten Produktions-Cluster siehe
+# examples/values-production.yaml (externe DB/Redis/S3, Ingress+TLS).
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  app:
+    repository: ghcr.io/jafoson/barynt
+    # Leer = .Chart.AppVersion. In Produktion auf einen Commit-SHA oder Tag
+    # pinnen statt "latest" zu übernehmen — reproduzierbare Rollouts/Rollbacks.
+    tag: ""
+    pullPolicy: IfNotPresent
+  migrate:
+    repository: ghcr.io/jafoson/barynt-migrate
+    tag: ""
+    pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+# Non-root, uid/gid 1000 — deckt sich mit dem "bun"-User, den das Dockerfile
+# im Runner-Stage bereits verwendet (siehe Dockerfile, `USER bun`).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop: ["ALL"]
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  # Beispiel für cert-manager (siehe examples/values-production.yaml):
+  #   cert-manager.io/cluster-issuer: letsencrypt-prod
+  host: issues.example.com
+  tls:
+    enabled: false
+    secretName: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+# Es gibt (noch) keinen dedizierten /api/health-Endpunkt — die Probes
+# spiegeln exakt den bestehenden Docker-HEALTHCHECK (GET auf "/", <500 =
+# gesund), siehe Dockerfile.
+probes:
+  path: /
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  failureThreshold: 3
+
+# AUTH_URL: Basis-URL der Anwendung (Auth.js-Callbacks, Einladungslinks).
+# In Produktion erforderlich — ohne echten Wert zeigen Links auf localhost.
+env:
+  authUrl: ""
+
+# AUTH_SECRET (Auth.js) — Pflichtwert, niemals im Klartext hier eintragen.
+#   existingSecret gesetzt  -> wird unverändert referenziert.
+#   existingSecret leer     -> der Chart generiert einmalig ein Secret
+#                              "<fullname>-generated" (randAlphaNum, per
+#                              `lookup` über Upgrades hinweg stabil).
+auth:
+  existingSecret: ""
+  existingSecretKey: "AUTH_SECRET"
+
+# Datenbank. Bei postgresql.enabled bezieht der Chart DATABASE_URL aus dem
+# generierten Secret (siehe oben) und rollt zusätzlich eine eigene,
+# einfache Postgres-Instanz aus. Für eine externe/gemanagte Datenbank:
+# postgresql.enabled auf false setzen und externalDatabase.* + ein
+# existingSecret mit dem Passwort angeben (siehe examples/values-production.yaml).
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "17-alpine"
+  auth:
+    username: barynt
+    database: barynt
+  persistence:
+    enabled: true
+    size: 8Gi
+    storageClassName: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+externalDatabase:
+  # Secret mit der fertigen Verbindungs-URL (Key s.u.) — siehe README
+  # "Externe Datenbank". Gesetzt schaltet automatisch auf "extern" um,
+  # unabhängig von postgresql.enabled.
+  existingSecret: ""
+  existingSecretUrlKey: ""
+
+# Redis (Rate-Limit-Zähler der öffentlichen API) — wie im bestehenden
+# docker-compose.yml ohne Auth, siehe README für die Begründung.
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClassName: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+externalRedis:
+  host: ""
+  port: 6379
+
+# S3-kompatibler Objektspeicher (Avatare, Anhänge). Ohne S3_ENDPOINT bleiben
+# Uploads clientseitig einfach aus (wie in `lib/storage` dokumentiert) —
+# rustfs.enabled bündelt stattdessen einen selbst gehosteten Ersatz.
+s3:
+  region: us-east-1
+  bucketAvatars: avatars
+  bucketIssues: issues
+  # Nur nötig für externen S3 (rustfs.enabled: false). Keys: accessKeyId,
+  # secretAccessKey.
+  existingSecret: ""
+  existingSecretAccessKeyIdKey: "accessKeyId"
+  existingSecretSecretAccessKeyKey: "secretAccessKey"
+  endpoint: ""
+  publicEndpoint: ""
+
+# Kein offizielles Helm-Chart für RustFS vorhanden (siehe verlinkte
+# Recherche im Ticket) — dieses minimale Deployment+PVC bildet exakt ab,
+# was docker-compose.yml heute mit `rustfs`+`rustfs-init` tut.
+rustfs:
+  enabled: true
+  image:
+    repository: rustfs/rustfs
+    tag: latest
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClassName: ""
+  service:
+    apiPort: 9000
+    consolePort: 9001
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+# SMTP ist optional — ohne smtp.host verschickt die Anwendung keine Mails
+# (siehe lib/mail), alle Wege bleiben funktional (Einladungslink zum
+# Kopieren, In-App-Benachrichtigungen).
+smtp:
+  host: ""
+  port: 587
+  secure: false
+  user: ""
+  from: ""
+  existingSecret: ""
+  existingSecretKey: "password"
+  companyName: ""
+  companyAddress: ""
+
+# Migrations-Job (Helm-Hook, siehe templates/migration-job.yaml) — Backoff
+# bewusst 0: eine fehlgeschlagene Migration soll einen Menschen holen, nicht
+# automatisch erneut versuchen.
+migration:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 300
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
