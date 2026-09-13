@@ -35,7 +35,10 @@
     "audit": "Audit log",
     "activity": "Activity",
     "mailTemplates": "Mail templates",
-    "invitations": "Invitations"
+    "invitations": "Invitations",
+    "noWorkspaces": "No workspace yet",
+    "noWorkspacesDescCreate": "You don't belong to a workspace yet. Create one to get started.",
+    "noWorkspacesDescLocked": "You don't belong to a workspace yet. Ask an admin to invite you."
   },
   "actions": {
     "addLabel": "Add label",
