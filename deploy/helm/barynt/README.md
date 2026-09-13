@@ -7,9 +7,9 @@ BARY-22.
 
 ## Schnellstart
 
-Ab dem ersten `Helm Release`-Lauf (`.github/workflows/helm-release.yml`,
-manuell ausgelöst) liegt das Chart als OCI-Artefakt auf GHCR — dann reicht,
-ohne Checkout dieses Repos:
+Das Chart liegt als öffentliches OCI-Artefakt auf GHCR (`Helm Release`,
+`.github/workflows/helm-release.yml`, manuell ausgelöst) — ohne Checkout
+dieses Repos reicht:
 
 ```sh
 helm install barynt oci://ghcr.io/jafoson/charts/barynt --version 0.1.0 \
@@ -129,13 +129,9 @@ Release-Tag pinnen statt `latest`, für reproduzierbare Rollouts/Rollbacks.
 `Chart.yaml`s `version` erhöhen, committen, dann in GitHub Actions
 `Helm Release` manuell auslösen (`gh workflow run helm-release.yml`, analog
 zu `Docker Build`) — packt das Chart und pusht es als OCI-Artefakt nach
-`oci://ghcr.io/jafoson/charts/barynt`. **Nach dem allerersten Lauf** einmalig
-manuell in den GitHub-Package-Einstellungen die Sichtbarkeit des neuen
-`charts/barynt`-Package auf „Public" stellen — GHCR legt ein neues Package
-unabhängig von der Sichtbarkeit dieses Repos zunächst privat an, das kann
-der `GITHUB_TOKEN` des Workflows nicht selbst ändern. Ohne diesen Schritt
-schlägt `helm install oci://...` bei jedem außer den Repo-Mitgliedern mit
-„unauthorized" fehl.
+`oci://ghcr.io/jafoson/charts/barynt`. Das Package ist direkt nach dem
+ersten Push öffentlich pullbar (getestet per anonymem `helm pull`, ohne
+`helm registry login`) — kein manueller Sichtbarkeits-Schritt nötig.
 
 ## Testen
 
