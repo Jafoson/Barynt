@@ -45,7 +45,7 @@ export default async function AppLayout({
       {passkeyLoginEnabled && security && security.passkeys.length === 0 && (
         <PasskeyNudge securityHref={accountPath(workspaceId, "security")} />
       )}
-      <GlobalUpdateBanner workspaceId={workspace.id} userId={session.userId} />
+      <GlobalUpdateBanner workspaceId={workspace.id} />
       {children}
     </AppShell>
   );

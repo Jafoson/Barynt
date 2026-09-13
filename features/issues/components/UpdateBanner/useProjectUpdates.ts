@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { recentLocalMutation } from "@/lib/realtime/localMutation";
+import { localMutationBaseline } from "@/lib/realtime/localMutation";
 
 interface LastChange {
   actorId: string;
@@ -10,10 +10,6 @@ interface LastChange {
 
 interface UseProjectUpdatesOptions {
   workspaceId: string;
-  /** The viewer's own id — an event they caused themselves is ignored,
-   *  their own view already refreshed via the Server Action's own
-   *  `revalidatePath`. */
-  userId: string;
 }
 
 const POLL_INTERVAL_MS = 15_000;
@@ -37,16 +33,11 @@ const POLL_INTERVAL_MS = 15_000;
  * `router.refresh()` the same way BARY-25 did, so the caller shows a banner
  * and only refreshes on an explicit click.
  */
-export function useProjectUpdates({
-  workspaceId,
-  userId,
-}: UseProjectUpdatesOptions) {
+export function useProjectUpdates({ workspaceId }: UseProjectUpdatesOptions) {
   const [stale, setStale] = useState(false);
-  // The most recent change timestamp already evaluated — not just "seen at
-  // mount", so a change made by this same user in another tab still flags
-  // `stale` (see `recentLocalMutation`'s per-tab, not per-user, suppression)
-  // while a repeat poll of the *same* change (nothing new happened since)
-  // isn't re-evaluated forever.
+  // The most recent change timestamp already evaluated. Starts at "now" so
+  // a change already sitting in the store from before this tab opened
+  // doesn't immediately flag as new.
   const lastSeenAtRef = useRef(Date.now());
 
   useEffect(() => {
@@ -63,13 +54,17 @@ export function useProjectUpdates({
       } catch {
         return; // Transient network hiccup — the next tick tries again.
       }
-      if (cancelled || !change || change.at <= lastSeenAtRef.current) return;
-      lastSeenAtRef.current = change.at;
+      if (cancelled || !change) return;
 
-      // Only suppress this tab's own echo — not the same user's other open
-      // tabs, which never called `markLocalMutation()` themselves and so
-      // still need the banner.
-      if (change.actorId === userId && recentLocalMutation()) return;
+      // Whichever is later: what this tab already evaluated, or this tab's
+      // own most recent local action (`markLocalMutation`). The latter
+      // covers this tab's own echo without any time-window guess — see
+      // `lib/realtime/localMutation.ts` for why a window doesn't work once
+      // delivery is polled instead of pushed.
+      const baseline = Math.max(lastSeenAtRef.current, localMutationBaseline());
+      if (change.at <= baseline) return;
+
+      lastSeenAtRef.current = change.at;
       setStale(true);
     };
 
@@ -93,7 +88,7 @@ export function useProjectUpdates({
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [workspaceId, userId]);
+  }, [workspaceId]);
 
   const dismiss = () => {
     setStale(false);

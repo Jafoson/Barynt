@@ -7,7 +7,6 @@ import { useProjectUpdates } from "./useProjectUpdates";
 
 interface GlobalUpdateBannerProps {
   workspaceId: string;
-  userId: string;
 }
 
 /**
@@ -15,13 +14,10 @@ interface GlobalUpdateBannerProps {
  * for the whole workspace instead of one per board, so a change shows up no
  * matter which page happens to be open when it happens.
  */
-export function GlobalUpdateBanner({
-  workspaceId,
-  userId,
-}: GlobalUpdateBannerProps) {
+export function GlobalUpdateBanner({ workspaceId }: GlobalUpdateBannerProps) {
   const t = useTranslations();
   const router = useRouter();
-  const updates = useProjectUpdates({ workspaceId, userId });
+  const updates = useProjectUpdates({ workspaceId });
 
   return (
     <UpdateBanner
