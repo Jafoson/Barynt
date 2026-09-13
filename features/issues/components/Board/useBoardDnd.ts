@@ -1,6 +1,7 @@
 import { useOptimistic, useRef, useState, useTransition } from "react";
 import { reorderIssue } from "@/features/issues/actions";
 import { rankBetween, sortByRank } from "@/features/issues/rank";
+import { markLocalMutation } from "@/lib/realtime/localMutation";
 import type { Issue } from "@/types";
 
 /**
@@ -107,6 +108,7 @@ export function useBoardDnd<T extends Issue>(issues: T[]) {
       // exceeded" on every board drag.
       startTransition(async () => {
         addOptimistic({ id: issue.id, status: statusId, rank });
+        markLocalMutation();
         await reorderIssue(issue.id, statusId, rank);
       });
     },

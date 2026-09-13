@@ -8,6 +8,7 @@ import {
   updateIssue,
 } from "@/features/issues/actions";
 import type { IssueEditorData, IssuePatch } from "@/features/issues/types";
+import { markLocalMutation } from "@/lib/realtime/localMutation";
 import type { PMDoc } from "@/lib/richtext/types";
 import type { IssueDetail } from "@/types";
 
@@ -119,6 +120,7 @@ export function useIssueDetail({
   const patch = (patch: IssuePatch) => {
     if (!issue) return;
     startTransition(async () => {
+      markLocalMutation();
       await updateIssue(issue.id, patch);
       await reload();
     });
@@ -126,6 +128,7 @@ export function useIssueDetail({
 
   const comment = async (body: PMDoc) => {
     if (!issue) return;
+    markLocalMutation();
     await addComment(issue.id, body, data.me.id);
     await reload();
   };
@@ -133,6 +136,7 @@ export function useIssueDetail({
   const remove = () => {
     if (!issue) return;
     startTransition(async () => {
+      markLocalMutation();
       await deleteIssue(issue.id);
       onDeleted();
       router.refresh();

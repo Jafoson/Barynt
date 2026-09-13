@@ -25,6 +25,7 @@ import { issuePath } from "@/features/issues/issue-links";
 import type { IssueEditorData } from "@/features/issues/types";
 import { uploadIssueAttachment } from "@/features/issues/uploadAttachment";
 import { useHasOpenModal } from "@/lib/context";
+import { markLocalMutation } from "@/lib/realtime/localMutation";
 import { emptyDoc, isEmptyDoc } from "@/lib/richtext/doc";
 import type { PMDoc } from "@/lib/richtext/types";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
@@ -90,6 +91,7 @@ function makeAttachmentHandlers(
     onUploadAttachment: async (
       file: File,
     ): Promise<UploadedAttachment | { error: string }> => {
+      markLocalMutation();
       const result = await uploadIssueAttachment(issueId, file);
       if ("error" in result) return result;
       const { attachment } = result;
@@ -106,6 +108,7 @@ function makeAttachmentHandlers(
       };
     },
     onRemoveAttachment: async (id: string) => {
+      markLocalMutation();
       const result = await deleteIssueAttachment(issueId, id);
       if ("error" in result) throw new Error(result.error);
       onRefresh();
@@ -115,6 +118,7 @@ function makeAttachmentHandlers(
       name?: string;
       mimeType?: string | null;
     }): Promise<UploadedAttachment | { error: string }> => {
+      markLocalMutation();
       const result = await addIssueLinkAttachment(issueId, input);
       if ("error" in result) return result;
       const { attachment } = result;
@@ -258,6 +262,7 @@ export function IssueComments({
   };
 
   const editComment = async (commentId: string, value: PMDoc) => {
+    markLocalMutation();
     await updateComment(commentId, value);
     await onRefresh();
   };
@@ -265,15 +270,18 @@ export function IssueComments({
   const removeComment = (commentId: string) => {
     // No confirmation dialog — the same convention as "delete task"
     // (`IssueDetailActions.tsx`): immediate, no detour.
+    markLocalMutation();
     deleteComment(commentId).then(onRefresh);
   };
 
   const replyToComment = async (parentId: string, value: PMDoc) => {
+    markLocalMutation();
     await addComment(issueId, value, me.id, parentId);
     await onRefresh();
   };
 
   const toggleReaction = (commentId: string, emoji: string) => {
+    markLocalMutation();
     toggleCommentReaction(commentId, emoji).then(onRefresh);
   };
 

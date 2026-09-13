@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { recentLocalMutation } from "@/lib/realtime/localMutation";
 
 interface ProjectChangePayload {
   projectId: string;
@@ -49,7 +50,12 @@ export function useProjectUpdates({
       } catch {
         return;
       }
-      if (event.actorId === userId) return;
+      // Only suppress this tab's own echo — not the same user's other open
+      // tabs, which never called `markLocalMutation()` themselves and so
+      // still need the banner (BARY-26: a same-account two-tab test showed
+      // nothing before this, since every event from `userId` was dropped
+      // regardless of which tab caused it).
+      if (event.actorId === userId && recentLocalMutation()) return;
       if (issueId && event.issueId !== issueId) return;
       setStale(true);
     };
