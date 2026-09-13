@@ -193,7 +193,7 @@ describe("updateComment() — Editing", () => {
   it("checks the same permission as deleteComment, just for update", async () => {
     mockCommentFindUnique.mockResolvedValue({
       authorId: "u-author",
-      issue: { projectId: "p1" },
+      issue: { projectId: "p1", project: { workspaceId: "w1" } },
     });
 
     await updateComment("c1", emptyDoc());
@@ -211,7 +211,7 @@ describe("updateComment() — Editing", () => {
   it("writes body, derived text, and the edited timestamp", async () => {
     mockCommentFindUnique.mockResolvedValue({
       authorId: ACTOR,
-      issue: { projectId: "p1" },
+      issue: { projectId: "p1", project: { workspaceId: "w1" } },
     });
 
     await updateComment("c1", emptyDoc());
@@ -237,7 +237,7 @@ describe("toggleCommentReaction() — Reactions", () => {
 
   it("creates a reaction when none exists yet", async () => {
     mockCommentFindUnique.mockResolvedValue({
-      issue: { projectId: "p1" },
+      issue: { projectId: "p1", project: { workspaceId: "w1" } },
     });
     mockCommentReactionCreate.mockResolvedValue({});
 
@@ -255,7 +255,7 @@ describe("toggleCommentReaction() — Reactions", () => {
 
   it("removes the reaction again when it already exists (P2002)", async () => {
     mockCommentFindUnique.mockResolvedValue({
-      issue: { projectId: "p1" },
+      issue: { projectId: "p1", project: { workspaceId: "w1" } },
     });
     mockCommentReactionCreate.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
@@ -280,7 +280,7 @@ describe("toggleCommentReaction() — Reactions", () => {
 
   it("rethrows other errors unchanged instead of reading them as a toggle", async () => {
     mockCommentFindUnique.mockResolvedValue({
-      issue: { projectId: "p1" },
+      issue: { projectId: "p1", project: { workspaceId: "w1" } },
     });
     mockCommentReactionCreate.mockRejectedValue(new Error("connection lost"));
 

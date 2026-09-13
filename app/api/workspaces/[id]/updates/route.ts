@@ -1,14 +1,18 @@
-import { currentUserId, hasPermission } from "@/lib/permissions";
+import { currentUserCanEnterWorkspace, currentUserId } from "@/lib/permissions";
 import { subscribeProjectChange } from "@/lib/realtime/bus";
 
 // Same auth shape as `app/api/issues/[id]/route.ts`: this path lies outside
 // the middleware matcher (`proxy.ts` excludes `/api`), so the session and
-// project-visibility checks happen here instead.
+// workspace-visibility checks happen here instead.
 //
 // Server-Sent Events, not a WebSocket: the only thing this connection ever
 // sends is "something changed, go refetch" — one direction, server to
 // client — and SSE is the smaller mechanism for that (plain HTTP, auto
 // reconnect built into `EventSource`, no extra dependency).
+//
+// Scoped to the workspace, not a single project — see the comment on
+// `channel()` in lib/realtime/bus.ts for why: the cross-project "My issues"
+// board has no single project to subscribe to.
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -16,8 +20,8 @@ export async function GET(
   const userId = await currentUserId();
   if (!userId) return new Response(null, { status: 401 });
 
-  const { id: projectId } = await params;
-  if (!(await hasPermission("project.view", { projectId }))) {
+  const { id: workspaceId } = await params;
+  if (!(await currentUserCanEnterWorkspace(workspaceId))) {
     return new Response(null, { status: 404 });
   }
 
@@ -25,7 +29,7 @@ export async function GET(
 
   const stream = new ReadableStream({
     start(controller) {
-      const unsubscribe = subscribeProjectChange(projectId, (event) => {
+      const unsubscribe = subscribeProjectChange(workspaceId, (event) => {
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
         );

@@ -40,11 +40,17 @@ export function Board({ issues, projectId, statuses, composer }: BoardProps) {
   const columnStatuses = statuses.filter((s) => s.isColumn);
   const issueOpen = useIssueOpen(composer.workspaceId);
   const hasOpenModal = useHasOpenModal();
-  // BARY-26: flags when someone else changed a card in this project while
-  // this board is open — a banner, not an auto-refresh, since an unannounced
+  // BARY-26: flags when someone else changed a card on this board while it's
+  // open — a banner, not an auto-refresh, since an unannounced
   // `router.refresh()` here would race the drag transition's own optimistic
-  // revert the same way BARY-25's infinite loop did.
-  const updates = useProjectUpdates({ projectId, userId: composer.me.id });
+  // revert the same way BARY-25's infinite loop did. `projectId` is left
+  // `undefined` on the cross-project "My issues" board, where any change in
+  // the workspace is relevant since it could touch one of the shown issues.
+  const updates = useProjectUpdates({
+    workspaceId: composer.workspaceId,
+    userId: composer.me.id,
+    projectId,
+  });
 
   const board = useBoardDnd(issues);
   // Shift + wheel scrolls the columns horizontally, no matter where the pointer is.

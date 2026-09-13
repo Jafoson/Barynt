@@ -50,24 +50,29 @@ import type { IssueAttachment, SearchableIssue } from "@/types";
 
 /**
  * Revalidates the acting user's own view (`revalidatePath`, as before) and,
- * given a project, publishes a "this project changed" event for everyone
+ * given a workspace, publishes a "something changed" event for everyone
  * else's open board/issue tabs (BARY-26) — the acting user's own view
  * already refreshes through the Server Action's RSC response, so they don't
  * need the same event fed back to themselves; `emitProjectChange` compares
  * `actorId` against each subscriber's own id to skip that.
  *
- * `projectId` is omitted only for actions that change nothing a subscriber
- * would render (e.g. a workspace-wide label, which has no single project).
+ * Published per workspace, not per project — a board can show issues from
+ * more than one project ("My issues"), so `lib/realtime/bus.ts` channels by
+ * workspace and lets a single-project board filter on `projectId` itself.
+ * Both are omitted together only for actions that change nothing a
+ * subscriber would render (e.g. a share link, see `enableIssueShare`).
  */
 async function revalidate(ctx?: {
-  projectId?: string | null;
+  workspaceId?: string | null;
+  projectId?: string;
   issueId?: string;
 }) {
   revalidatePath("/", "layout");
-  if (ctx?.projectId) {
+  if (ctx?.workspaceId && ctx.projectId) {
     const actorId = await currentUserId();
     if (actorId) {
       emitProjectChange({
+        workspaceId: ctx.workspaceId,
         projectId: ctx.projectId,
         issueId: ctx.issueId,
         actorId,
@@ -410,7 +415,11 @@ export async function moveIssue(id: string, status: string) {
   if (status !== issue.status) {
     await recordStatusChangeAudit(id, issue, actorId, issue.status, status);
   }
-  await revalidate({ projectId: issue.projectId, issueId: id });
+  await revalidate({
+    workspaceId: issue.project.workspaceId,
+    projectId: issue.projectId,
+    issueId: id,
+  });
 }
 
 export async function reorderIssue(id: string, status: string, rank: number) {
@@ -434,7 +443,11 @@ export async function reorderIssue(id: string, status: string, rank: number) {
   if (status !== issue.status) {
     await recordStatusChangeAudit(id, issue, actorId, issue.status, status);
   }
-  await revalidate({ projectId: issue.projectId, issueId: id });
+  await revalidate({
+    workspaceId: issue.project.workspaceId,
+    projectId: issue.projectId,
+    issueId: id,
+  });
 }
 
 export async function updateIssue(id: string, patch: IssuePatch) {
@@ -626,7 +639,11 @@ export async function updateIssue(id: string, patch: IssuePatch) {
   if (updated)
     fireWebhookEvent(issue.project.workspaceId, "issue.updated", updated);
 
-  await revalidate({ projectId: issue.projectId, issueId: id });
+  await revalidate({
+    workspaceId: issue.project.workspaceId,
+    projectId: issue.projectId,
+    issueId: id,
+  });
 }
 
 // ── Attachments ────────────────────────────────────────────────────────────
@@ -645,7 +662,11 @@ async function requireAttachmentAccess(issueId: string) {
       ownerIds: [issue.reporterId, issue.assigneeId],
     },
   ]);
-  return { actorId, projectId: issue.projectId };
+  return {
+    actorId,
+    projectId: issue.projectId,
+    workspaceId: issue.project.workspaceId,
+  };
 }
 
 export async function requestIssueAttachmentUpload(
@@ -661,7 +682,8 @@ export async function confirmIssueAttachmentUpload(
   key: string,
   input: { fileName: string; contentType: string },
 ): Promise<{ ok: true; attachment: IssueAttachment } | { error: string }> {
-  const { actorId, projectId } = await requireAttachmentAccess(issueId);
+  const { actorId, projectId, workspaceId } =
+    await requireAttachmentAccess(issueId);
 
   const finalized = await finalizeAttachmentUpload(issueId, key);
   if ("error" in finalized) return finalized;
@@ -679,7 +701,7 @@ export async function confirmIssueAttachmentUpload(
     },
   });
 
-  await revalidate({ projectId, issueId });
+  await revalidate({ workspaceId, projectId, issueId });
   return {
     ok: true,
     attachment: {
@@ -709,7 +731,8 @@ export async function addIssueLinkAttachment(
   issueId: string,
   input: { url: string; name?: string; mimeType?: string | null },
 ): Promise<{ ok: true; attachment: IssueAttachment } | { error: string }> {
-  const { actorId, projectId } = await requireAttachmentAccess(issueId);
+  const { actorId, projectId, workspaceId } =
+    await requireAttachmentAccess(issueId);
 
   const href = input.url.trim();
   if (!isWebUrl(href)) return { error: "Only http(s) links are allowed." };
@@ -726,7 +749,7 @@ export async function addIssueLinkAttachment(
     },
   });
 
-  await revalidate({ projectId, issueId });
+  await revalidate({ workspaceId, projectId, issueId });
   return {
     ok: true,
     attachment: {
@@ -746,7 +769,7 @@ export async function deleteIssueAttachment(
   issueId: string,
   attachmentId: string,
 ): Promise<{ ok: true } | { error: string }> {
-  const { projectId } = await requireAttachmentAccess(issueId);
+  const { projectId, workspaceId } = await requireAttachmentAccess(issueId);
 
   const row = await db.attachment.findUnique({ where: { id: attachmentId } });
   if (!row || row.issueId !== issueId) return { error: "Not found." };
@@ -754,7 +777,7 @@ export async function deleteIssueAttachment(
   await db.attachment.delete({ where: { id: attachmentId } });
   if (row.kind === "file") await deleteAttachmentObject(row.key);
 
-  await revalidate({ projectId, issueId });
+  await revalidate({ workspaceId, projectId, issueId });
   return { ok: true };
 }
 
@@ -842,7 +865,7 @@ export async function createIssue(data: {
   const created = await getIssueUnchecked(id);
   if (created) fireWebhookEvent(workspaceId, "issue.created", created);
 
-  await revalidate({ projectId: data.projectId, issueId: id });
+  await revalidate({ workspaceId, projectId: data.projectId, issueId: id });
   return { id };
 }
 
@@ -897,7 +920,7 @@ export async function createLabel(data: {
     projectId: data.projectId ?? null,
   });
 
-  await revalidate({ projectId: data.projectId ?? null });
+  await revalidate({ workspaceId, projectId: data.projectId ?? undefined });
   return {
     id: label.id,
     name: label.name,
@@ -965,7 +988,10 @@ export async function updateLabel(
       ...(data.color !== undefined ? { color: data.color } : {}),
     },
   });
-  await revalidate({ projectId: scoped.label.projectId });
+  await revalidate({
+    workspaceId: scoped.label.workspaceId,
+    projectId: scoped.label.projectId ?? undefined,
+  });
   return { ok: true };
 }
 
@@ -1010,7 +1036,10 @@ export async function deleteLabel(labelId: string): Promise<LabelResult> {
     projectId: scoped.label.projectId,
   });
 
-  await revalidate({ projectId: scoped.label.projectId });
+  await revalidate({
+    workspaceId: scoped.label.workspaceId,
+    projectId: scoped.label.projectId ?? undefined,
+  });
   return { ok: true };
 }
 
@@ -1068,7 +1097,7 @@ export async function setLabelHidden(
     await db.projectHiddenLabel.deleteMany({ where: { projectId, labelId } });
   }
 
-  await revalidate({ projectId });
+  await revalidate({ workspaceId: project.workspaceId, projectId });
   return { ok: true };
 }
 
@@ -1101,7 +1130,10 @@ export async function deleteIssue(id: string) {
 
   // No `issueId` here — the issue is gone, so a subscriber's card just needs
   // to disappear on the next board refresh, not a targeted single-issue update.
-  await revalidate({ projectId: issue.projectId });
+  await revalidate({
+    workspaceId: issue.project.workspaceId,
+    projectId: issue.projectId,
+  });
 }
 
 /** New token + the metadata `/share/[token]` displays about the current link
@@ -1362,7 +1394,11 @@ export async function addComment(
     );
   }
 
-  await revalidate({ projectId: issue.projectId, issueId });
+  await revalidate({
+    workspaceId: issue.project.workspaceId,
+    projectId: issue.projectId,
+    issueId,
+  });
 }
 
 export async function deleteComment(commentId: string) {
@@ -1371,7 +1407,9 @@ export async function deleteComment(commentId: string) {
     select: {
       authorId: true,
       issueId: true,
-      issue: { select: { projectId: true } },
+      issue: {
+        select: { projectId: true, project: { select: { workspaceId: true } } },
+      },
     },
   });
   if (!comment) throw new PermissionError("comment.delete.any");
@@ -1386,6 +1424,7 @@ export async function deleteComment(commentId: string) {
   ]);
   await db.comment.delete({ where: { id: commentId } });
   await revalidate({
+    workspaceId: comment.issue.project.workspaceId,
     projectId: comment.issue.projectId,
     issueId: comment.issueId,
   });
@@ -1397,7 +1436,9 @@ export async function updateComment(commentId: string, body: PMDoc) {
     select: {
       authorId: true,
       issueId: true,
-      issue: { select: { projectId: true } },
+      issue: {
+        select: { projectId: true, project: { select: { workspaceId: true } } },
+      },
     },
   });
   if (!comment) throw new PermissionError("comment.update.any");
@@ -1419,6 +1460,7 @@ export async function updateComment(commentId: string, body: PMDoc) {
     },
   });
   await revalidate({
+    workspaceId: comment.issue.project.workspaceId,
     projectId: comment.issue.projectId,
     issueId: comment.issueId,
   });
@@ -1434,7 +1476,12 @@ export async function updateComment(commentId: string, body: PMDoc) {
 export async function toggleCommentReaction(commentId: string, emoji: string) {
   const comment = await db.comment.findUnique({
     where: { id: commentId },
-    select: { issueId: true, issue: { select: { projectId: true } } },
+    select: {
+      issueId: true,
+      issue: {
+        select: { projectId: true, project: { select: { workspaceId: true } } },
+      },
+    },
   });
   if (!comment) throw new PermissionError("comment.react");
   const userId = await requirePermission("comment.react", {
@@ -1458,6 +1505,7 @@ export async function toggleCommentReaction(commentId: string, emoji: string) {
     }
   }
   await revalidate({
+    workspaceId: comment.issue.project.workspaceId,
     projectId: comment.issue.projectId,
     issueId: comment.issueId,
   });

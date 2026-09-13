@@ -25,7 +25,6 @@ const SEGMENTS: string[][] = [
     "tests/unit/workspace/workspaceDomains.test.ts",
     "tests/unit/workspace/workspaceSettings.test.ts",
     "tests/unit/issues",
-    "tests/unit/realtime",
     "tests/unit/tabbar",
     "tests/unit/projects",
     "tests/unit/invitations",
@@ -48,6 +47,12 @@ const SEGMENTS: string[][] = [
     "tests/unit/webhooks",
   ],
   ["tests/unit/permissions/resolver.test.ts"],
+  // Own invocation: sharing segment 0 with tests/unit/projects made
+  // projectMembers.test.ts fail on `db.workspace.findUnique` inside
+  // sendInvitationEmail — a module-cache race triggered merely by this
+  // file's presence in that process, not by anything it mocks itself (it
+  // mocks nothing). See the "always use `bun run test`" races in CLAUDE.md.
+  ["tests/unit/realtime"],
   ["tests/unit/session"],
   ["tests/unit/richtext", "tests/unit/table", "tests/unit/ui"],
   ["tests/unit/account"],
