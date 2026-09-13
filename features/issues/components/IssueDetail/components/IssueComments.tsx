@@ -91,8 +91,11 @@ function makeAttachmentHandlers(
     onUploadAttachment: async (
       file: File,
     ): Promise<UploadedAttachment | { error: string }> => {
-      markLocalMutation();
+      // After the await — see the comment in useBoardDnd.ts's onDrop for
+      // why: the server timestamps its own record on receipt, always later
+      // than anything marked before the request is even sent.
       const result = await uploadIssueAttachment(issueId, file);
+      markLocalMutation();
       if ("error" in result) return result;
       const { attachment } = result;
       if (!attachment.url) return { error: uploadFailedLabel };
@@ -108,8 +111,8 @@ function makeAttachmentHandlers(
       };
     },
     onRemoveAttachment: async (id: string) => {
-      markLocalMutation();
       const result = await deleteIssueAttachment(issueId, id);
+      markLocalMutation();
       if ("error" in result) throw new Error(result.error);
       onRefresh();
     },
@@ -118,8 +121,8 @@ function makeAttachmentHandlers(
       name?: string;
       mimeType?: string | null;
     }): Promise<UploadedAttachment | { error: string }> => {
-      markLocalMutation();
       const result = await addIssueLinkAttachment(issueId, input);
+      markLocalMutation();
       if ("error" in result) return result;
       const { attachment } = result;
       if (!attachment.url) return { error: uploadFailedLabel };
@@ -262,27 +265,34 @@ export function IssueComments({
   };
 
   const editComment = async (commentId: string, value: PMDoc) => {
-    markLocalMutation();
+    // After the await — see the comment in useBoardDnd.ts's onDrop for why:
+    // the server timestamps its own record on receipt, always later than
+    // anything marked before the request is even sent.
     await updateComment(commentId, value);
+    markLocalMutation();
     await onRefresh();
   };
 
   const removeComment = (commentId: string) => {
     // No confirmation dialog — the same convention as "delete task"
     // (`IssueDetailActions.tsx`): immediate, no detour.
-    markLocalMutation();
-    deleteComment(commentId).then(onRefresh);
+    deleteComment(commentId).then(() => {
+      markLocalMutation();
+      onRefresh();
+    });
   };
 
   const replyToComment = async (parentId: string, value: PMDoc) => {
-    markLocalMutation();
     await addComment(issueId, value, me.id, parentId);
+    markLocalMutation();
     await onRefresh();
   };
 
   const toggleReaction = (commentId: string, emoji: string) => {
-    markLocalMutation();
-    toggleCommentReaction(commentId, emoji).then(onRefresh);
+    toggleCommentReaction(commentId, emoji).then(() => {
+      markLocalMutation();
+      onRefresh();
+    });
   };
 
   const copyLink = (commentId: string) => {

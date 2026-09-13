@@ -108,8 +108,15 @@ export function useBoardDnd<T extends Issue>(issues: T[]) {
       // exceeded" on every board drag.
       startTransition(async () => {
         addOptimistic({ id: issue.id, status: statusId, rank });
-        markLocalMutation();
+        // After the await, not before: `recordProjectChange` timestamps
+        // itself on the server, which only ever runs *after* this request
+        // reaches it — a baseline taken before sending the request is
+        // therefore always older than that timestamp, never later, and
+        // never actually suppresses anything (BARY-26). Taken here, after
+        // the response comes back, it's guaranteed to be at or after the
+        // server's own recording of this same action.
         await reorderIssue(issue.id, statusId, rank);
+        markLocalMutation();
       });
     },
   });

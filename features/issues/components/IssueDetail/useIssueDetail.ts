@@ -120,24 +120,27 @@ export function useIssueDetail({
   const patch = (patch: IssuePatch) => {
     if (!issue) return;
     startTransition(async () => {
-      markLocalMutation();
+      // After the await — see the comment in useBoardDnd.ts's onDrop for
+      // why: the server timestamps its own record on receipt, always
+      // later than anything marked before the request is even sent.
       await updateIssue(issue.id, patch);
+      markLocalMutation();
       await reload();
     });
   };
 
   const comment = async (body: PMDoc) => {
     if (!issue) return;
-    markLocalMutation();
     await addComment(issue.id, body, data.me.id);
+    markLocalMutation();
     await reload();
   };
 
   const remove = () => {
     if (!issue) return;
     startTransition(async () => {
-      markLocalMutation();
       await deleteIssue(issue.id);
+      markLocalMutation();
       onDeleted();
       router.refresh();
     });
