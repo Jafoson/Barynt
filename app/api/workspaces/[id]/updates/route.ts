@@ -1,6 +1,13 @@
 import { currentUserCanEnterWorkspace, currentUserId } from "@/lib/permissions";
 import { subscribeProjectChange } from "@/lib/realtime/bus";
 
+// Explicit, not inferred: a streaming response with no fixed body shouldn't
+// be a candidate for static optimization in the first place, but this route
+// exists specifically to defeat proxy/CDN buffering (see the padding
+// comment below) — leaving its own dynamic-ness to inference would be an
+// odd thing to get wrong here of all places.
+export const dynamic = "force-dynamic";
+
 // Same auth shape as `app/api/issues/[id]/route.ts`: this path lies outside
 // the middleware matcher (`proxy.ts` excludes `/api`), so the session and
 // workspace-visibility checks happen here instead.
@@ -29,6 +36,16 @@ export async function GET(
 
   const stream = new ReadableStream({
     start(controller) {
+      // Padding, not a bug: some intermediaries between browser and origin
+      // (this deployment's production path goes through a Cloudflare
+      // Tunnel, not the Caddy this repo documents) hold back the first
+      // chunk of a response until enough bytes have accumulated to make
+      // buffering worthwhile, which for a quiet SSE stream can mean never.
+      // A 2KB comment line as the very first thing sent pushes past that
+      // threshold immediately — a widely documented fix for SSE behind such
+      // proxies/CDNs. `EventSource` ignores comment lines (a leading `:`).
+      controller.enqueue(encoder.encode(`:${" ".repeat(2048)}\n\n`));
+
       const unsubscribe = subscribeProjectChange(workspaceId, (event) => {
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
