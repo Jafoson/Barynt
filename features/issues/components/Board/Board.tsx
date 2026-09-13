@@ -1,6 +1,6 @@
 "use client";
 import { useTranslations } from "next-intl";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { BoardColumn } from "@/features/issues/components/BoardColumn/BoardColumn";
 import { useIssueOpen } from "@/features/issues/issue-links";
 import type { IssueComposerData, IssueLookups } from "@/features/issues/types";
@@ -41,6 +41,21 @@ export function Board({ issues, projectId, statuses, composer }: BoardProps) {
   // Shift + wheel scrolls the columns horizontally, no matter where the pointer is.
   const scrollSetter = useShiftScroll();
   const containerRef = useRef<HTMLDivElement>(null);
+  // A stable identity for the container ref (BARY-25): an inline arrow
+  // function here would be a *new* ref on every render, so React would
+  // detach it (call with `null`) and reattach it (call with the element)
+  // every single time — each of those two calls runs `scrollSetter`, a
+  // `useState` setter, which schedules a re-render of `Board` that then
+  // creates yet another new inline ref, forever. `useCallback` keeps this
+  // one function across renders, so React only calls it on actual
+  // mount/unmount of the element.
+  const setContainer = useCallback(
+    (el: HTMLDivElement | null) => {
+      containerRef.current = el;
+      scrollSetter(el);
+    },
+    [scrollSetter],
+  );
 
   const identifier = (issue: IssueDetail) =>
     `${lookups.projects.find((p) => p.id === issue.project)?.prefix ?? "?"}-${issue.key}`;
@@ -170,13 +185,7 @@ export function Board({ issues, projectId, statuses, composer }: BoardProps) {
   useShortcut("o", openFocused, { enabled: noPanelOpen && !!focusedId });
 
   return (
-    <div
-      ref={(el) => {
-        containerRef.current = el;
-        scrollSetter(el);
-      }}
-      className={styles.board}
-    >
+    <div ref={setContainer} className={styles.board}>
       {columns.map(({ status, issues: columnIssues }) => {
         const { isOver, onDragOver, onDragLeave, onDrop } =
           board.columnHandlers(status.id);
