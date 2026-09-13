@@ -38,7 +38,7 @@ jobs:
       - name: helm lint
         run: helm lint deploy/helm/barynt
 
-      - name: Determine chart version
+      - name: Determine chart version and OCI target
         id: vars
         run: |
           version="${{ inputs.version }}"
@@ -46,6 +46,12 @@ jobs:
             version="$(sed -n 's/^version:[[:space:]]*//p' deploy/helm/barynt/Chart.yaml)"
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          # GHCR paths are case-sensitive and must be lowercase — computed
+          # once here so the push and the printed install command (Summary
+          # step below) can't drift apart the way they did the first time
+          # this ran (push correctly lowercased, the summary's copy-paste
+          # command didn't and was broken as a result).
+          echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
       - name: Package chart
         run: |
@@ -61,11 +67,11 @@ jobs:
       - name: Push chart
         run: |
           helm push /tmp/chart-package/barynt-${{ steps.vars.outputs.version }}.tgz \
-            "oci://ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/charts"
+            "oci://ghcr.io/${{ steps.vars.outputs.owner }}/charts"
 
       - name: Summary
         run: |
           echo "### Chart veröffentlicht" >> "$GITHUB_STEP_SUMMARY"
           echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "helm install barynt oci://ghcr.io/${{ github.repository_owner }}/charts/barynt --version ${{ steps.vars.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "helm install barynt oci://ghcr.io/${{ steps.vars.outputs.owner }}/charts/barynt --version ${{ steps.vars.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
           echo "\`\`\`" >> "$GITHUB_STEP_SUMMARY"
