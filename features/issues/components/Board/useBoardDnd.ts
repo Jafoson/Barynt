@@ -1,4 +1,3 @@
-import { useRouter } from "next/navigation";
 import { useOptimistic, useRef, useState, useTransition } from "react";
 import { reorderIssue } from "@/features/issues/actions";
 import { rankBetween, sortByRank } from "@/features/issues/rank";
@@ -10,7 +9,6 @@ import type { Issue } from "@/types";
  * to render drop indicators.
  */
 export function useBoardDnd<T extends Issue>(issues: T[]) {
-  const router = useRouter();
   const [, startTransition] = useTransition();
 
   // State only for rendering the drop indicator
@@ -99,10 +97,17 @@ export function useBoardDnd<T extends Issue>(issues: T[]) {
       const rank = dropRank(statusId, issue.id);
       clearDragState();
 
+      // No `router.refresh()` after the `await` — `reorderIssue` already
+      // revalidates server-side (`revalidate()` in actions.ts), and Next
+      // folds the freshly rendered RSC payload into the Server Action's own
+      // response (see "Choosing a cache update" in Next's server-actions
+      // guide). A second, explicit refresh on top of that raced the
+      // transition's own settling against this optimistic update's revert —
+      // the reproducible trigger behind BARY-25's "Maximum update depth
+      // exceeded" on every board drag.
       startTransition(async () => {
         addOptimistic({ id: issue.id, status: statusId, rank });
         await reorderIssue(issue.id, statusId, rank);
-        router.refresh();
       });
     },
   });
