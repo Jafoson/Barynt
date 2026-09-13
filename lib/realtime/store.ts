@@ -23,8 +23,23 @@ declare global {
 // at that point this would need to move to a shared store (Redis, or a
 // column on the workspace/project row). Not needed for the current
 // single-instance deployment.
+//
+// The `global` assignment below is NOT guarded to dev only (unlike
+// `lib/db.ts`/`lib/redis.ts`, where it exists purely to survive dev's HMR
+// re-execution and is skipped in production because a fresh singleton per
+// process is fine there — those hold stateless connections, and every
+// importer getting the same *client* is a nice-to-have, not a correctness
+// requirement). Here the `Map` itself is the data. Next.js can bundle a
+// shared module like this one separately per compilation layer (Server
+// Actions vs. Route Handlers) even within a single running process — two
+// separately bundled copies of this file would each get their own
+// module-level `changes` if it weren't for `global` bridging them, which is
+// exactly what broke this in production while working fine locally:
+// `recordProjectChange` (called from the Server Action layer) and
+// `getLastChange` (called from the Route Handler layer) held two different,
+// never-synchronized Maps.
 const changes = global.realtimeChanges ?? new Map<string, LastChange>();
-if (process.env.NODE_ENV !== "production") global.realtimeChanges = changes;
+global.realtimeChanges = changes;
 
 export function recordProjectChange(workspaceId: string, actorId: string) {
   changes.set(workspaceId, { actorId, at: Date.now() });
