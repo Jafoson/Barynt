@@ -26,10 +26,18 @@ import styles from "./richText.module.scss";
  * `RichTextEditor` — and vice versa.
  */
 
-/** Only URLs that are harmless in the browser — everything else stays text. */
+/**
+ * Only URLs that are harmless in the browser — everything else stays text.
+ * `blob:` is included because the create-issue composer previews a
+ * not-yet-uploaded image via `URL.createObjectURL` (no `issueId` to upload
+ * against until the issue is saved), and that draft document renders
+ * through this same component once the field loses focus. A typed-in fake
+ * `blob:` string is inert — it only resolves to something real if it names
+ * an object this tab itself created.
+ */
 function safeUrl(url: unknown): string | null {
   if (typeof url !== "string") return null;
-  return /^(?:https?:\/\/|mailto:|\/|#)/i.test(url) ? url : null;
+  return /^(?:https?:\/\/|mailto:|blob:|\/|#)/i.test(url) ? url : null;
 }
 
 function attr(node: PMNode, key: string): string {
