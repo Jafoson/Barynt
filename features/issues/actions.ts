@@ -802,6 +802,7 @@ export async function createIssue(data: {
   if (created) fireWebhookEvent(workspaceId, "issue.created", created);
 
   await revalidate();
+  return { id };
 }
 
 export async function createLabel(data: {
