@@ -75,9 +75,23 @@ export function useProjectUpdates({
 
     poll();
     const interval = setInterval(poll, POLL_INTERVAL_MS);
+
+    // Browsers throttle `setInterval` in backgrounded tabs — sometimes down
+    // to once a minute or less. Without this, a tab left in the background
+    // can sit on a change for far longer than POLL_INTERVAL_MS suggests,
+    // then only catch up once switched back to, which looks like the
+    // notification appeared "out of nowhere" right as it regains focus.
+    // Polling immediately on visibility closes that gap instead of waiting
+    // for the throttled timer to eventually fire.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     return () => {
       cancelled = true;
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [workspaceId, userId]);
 
