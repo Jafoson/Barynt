@@ -84,7 +84,20 @@
       "type": "object",
       "properties": {
         "existingSecret": { "type": "string" },
-        "existingSecretKey": { "type": "string" }
+        "existingSecretKey": { "type": "string" },
+        "oidc": {
+          "type": "object",
+          "properties": {
+            "issuer": { "type": "string" },
+            "clientId": { "type": "string" },
+            "name": { "type": "string" },
+            "existingSecret": { "type": "string" },
+            "existingSecretKey": { "type": "string" }
+          }
+        },
+        "registrationEnabled": { "type": "boolean" },
+        "passkeyLoginEnabled": { "type": "boolean" },
+        "passkeyRegistrationEnabled": { "type": "boolean" }
       }
     },
     "postgresql": {

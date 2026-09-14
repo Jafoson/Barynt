@@ -17,6 +17,22 @@ data:
   {{- if .Values.env.authUrl }}
   AUTH_URL: {{ .Values.env.authUrl | quote }}
   {{- end }}
+  {{- if .Values.auth.oidc.issuer }}
+  AUTH_OIDC_ISSUER: {{ .Values.auth.oidc.issuer | quote }}
+  AUTH_OIDC_CLIENT_ID: {{ .Values.auth.oidc.clientId | quote }}
+  {{- if .Values.auth.oidc.name }}
+  AUTH_OIDC_NAME: {{ .Values.auth.oidc.name | quote }}
+  {{- end }}
+  {{- end }}
+  {{- if not .Values.auth.registrationEnabled }}
+  AUTH_REGISTRATION_ENABLED: "false"
+  {{- end }}
+  {{- if not .Values.auth.passkeyLoginEnabled }}
+  AUTH_PASSKEY_LOGIN_ENABLED: "false"
+  {{- end }}
+  {{- if not .Values.auth.passkeyRegistrationEnabled }}
+  AUTH_PASSKEY_REGISTRATION_ENABLED: "false"
+  {{- end }}
   {{- if or .Values.s3.endpoint .Values.rustfs.enabled }}
   S3_ENDPOINT: {{ include "barynt.s3Endpoint" . | quote }}
   S3_PUBLIC_ENDPOINT: {{ .Values.s3.publicEndpoint | default (include "barynt.s3Endpoint" .) | quote }}

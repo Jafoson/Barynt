@@ -29,14 +29,29 @@ spec:
         app.kubernetes.io/component: postgres
     spec:
       securityContext:
-        fsGroup: 999
+        {{- toYaml .Values.postgresql.podSecurityContext | nindent 8 }}
       containers:
         - name: postgres
           image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
+          securityContext:
+            {{- toYaml .Values.postgresql.securityContext | nindent 12 }}
           ports:
             - name: postgres
               containerPort: 5432
           env:
+            # Nicht der Mountpoint selbst (der existiert schon, angelegt vom
+            # Volume-Provisioner als root — `chmod`/`chown` darauf scheitert
+            # als non-root ohne CAP_FOWNER/CAP_CHOWN, beide unter Restricted
+            # PSS nicht verfügbar, `fsGroup` ändert nur die Gruppe, nie den
+            # Owner). Ein noch nicht existierendes Unterverzeichnis lässt
+            # `initdb` selbst per `mkdir` anlegen — dessen Owner ist dann
+            # automatisch der aufrufende Prozess (uid 70), das nachfolgende
+            # `chmod 0700` (das `initdb` immer ausführt) greift also auf
+            # eigenen Besitz zu und braucht keine Capability. Siehe die
+            # offizielle Doku des postgres-Images ("PGDATA", Abschnitt zu
+            # Non-root-Volumes) für dasselbe Muster.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
             - name: POSTGRES_USER
               value: {{ .Values.postgresql.auth.username | quote }}
             - name: POSTGRES_DB
@@ -49,7 +64,6 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
-              subPath: postgres
           readinessProbe:
             exec:
               command: ["pg_isready", "-U", {{ .Values.postgresql.auth.username | quote }}, "-d", {{ .Values.postgresql.auth.database | quote }}]

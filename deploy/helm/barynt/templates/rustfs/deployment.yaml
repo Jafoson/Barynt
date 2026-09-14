@@ -27,9 +27,13 @@ spec:
         {{- include "barynt.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: rustfs
     spec:
+      securityContext:
+        {{- toYaml .Values.rustfs.podSecurityContext | nindent 8 }}
       containers:
         - name: rustfs
           image: "{{ .Values.rustfs.image.repository }}:{{ .Values.rustfs.image.tag }}"
+          securityContext:
+            {{- toYaml .Values.rustfs.securityContext | nindent 12 }}
           ports:
             - name: api
               containerPort: 9000

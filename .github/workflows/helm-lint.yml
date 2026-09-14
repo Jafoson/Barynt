@@ -58,3 +58,55 @@ jobs:
 
       - name: kubeconform (production example)
         run: kubeconform -strict -summary /tmp/rendered-production.yaml
+
+  restricted-pss:
+    name: install against a restricted-PSS namespace (kind)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.16.4"
+
+      # Nur helm-lint/-template/kubeconform oben prüfen Syntax — ob das
+      # Chart tatsächlich unter pod-security.kubernetes.io/enforce=restricted
+      # hochkommt (BARY-29), lässt sich nur gegen einen echten API-Server
+      # beantworten, nicht per `helm template`.
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          cluster_name: barynt-pss
+          wait: 120s
+
+      - name: Create restricted-PSS namespace
+        run: |
+          kubectl create ns barynt-pss
+          kubectl label ns barynt-pss \
+            pod-security.kubernetes.io/enforce=restricted \
+            pod-security.kubernetes.io/audit=restricted \
+            pod-security.kubernetes.io/warn=restricted
+
+      - name: helm install --wait
+        run: helm install barynt deploy/helm/barynt -n barynt-pss --wait --timeout 5m
+
+      - name: helm test
+        run: helm test barynt -n barynt-pss
+
+      - name: Check for admission violations
+        if: always()
+        run: |
+          if kubectl get events -n barynt-pss | grep -iE "violat|forbidden"; then
+            echo "::error::Restricted PSS admission violation found (see above)" >&2
+            exit 1
+          fi
+
+      - name: Debug output on failure
+        if: failure()
+        run: |
+          kubectl get pods -n barynt-pss -o wide
+          kubectl describe pods -n barynt-pss
+          kubectl get events -n barynt-pss --sort-by=.lastTimestamp

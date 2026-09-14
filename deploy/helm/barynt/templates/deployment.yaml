@@ -39,6 +39,10 @@ spec:
       serviceAccountName: {{ include "barynt.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       initContainers:
         - name: migrate
           image: "{{ .Values.image.migrate.repository }}:{{ .Values.image.migrate.tag | default .Chart.AppVersion }}"
@@ -76,6 +80,15 @@ spec:
           # Presigned-Upload-URLs aus dem Browser erfordern. `|| true` macht
           # den Schritt sicher wiederholbar, wie im Compose-Pendant.
           image: amazon/aws-cli:latest
+          # Gleicher Container-securityContext wie App/migrate — die
+          # runAsUser/-Group des Pods (Values.podSecurityContext, uid/gid
+          # 1000) reichen: aws-cli braucht keinen bestimmten UID/GID, läuft
+          # unter jeder nicht-root-UID unverändert (per `docker run --user
+          # 1000:1000 ... aws --version` geprüft), im Gegensatz zu
+          # Postgres/Redis/RustFS unten mit ihrem jeweils fest eingebauten
+          # Service-User.
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           command:
             - sh
             - -c
@@ -117,6 +130,9 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "barynt.fullname" . }}-env
+            {{- with .Values.extraEnvFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           env:
             - name: AUTH_SECRET
               valueFrom:
@@ -126,6 +142,13 @@ spec:
               valueFrom:
                 secretKeyRef:
                   {{- include "barynt.databaseUrlRef" . | nindent 18 }}
+            {{- if and .Values.auth.oidc.issuer .Values.auth.oidc.existingSecret }}
+            - name: AUTH_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.oidc.existingSecret }}
+                  key: {{ .Values.auth.oidc.existingSecretKey | default "clientSecret" }}
+            {{- end }}
             {{- if or .Values.s3.endpoint .Values.rustfs.enabled }}
             - name: S3_ACCESS_KEY_ID
               valueFrom:
@@ -143,6 +166,13 @@ spec:
                   name: {{ .Values.smtp.existingSecret }}
                   key: {{ .Values.smtp.existingSecretKey | default "password" }}
             {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraVolumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           # Kein dedizierter Health-Endpunkt (siehe values.yaml `probes`) —
           # spiegelt exakt den bestehenden Docker-HEALTHCHECK: GET "/",
           # < 500 gilt als gesund.
@@ -162,3 +192,7 @@ spec:
             failureThreshold: {{ .Values.probes.failureThreshold }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.extraVolumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

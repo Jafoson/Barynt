@@ -40,7 +40,14 @@
 # entire built app into an image whose only job is to run two one-shot CLI
 # commands, ballooning it to ~1.9GB.
 
-ARG BUN_VERSION=1
+# Pinned, not the floating "1" major tag: a `docker build` on a later date
+# would otherwise silently pull whatever the newest 1.x is at build time —
+# see the `migrate-deps` stage below for a Bun-version-dependent regression
+# this already caused once. Matches the version tests.yml pins for CI
+# (AGENTS.md/CLAUDE.md have the full rationale for pinning it there too).
+# Bump deliberately, alongside a full test-suite run, not via a Dependabot
+# auto-merge.
+ARG BUN_VERSION=1.3.14
 
 # ---------------------------------------------------------------------------
 # deps: full install (build needs the TypeScript compiler etc.)

@@ -29,11 +29,20 @@ podAnnotations: {}
 
 # Non-root, uid/gid 1000 — deckt sich mit dem "bun"-User, den das Dockerfile
 # im Runner-Stage bereits verwendet (siehe Dockerfile, `USER bun`).
+# seccompProfile ist Pflicht für die Pod Security Standard "restricted"
+# (zusammen mit den container-seitigen Feldern unten in `securityContext`)
+# und gehört auf den Pod, nicht in den Container-securityContext — die
+# Kubernetes-API kennt `allowPrivilegeEscalation`/`capabilities` nur auf
+# Container-Ebene, seccompProfile dagegen auf beiden; einmal hier gesetzt
+# gilt es für alle Container im Pod (App + `migrate`-initContainer), ohne
+# Wiederholung.
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 1000
   runAsGroup: 1000
   fsGroup: 1000
+  seccompProfile:
+    type: RuntimeDefault
 
 securityContext:
   allowPrivilegeEscalation: false
@@ -93,6 +102,27 @@ auth:
   existingSecret: ""
   existingSecretKey: "AUTH_SECRET"
 
+  # Generischer OIDC-/SSO-Provider (Keycloak, Authentik, Entra ID, Okta,
+  # ...) — siehe auth.config.ts und example.env AUTH_OIDC_*. Ohne
+  # issuer/clientId bleibt der Button aus, genau wie ohne die Env-Vars
+  # außerhalb von Helm. Das Client-Secret wird nie generiert (externer IdP,
+  # kein sinnvoller Default) — nur über existingSecret referenziert, landet
+  # nie in der ConfigMap.
+  oidc:
+    issuer: ""
+    clientId: ""
+    name: ""
+    existingSecret: ""
+    existingSecretKey: "clientSecret"
+
+  # Passkey-/Registrierungs-Schalter (siehe auth.config.ts) — Defaults
+  # entsprechen dem heutigen App-Verhalten (alles offen). Nur der Literal
+  # "false" schaltet ab; per Default wird deshalb gar keine der drei
+  # AUTH_*_ENABLED-Variablen gerendert.
+  registrationEnabled: true
+  passkeyLoginEnabled: true
+  passkeyRegistrationEnabled: true
+
 # Datenbank. Bei postgresql.enabled bezieht der Chart DATABASE_URL aus dem
 # generierten Secret (siehe oben) und rollt zusätzlich eine eigene,
 # einfache Postgres-Instanz aus. Für eine externe/gemanagte Datenbank:
@@ -103,6 +133,25 @@ postgresql:
   image:
     repository: postgres
     tag: "17-alpine"
+  # UID/GID 70 = der "postgres"-User, den postgres:17-alpine fest eingebaut
+  # hat (`docker run --rm --entrypoint id postgres:17-alpine` bzw. `getent
+  # passwd postgres` im Image). Direkt als dieser User starten (statt als
+  # root, von wo das Image-Entrypoint-Skript selbst per `gosu` zu postgres
+  # wechseln würde) ist für die Pod Security Standard "restricted" nötig —
+  # das Skript erkennt einen bereits nicht-root laufenden Aufruf und
+  # überspringt den gosu-Schritt ersatzlos.
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 70
+    runAsGroup: 70
+    fsGroup: 70
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop: ["ALL"]
   auth:
     username: barynt
     database: barynt
@@ -131,6 +180,22 @@ redis:
   image:
     repository: redis
     tag: "7-alpine"
+  # UID 999 / GID 1000 = der "redis"-User, den redis:7-alpine fest eingebaut
+  # hat (per `getent passwd redis` im Image geprüft) — anders als bei
+  # Postgres hier kein root-Vorlauf im Entrypoint, direktes Starten als
+  # dieser User funktioniert ohne Weiteres.
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop: ["ALL"]
   persistence:
     enabled: true
     size: 2Gi
@@ -169,6 +234,20 @@ rustfs:
   image:
     repository: rustfs/rustfs
     tag: latest
+  # UID/GID 10001 = der "rustfs"-User, den rustfs/rustfs:latest fest
+  # eingebaut hat (per `getent passwd rustfs` im Image geprüft).
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: false
+    capabilities:
+      drop: ["ALL"]
   persistence:
     enabled: true
     size: 10Gi
@@ -209,3 +288,15 @@ migration:
       memory: 256Mi
     limits:
       memory: 512Mi
+
+# Generische Escape-Hatches für alles, was der Chart nicht selbst abbildet
+# (z. B. ein interner CA-Trust-Anchor, ein Split-Horizon-DNS-Eintrag für
+# einen internen IdP) — werden unverändert an App-Pod/-Container
+# durchgereicht, ohne Chart-seitige Sonderlogik. Bleiben bewusst generisch
+# statt eine konkrete Installation (z. B. einen bestimmten IdP-Hostnamen)
+# fest zu verdrahten.
+extraEnv: []
+extraEnvFrom: []
+extraVolumes: []
+extraVolumeMounts: []
+hostAliases: []

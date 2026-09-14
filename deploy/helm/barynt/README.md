@@ -117,6 +117,108 @@ s3:
 
 Siehe `examples/values-production.yaml` für ein vollständiges Beispiel.
 
+## SSO/OIDC
+
+Ein generischer OIDC-Provider (Keycloak, Authentik, Entra ID, Okta, ...) —
+siehe `auth.config.ts` und `example.env` `AUTH_OIDC_*`:
+
+```yaml
+auth:
+  oidc:
+    issuer: "https://idp.example.com"
+    clientId: "barynt"
+    name: "Company SSO" # nur das Button-Label, Default "SSO"
+    existingSecret: barynt-oidc # kubectl create secret generic barynt-oidc -n barynt --from-literal=clientSecret=...
+    existingSecretKey: clientSecret
+```
+
+Ohne `issuer`/`clientId` bleibt der Button aus, genau wie ohne die Env-Vars
+außerhalb von Helm. Das Client-Secret wird nie generiert (externer IdP) —
+nur per `existingSecret` referenziert, landet nie in der ConfigMap. Die
+Callback-URI ist `<AUTH_URL>/api/auth/callback/oidc` — `oidc` ist die feste
+Provider-ID aus `auth.config.ts`, nicht `auth.oidc.name` (nur das
+Button-Label).
+
+Registrierung/Passkeys lassen sich unabhängig davon abschalten (Default:
+alles offen, wie ohne Helm):
+
+```yaml
+auth:
+  registrationEnabled: false # Invite-only, siehe example.env AUTH_REGISTRATION_ENABLED
+  passkeyLoginEnabled: false # WARNUNG: ohne OIDC/SMTP kommt dann niemand mehr rein
+  passkeyRegistrationEnabled: false
+```
+
+## Generische Erweiterungen (`extraEnv`, `extraVolumes`, `hostAliases`, ...)
+
+Für alles, was der Chart nicht explizit abbildet — ein interner
+CA-Trust-Anchor, ein Split-Horizon-DNS-Eintrag für einen internen IdP,
+eine zusätzliche App-Env-Var — ohne dafür einen Chart-Release zu brauchen:
+
+```yaml
+extraEnv:
+  - name: NODE_EXTRA_CA_CERTS
+    value: /etc/ssl/custom/ca.crt
+extraEnvFrom:
+  - secretRef:
+      name: some-extra-secret
+extraVolumes:
+  - name: custom-ca
+    secret:
+      secretName: internal-ca
+extraVolumeMounts:
+  - name: custom-ca
+    mountPath: /etc/ssl/custom
+    readOnly: true
+hostAliases:
+  - ip: "10.0.0.5"
+    hostnames:
+      - "idp.internal.example.com"
+```
+
+`extraEnv`/`extraEnvFrom`/`extraVolumeMounts` landen am App-Container,
+`extraVolumes`/`hostAliases` am App-Pod — unverändert durchgereicht, keine
+Chart-seitige Sonderlogik.
+
+## Pod Security Standard "restricted"
+
+Läuft standardmäßig gegen einen Namespace mit
+`pod-security.kubernetes.io/enforce=restricted` (Cilium/Gateway-API-Cluster
+o.ä.). Jeder Container (App, `migrate`-initContainer, `rustfs-init`,
+Postgres, Redis, RustFS) startet `runAsNonRoot`, ohne
+`allowPrivilegeEscalation`, mit `capabilities.drop: ["ALL"]` und
+`seccompProfile.type: RuntimeDefault`.
+
+Postgres/Redis/RustFS laufen dafür direkt als der jeweils im Image fest
+eingebaute Service-User (`postgresql.podSecurityContext`/`.securityContext`,
+analog `redis.*`/`rustfs.*` in `values.yaml`) statt wie ohne Restricted-PSS
+üblich als root mit anschließendem Wechsel im Image-Entrypoint — die
+UID/GID je Image per `docker run --rm --entrypoint id <image>` geprüft,
+nicht geraten:
+
+| Image                     | UID/GID     |
+| ------------------------- | ----------- |
+| `postgres:17-alpine`      | 70 / 70     |
+| `redis:7-alpine`          | 999 / 1000  |
+| `rustfs/rustfs:latest`    | 10001/10001 |
+| `amazon/aws-cli:latest` (`rustfs-init`) | beliebig, läuft unter jeder Nicht-root-UID — bekommt denselben Container-`securityContext` wie App/`migrate` (uid/gid 1000) |
+
+Abnahme in einem echten Cluster (kind reicht):
+
+```sh
+kubectl create ns barynt-pss
+kubectl label ns barynt-pss \
+  pod-security.kubernetes.io/enforce=restricted \
+  pod-security.kubernetes.io/audit=restricted \
+  pod-security.kubernetes.io/warn=restricted
+helm install barynt ./deploy/helm/barynt -n barynt-pss --wait
+helm test barynt -n barynt-pss
+kubectl get events -n barynt-pss | grep -i "violat\|forbidden"
+```
+
+Läuft auch automatisiert in CI, siehe `.github/workflows/helm-lint.yml`
+(Job `restricted-pss`, kind-Cluster).
+
 ## Versionierung
 
 Chart-Version (`Chart.yaml: version`, SemVer) und `appVersion` sind getrennte
