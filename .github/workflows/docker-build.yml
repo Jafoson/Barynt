@@ -129,6 +129,10 @@ jobs:
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: "1"
+          # Explicit, not relying on the action's own default CWD lookup —
+          # see .trivyignore's header for what's suppressed here and why
+          # (each entry verified against the GHSA API as already patched).
+          trivyignores: .trivyignore
 
       - name: Upload scan results to Security tab
         uses: github/codeql-action/upload-sarif@v4

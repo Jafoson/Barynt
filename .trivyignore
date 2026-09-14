@@ -1,0 +1,23 @@
+# Suppressions verified against the GitHub Advisory API directly (`gh api
+# /advisories/<id>`), not just assumed — each entry below names the exact
+# fixed version and the already-installed one. Re-check before extending
+# this file: an ignore here is a claim "already patched", not "don't care".
+
+# GHSA-3f6p-5ww8-9rcr — mysql2 auth-plugin downgrade (mysql_clear_password
+# leaks credentials in plaintext). Transitive-only, via `prisma`'s own
+# dependency — this project only ever connects to PostgreSQL, never MySQL.
+# Advisory: first_patched_version 3.22.0. Installed (package.json
+# "overrides", bun.lock): 3.23.1. Published 2026-09-01 — Trivy flagged this
+# on the first scan against a freshly downloaded vulnerability DB, with an
+# already-patched version installed; a scanner false positive, not a real
+# gap. Delete this line once a later Trivy DB run stops flagging it.
+GHSA-3f6p-5ww8-9rcr
+
+# GHSA-ggr8-5vv4-36mx / CVE-2026-40345 — deepmerge-ts stack exhaustion on a
+# crafted recursive object graph. Transitive-only, via `@prisma/config`
+# (read by the `prisma` CLI, not by the running app). Advisory:
+# first_patched_version 8.0.0. Installed (package.json "overrides",
+# bun.lock): 8.0.0 — the exact patched version. Published 2026-08-17, same
+# false-positive class as the mysql2 entry above.
+GHSA-ggr8-5vv4-36mx
+CVE-2026-40345
