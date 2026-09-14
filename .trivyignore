@@ -21,3 +21,12 @@ GHSA-3f6p-5ww8-9rcr
 # false-positive class as the mysql2 entry above.
 GHSA-ggr8-5vv4-36mx
 CVE-2026-40345
+
+# GHSA-rgwj-5xj2-c3m3 — mysql2 decompression-bomb DoS via unbounded zlib
+# inflate. Medium severity (below this workflow's CRITICAL,HIGH gate on
+# paper — kept here anyway once it turned out `severity` doesn't actually
+# reach trivy-action's exit-code decision for SARIF output, only the
+# report it writes; see the "Build & Scan" job history around 2026-09-14
+# for the run this was confirmed on). Advisory: first_patched_version
+# 3.23.1. Installed: 3.23.1 — already the exact patched version.
+GHSA-rgwj-5xj2-c3m3
