@@ -95,19 +95,47 @@ ohne Cluster-Zugriff kann `lookup` nicht ausführen und generiert in dem Fall
 frisch — für Lint/CI ausreichend, aber kein Vorschauwert für einen echten
 Cluster.
 
-`postgresql.auth.existingSecret` ist kein Ersatz für `externalDatabase.*`,
-sondern dieselbe gebündelte Postgres-Instanz mit einem vorgegebenen statt
-generierten Passwort — der Postgres-Container liest es direkt aus diesem
-Secret, `DATABASE_URL` (in `<release>-barynt-generated`) wird per `lookup`
-mit dem Klartext-Wert zusammengesetzt, da Prisma eine fertige URL braucht.
+`postgresql.auth.existingSecret` setzt **nur** das Passwort des gebündelten
+Postgres-Containers selbst — ein reiner Verweis (`secretKeyRef`), kein
+`lookup`. Es landet bewusst **nicht** automatisch in `DATABASE_URL`: eine
+daraus zusammengesetzte URL bräuchte den Klartext-Wert zur Render-Zeit, und
+unter GitOps (ArgoCD/Flux rendern immer per `helm template`, nie mit
+Cluster-Zugriff) ist `lookup` dort **immer** leer — das würde das Rendern
+selbst brechen, nicht nur die Rotation (genau das war ein früherer, seither
+korrigierter Fehler in diesem Chart). Wer der gebündelten Instanz ein
+eigenes Passwort geben will, muss deshalb zusätzlich
+`externalDatabase.existingSecret`/`existingSecretUrlKey` setzen und die
+fertige `DATABASE_URL` (mit demselben Passwort) selbst mitbringen — der
+Chart komponiert sie dann gar nicht mehr. Ohne das bricht `helm template`
+mit einer klaren Fehlermeldung statt einer kaputten URL:
+
+```yaml
+postgresql:
+  enabled: true # gebündelte Instanz bleibt
+  auth:
+    existingSecret: barynt-db # Postgres-Container liest sein Passwort hier
+    existingSecretPasswordKey: password
+
+externalDatabase:
+  existingSecret: barynt-db # dasselbe Secret, zweiter Key
+  existingSecretUrlKey: url # postgresql://barynt:<gleiches-passwort>@<release>-barynt-postgres:5432/barynt
+```
 
 **Unter ArgoCD/Flux**: ein per `randAlphaNum` generierter Wert führt laut
 ArgoCDs eigener Doku dazu, dass die Anwendung dauerhaft als `OutOfSync`
 angezeigt wird (`user-guide/helm`); `nautobot/helm-charts#679` musste eine
 `lookup`-basierte Secret-Validierung deshalb wieder zurücknehmen. Für einen
 GitOps-Betrieb daher **alle** `existingSecret`-Felder setzen (`auth.*`,
-`postgresql.auth.*`, `s3.*`, `smtp.*`) statt sich auf die generierten Werte
-zu verlassen.
+`postgresql.auth.*` + `externalDatabase.*` zusammen, `s3.*`, `smtp.*`)
+statt sich auf die generierten Werte zu verlassen — und den GitOps-Vertrag
+vor jedem Release gegenprüfen, ganz ohne Cluster:
+
+```sh
+helm template barynt deploy/helm/barynt \
+  --set auth.existingSecret=x --set s3.existingSecret=y \
+  --set postgresql.auth.existingSecret=z --set externalDatabase.existingSecret=z \
+  --set externalDatabase.existingSecretUrlKey=url >/dev/null
+```
 
 ## Externe Datenbank/Redis/S3
 

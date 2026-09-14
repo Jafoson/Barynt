@@ -127,7 +127,12 @@ auth:
 # generierten Secret (siehe oben) und rollt zusätzlich eine eigene,
 # einfache Postgres-Instanz aus. Für eine externe/gemanagte Datenbank:
 # postgresql.enabled auf false setzen und externalDatabase.* + ein
-# existingSecret mit dem Passwort angeben (siehe examples/values-production.yaml).
+# existingSecret mit der fertigen Verbindungs-URL angeben (siehe
+# examples/values-production.yaml). Dieselbe externalDatabase.existingSecret/
+# existingSecretUrlKey-Kombination lässt sich auch BEI postgresql.enabled:
+# true setzen — dann bleibt die gebündelte Instanz, nur mit selbst
+# mitgebrachter URL/Passwort statt generiert (siehe postgresql.auth.existingSecret
+# unten und README "Secrets").
 postgresql:
   enabled: true
   image:
@@ -156,14 +161,17 @@ postgresql:
     username: barynt
     database: barynt
     # Passwort der gebündelten Instanz — existingSecret gesetzt -> wird
-    # unverändert referenziert (vom Postgres-Container UND von der
-    # zusammengesetzten DATABASE_URL, siehe secret-generated.yaml).
-    # existingSecret leer -> der Chart generiert einmalig ein Passwort, wie
-    # auth.existingSecret oben. Unterscheidet sich von
-    # externalDatabase.existingSecret: dort ist es eine andere Datenbank
-    # samt fertiger URL, hier bleibt es dieselbe gebündelte Instanz, nur mit
-    # vorgegebenem statt generiertem Passwort — unter ArgoCD/Flux Pflicht,
-    # siehe README "Secrets".
+    # unverändert an den Postgres-Container durchgereicht (reiner Verweis,
+    # kein `lookup`). ACHTUNG: landet NICHT automatisch in DATABASE_URL —
+    # eine daraus zusammengesetzte URL bräuchte den Klartext-Wert zur
+    # Render-Zeit, was unter GitOps (ArgoCD/Flux rendern immer per
+    # `helm template`, nie mit Cluster-Zugriff) das Rendern selbst bricht,
+    # nicht nur die Rotation. Deshalb Pflicht in Kombination mit
+    # externalDatabase.existingSecret/existingSecretUrlKey (fertige URL,
+    # gleiches Passwort, vom Betreiber mitgebracht) — ohne das bricht
+    # `helm template` bewusst mit einer klaren Fehlermeldung statt einer
+    # kaputten DATABASE_URL. existingSecret leer -> der Chart generiert
+    # Passwort und DATABASE_URL einmalig selbst, wie bisher.
     existingSecret: ""
     existingSecretPasswordKey: password
   persistence:
@@ -179,8 +187,12 @@ postgresql:
 
 externalDatabase:
   # Secret mit der fertigen Verbindungs-URL (Key s.u.) — siehe README
-  # "Externe Datenbank". Gesetzt schaltet automatisch auf "extern" um,
-  # unabhängig von postgresql.enabled.
+  # "Externe Datenbank". Bei postgresql.enabled: false ersetzt das die
+  # gebündelte Instanz durch eine andere Datenbank. Bei postgresql.enabled:
+  # true (zusammen mit postgresql.auth.existingSecret) bleibt es dieselbe
+  # gebündelte Instanz, nur mit selbst mitgebrachtem Passwort/URL statt
+  # generiert — die StatefulSet läuft in beiden Fällen unverändert, nur
+  # DATABASE_URL kommt dann von hier statt aus dem generierten Secret.
   existingSecret: ""
   existingSecretUrlKey: ""
 

@@ -75,7 +75,11 @@ POSTGRES_PASSWORD für den gebündelten Postgres-Container selbst:
 existingSecret hat Vorrang vor dem generierten Secret. Getrennt von
 barynt.databaseUrlRef, weil der Postgres-Container das rohe Passwort
 braucht (nicht die zusammengesetzte URL) und, bei existingSecret, direkt
-aus dem Secret des Betreibers lesen soll statt aus einer Kopie.
+aus dem Secret des Betreibers lesen soll statt aus einer Kopie. Reiner
+Verweis, kein `lookup` — deshalb unter GitOps unproblematisch, anders als
+der Versuch, daraus eine DATABASE_URL zusammenzusetzen (siehe
+templates/secret-generated.yaml und README "Secrets": dafür ist zusätzlich
+externalDatabase.existingSecret/existingSecretUrlKey Pflicht).
 */}}
 {{- define "barynt.postgresPasswordRef" -}}
 {{- if .Values.postgresql.auth.existingSecret -}}

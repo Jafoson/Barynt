@@ -1,4 +1,4 @@
-{{- if and .Values.postgresql.enabled (not .Values.externalDatabase.existingSecretUrlKey) }}
+{{- if .Values.postgresql.enabled }}
 {{/*
 Bewusst kein externes Chart (Bitnami o.ä.) als Abhängigkeit — die meisten
 Bitnami-Charts liegen seit September 2025 hinter einer kommerziellen

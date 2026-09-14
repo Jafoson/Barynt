@@ -59,6 +59,32 @@ jobs:
       - name: kubeconform (production example)
         run: kubeconform -strict -summary /tmp/rendered-production.yaml
 
+      # Der eigentliche GitOps-Vertrag: ArgoCD/Flux rendern IMMER per
+      # `helm template`, nie mit Cluster-Zugriff — jede Kombination von
+      # existingSecret-Feldern muss also schon hier, ohne kind-Cluster,
+      # fehlerfrei durchlaufen. Ein früherer Versuch (postgresql.auth.
+      # existingSecret komponierte DATABASE_URL per `lookup`) bestand exakt
+      # diese Prüfung nicht — der kind-Job unten hätte es nie gefangen, weil
+      # dort `lookup` funktioniert. Deckt zugleich die positive (beide
+      # Felder gesetzt) und die negative Seite ab (nur das Postgres-Passwort
+      # gesetzt muss mit einer klaren Meldung scheitern, nicht mit einer
+      # kaputten DATABASE_URL).
+      - name: helm template (postgresql.auth.existingSecret + externalDatabase paired, no cluster)
+        run: |
+          helm template barynt deploy/helm/barynt \
+            --set postgresql.auth.existingSecret=barynt-db \
+            --set externalDatabase.existingSecret=barynt-db \
+            --set externalDatabase.existingSecretUrlKey=url >/dev/null
+
+      - name: helm template (postgresql.auth.existingSecret WITHOUT externalDatabase must fail, no cluster)
+        run: |
+          if helm template barynt deploy/helm/barynt \
+              --set postgresql.auth.existingSecret=barynt-db >/dev/null 2>err.log; then
+            echo "::error::helm template hätte ohne externalDatabase.existingSecretUrlKey fehlschlagen müssen" >&2
+            exit 1
+          fi
+          grep -q "externalDatabase.existingSecret/existingSecretUrlKey fehlt" err.log
+
   restricted-pss:
     name: install against a restricted-PSS namespace (kind)
     runs-on: ubuntu-latest
@@ -124,40 +150,47 @@ jobs:
         with:
           version: "v3.16.4"
 
-      # postgresql.auth.existingSecret braucht `lookup`, um das Passwort für
-      # DATABASE_URL auszulesen (siehe templates/secret-generated.yaml) —
-      # `lookup` liefert bei "helm template" immer leer, das lässt sich also
-      # nur gegen einen echten API-Server prüfen, nicht im lint-Job oben.
+      # Der lint-Job oben prüft schon per `helm template`, dass diese
+      # Kombination ohne Cluster rendert (der eigentliche GitOps-Vertrag).
+      # Was nur ein echter API-Server beantworten kann: kommt der Postgres-
+      # Container mit dem vorgegebenen Passwort tatsächlich hoch, und
+      # verbindet sich die App über die vom Betreiber mitgebrachte
+      # DATABASE_URL erfolgreich damit (release-Name "barynt" ==
+      # Chart-Name -> Postgres-Host ist "barynt-postgres", siehe
+      # barynt.fullname).
       - name: Create kind cluster
         uses: helm/kind-action@v1.10.0
         with:
           cluster_name: barynt-pg-secret
           wait: 120s
 
-      - name: Create namespace and pre-existing Postgres secret
+      - name: Create namespace and pre-existing Postgres secret (password + matching URL)
         run: |
           kubectl create ns barynt-pg-secret
           kubectl create secret generic my-postgres-secret -n barynt-pg-secret \
-            --from-literal=password=CorrectHorseBatteryStaple
+            --from-literal=password=CorrectHorseBatteryStaple \
+            --from-literal=url="postgresql://barynt:CorrectHorseBatteryStaple@barynt-postgres:5432/barynt"
 
       - name: helm install --wait
         run: |
           helm install barynt deploy/helm/barynt -n barynt-pg-secret --wait --timeout 5m \
-            --set postgresql.auth.existingSecret=my-postgres-secret
+            --set postgresql.auth.existingSecret=my-postgres-secret \
+            --set externalDatabase.existingSecret=my-postgres-secret \
+            --set externalDatabase.existingSecretUrlKey=url
 
       # Beweist zwei Dinge zugleich: der Postgres-Container akzeptiert das
       # vorgegebene Passwort (barynt.postgresPasswordRef), und die App
-      # verbindet sich per DATABASE_URL erfolgreich damit (per `lookup`
-      # zusammengesetzt) — ein grüner Rollout allein reicht dafür schon,
+      # verbindet sich über die vom Betreiber mitgebrachte DATABASE_URL
+      # erfolgreich damit — ein grüner Rollout allein reicht dafür schon,
       # ohne das Passwort selbst irgendwo mitzuloggen.
       - name: helm test
         run: helm test barynt -n barynt-pg-secret
 
-      - name: Generated secret must not contain a Postgres password
+      - name: Generated secret must not contain a Postgres password or DATABASE_URL
         run: |
-          if kubectl get secret barynt-generated -n barynt-pg-secret \
-              -o jsonpath='{.data.POSTGRES_PASSWORD}' | grep -q .; then
-            echo "::error::POSTGRES_PASSWORD wurde trotz existingSecret generiert/kopiert" >&2
+          data=$(kubectl get secret barynt-generated -n barynt-pg-secret -o jsonpath='{.data}')
+          if echo "$data" | grep -qE "POSTGRES_PASSWORD|DATABASE_URL"; then
+            echo "::error::Postgres-Passwort/DATABASE_URL wurden trotz existingSecret generiert/kopiert" >&2
             exit 1
           fi
 
