@@ -122,21 +122,23 @@ services:
   # and RBAC permissions/system roles every workspace needs (see
   # prisma/bootstrap.ts; skipped here, a fresh instance could migrate clean
   # and still fail its very first "Create workspace" on a foreign-key
-  # violation). Pulls the `builder` stage (full toolchain, including the
-  # `prisma` CLI) from the registry rather than the `app` image itself —
-  # that image only ships Next's pruned standalone output and deliberately
-  # has no `prisma` CLI (~200MB of engine binaries it would otherwise never
-  # use) — and rather than building locally: a `next build` is the one step
-  # in this whole stack that genuinely needs real CPU/RAM (a small VPS can
+  # violation). Pulls the dedicated `migrate` stage (Dockerfile) from the
+  # registry rather than the `app` image itself — that image only ships
+  # Next's pruned standalone output and deliberately has no `prisma` CLI —
+  # and rather than building locally: a `next build` is the one step in this
+  # whole stack that genuinely needs real CPU/RAM (a small VPS can
   # swap-thrash or crash trying), and CI already produced this exact image.
-  # `app` waits for this to exit 0 before starting.
+  # `migrate`'s own dependency set (docker/migrate/package.json) is isolated
+  # from the app's, so this pull stays small instead of dragging in
+  # next/react/tiptap/sass and the rest of the app's node_modules. `app`
+  # waits for this to exit 0 before starting.
   migrate:
     profiles: ["app"]
     image: ghcr.io/jafoson/barynt-migrate:latest
     # build:                        # uncomment to build from source instead
     #   context: .
     #   dockerfile: Dockerfile
-    #   target: builder
+    #   target: migrate
     command: ["sh", "-c", "bun prisma migrate deploy && bun prisma/bootstrap.ts"]
     restart: "no"
     environment:

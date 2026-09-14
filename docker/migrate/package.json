@@ -1,0 +1,12 @@
+{
+  "name": "barynt-migrate",
+  "private": true,
+  "description": "Isolated dependency set for the barynt-migrate image (Dockerfile's `migrate-deps` stage). Only what `prisma migrate deploy` + `prisma/bootstrap.ts` actually touch — none of the app's own runtime deps (next, react, tiptap, ...). Keep versions here in sync with the matching entries in the root package.json.",
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "dotenv": "17.4.2",
+    "pg": "8.21.0",
+    "prisma": "7.10.0"
+  }
+}

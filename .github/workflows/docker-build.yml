@@ -194,26 +194,27 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      # The `builder` stage, published as its own image so docker-compose.yml's
-      # `migrate` service can run `prisma migrate deploy` + the system-data
-      # bootstrap (prisma/bootstrap.ts) straight from the registry — no git
-      # clone, no local `next build`, on whatever box someone self-hosts this
-      # on. Reusing the same cache scope as the app build above means this
-      # only pays for the layers unique to `builder` (the full toolchain,
-      # skipped by `app`'s final stage) — `deps` and everything before it are
-      # already warm.
+      # The dedicated `migrate` stage, published as its own image so
+      # docker-compose.yml's `migrate` service can run `prisma migrate
+      # deploy` + the system-data bootstrap (prisma/bootstrap.ts) straight
+      # from the registry — no git clone, no local `next build`, on whatever
+      # box someone self-hosts this on. `migrate`/`migrate-deps` have their
+      # own isolated dependency set (docker/migrate/package.json + bun.lock,
+      # not the app's), so this doesn't share a cache scope with the app
+      # build above the way the old `builder`-stage reuse did — there's
+      # nothing in common to warm.
       - name: Build and push migrate image by digest
         id: build-migrate
         uses: docker/build-push-action@v7
         with:
           context: .
-          target: builder
+          target: migrate
           platforms: ${{ matrix.platform }}
           provenance: true
           sbom: true
           outputs: type=image,name=${{ needs.vars.outputs.migrate_image }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=${{ matrix.slug }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.slug }}
+          cache-from: type=gha,scope=${{ matrix.slug }}-migrate
+          cache-to: type=gha,mode=max,scope=${{ matrix.slug }}-migrate
 
       - name: Export migrate digest
         run: |

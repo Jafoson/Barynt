@@ -27,12 +27,18 @@
 # there for why.
 #
 # `prisma migrate deploy` deliberately does NOT run from the runtime image:
-# the `prisma` CLI package drags in ~200MB of engine binaries (schema
-# engine, Prisma Studio) that the running app itself never needs — it only
-# ever talks to Postgres through `@prisma/client` + the `pg` driver adapter,
-# no engine binary involved. Migrations instead run once from the `builder`
-# stage, which already has the full toolchain (see docker-compose.yml's
-# `migrate` service, `build.target: builder`, behind the "app" profile).
+# the `prisma` CLI package drags in engine binaries and Prisma Studio's own
+# UI toolchain that the running app itself never needs — it only ever talks
+# to Postgres through `@prisma/client` + the `pg` driver adapter, no engine
+# binary involved. Migrations instead run from the dedicated `migrate` stage
+# below (see docker-compose.yml's `migrate` service, `build.target: migrate`,
+# behind the "app" profile) — its own isolated dependency set
+# (`docker/migrate/package.json` + `bun.lock`), entirely separate from the
+# app's, so next/react/tiptap/sass etc. never end up in it. Reusing the
+# app's `builder` stage as-is used to be the previous approach; that put the
+# full node_modules tree (~1GB, everything the app itself needs) plus the
+# entire built app into an image whose only job is to run two one-shot CLI
+# commands, ballooning it to ~1.9GB.
 
 ARG BUN_VERSION=1
 
@@ -53,8 +59,7 @@ COPY scripts/fix-turbopack-bun-externals.ts ./scripts/fix-turbopack-bun-external
 RUN bun install --frozen-lockfile
 
 # ---------------------------------------------------------------------------
-# builder: prisma client + next build (also doubles as the migration
-# runner — see docker-compose.prod.yml)
+# builder: prisma client + next build, for the `runner` stage below
 # ---------------------------------------------------------------------------
 FROM oven/bun:${BUN_VERSION}-slim AS builder
 WORKDIR /app
@@ -119,3 +124,67 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD bun -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000),{redirect:'manual'}).then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
 
 CMD ["bun", "server.js"]
+
+# ---------------------------------------------------------------------------
+# migrate-deps: isolated install for the one-shot migration image — its own
+# package.json + bun.lock (docker/migrate/), not the app's. Keep the pinned
+# versions there in sync with the matching entries in the root package.json.
+# ---------------------------------------------------------------------------
+FROM oven/bun:${BUN_VERSION}-slim AS migrate-deps
+WORKDIR /app
+COPY docker/migrate/package.json docker/migrate/bun.lock ./
+RUN bun install --frozen-lockfile
+
+# `@types/*` are TypeScript declaration files, never `require()`d as code —
+# Bun strips types at run time without consulting them, so unlike in `deps`
+# above (where `bun run build` actually type-checks), they're pure dead
+# weight here.
+#
+# Deliberately NOT pruned: `prisma`'s own dependencies on Prisma Studio
+# (`@prisma/studio-core`) and `prisma dev`'s embedded local-Postgres tooling
+# (`@prisma/dev`), together the bulk of what's left (~65MB) — neither
+# feature is ever invoked by `prisma generate`/`prisma migrate deploy`, but
+# `prisma`'s CLI entrypoint reaches into both eagerly on module load on some
+# Bun versions and not others (confirmed: deleting them broke `prisma
+# generate` under 1.4.2 while working fine under 1.3.14, for a reason not
+# visible from either package's own declared dependencies). Since `ARG
+# BUN_VERSION` (top of file) floats, this stage would then silently start failing
+# on the next `oven/bun:1-slim` pull with no code change to explain it —
+# the class of Bun-version fragility AGENTS.md/tests.yml already pins an
+# exact Bun version elsewhere to avoid. Not worth reintroducing it here for
+# another ~65MB; see git history on this comment if revisiting.
+RUN rm -rf node_modules/@types
+
+# Only the handful of source files `prisma migrate deploy` +
+# `prisma/bootstrap.ts` actually import — not `COPY . .`, which is what
+# pulled the entire repo (and, transitively via the old `builder`-stage
+# reuse, the whole Next.js build) into the previous migrate image.
+COPY prisma.config.ts tsconfig.json ./
+COPY prisma ./prisma
+COPY lib/rbac-provision.ts lib/workspace-defaults.ts ./lib/
+COPY lib/rbac ./lib/rbac
+
+# Same build-time-only placeholder as the `builder` stage above — `prisma
+# generate` reads the schema, not a live database.
+ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
+RUN bun prisma generate
+
+# ---------------------------------------------------------------------------
+# migrate: runs `prisma migrate deploy` + `prisma/bootstrap.ts` once against
+# a real database (see docker-compose.yml's `migrate` service). Non-root,
+# same as `runner`.
+# ---------------------------------------------------------------------------
+FROM oven/bun:${BUN_VERSION}-slim AS migrate
+WORKDIR /app
+
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+
+RUN chown bun:bun /app
+USER bun
+
+COPY --chown=bun:bun --from=migrate-deps /app/node_modules ./node_modules
+COPY --chown=bun:bun --from=migrate-deps /app/prisma.config.ts /app/tsconfig.json ./
+COPY --chown=bun:bun --from=migrate-deps /app/prisma ./prisma
+COPY --chown=bun:bun --from=migrate-deps /app/lib ./lib
+
+CMD ["sh", "-c", "bun prisma migrate deploy && bun prisma/bootstrap.ts"]
