@@ -59,8 +59,7 @@ spec:
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "barynt.generatedSecretName" . }}
-                  key: POSTGRES_PASSWORD
+                  {{- include "barynt.postgresPasswordRef" . | nindent 18 }}
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data

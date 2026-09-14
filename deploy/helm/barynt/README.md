@@ -83,6 +83,7 @@ Kubernetes-Secrets.
 | Wert           | Values-Feld                              | Ohne Angabe                                              |
 | --------------- | ----------------------------------------- | --------------------------------------------------------- |
 | `AUTH_SECRET`   | `auth.existingSecret`/`existingSecretKey` | wird einmalig generiert, bleibt über Upgrades stabil       |
+| Postgres-Passwort (gebündelt) | `postgresql.auth.existingSecret`/`existingSecretPasswordKey` | wird einmalig generiert, bleibt über Upgrades stabil |
 | `DATABASE_URL`  | `externalDatabase.existingSecret`/`existingSecretUrlKey` | gebündelte Postgres-Instanz, Passwort ebenfalls generiert |
 | S3-Zugangsdaten | `s3.existingSecret` (+`*Key`-Felder)      | gebündelte RustFS-Instanz, Zugangsdaten generiert          |
 | `SMTP_PASS`     | `smtp.existingSecret`/`existingSecretKey` | keins — SMTP bleibt ohne `smtp.host` komplett aus          |
@@ -93,6 +94,20 @@ stabil (kein neues Passwort bei jedem Rollout). Ein `helm template`/`--dry-run`
 ohne Cluster-Zugriff kann `lookup` nicht ausführen und generiert in dem Fall
 frisch — für Lint/CI ausreichend, aber kein Vorschauwert für einen echten
 Cluster.
+
+`postgresql.auth.existingSecret` ist kein Ersatz für `externalDatabase.*`,
+sondern dieselbe gebündelte Postgres-Instanz mit einem vorgegebenen statt
+generierten Passwort — der Postgres-Container liest es direkt aus diesem
+Secret, `DATABASE_URL` (in `<release>-barynt-generated`) wird per `lookup`
+mit dem Klartext-Wert zusammengesetzt, da Prisma eine fertige URL braucht.
+
+**Unter ArgoCD/Flux**: ein per `randAlphaNum` generierter Wert führt laut
+ArgoCDs eigener Doku dazu, dass die Anwendung dauerhaft als `OutOfSync`
+angezeigt wird (`user-guide/helm`); `nautobot/helm-charts#679` musste eine
+`lookup`-basierte Secret-Validierung deshalb wieder zurücknehmen. Für einen
+GitOps-Betrieb daher **alle** `existingSecret`-Felder setzen (`auth.*`,
+`postgresql.auth.*`, `s3.*`, `smtp.*`) statt sich auf die generierten Werte
+zu verlassen.
 
 ## Externe Datenbank/Redis/S3
 

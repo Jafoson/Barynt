@@ -155,6 +155,17 @@ postgresql:
   auth:
     username: barynt
     database: barynt
+    # Passwort der gebündelten Instanz — existingSecret gesetzt -> wird
+    # unverändert referenziert (vom Postgres-Container UND von der
+    # zusammengesetzten DATABASE_URL, siehe secret-generated.yaml).
+    # existingSecret leer -> der Chart generiert einmalig ein Passwort, wie
+    # auth.existingSecret oben. Unterscheidet sich von
+    # externalDatabase.existingSecret: dort ist es eine andere Datenbank
+    # samt fertiger URL, hier bleibt es dieselbe gebündelte Instanz, nur mit
+    # vorgegebenem statt generiertem Passwort — unter ArgoCD/Flux Pflicht,
+    # siehe README "Secrets".
+    existingSecret: ""
+    existingSecretPasswordKey: password
   persistence:
     enabled: true
     size: 8Gi

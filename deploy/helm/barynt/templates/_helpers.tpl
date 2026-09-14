@@ -71,6 +71,23 @@ key: AUTH_SECRET
 {{- end -}}
 
 {{/*
+POSTGRES_PASSWORD für den gebündelten Postgres-Container selbst:
+existingSecret hat Vorrang vor dem generierten Secret. Getrennt von
+barynt.databaseUrlRef, weil der Postgres-Container das rohe Passwort
+braucht (nicht die zusammengesetzte URL) und, bei existingSecret, direkt
+aus dem Secret des Betreibers lesen soll statt aus einer Kopie.
+*/}}
+{{- define "barynt.postgresPasswordRef" -}}
+{{- if .Values.postgresql.auth.existingSecret -}}
+name: {{ .Values.postgresql.auth.existingSecret }}
+key: {{ .Values.postgresql.auth.existingSecretPasswordKey | default "password" }}
+{{- else -}}
+name: {{ include "barynt.generatedSecretName" . }}
+key: POSTGRES_PASSWORD
+{{- end -}}
+{{- end -}}
+
+{{/*
 DATABASE_URL: eine fertige externe Verbindungs-URL (existingSecret +
 existingSecretUrlKey) hat Vorrang vor der gebündelten Postgres-Instanz, für
 die der Chart die URL selbst zusammensetzt und im generierten Secret ablegt

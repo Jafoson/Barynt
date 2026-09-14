@@ -110,3 +110,60 @@ jobs:
           kubectl get pods -n barynt-pss -o wide
           kubectl describe pods -n barynt-pss
           kubectl get events -n barynt-pss --sort-by=.lastTimestamp
+
+  postgres-existing-secret:
+    name: bundled Postgres with a pre-existing password (kind)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.16.4"
+
+      # postgresql.auth.existingSecret braucht `lookup`, um das Passwort für
+      # DATABASE_URL auszulesen (siehe templates/secret-generated.yaml) —
+      # `lookup` liefert bei "helm template" immer leer, das lässt sich also
+      # nur gegen einen echten API-Server prüfen, nicht im lint-Job oben.
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          cluster_name: barynt-pg-secret
+          wait: 120s
+
+      - name: Create namespace and pre-existing Postgres secret
+        run: |
+          kubectl create ns barynt-pg-secret
+          kubectl create secret generic my-postgres-secret -n barynt-pg-secret \
+            --from-literal=password=CorrectHorseBatteryStaple
+
+      - name: helm install --wait
+        run: |
+          helm install barynt deploy/helm/barynt -n barynt-pg-secret --wait --timeout 5m \
+            --set postgresql.auth.existingSecret=my-postgres-secret
+
+      # Beweist zwei Dinge zugleich: der Postgres-Container akzeptiert das
+      # vorgegebene Passwort (barynt.postgresPasswordRef), und die App
+      # verbindet sich per DATABASE_URL erfolgreich damit (per `lookup`
+      # zusammengesetzt) — ein grüner Rollout allein reicht dafür schon,
+      # ohne das Passwort selbst irgendwo mitzuloggen.
+      - name: helm test
+        run: helm test barynt -n barynt-pg-secret
+
+      - name: Generated secret must not contain a Postgres password
+        run: |
+          if kubectl get secret barynt-generated -n barynt-pg-secret \
+              -o jsonpath='{.data.POSTGRES_PASSWORD}' | grep -q .; then
+            echo "::error::POSTGRES_PASSWORD wurde trotz existingSecret generiert/kopiert" >&2
+            exit 1
+          fi
+
+      - name: Debug output on failure
+        if: failure()
+        run: |
+          kubectl get pods -n barynt-pg-secret -o wide
+          kubectl describe pods -n barynt-pg-secret
+          kubectl get events -n barynt-pg-secret --sort-by=.lastTimestamp
