@@ -160,6 +160,16 @@ s3:
 
 Siehe `examples/values-production.yaml` für ein vollständiges Beispiel.
 
+Jede der drei gebündelten Komponenten (`postgresql`, `redis`, `rustfs`)
+lässt sich unabhängig von den anderen abschalten — z. B. eine eigene S3-
+Bucket nutzen, aber die gebündelte Postgres/Redis-Instanz behalten. Der
+Chart validiert die dafür nötige Gegenstelle zur Render-Zeit (reiner
+Werte-Check, kein Cluster-Zugriff nötig, feuert also auch unter GitOps
+deterministisch): `redis.enabled: false` verlangt `externalRedis.host`,
+und ein konfigurierter `s3.endpoint` ohne laufendes `rustfs` verlangt
+`s3.existingSecret` — sonst bricht `helm template` mit einer klaren
+Meldung statt eines `CreateContainerConfigError` erst beim Rollout.
+
 ## SSO/OIDC
 
 Ein generischer OIDC-Provider (Keycloak, Authentik, Entra ID, Okta, ...) —

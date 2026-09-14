@@ -85,6 +85,44 @@ jobs:
           fi
           grep -q "externalDatabase.existingSecret/existingSecretUrlKey fehlt" err.log
 
+      # Jede gebündelte Komponente (postgresql/redis/rustfs) soll sich
+      # unabhängig von den anderen abschalten lassen (z. B. eigene S3-Bucket,
+      # aber gebündelte Postgres/Redis behalten) — ohne die passende
+      # Gegenstelle bricht das sonst erst als CreateContainerConfigError beim
+      # Rollout, nicht beim Rendern. Positiv (Gegenstelle gesetzt) und negativ
+      # (Gegenstelle vergessen, muss mit klarer Meldung scheitern) für beide.
+      - name: helm template (rustfs disabled + s3.endpoint + s3.existingSecret, no cluster)
+        run: |
+          helm template barynt deploy/helm/barynt \
+            --set rustfs.enabled=false \
+            --set s3.endpoint=https://s3.example.com \
+            --set s3.existingSecret=barynt-s3 >/dev/null
+
+      - name: helm template (rustfs disabled + s3.endpoint WITHOUT s3.existingSecret must fail, no cluster)
+        run: |
+          if helm template barynt deploy/helm/barynt \
+              --set rustfs.enabled=false \
+              --set s3.endpoint=https://s3.example.com >/dev/null 2>err.log; then
+            echo "::error::helm template hätte ohne s3.existingSecret fehlschlagen müssen" >&2
+            exit 1
+          fi
+          grep -q "s3.existingSecret fehlt" err.log
+
+      - name: helm template (redis disabled + externalRedis.host, no cluster)
+        run: |
+          helm template barynt deploy/helm/barynt \
+            --set redis.enabled=false \
+            --set externalRedis.host=redis.example.com >/dev/null
+
+      - name: helm template (redis disabled WITHOUT externalRedis.host must fail, no cluster)
+        run: |
+          if helm template barynt deploy/helm/barynt \
+              --set redis.enabled=false >/dev/null 2>err.log; then
+            echo "::error::helm template hätte ohne externalRedis.host fehlschlagen müssen" >&2
+            exit 1
+          fi
+          grep -q "externalRedis.host fehlt" err.log
+
   restricted-pss:
     name: install against a restricted-PSS namespace (kind)
     runs-on: ubuntu-latest

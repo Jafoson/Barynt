@@ -3,6 +3,9 @@ Nicht-sensible Env-Vars der App — Zugangsdaten und die zusammengesetzte
 DATABASE_URL/S3-Keys kommen aus Secrets (siehe deployment.yaml),
 nicht von hier.
 */}}
+{{- if and (not .Values.redis.enabled) (not .Values.externalRedis.host) }}
+{{- fail "redis.enabled: false gesetzt, aber externalRedis.host fehlt — REDIS_URL würde auf eine nicht existierende Instanz zeigen (barynt.redisUrl), siehe README \"Externe Datenbank/Redis/S3\"." }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:

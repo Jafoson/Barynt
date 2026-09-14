@@ -198,6 +198,9 @@ externalDatabase:
 
 # Redis (Rate-Limit-Zähler der öffentlichen API) — wie im bestehenden
 # docker-compose.yml ohne Auth, siehe README für die Begründung.
+# enabled: false ohne externalRedis.host lässt der Chart nicht durch (reiner
+# Werte-Check zur Render-Zeit, kein Cluster-Zugriff nötig) — sonst würde
+# REDIS_URL auf eine nicht existierende Instanz zeigen.
 redis:
   enabled: true
   image:
@@ -242,7 +245,10 @@ s3:
   bucketAvatars: avatars
   bucketIssues: issues
   # Nur nötig für externen S3 (rustfs.enabled: false). Keys: accessKeyId,
-  # secretAccessKey.
+  # secretAccessKey. Pflicht, sobald endpoint gesetzt ist und rustfs.enabled:
+  # false — sonst lässt der Chart das gar nicht erst rendern (reiner
+  # Werte-Check), statt erst beim Rollout mit CreateContainerConfigError zu
+  # scheitern.
   existingSecret: ""
   existingSecretAccessKeyIdKey: "accessKeyId"
   existingSecretSecretAccessKeyKey: "secretAccessKey"
