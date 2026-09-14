@@ -21,6 +21,13 @@ interface SelectMenuProps {
   searchable?: boolean;
   placeholder?: string;
   multi?: boolean;
+  /**
+   * Trailing content inside the same scrollable list (`.content`) as the
+   * items — not a separate area below it, so it shares their Up/Down
+   * roving and, for a long list, scrolls with them rather than always
+   * floating in view (same reasoning as `Table`'s own `footer`, e.g. a
+   * "Create new issue" row after a search's results).
+   */
   footer?: React.ReactNode;
   /**
    * Replaces the default "no matches" row. Gets the live query so callers can
@@ -143,8 +150,8 @@ export function SelectMenu({
         ))}
         {filtered.length === 0 &&
           (emptyState ? emptyState(q) : <SelectEmpty>No matches</SelectEmpty>)}
+        {footer}
       </div>
-      {footer}
     </>
   );
 }

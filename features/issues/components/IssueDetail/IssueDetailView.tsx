@@ -28,6 +28,7 @@ import {
 import { IssueLabels } from "./components/IssueLabels";
 import { IssueMeta } from "./components/IssueMeta";
 import { IssueProperties } from "./components/IssueProperties";
+import { IssueRelations } from "./components/IssueRelations";
 import { IssueSidebar } from "./components/IssueSidebar";
 import { IssueTitle } from "./components/IssueTitle";
 import styles from "./issueDetail.module.scss";
@@ -84,12 +85,19 @@ function shellClass(isExpanded: boolean) {
  * own Left/Right (and, in the aside layout, Up/Down) roving between chips
  * would lose the race to this one, which mounts first (a parent effect
  * always runs before a child's) and would hijack the very same keys.
+ *
+ * A sub-issue/relation table (`[data-relation-table]`, `IssueRelations.tsx`)
+ * needs the same exclusion for the same race: its rows' links/buttons are
+ * plain focusable elements too, and its own Up/Down (moving between rows)
+ * would otherwise lose to this one and get its focus teleported to the
+ * title field mid-navigation.
  */
 function isRovable(active: Element | null): active is HTMLElement {
   if (!(active instanceof HTMLElement)) return true;
   if (active.matches("[data-field-nav]")) return true;
   if (active.closest("[data-popover-content]")) return false;
   if (active.matches("[data-label-chip]")) return false;
+  if (active.closest("[data-relation-table]")) return false;
   return !(
     active.tagName === "TEXTAREA" ||
     active.tagName === "INPUT" ||
@@ -100,8 +108,9 @@ function isRovable(active: Element | null): active is HTMLElement {
 /**
  * Up/Down between the panel's fields (`[data-field-nav]`: the title, the
  * type/status/priority/assignee buttons, the description preview, the
- * attachments and labels triggers) — the fast path once you're not editing
- * text, so you don't have to Tab past everything in between.
+ * attachments and labels triggers, and the sub-issue/relation "+" triggers)
+ * — the fast path once you're not editing text, so you don't have to Tab
+ * past everything in between.
  *
  * A `document`-level listener, like every other keyboard shortcut in this
  * codebase (`useShortcut`, DockPanel's own Escape handler) — not scoped to
@@ -406,6 +415,7 @@ export function IssueDetailView({
               onPatch={onPatch}
               onRefresh={onRefresh}
             />
+            <IssueRelations issue={issue} data={data} onRefresh={onRefresh} />
             <IssueAttachments
               issueId={issue.id}
               attachments={issue.attachments}
@@ -449,6 +459,7 @@ export function IssueDetailView({
                 onPatch={onPatch}
                 onRefresh={onRefresh}
               />
+              <IssueRelations issue={issue} data={data} onRefresh={onRefresh} />
               <IssueAttachments
                 issueId={issue.id}
                 attachments={issue.attachments}

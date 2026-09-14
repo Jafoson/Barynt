@@ -18,6 +18,7 @@ import {
   IssueActionsMenu,
   ShareIssueButton,
 } from "./components/IssueDetailActions";
+import { IssueRelations } from "./components/IssueRelations";
 import { IssueSidebar, PAGE_SIDEBAR_W } from "./components/IssueSidebar";
 import { IssueTitle } from "./components/IssueTitle";
 import { useFieldNav } from "./IssueDetailView";
@@ -197,6 +198,7 @@ export function IssueDetailPageView({
             onPatch={onPatch}
             onRefresh={onRefresh}
           />
+          <IssueRelations issue={issue} data={data} onRefresh={onRefresh} />
           <IssueAttachments
             issueId={issue.id}
             attachments={issue.attachments}

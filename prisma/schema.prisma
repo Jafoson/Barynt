@@ -994,25 +994,70 @@ model Issue {
   reporterId String
   projectId  String
 
+  /// Übergeordnetes Issue für Sub-Issues (BARY-1). `null` = Top-Level.
+  /// `onDelete: SetNull` statt Cascade: Löscht man das Elternissue, werden
+  /// die Unteraufgaben nicht mitgelöscht, sondern rutschen auf die oberste
+  /// Ebene hoch — dieselbe Zurückhaltung wie bei `Comment.parent`, nur ohne
+  /// die Kaskade, weil ein Sub-Issue anders als eine Antwort für sich allein
+  /// noch Sinn ergibt.
+  parentId String?
+
   /// Wie das Issue entstanden ist (`ContentSource`) — Default `APP`, da nur
   /// die öffentliche API und der MCP-Server (`features/api-v1/mutations.ts`)
   /// hier je nach Aufrufer explizit `API`/`MCP` setzen.
   source ContentSource @default(APP)
 
-  assignee      User?          @relation("IssueAssignee", fields: [assigneeId], references: [id])
-  reporter      User           @relation("IssueReporter", fields: [reporterId], references: [id])
-  sharedBy      User?          @relation("IssueSharedBy", fields: [shareTokenCreatedById], references: [id], onDelete: SetNull)
-  project       Project        @relation(fields: [projectId], references: [id])
+  assignee      User?           @relation("IssueAssignee", fields: [assigneeId], references: [id])
+  reporter      User            @relation("IssueReporter", fields: [reporterId], references: [id])
+  sharedBy      User?           @relation("IssueSharedBy", fields: [shareTokenCreatedById], references: [id], onDelete: SetNull)
+  project       Project         @relation(fields: [projectId], references: [id])
+  parent        Issue?          @relation("IssueParent", fields: [parentId], references: [id], onDelete: SetNull)
+  subIssues     Issue[]         @relation("IssueParent")
   comments      Comment[]
   attachments   Attachment[]
   notifications Notification[]
+  /// Beziehungen, bei denen dieses Issue die Quelle ist — z. B. "blockiert
+  /// X" (siehe `IssueRelation`).
+  relationsFrom IssueRelation[] @relation("IssueRelationSource")
+  /// Beziehungen, bei denen dieses Issue das Ziel ist — z. B. "wird von X
+  /// blockiert".
+  relationsTo   IssueRelation[] @relation("IssueRelationTarget")
 
   @@unique([projectId, key])
   @@index([projectId, status])
   @@index([assigneeId])
+  @@index([parentId])
   // Der Durchsatz des Dashboards gruppiert je Projekt über diese Spalte.
   @@index([projectId, closedAt])
   @@index([searchVector], type: Gin)
+}
+
+/// Typisierte Beziehung zwischen zwei Issues (BARY-1) — Linear/Jira nennen
+/// das "Issue Links". Bei `BLOCKS` und `DUPLICATES` ist die Richtung Teil
+/// der Bedeutung ("issue blockiert related", nicht umgekehrt), deshalb zwei
+/// benannte Enden statt eines symmetrischen Paars. `RELATES_TO` hat keine
+/// Richtung — dort legt `addIssueRelation` (`features/issues/actions.ts`)
+/// `issueId`/`relatedId` kanonisch nach ID-Sortierung an, damit "A relates B"
+/// und "B relates A" nicht als zwei Zeilen enden.
+enum IssueRelationType {
+  BLOCKS
+  RELATES_TO
+  DUPLICATES
+}
+
+model IssueRelation {
+  id      String            @id
+  type    IssueRelationType
+  created DateTime          @default(now())
+
+  issueId   String
+  relatedId String
+
+  issue   Issue @relation("IssueRelationSource", fields: [issueId], references: [id], onDelete: Cascade)
+  related Issue @relation("IssueRelationTarget", fields: [relatedId], references: [id], onDelete: Cascade)
+
+  @@unique([issueId, relatedId, type])
+  @@index([relatedId])
 }
 
 // ─── Comments ────────────────────────────────────────────────────────────────

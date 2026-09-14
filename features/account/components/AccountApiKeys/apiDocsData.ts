@@ -297,7 +297,10 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
       "description": "Checkout fails on Safari when …",
       "created": "2026-03-01T09:12:00.000Z",
       "updated": "2026-03-04T15:40:00.000Z",
-      "closedAt": null
+      "closedAt": null,
+      "parent": null,
+      "children": [],
+      "relations": []
     }
   ],
   "nextCursor": "eyJpZCI6ImlfNGsybjF4In0"
@@ -333,6 +336,11 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
             type: "string",
             desc: 'An issue type key. Default "feature".',
           },
+          {
+            name: "parentId",
+            type: "string | null",
+            desc: "Makes the new issue a sub-issue of this one right away.",
+          },
         ],
         requestExample: `{
   "title": "Fix broken checkout flow",
@@ -361,7 +369,10 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
     "description": "Checkout fails on Safari when …",
     "created": "2026-03-04T15:40:00.000Z",
     "updated": "2026-03-04T15:40:00.000Z",
-    "closedAt": null
+    "closedAt": null,
+    "parent": null,
+    "children": [],
+    "relations": []
   }
 }`,
       },
@@ -369,7 +380,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
         method: "GET",
         path: "/api/v1/issues/{id}",
         scope: "issues:read",
-        desc: "Get a single issue by id.",
+        desc: 'Get a single issue by internal id or "PREFIX-123" ref (e.g. "WEB-42") — tried as an id first, so a ref is only resolved once a matching id lookup misses.',
         pathParams: [idParam("issue")],
         queryParams: [
           {
@@ -395,7 +406,19 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
     "description": "Checkout fails on Safari when …",
     "created": "2026-03-01T09:12:00.000Z",
     "updated": "2026-03-04T15:40:00.000Z",
-    "closedAt": null
+    "closedAt": null,
+    "parent": null,
+    "children": [
+      { "id": "i_2b7c4d", "ref": "WEB-51", "title": "Safari-only regression", "status": "todo" }
+    ],
+    "relations": [
+      {
+        "id": "ir_8n3k2m",
+        "type": "BLOCKS",
+        "direction": "incoming",
+        "issue": { "id": "i_9x1y2z", "ref": "WEB-40", "title": "Ship the discount banner", "status": "in_progress" }
+      }
+    ]
   }
 }`,
       },
@@ -425,6 +448,11 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           },
           { name: "labels", type: "string[]", desc: "Label ids." },
           { name: "type", type: "string", desc: "An issue type key." },
+          {
+            name: "parentId",
+            type: "string | null",
+            desc: "Sets the issue's parent (sub-issue of); null clears it. Rejected (422) if it would create a cycle.",
+          },
         ],
         requestExample: `{
   "title": "Fix broken checkout flow",
@@ -437,6 +465,45 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
 }`,
         response: `{
   "data": { "id": "i_4k2n1x" }
+}`,
+      },
+      {
+        method: "POST",
+        path: "/api/v1/issues/{id}/relations",
+        scope: "issues:write",
+        desc: "Link two issues with a typed edge: BLOCKS, RELATES_TO, or DUPLICATES. The edge is added from {id}'s point of view — for BLOCKS/DUPLICATES that means {id} blocks/duplicates `relatedId`. RELATES_TO has no real direction; adding it either way produces the same edge.",
+        pathParams: [idParam("issue")],
+        bodyParams: [
+          {
+            name: "relatedId",
+            type: "string",
+            required: true,
+            desc: "The other issue's id.",
+          },
+          {
+            name: "type",
+            type: '"BLOCKS" | "RELATES_TO" | "DUPLICATES"',
+            required: true,
+            desc: "",
+          },
+        ],
+        requestExample: `{
+  "relatedId": "i_9x1y2z",
+  "type": "BLOCKS"
+}`,
+        response: `// 201 Created
+{
+  "data": { "id": "ir_8n3k2m" }
+}`,
+      },
+      {
+        method: "DELETE",
+        path: "/api/v1/relations/{id}",
+        scope: "issues:write",
+        desc: "Remove a relation edge (its own id, from an issue's `relations`) — removable from either issue it connects.",
+        pathParams: [idParam("relation")],
+        response: `{
+  "data": { "id": "ir_8n3k2m" }
 }`,
       },
     ],

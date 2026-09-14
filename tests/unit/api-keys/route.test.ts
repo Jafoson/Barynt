@@ -283,6 +283,13 @@ function reset() {
   // an issue has any labels — irrelevant to what these tests are about, so
   // it defaults to "resolves to nothing" rather than being set up per test.
   mockLabelFindMany.mockResolvedValue([]);
+  // `getIssueForUser`'s ref-lookup fallback (`resolveIssueRef`, BARY-1)
+  // calls this whenever the id-first lookup misses — which happens for
+  // every "issue doesn't exist" test here, since a plain id like "i-1"
+  // *also* happens to match the ref pattern. Empty by default so that
+  // fallback resolves to "no match" instead of throwing on an unconfigured
+  // mock's `undefined` return.
+  mockProjectFindMany.mockResolvedValue([]);
   // Enrollment during project creation (`enrollWorkspaceMembers`, the real
   // `lib/project-membership.ts`) is a no-op with no members — irrelevant to
   // what these tests are about.
@@ -296,7 +303,10 @@ function reset() {
 
 /** A full `issueSelect`-shaped row (`features/api-v1/queries.ts`) —
  *  `assignee`/`reporter` are relation objects there, not the flat
- *  `assigneeId`/`reporterId` scalars other layers use. */
+ *  `assigneeId`/`reporterId` scalars other layers use. `parent`/
+ *  `subIssues`/`relationsFrom`/`relationsTo` default to "none" (BARY-1) —
+ *  `mapApiIssue` reads them unconditionally, so a fixture without them
+ *  would throw on `.map()` over `undefined`. */
 function issueRow(overrides: Record<string, unknown> = {}) {
   return {
     id: "i-1",
@@ -314,6 +324,10 @@ function issueRow(overrides: Record<string, unknown> = {}) {
     updated: new Date(),
     closedAt: null,
     project: { id: "p-1", name: "Project", prefix: "PRJ" },
+    parent: null,
+    subIssues: [],
+    relationsFrom: [],
+    relationsTo: [],
     ...overrides,
   };
 }

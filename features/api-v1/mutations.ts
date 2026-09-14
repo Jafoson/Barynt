@@ -3,6 +3,7 @@ import {
   type ApiComment,
   type ApiContentSource,
   type ApiIssue,
+  type ApiIssueRelationKind,
   type ApiLabelDetail,
   type ApiProject,
   type ApiWorkspace,
@@ -100,6 +101,54 @@ function closedPatch(
   return before.closedAt ? { closedAt: null } : {};
 }
 
+/** Mirrors the private `chainContains` in `features/issues/actions.ts`:
+ *  walks the parent chain upward from `startId`, `true` as soon as `target`
+ *  appears in it — guards `updateIssueForUser`'s `parentId` patch against
+ *  creating a cycle. Bounded at 50 hops for the same reason as there. */
+async function chainContains(
+  startId: string,
+  target: string,
+): Promise<boolean> {
+  let cursor: string | null = startId;
+  for (let hop = 0; cursor && hop < 50; hop++) {
+    if (cursor === target) return true;
+    cursor =
+      (
+        await db.issue.findUnique({
+          where: { id: cursor },
+          select: { parentId: true },
+        })
+      )?.parentId ?? null;
+  }
+  return false;
+}
+
+/**
+ * Validates a `parentId` patch: the parent must exist, be visible to the
+ * caller, not be the issue itself, and not turn the issue into its own
+ * (possibly indirect) ancestor. Mirrors `setIssueParent`'s checks
+ * (`features/issues/actions.ts`) — `null` means valid, otherwise the
+ * `MutationResult` status to fail with.
+ */
+async function validateParentId(
+  userId: string,
+  issueId: string | null,
+  parentId: string,
+): Promise<422 | 404 | null> {
+  if (parentId === issueId) return 422;
+  const parent = await db.issue.findUnique({
+    where: { id: parentId },
+    select: { projectId: true },
+  });
+  if (!parent) return 404;
+  if (!(await can(userId, "project.view", { projectId: parent.projectId })))
+    return 404;
+  // A brand-new issue (`issueId === null`, `createIssueForUser`) can't
+  // already be anywhere in `parentId`'s chain — nothing points at it yet.
+  if (issueId && (await chainContains(parentId, issueId))) return 422;
+  return null;
+}
+
 export interface CreateIssueInput {
   title: string;
   /** Markdown — converted server-side. The internal ProseMirror JSON isn't
@@ -110,6 +159,10 @@ export interface CreateIssueInput {
   assignee?: string | null;
   labels?: string[];
   type?: string;
+  /** Makes the new issue a sub-issue of this one right away — the same
+   *  "sub-issue of" relationship as `updateIssueForUser`'s `parentId`
+   *  patch, just set at creation instead of after the fact. */
+  parentId?: string | null;
 }
 
 export async function createIssueForUser(
@@ -126,6 +179,13 @@ export async function createIssueForUser(
 
   const title = input.title?.trim();
   if (!title) return fail(422);
+
+  // Checked before `project.update` below claims a key — a rejected
+  // `parentId` shouldn't burn one of the project's issue numbers.
+  if (input.parentId) {
+    const invalid = await validateParentId(userId, null, input.parentId);
+    if (invalid) return fail(invalid);
+  }
 
   const status = input.status ?? "backlog";
 
@@ -162,6 +222,7 @@ export async function createIssueForUser(
       type: input.type ?? "feature",
       reporterId: userId,
       source,
+      parentId: input.parentId ?? null,
     },
   });
 
@@ -190,6 +251,10 @@ export interface UpdateIssueInput {
   assignee?: string | null;
   labels?: string[];
   type?: string;
+  /** Sets or clears (`null`) the issue's parent — the same "sub-issue of"
+   *  relationship shown on both ends in the app (`IssueRelations`'s
+   *  "Parent"/"Sub-issues"). */
+  parentId?: string | null;
 }
 
 export async function updateIssueForUser(
@@ -227,6 +292,11 @@ export async function updateIssueForUser(
     return fail(404);
   }
 
+  if (patch.parentId) {
+    const invalid = await validateParentId(userId, issueId, patch.parentId);
+    if (invalid) return fail(invalid);
+  }
+
   const doc =
     patch.description !== undefined
       ? stripAttachmentAttrs(
@@ -247,6 +317,7 @@ export async function updateIssueForUser(
       ...(patch.assignee !== undefined && { assigneeId: patch.assignee }),
       ...(patch.labels !== undefined && { labels: patch.labels }),
       ...(patch.title !== undefined && { title: patch.title }),
+      ...(patch.parentId !== undefined && { parentId: patch.parentId }),
       ...(doc !== null && {
         description: doc as unknown as Prisma.InputJsonValue,
         descriptionText: toPlainText(doc),
@@ -281,6 +352,134 @@ export async function updateIssueForUser(
   }
 
   return { ok: true, data: { id: issueId } };
+}
+
+// ─── Issue relations ───────────────────────────────────────────────────────
+//
+// Blocks/relates-to/duplicates edges — a separate resource from the issue
+// itself (like comments), not a patchable field on it, hence their own
+// add/remove functions instead of another `UpdateIssueInput` key. Mirrors
+// `addIssueRelation`/`removeIssueRelation` (`features/issues/actions.ts`),
+// `userId`-parameterized the same way every other function in this file is.
+
+export interface AddIssueRelationInput {
+  relatedId: string;
+  type: ApiIssueRelationKind;
+}
+
+/**
+ * Links two issues with a typed edge. `RELATES_TO` has no real direction —
+ * the pair is stored under whichever id sorts first, so "A relates to B"
+ * and "B relates to A" can't end up as two separate rows for the same
+ * statement; `BLOCKS`/`DUPLICATES` keep `issueId`/`relatedId` as given,
+ * since which side is the source is part of what they mean. Permission is
+ * checked against `issueId` (the issue the edge is added from) — the
+ * related issue only needs to be one the caller can *see*.
+ */
+export async function addIssueRelationForUser(
+  userId: string,
+  issueId: string,
+  input: AddIssueRelationInput,
+): Promise<MutationResult<{ id: string }>> {
+  const relatedId = input.relatedId;
+  if (!relatedId || relatedId === issueId) return fail(422);
+
+  const issue = await db.issue.findUnique({
+    where: { id: issueId },
+    select: { projectId: true, reporterId: true, assigneeId: true },
+  });
+  if (!issue) return fail(404);
+
+  const ctx = { projectId: issue.projectId };
+  const isOwner = issue.reporterId === userId || issue.assigneeId === userId;
+  const allowed =
+    (await can(userId, "issue.update.any", ctx)) ||
+    (isOwner && (await can(userId, "issue.update.own", ctx)));
+  if (!allowed) return fail(404);
+
+  const related = await db.issue.findUnique({
+    where: { id: relatedId },
+    select: { projectId: true },
+  });
+  if (
+    !related ||
+    !(await can(userId, "project.view", { projectId: related.projectId }))
+  ) {
+    return fail(404);
+  }
+
+  const [fromId, toId] =
+    input.type === "RELATES_TO" && relatedId < issueId
+      ? [relatedId, issueId]
+      : [issueId, relatedId];
+
+  const existing = await db.issueRelation.findUnique({
+    where: {
+      issueId_relatedId_type: {
+        issueId: fromId,
+        relatedId: toId,
+        type: input.type,
+      },
+    },
+  });
+  const row =
+    existing ??
+    (await db.issueRelation.create({
+      data: {
+        id: uid("ir"),
+        type: input.type,
+        issueId: fromId,
+        relatedId: toId,
+      },
+    }));
+
+  return { ok: true, data: { id: row.id } };
+}
+
+/** Whether the caller can edit this side of a relation — own/any, same as
+ *  `updateIssueForUser`'s check, just factored out since
+ *  `removeIssueRelationForUser` runs it against both connected issues. */
+async function canEditIssue(
+  userId: string,
+  issue: { projectId: string; reporterId: string; assigneeId: string | null },
+): Promise<boolean> {
+  const ctx = { projectId: issue.projectId };
+  const isOwner = issue.reporterId === userId || issue.assigneeId === userId;
+  return (
+    (await can(userId, "issue.update.any", ctx)) ||
+    (isOwner && (await can(userId, "issue.update.own", ctx)))
+  );
+}
+
+/**
+ * Removes a relation edge — shown on both issues it connects
+ * (`IssueRelations`), so removable from either side, not only the one that
+ * originally created it: whoever can edit *either* end may take it down.
+ */
+export async function removeIssueRelationForUser(
+  userId: string,
+  relationId: string,
+): Promise<MutationResult<{ id: string }>> {
+  const relation = await db.issueRelation.findUnique({
+    where: { id: relationId },
+    include: {
+      issue: {
+        select: { projectId: true, reporterId: true, assigneeId: true },
+      },
+      related: {
+        select: { projectId: true, reporterId: true, assigneeId: true },
+      },
+    },
+  });
+  if (!relation) return fail(404);
+
+  const allowed =
+    (await canEditIssue(userId, relation.issue)) ||
+    (await canEditIssue(userId, relation.related));
+  if (!allowed) return fail(404);
+
+  await db.issueRelation.delete({ where: { id: relationId } });
+  return { ok: true, data: { id: relationId } };
 }
 
 export interface CreateCommentInput {

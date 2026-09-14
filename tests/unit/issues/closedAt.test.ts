@@ -40,7 +40,8 @@ function written() {
 /** The state of an issue, as `issueContext` reads it — plus the
  *  relation-shaped fields `getIssueUnchecked` needs for the webhook payload
  *  it builds after every update (`key`/`project.prefix`/`reporter`/
- *  `assignee`), read from the same mocked row via a different `select`. */
+ *  `assignee`, and `parent`/`subIssues`/`relationsFrom`/`relationsTo` for
+ *  BARY-1), read from the same mocked row via a different `select`. */
 function issue(status: string, closedAt: Date | null) {
   return {
     key: 1,
@@ -64,6 +65,10 @@ function issue(status: string, closedAt: Date | null) {
       prefix: "MOB",
       color: "#3b7bd5",
     },
+    parent: null,
+    subIssues: [],
+    relationsFrom: [],
+    relationsTo: [],
   };
 }
 

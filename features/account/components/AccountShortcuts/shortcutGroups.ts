@@ -168,6 +168,16 @@ export function shortcutGroups(t: Translator): ShortcutGroup[] {
           keys: "l",
         },
         {
+          id: "add-sub-issue",
+          label: t("account.shortcutAddSubIssue"),
+          keys: "t",
+        },
+        {
+          id: "add-relation",
+          label: t("account.shortcutAddRelation"),
+          keys: "r",
+        },
+        {
           id: "focus-comment",
           label: t("account.shortcutFocusComment"),
           keys: "m",

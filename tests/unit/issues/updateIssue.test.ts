@@ -88,13 +88,19 @@ function issue(overrides: Partial<Record<string, unknown>> = {}) {
   // selects `assignee`/`reporter` as relation objects, not the flat
   // `assigneeId`/`reporterId` scalars `issueContext` itself reads — same
   // mocked row serves both, so it carries both shapes, derived from
-  // whichever id the test set.
+  // whichever id the test set. `parent`/`subIssues`/`relationsFrom`/
+  // `relationsTo` (BARY-1) are also only read there — `mapApiIssue` maps
+  // them unconditionally, so a fixture without them would throw.
   return {
     ...base,
     reporter: { id: base.reporterId, firstName: "Rep", lastName: "Orter" },
     assignee: base.assigneeId
       ? { id: base.assigneeId, firstName: "Ass", lastName: "Ignee" }
       : null,
+    parent: null,
+    subIssues: [],
+    relationsFrom: [],
+    relationsTo: [],
   };
 }
 

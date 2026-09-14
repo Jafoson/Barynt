@@ -1,4 +1,5 @@
 import type { PMDoc } from "@/lib/richtext/types";
+import type { SearchableIssue } from "./workspace";
 
 /** How an issue or comment was created — `APP` for the web app itself,
  *  `API`/`MCP` for the two `features/api-v1/mutations.ts` callers
@@ -134,8 +135,52 @@ export interface IssueAccess {
   canDeleteAnyComment: boolean;
 }
 
+/** `IssueRelation.type` (Prisma enum) as a plain string union — same
+ *  convention as `ContentSource`. Mirrors `prisma/schema.prisma`. */
+export type IssueRelationKind = "BLOCKS" | "RELATES_TO" | "DUPLICATES";
+
+/**
+ * A parent/child/related issue as shown in `IssueRelations` — a
+ * `SearchableIssue` plus its assignee id and its own `IssueAccess`, so the
+ * row can show a status/assignee and offer status/assignee/title editing
+ * right there. `access` is resolved per row the same way
+ * `getIssuesByProject` resolves it per board/list card — this issue may sit
+ * in a different project than the one currently open, so its permissions
+ * can't be assumed to match. The assignee id is looked up against
+ * `data.members` on the client, the same way `IssueMeta` resolves the
+ * reporter, rather than carried as a full `User` object here.
+ */
+export interface LinkedIssue extends SearchableIssue {
+  assignee: string | null;
+  access: IssueAccess;
+}
+
+/**
+ * One relation edge as shown from the current issue's point of view.
+ *
+ * `BLOCKS`/`DUPLICATES` carry a direction as part of their meaning ("this
+ * issue blocks that one" isn't the same statement the other way round) —
+ * `direction` says which end the *current* issue is on: `outgoing` means
+ * this issue is the source (it blocks/duplicates `issue`), `incoming` means
+ * it's the target (it's blocked by/duplicated by `issue`). `RELATES_TO` has
+ * no real direction; it's always stored and shown as `outgoing` (see
+ * `addIssueRelation`, `features/issues/actions.ts`).
+ */
+export interface IssueRelationRef {
+  id: string;
+  type: IssueRelationKind;
+  direction: "outgoing" | "incoming";
+  issue: LinkedIssue;
+}
+
 /** An issue as loaded by the detail view (panel, dialog, full page). */
 export interface IssueDetail extends Issue {
   access: IssueAccess;
   attachments: IssueAttachment[];
+  /** Parent of a sub-issue — `null` for a top-level issue (BARY-1). */
+  parent: LinkedIssue | null;
+  /** Issues that have this one as their `parent`. */
+  children: LinkedIssue[];
+  /** Blocks/relates to/duplicates edges, both directions. */
+  relations: IssueRelationRef[];
 }

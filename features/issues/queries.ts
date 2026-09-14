@@ -22,8 +22,10 @@ import type {
   IssueAccess,
   IssueAttachment,
   IssueDetail,
+  IssueRelationRef,
   IssueType,
   Label,
+  LinkedIssue,
   Priority,
   Project,
   Role,
@@ -584,6 +586,12 @@ export async function getIssuesByProject(
       ...mapIssue(i, viewerId),
       access: await issueAccessFor(i),
       attachments: [],
+      // Sub-issues/relations are a detail-view concern (`getIssueById`/
+      // `getIssueByRef`) — the board/list never show them, so no extra
+      // queries are wasted resolving them for every row.
+      parent: null,
+      children: [],
+      relations: [],
     })),
   );
 }
@@ -631,6 +639,12 @@ export async function getMyIssues(
       ...mapIssue(i, userId),
       access: await issueAccessFor(i),
       attachments: [],
+      // Sub-issues/relations are a detail-view concern (`getIssueById`/
+      // `getIssueByRef`) — the board/list never show them, so no extra
+      // queries are wasted resolving them for every row.
+      parent: null,
+      children: [],
+      relations: [],
     })),
   );
 }
@@ -681,6 +695,118 @@ async function issueAccessFor(issue: {
   };
 }
 
+/** What `loadIssueRelations` below needs to build a `LinkedIssue`, including
+ *  `reporterId` — `issueAccessFor` needs it to resolve `access`. */
+const relationRefSelect = {
+  id: true,
+  key: true,
+  title: true,
+  status: true,
+  projectId: true,
+  assigneeId: true,
+  reporterId: true,
+} as const;
+
+type RelationRefRow = {
+  id: string;
+  key: number;
+  title: string;
+  status: string;
+  projectId: string;
+  assigneeId: string | null;
+  reporterId: string;
+};
+
+/**
+ * Parent, sub-issues, and blocks/relates-to/duplicates edges for the detail
+ * view (BARY-1) — a separate query from `mapIssue` since only the genuine
+ * detail loaders (`getIssueById`, `getIssueByRef`) need it, same reasoning
+ * as `resolveIssueAttachments`.
+ *
+ * A related issue outside the projects the viewer can see is dropped rather
+ * than shown as a bare id: the relation itself isn't secret (it's on *this*
+ * issue, which the viewer can already see), but the other issue's title and
+ * status would be — same restraint as `getSearchIssues`.
+ */
+async function loadIssueRelations(
+  issueId: string,
+  parentId: string | null,
+  workspaceId: string,
+): Promise<{
+  parent: LinkedIssue | null;
+  children: LinkedIssue[];
+  relations: IssueRelationRef[];
+}> {
+  const visible = await visibleProjectIds(workspaceId);
+  // Async, unlike `mapIssue`'s own helpers: `access` depends on
+  // `issueAccessFor`, which resolves permissions per project — cheap here
+  // since `accessFor` underneath is itself `cache()`d per (user, project).
+  const toLinkedIssue = async (
+    row: RelationRefRow,
+  ): Promise<LinkedIssue | null> => {
+    if (!visible.has(row.projectId)) return null;
+    return {
+      id: row.id,
+      key: row.key,
+      title: row.title,
+      status: row.status,
+      project: row.projectId,
+      assignee: row.assigneeId,
+      access: await issueAccessFor(row),
+    };
+  };
+
+  const [parentRow, childRows, outgoing, incoming] = await Promise.all([
+    parentId
+      ? db.issue.findUnique({
+          where: { id: parentId },
+          select: relationRefSelect,
+        })
+      : Promise.resolve(null),
+    db.issue.findMany({
+      where: { parentId: issueId },
+      select: relationRefSelect,
+      orderBy: { created: "asc" },
+    }),
+    db.issueRelation.findMany({
+      where: { issueId },
+      select: { id: true, type: true, related: { select: relationRefSelect } },
+      orderBy: { created: "asc" },
+    }),
+    db.issueRelation.findMany({
+      where: { relatedId: issueId },
+      select: { id: true, type: true, issue: { select: relationRefSelect } },
+      orderBy: { created: "asc" },
+    }),
+  ]);
+
+  const relations: IssueRelationRef[] = (
+    await Promise.all([
+      ...outgoing.map(async (r) => {
+        const issue = await toLinkedIssue(r.related);
+        return issue
+          ? { id: r.id, type: r.type, direction: "outgoing" as const, issue }
+          : null;
+      }),
+      ...incoming.map(async (r) => {
+        const issue = await toLinkedIssue(r.issue);
+        return issue
+          ? { id: r.id, type: r.type, direction: "incoming" as const, issue }
+          : null;
+      }),
+    ])
+  ).filter((r): r is IssueRelationRef => r !== null);
+
+  const [parent, children] = await Promise.all([
+    parentRow ? toLinkedIssue(parentRow) : Promise.resolve(null),
+    Promise.all(childRows.map(toLinkedIssue)).then((rows) =>
+      rows.filter((c): c is LinkedIssue => c !== null),
+    ),
+  ]);
+
+  return { parent, children, relations };
+}
+
 export async function getIssueById(id: string): Promise<IssueDetail | null> {
   const i = await db.issue.findUnique({
     where: { id },
@@ -690,6 +816,7 @@ export async function getIssueById(id: string): Promise<IssueDetail | null> {
         include: { reactions: true },
       },
       attachments: { orderBy: { created: "asc" } },
+      project: { select: { workspaceId: true } },
     },
   });
   if (!i) return null;
@@ -701,9 +828,15 @@ export async function getIssueById(id: string): Promise<IssueDetail | null> {
   const access = await issueAccessFor(i);
   const attachments = await resolveIssueAttachments(i.attachments);
   const viewerId = await currentUserId();
+  const relations = await loadIssueRelations(
+    i.id,
+    i.parentId,
+    i.project.workspaceId,
+  );
   return {
     ...withIssueAttachments(mapIssue(i, viewerId), attachments),
     access,
+    ...relations,
   };
 }
 
@@ -745,9 +878,11 @@ export const getIssueByRef = cache(
     const access = await issueAccessFor(i);
     const attachments = await resolveIssueAttachments(i.attachments);
     const viewerId = await currentUserId();
+    const relations = await loadIssueRelations(i.id, i.parentId, workspaceId);
     return {
       ...withIssueAttachments(mapIssue(i, viewerId), attachments),
       access,
+      ...relations,
     };
   },
 );

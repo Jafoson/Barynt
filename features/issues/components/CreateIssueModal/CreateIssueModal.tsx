@@ -51,6 +51,12 @@ interface CreateIssueModalProps {
   initialStatus: string;
   data: IssueComposerData;
   close: () => void;
+  /**
+   * Runs with the new issue's id right after it's created — for a caller
+   * that wants to do something with it beyond just showing it in the list
+   * (e.g. linking it as a sub-issue, `IssueRelations`'s "Create new issue").
+   */
+  onCreated?: (issueId: string) => void;
 }
 
 export function CreateIssueModal({
@@ -58,6 +64,7 @@ export function CreateIssueModal({
   initialStatus,
   data,
   close,
+  onCreated,
 }: CreateIssueModalProps) {
   const {
     workspaceId,
@@ -276,6 +283,7 @@ export function CreateIssueModal({
         });
       }
 
+      onCreated?.(issueId);
       router.refresh();
       close();
     });

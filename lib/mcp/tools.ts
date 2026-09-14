@@ -2,6 +2,7 @@ import "server-only";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import {
+  addIssueRelationForUser,
   createCommentForUser,
   createIssueForUser,
   createLabelForUser,
@@ -11,6 +12,7 @@ import {
   deleteLabelForUser,
   deleteProjectForUser,
   deleteWorkspaceForUser,
+  removeIssueRelationForUser,
   updateCommentForUser,
   updateIssueForUser,
   updateLabelForUser,
@@ -399,6 +401,11 @@ export function registerBaryntTools(server: McpServer): void {
         assignee: z.string().nullable().optional().describe("User id."),
         labels: z.array(z.string()).optional().describe("Label ids."),
         type: z.string().optional(),
+        parentId: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("Makes the new issue a sub-issue of this one right away."),
       }),
     },
     async ({ projectId, ...input }, ctx) => {
@@ -414,9 +421,9 @@ export function registerBaryntTools(server: McpServer): void {
     "get_issue",
     {
       title: "Get issue",
-      description: "Fetch a single issue by id.",
+      description: 'Fetch a single issue by internal id or "PREFIX-123" ref.',
       inputSchema: z.object({
-        issueId: z.string(),
+        issueId: z.string().describe('Internal id, or a ref like "ENG-123".'),
         fields: z
           .string()
           .optional()
@@ -439,7 +446,7 @@ export function registerBaryntTools(server: McpServer): void {
     {
       title: "Update issue",
       description:
-        "Update an issue's title, description, status, priority, assignee, labels, or type.",
+        "Update an issue's title, description, status, priority, assignee, labels, type, or parent.",
       inputSchema: z.object({
         issueId: z.string(),
         title: z.string().optional(),
@@ -454,6 +461,13 @@ export function registerBaryntTools(server: McpServer): void {
         assignee: z.string().nullable().optional().describe("User id."),
         labels: z.array(z.string()).optional().describe("Label ids."),
         type: z.string().optional(),
+        parentId: z
+          .string()
+          .nullable()
+          .optional()
+          .describe(
+            "Sets the issue's parent (sub-issue of); `null` clears it.",
+          ),
       }),
     },
     async ({ issueId, ...patch }, ctx) => {
@@ -461,6 +475,44 @@ export function registerBaryntTools(server: McpServer): void {
       if (!auth.ok) return auth.result;
       return mutationResult(
         await updateIssueForUser(auth.auth.userId, issueId, patch),
+      );
+    },
+  );
+
+  server.registerTool(
+    "add_issue_relation",
+    {
+      title: "Add issue relation",
+      description:
+        "Link two issues with a typed edge: BLOCKS, RELATES_TO, or DUPLICATES. The edge is added from `issueId`'s point of view — for BLOCKS/DUPLICATES that means `issueId` blocks/duplicates `relatedId`.",
+      inputSchema: z.object({
+        issueId: z.string(),
+        relatedId: z.string(),
+        type: z.enum(["BLOCKS", "RELATES_TO", "DUPLICATES"]),
+      }),
+    },
+    async ({ issueId, ...input }, ctx) => {
+      const auth = await authorize(ctx, "issues:write");
+      if (!auth.ok) return auth.result;
+      return mutationResult(
+        await addIssueRelationForUser(auth.auth.userId, issueId, input),
+      );
+    },
+  );
+
+  server.registerTool(
+    "remove_issue_relation",
+    {
+      title: "Remove issue relation",
+      description:
+        "Remove a relation edge between two issues (the relation's own id, from `get_issue`'s `relations`).",
+      inputSchema: z.object({ relationId: z.string() }),
+    },
+    async ({ relationId }, ctx) => {
+      const auth = await authorize(ctx, "issues:write");
+      if (!auth.ok) return auth.result;
+      return mutationResult(
+        await removeIssueRelationForUser(auth.auth.userId, relationId),
       );
     },
   );

@@ -14,7 +14,16 @@ interface SelectActionProps {
  */
 export function SelectAction({ icon, onClick, children }: SelectActionProps) {
   return (
-    <button type="button" className={styles.menuItem} onClick={onClick}>
+    <button
+      type="button"
+      className={styles.menuItem}
+      onClick={onClick}
+      // Lets `SelectMenu`'s own Up/Down roving (which queries this
+      // attribute, see `SelectMenu.tsx`) find this row the same as a real
+      // `SelectItem` — without it, an action row is reachable by mouse but
+      // invisible to the keyboard.
+      data-select-item
+    >
       {icon}
       <span className={styles.label}>{children}</span>
     </button>

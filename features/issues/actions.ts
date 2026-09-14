@@ -46,7 +46,11 @@ import { uid } from "@/lib/utils/id";
 import { isValidEmail } from "@/lib/utils/parse-emails";
 import { fireWebhookEvent } from "@/lib/webhooks/deliver";
 import { isClosedStatus } from "@/lib/workspace-defaults";
-import type { IssueAttachment, SearchableIssue } from "@/types";
+import type {
+  IssueAttachment,
+  IssueRelationKind,
+  SearchableIssue,
+} from "@/types";
 
 /**
  * Revalidates the acting user's own view (`revalidatePath`, as before) and,
@@ -1512,4 +1516,204 @@ export async function toggleCommentReaction(commentId: string, emoji: string) {
     projectId: comment.issue.projectId,
     issueId: comment.issueId,
   });
+}
+
+// ── Sub-issues & relations (BARY-1) ─────────────────────────────────────────
+//
+// Same permission as any other field on the issue (`issue.update.any`/`.own`
+// — see `updateIssue`): a parent or a relation is part of editing the issue
+// it's set on, not a separate capability. Both report `{ error }` instead of
+// throwing for the validations that are genuine user mistakes (self-
+// reference, a cycle, an issue that no longer exists) — `PermissionError`
+// stays reserved for "you're not allowed", same restraint as
+// `updateLabel`/`deleteLabel`.
+
+type ActionResult = { ok: true } | { error: string };
+
+/**
+ * Walks the parent chain upward from `startId`, `true` as soon as `target`
+ * appears in it — guards `setIssueParent` against creating a cycle (`target`
+ * becoming its own, possibly indirect, sub-issue). Bounded at 50 hops: a
+ * genuine chain never gets remotely that deep, and it keeps the walk from
+ * looping forever if one ever did.
+ */
+async function chainContains(
+  startId: string,
+  target: string,
+): Promise<boolean> {
+  let cursor: string | null = startId;
+  for (let hop = 0; cursor && hop < 50; hop++) {
+    if (cursor === target) return true;
+    cursor =
+      (
+        await db.issue.findUnique({
+          where: { id: cursor },
+          select: { parentId: true },
+        })
+      )?.parentId ?? null;
+  }
+  return false;
+}
+
+/**
+ * Sets or clears an issue's parent — the two ends of the same "sub-issue of"
+ * relationship (`IssueRelations`'s "Parent" and "Sub-issues"). `parentId:
+ * null` detaches it back to the top level.
+ */
+export async function setIssueParent(
+  id: string,
+  parentId: string | null,
+): Promise<ActionResult> {
+  const issue = await issueContext(id);
+  const ctx = { projectId: issue.projectId };
+  await requirePermissionOr([
+    { permission: "issue.update.any", ctx },
+    {
+      permission: "issue.update.own",
+      ctx,
+      ownerIds: [issue.reporterId, issue.assigneeId],
+    },
+  ]);
+
+  if (parentId) {
+    if (parentId === id) return { error: "An issue cannot be its own parent." };
+    const parent = await db.issue.findUnique({
+      where: { id: parentId },
+      select: { projectId: true },
+    });
+    if (
+      !parent ||
+      !(await hasPermission("project.view", { projectId: parent.projectId }))
+    ) {
+      return { error: "That issue could not be found." };
+    }
+    // `id` would end up somewhere in its own future parent chain — the
+    // parent being made its own (possibly indirect) sub-issue.
+    if (await chainContains(parentId, id)) {
+      return { error: "That would create a circular relationship." };
+    }
+  }
+
+  await db.issue.update({ where: { id }, data: { parentId } });
+  await revalidate({
+    workspaceId: issue.project.workspaceId,
+    projectId: issue.projectId,
+    issueId: id,
+  });
+  return { ok: true };
+}
+
+/**
+ * Links two issues with a typed edge. `RELATES_TO` has no real direction —
+ * the pair is stored under whichever id sorts first, so "A relates to B"
+ * and "B relates to A" can't end up as two separate rows for the same
+ * statement; `BLOCKS`/`DUPLICATES` keep `issueId`/`relatedId` as given,
+ * since which side is the source is part of what they mean.
+ *
+ * Permission is checked against `id` (the issue the UI action was triggered
+ * from) — same as any other field on it. The other issue only needs to be
+ * one the caller can *see* (`project.view`): the relation records that it
+ * exists, it doesn't change anything on that side.
+ */
+export async function addIssueRelation(
+  id: string,
+  relatedId: string,
+  type: IssueRelationKind,
+): Promise<ActionResult> {
+  if (relatedId === id) return { error: "An issue cannot relate to itself." };
+
+  const issue = await issueContext(id);
+  const ctx = { projectId: issue.projectId };
+  await requirePermissionOr([
+    { permission: "issue.update.any", ctx },
+    {
+      permission: "issue.update.own",
+      ctx,
+      ownerIds: [issue.reporterId, issue.assigneeId],
+    },
+  ]);
+
+  const related = await db.issue.findUnique({
+    where: { id: relatedId },
+    select: { projectId: true },
+  });
+  if (
+    !related ||
+    !(await hasPermission("project.view", { projectId: related.projectId }))
+  ) {
+    return { error: "That issue could not be found." };
+  }
+
+  const [fromId, toId] =
+    type === "RELATES_TO" && relatedId < id ? [relatedId, id] : [id, relatedId];
+
+  const existing = await db.issueRelation.findUnique({
+    where: {
+      issueId_relatedId_type: { issueId: fromId, relatedId: toId, type },
+    },
+  });
+  if (!existing) {
+    await db.issueRelation.create({
+      data: { id: uid("ir"), type, issueId: fromId, relatedId: toId },
+    });
+  }
+
+  await revalidate({
+    workspaceId: issue.project.workspaceId,
+    projectId: issue.projectId,
+    issueId: id,
+  });
+  return { ok: true };
+}
+
+/**
+ * Removes a relation edge — shown on both issues it connects
+ * (`IssueRelations`), so removable from either side, not only the one that
+ * originally created it: whoever can edit *either* end may take it down.
+ */
+export async function removeIssueRelation(
+  relationId: string,
+): Promise<ActionResult> {
+  const relation = await db.issueRelation.findUnique({
+    where: { id: relationId },
+    include: {
+      issue: {
+        select: {
+          projectId: true,
+          reporterId: true,
+          assigneeId: true,
+          project: { select: { workspaceId: true } },
+        },
+      },
+      related: {
+        select: { projectId: true, reporterId: true, assigneeId: true },
+      },
+    },
+  });
+  if (!relation) return { error: "This relation no longer exists." };
+
+  await requirePermissionOr([
+    {
+      permission: "issue.update.any",
+      ctx: { projectId: relation.issue.projectId },
+    },
+    {
+      permission: "issue.update.own",
+      ctx: { projectId: relation.issue.projectId },
+      ownerIds: [relation.issue.reporterId, relation.issue.assigneeId],
+    },
+    {
+      permission: "issue.update.any",
+      ctx: { projectId: relation.related.projectId },
+    },
+    {
+      permission: "issue.update.own",
+      ctx: { projectId: relation.related.projectId },
+      ownerIds: [relation.related.reporterId, relation.related.assigneeId],
+    },
+  ]);
+
+  await db.issueRelation.delete({ where: { id: relationId } });
+  await revalidate({ workspaceId: relation.issue.project.workspaceId });
+  return { ok: true };
 }
