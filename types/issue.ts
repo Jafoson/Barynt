@@ -1,3 +1,4 @@
+import type { AuditEntry } from "@/lib/audit/actions";
 import type { PMDoc } from "@/lib/richtext/types";
 import type { SearchableIssue } from "./workspace";
 
@@ -183,4 +184,8 @@ export interface IssueDetail extends Issue {
   children: LinkedIssue[];
   /** Blocks/relates to/duplicates edges, both directions. */
   relations: IssueRelationRef[];
+  /** Field-change history (status/priority/assignee/labels/…), newest
+   *  first — the same `AuditLog` rows the workspace/project activity log
+   *  reads, filtered to this one issue (`listAudit({ targetId })`). */
+  activity: AuditEntry[];
 }

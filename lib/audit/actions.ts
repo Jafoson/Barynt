@@ -74,6 +74,14 @@ export const AUDIT_ACTIONS = {
   "issue.labels.changed": "Labels changed",
   "issue.shared": "Public link created",
   "issue.share.revoked": "Public link revoked",
+  "issue.parent.set": "Parent issue set",
+  "issue.parent.cleared": "Parent issue cleared",
+  "issue.child.added": "Sub-issue added",
+  "issue.child.removed": "Sub-issue removed",
+  "issue.relation.added": "Relation added",
+  "issue.relation.removed": "Relation removed",
+  "issue.attachment.added": "Attachment added",
+  "issue.attachment.removed": "Attachment removed",
   "label.created": "Label created",
   "label.deleted": "Label deleted",
 } as const;
@@ -260,4 +268,20 @@ export interface LabelChangeItem {
 export interface LabelsChangeMeta {
   added: LabelChangeItem[];
   removed: LabelChangeItem[];
+}
+
+/**
+ * `meta` for `issue.relation.added`/`issue.relation.removed` — the verb
+ * ("blocks"/"is blocked by"/…) depends on which side of the edge this
+ * issue sits on and needs a translation, so it's carried as a kind rather
+ * than baked into `targetLabel` as English/German text (same reason
+ * `StatusChangeMeta` carries a status id and not its name).
+ */
+export interface RelationChangeMeta {
+  /** Matches the `relations.*` message keys 1:1 (`IssueRelations.tsx`'s own
+   *  `RELATION_GROUPS`) — same wording in the relations list and the
+   *  activity log, not two phrasings for the same fact. */
+  kind: "blocks" | "blockedBy" | "duplicateOf" | "duplicatedBy" | "relatesTo";
+  /** Reference of the *other* issue, e.g. "MOB-7". */
+  ref: string;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import {
   auditActionMeta,
@@ -15,6 +15,8 @@ interface Props {
   entries: AuditEntry[];
   /** To link an issue's reference (`TargetLabel`). */
   workspaceSlug: string;
+  /** Passed through to `TargetLabel` — see its doc comment. */
+  hideRef?: boolean;
 }
 
 /**
@@ -23,9 +25,10 @@ interface Props {
  * rows on the members card, not the single-line teams/labels row: here it
  * always also states who did it and when.
  */
-export function ActivityFeed({ entries, workspaceSlug }: Props) {
+export function ActivityFeed({ entries, workspaceSlug, hideRef }: Props) {
   const t = useTranslations();
   const timeAgo = useTimeAgo();
+  const format = useFormatter();
 
   return (
     <ul className={styles.list}>
@@ -50,6 +53,7 @@ export function ActivityFeed({ entries, workspaceSlug }: Props) {
                     workspaceSlug={workspaceSlug}
                     projectRef={entry.projectRef}
                     workspaceRef={entry.workspaceRef}
+                    hideRef={hideRef}
                   />
                 )}
               </span>
@@ -70,7 +74,16 @@ export function ActivityFeed({ entries, workspaceSlug }: Props) {
                   placeholder
                   placeholderLabel={entry.actorLabel}
                 />
-                {entry.actorLabel} · {timeAgo(entry.createdAt.getTime())}
+                {entry.actorLabel} · {timeAgo(entry.createdAt.getTime())} ·{" "}
+                <time
+                  dateTime={entry.createdAt.toISOString()}
+                  suppressHydrationWarning
+                >
+                  {format.dateTime(entry.createdAt, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </time>
               </span>
             </span>
           </li>

@@ -434,6 +434,7 @@ export function IssueDetailView({
               workspaceId={data.workspaceId}
               identifier={identifier}
               comments={issue.comments}
+              activity={issue.activity}
               members={data.members}
               me={data.me}
               data={data}
@@ -471,6 +472,7 @@ export function IssueDetailView({
                 workspaceId={data.workspaceId}
                 identifier={identifier}
                 comments={issue.comments}
+                activity={issue.activity}
                 members={data.members}
                 me={data.me}
                 data={data}

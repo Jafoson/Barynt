@@ -83,9 +83,22 @@ export function useIssueDetail({
   const load = useCallback(
     async (ref: string) => {
       const response = await fetch(endpoint(ref));
-      return response.ok
-        ? ((await response.json()) as IssueDetail | null)
-        : null;
+      if (!response.ok) return null;
+      const fresh = (await response.json()) as IssueDetail | null;
+      if (!fresh) return null;
+      // `JSON.parse` doesn't revive dates: `activity[].createdAt` arrives
+      // here as an ISO string even though `AuditEntry.createdAt` is typed
+      // `Date` — a type the full page's server-rendered props satisfy for
+      // real (Date instances cross the RSC boundary intact), but this fetch
+      // round-trip doesn't. `ActivityFeed` calls `.getTime()` on it, so it
+      // has to be a real `Date` again before this issue reaches the panel.
+      return {
+        ...fresh,
+        activity: fresh.activity.map((entry) => ({
+          ...entry,
+          createdAt: new Date(entry.createdAt),
+        })),
+      };
     },
     [endpoint],
   );

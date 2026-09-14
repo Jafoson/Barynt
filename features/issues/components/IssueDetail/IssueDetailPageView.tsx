@@ -210,6 +210,7 @@ export function IssueDetailPageView({
             workspaceId={data.workspaceId}
             identifier={identifier}
             comments={issue.comments}
+            activity={issue.activity}
             members={data.members}
             me={data.me}
             data={data}

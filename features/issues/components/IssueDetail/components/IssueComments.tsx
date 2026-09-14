@@ -1,17 +1,18 @@
 "use client";
 
-import { Icon } from "@iconify/react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { Button } from "@/components/ui/atoms/Button/Button";
+import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { ModalShortcut } from "@/components/ui/layout/Modal/components/ModalFooter";
 import type {
   RichTextEditorHandle,
   UploadedAttachment,
 } from "@/components/ui/layout/RichTextEditor/RichTextEditor";
+import { ActivityFeed } from "@/features/audit/components/ActivityFeed/ActivityFeed";
 import {
   addComment,
   addIssueLinkAttachment,
@@ -24,6 +25,7 @@ import { useEditorSources } from "@/features/issues/components/IssueRichText/Iss
 import { issuePath } from "@/features/issues/issue-links";
 import type { IssueEditorData } from "@/features/issues/types";
 import { uploadIssueAttachment } from "@/features/issues/uploadAttachment";
+import type { AuditEntry } from "@/lib/audit/actions";
 import { useHasOpenModal } from "@/lib/context";
 import { markLocalMutation } from "@/lib/realtime/localMutation";
 import { emptyDoc, isEmptyDoc } from "@/lib/richtext/doc";
@@ -60,6 +62,8 @@ interface IssueCommentsProps {
   workspaceId: string;
   identifier: string;
   comments: Comment[];
+  /** Field-change history for this issue — the "Aktivität" tab. */
+  activity: AuditEntry[];
   members: User[];
   me: User;
   /** For the suggestions behind `@` and `#`. */
@@ -143,6 +147,7 @@ export function IssueComments({
   workspaceId,
   identifier,
   comments,
+  activity,
   members,
   me,
   data,
@@ -174,6 +179,7 @@ export function IssueComments({
   // follow-up action (e.g. a reaction) would trigger another jump.
   const scrolledTo = useRef<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(COMMENTS_PAGE_SIZE);
+  const [tab, setTab] = useState<"comments" | "activity">("comments");
 
   const isEmpty = isEmptyDoc(body);
   const attachmentHandlers = makeAttachmentHandlers(
@@ -306,98 +312,122 @@ export function IssueComments({
   return (
     <section className={styles.comments}>
       <header className={styles.sectionHead}>
-        <Icon icon="lucide:message-square" width={15} aria-hidden="true" />
-        <h3 className={styles.sectionTitle}>{t("comments.title")}</h3>
-        <span className={styles.commentsCount}>{comments.length}</span>
+        <SegmentedControl
+          items={[
+            { value: "comments", label: t("comments.title") },
+            { value: "activity", label: t("issueActivity.title") },
+          ]}
+          value={tab}
+          onChange={(value) => setTab(value as "comments" | "activity")}
+          variant="surface"
+        />
       </header>
 
-      {comments.length === 0 ? (
-        <p className={styles.commentsEmpty}>{t("comments.empty")}</p>
-      ) : (
-        <>
-          <ol className={styles.commentList}>
-            {visibleTopLevel.map((comment) => (
-              <CommentThread
-                key={comment.id}
-                comment={comment}
-                depth={0}
-                childrenByParent={childrenByParent}
-                commentsById={commentsById}
-                highlightAncestorIds={highlightAncestorIds}
-                members={members}
-                me={me}
-                data={data}
-                canUpdateAnyComment={canUpdateAnyComment}
-                canDeleteAnyComment={canDeleteAnyComment}
-                flashId={flashId}
-                attachmentHandlers={attachmentHandlers}
-                onEdit={editComment}
-                onDelete={removeComment}
-                onReply={replyToComment}
-                onToggleReaction={toggleReaction}
-                onCopyLink={copyLink}
-              />
-            ))}
-          </ol>
+      {tab === "comments" ? (
+        comments.length === 0 ? (
+          <p className={styles.commentsEmpty}>{t("comments.empty")}</p>
+        ) : (
+          <>
+            <ol className={styles.commentList}>
+              {visibleTopLevel.map((comment) => (
+                <CommentThread
+                  key={comment.id}
+                  comment={comment}
+                  depth={0}
+                  childrenByParent={childrenByParent}
+                  commentsById={commentsById}
+                  highlightAncestorIds={highlightAncestorIds}
+                  members={members}
+                  me={me}
+                  data={data}
+                  canUpdateAnyComment={canUpdateAnyComment}
+                  canDeleteAnyComment={canDeleteAnyComment}
+                  flashId={flashId}
+                  attachmentHandlers={attachmentHandlers}
+                  onEdit={editComment}
+                  onDelete={removeComment}
+                  onReply={replyToComment}
+                  onToggleReaction={toggleReaction}
+                  onCopyLink={copyLink}
+                />
+              ))}
+            </ol>
 
-          {remainingCount > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              full
-              className={styles.loadMoreComments}
-              onClick={() =>
-                setVisibleCount((v) =>
-                  Math.min(v + COMMENTS_PAGE_SIZE, topLevel.length),
-                )
-              }
-            >
-              {t("comments.loadMore", {
-                count: Math.min(COMMENTS_PAGE_SIZE, remainingCount),
-              })}
-            </Button>
-          )}
-        </>
+            {remainingCount > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                full
+                className={styles.loadMoreComments}
+                onClick={() =>
+                  setVisibleCount((v) =>
+                    Math.min(v + COMMENTS_PAGE_SIZE, topLevel.length),
+                  )
+                }
+              >
+                {t("comments.loadMore", {
+                  count: Math.min(COMMENTS_PAGE_SIZE, remainingCount),
+                })}
+              </Button>
+            )}
+          </>
+        )
+      ) : activity.length === 0 ? (
+        <p className={styles.commentsEmpty}>{t("issueActivity.empty")}</p>
+      ) : (
+        <div className={styles.activityCard}>
+          <div className={styles.activityScroll}>
+            <ActivityFeed
+              entries={activity}
+              workspaceSlug={workspaceId}
+              hideRef
+            />
+          </div>
+        </div>
       )}
 
       {/* No more `<form action=…>`: the editor isn't a form field, and
-          submission happens via the button or Cmd/Ctrl + Enter. */}
-      <div className={styles.composer}>
-        <Avatar avatar={me} size={28} />
-        {/* Marks the composer for the panel's field-roving (`IssueDetailView.tsx`):
-            ArrowUp out of it, back to the last field, only while it's still
-            empty — once there's real multi-line text, ArrowUp goes back to
-            being the cursor's, same as the description once editing. */}
-        <div className={styles.composerBox} data-comment-editor>
-          <RichTextEditor
-            key={round}
-            ref={editorHandle}
-            value={body}
-            onChange={setBody}
-            onSubmit={submit}
-            label={t("fields.description")}
-            placeholder={t("placeholders.addComment")}
-            members={sources.members}
-            issues={sources.issues}
-            {...attachmentHandlers}
-          />
-          <div className={styles.composerFoot}>
-            <ModalShortcut keys="mod+enter">
-              {t("comments.toSend")}
-            </ModalShortcut>
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              disabled={isEmpty || isSending}
-              onClick={submit}
-            >
-              {t("actions.comment")}
-            </Button>
+          submission happens via the button or Cmd/Ctrl + Enter. Only on the
+          comments tab — the activity tab is a read-only log, nothing to
+          compose there. */}
+      {tab === "comments" && (
+        <div className={styles.composer}>
+          <Avatar avatar={me} size={28} />
+          {/* Marks the composer for the panel's field-roving (`IssueDetailView.tsx`):
+              ArrowUp out of it, back to the last field, only while it's still
+              empty — once there's real multi-line text, ArrowUp goes back to
+              being the cursor's, same as the description once editing. */}
+          <div className={styles.composerBox} data-comment-editor>
+            <RichTextEditor
+              key={round}
+              ref={editorHandle}
+              value={body}
+              onChange={setBody}
+              onSubmit={submit}
+              label={t("fields.description")}
+              placeholder={t("placeholders.addComment")}
+              members={sources.members}
+              issues={sources.issues}
+              {...attachmentHandlers}
+            />
+            <div className={styles.composerFoot}>
+              <ModalShortcut keys="mod+enter">
+                {t("comments.toSend")}
+              </ModalShortcut>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                disabled={isEmpty || isSending}
+                onClick={submit}
+              >
+                {t("actions.comment")}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }

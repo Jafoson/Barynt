@@ -27,6 +27,7 @@ import {
   type LabelsChangeMeta,
   type PriorityChangeMeta,
   parseTargetLabel,
+  type RelationChangeMeta,
   type StatusChangeMeta,
   toAuditAction,
 } from "@/lib/audit/actions";
@@ -182,6 +183,38 @@ export const AUDIT_ACTION_META = {
     icon: "lucide:link-2-off",
     message: "issueShareRevoked",
   },
+  "issue.parent.set": {
+    icon: "lucide:corner-up-left",
+    message: "issueParentSet",
+  },
+  "issue.parent.cleared": {
+    icon: "lucide:corner-up-left",
+    message: "issueParentCleared",
+  },
+  "issue.child.added": {
+    icon: "lucide:corner-down-right",
+    message: "issueChildAdded",
+  },
+  "issue.child.removed": {
+    icon: "lucide:corner-down-right",
+    message: "issueChildRemoved",
+  },
+  "issue.relation.added": {
+    icon: "lucide:link",
+    message: "issueRelationAdded",
+  },
+  "issue.relation.removed": {
+    icon: "lucide:unlink",
+    message: "issueRelationRemoved",
+  },
+  "issue.attachment.added": {
+    icon: "lucide:paperclip",
+    message: "issueAttachmentAdded",
+  },
+  "issue.attachment.removed": {
+    icon: "lucide:paperclip",
+    message: "issueAttachmentRemoved",
+  },
   "label.created": { icon: "lucide:tag", message: "labelCreated" },
   "label.deleted": { icon: "lucide:tag", message: "labelDeleted" },
 } as const satisfies Record<
@@ -282,6 +315,11 @@ interface TargetLabelProps {
   /** Current workspace behind `workspaceId` — for the avatar in
    * `WORKSPACE_IS_TARGET`, with no link (`lib/audit/index.ts`). */
   workspaceRef?: EntityRef | null;
+  /** Suppresses the leading ref chip (e.g. "BARY-11") — for a feed already
+   *  scoped to that one issue, where the ref would just link back to the
+   *  page it's shown on. Off by default: the workspace/project-wide feeds
+   *  still need it to say which issue an entry is about. */
+  hideRef?: boolean;
 }
 
 export function TargetLabel({
@@ -292,7 +330,13 @@ export function TargetLabel({
   workspaceSlug,
   projectRef,
   workspaceRef,
+  hideRef,
 }: TargetLabelProps) {
+  // Only `issue.relation.*` needs this — the verb ("blockiert"/"blockiert
+  // von"/…) depends on `meta.kind` and has to be translated, unlike every
+  // other branch here, which renders data that's already plain text
+  // (a name, a ref, a "→") with no verb of its own baked in.
+  const t = useTranslations();
   const { ref, before, after } = parseTargetLabel(text);
   if (!ref && !after) return null;
 
@@ -360,7 +404,7 @@ export function TargetLabel({
     const labels = meta as LabelsChangeMeta | undefined;
     return (
       <span className={styles.targetLabel}>
-        {refNode}
+        {!hideRef && refNode}
         {labels ? (
           <>
             {labels.added.map((l) => (
@@ -386,6 +430,37 @@ export function TargetLabel({
     );
   }
 
+  if (
+    action === "issue.relation.added" ||
+    action === "issue.relation.removed"
+  ) {
+    const relation = meta as RelationChangeMeta | undefined;
+    const otherRefNode = relation ? (
+      workspaceSlug ? (
+        <Link
+          href={issuePath(workspaceSlug, relation.ref)}
+          className={styles.ref}
+        >
+          {relation.ref}
+        </Link>
+      ) : (
+        <span className={styles.ref}>{relation.ref}</span>
+      )
+    ) : null;
+    return (
+      <span className={styles.targetLabel}>
+        {!hideRef && refNode}
+        {relation ? (
+          <span className={styles.changeAfter}>
+            {t(`relations.${relation.kind}`)} {otherRefNode}
+          </span>
+        ) : (
+          after && <span className={styles.changeAfter}>{after}</span>
+        )}
+      </span>
+    );
+  }
+
   const priority =
     action === "issue.priority.changed"
       ? (meta as PriorityChangeMeta | undefined)
@@ -397,7 +472,7 @@ export function TargetLabel({
 
   return (
     <span className={styles.targetLabel}>
-      {refNode}
+      {!hideRef && refNode}
       {before !== undefined && (
         <>
           <span

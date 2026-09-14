@@ -150,6 +150,11 @@ export interface AuditFilter {
   projectId?: string;
   action?: AuditAction;
   actorId?: string;
+  /** Only events on this one target — e.g. a single issue's id, for its
+   *  activity tab. Combine with `projectId` where available: `targetId`
+   *  alone is already unique, `projectId` is defense-in-depth against a
+   *  same-id collision across target types. */
+  targetId?: string;
   /**
    * Only events involving this person — as actor or as target. For views
    * without `audit.view`: whoever can't see the full list at least sees
@@ -183,6 +188,7 @@ function whereFor(filter: AuditFilter): Prisma.AuditLogWhereInput {
     ...(filter.projectId ? { projectId: filter.projectId } : {}),
     ...(filter.action ? { action: filter.action } : {}),
     ...(filter.actorId ? { actorId: filter.actorId } : {}),
+    ...(filter.targetId ? { targetId: filter.targetId } : {}),
     ...(filter.selfOnly
       ? {
           OR: [

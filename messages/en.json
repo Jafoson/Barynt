@@ -437,6 +437,10 @@
     "loadMore": "{count, plural, one {Load # more comment} other {Load # more comments}}",
     "replyingTo": "Replying to {name}"
   },
+  "issueActivity": {
+    "title": "Activity",
+    "empty": "No changes logged yet."
+  },
   "attachments": {
     "add": "Add attachment",
     "addFile": "Upload a file",
@@ -1139,6 +1143,14 @@
       "issueLabelsChanged": "Labels changed",
       "issueShared": "Public link created",
       "issueShareRevoked": "Public link revoked",
+      "issueParentSet": "Parent issue set",
+      "issueParentCleared": "Parent issue cleared",
+      "issueChildAdded": "Sub-issue added",
+      "issueChildRemoved": "Sub-issue removed",
+      "issueRelationAdded": "Relation added",
+      "issueRelationRemoved": "Relation removed",
+      "issueAttachmentAdded": "Attachment added",
+      "issueAttachmentRemoved": "Attachment removed",
       "labelCreated": "Label created",
       "labelDeleted": "Label deleted"
     }

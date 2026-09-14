@@ -437,6 +437,10 @@
     "loadMore": "{count, plural, one {# weiteren Kommentar laden} other {# weitere Kommentare laden}}",
     "replyingTo": "Antwort auf {name}"
   },
+  "issueActivity": {
+    "title": "Aktivität",
+    "empty": "Noch keine Änderungen protokolliert."
+  },
   "attachments": {
     "add": "Anhang hinzufügen",
     "addFile": "Datei hochladen",
@@ -1139,6 +1143,14 @@
       "issueLabelsChanged": "Labels geändert",
       "issueShared": "Öffentlicher Link erstellt",
       "issueShareRevoked": "Öffentlicher Link widerrufen",
+      "issueParentSet": "Übergeordnetes Issue gesetzt",
+      "issueParentCleared": "Übergeordnetes Issue entfernt",
+      "issueChildAdded": "Unteraufgabe hinzugefügt",
+      "issueChildRemoved": "Unteraufgabe entfernt",
+      "issueRelationAdded": "Beziehung hinzugefügt",
+      "issueRelationRemoved": "Beziehung entfernt",
+      "issueAttachmentAdded": "Anhang hinzugefügt",
+      "issueAttachmentRemoved": "Anhang entfernt",
       "labelCreated": "Label angelegt",
       "labelDeleted": "Label gelöscht"
     }

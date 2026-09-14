@@ -1309,6 +1309,9 @@ model AuditLog {
   @@index([actorId, createdAt(sort: Desc)])
   @@index([workspaceId, createdAt(sort: Desc)])
   @@index([projectId, createdAt(sort: Desc)])
+  /// Für den Aktivitätsverlauf eines einzelnen Issues (`getIssueById`/
+  /// `getIssueByRef`, gefiltert auf `targetId`).
+  @@index([targetId, createdAt(sort: Desc)])
 }
 
 // ─── Mail-Vorlagen (Admin-Override) ────────────────────────────────────────────

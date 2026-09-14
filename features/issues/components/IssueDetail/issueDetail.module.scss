@@ -928,6 +928,37 @@
   color: var(--outline);
 }
 
+/* Caps the activity tab instead of letting a long history push the composer
+   (comments tab) and the rest of the page down indefinitely — it scrolls in
+   place instead. Same card shell as the overview's activity card
+   (`.card`/`.cardScroll` in projectProfileView.module.scss/
+   workspaceProfileView.module.scss) — the same feed, styled the same way,
+   wherever it's shown.
+
+   Split into two elements, matching that same pattern, and not by accident:
+   a native scrollbar sits flush against its own element's edge, and on an
+   element that's *also* the rounded, bordered box, that squares off
+   whichever corner the scrollbar runs down (seen on the bottom-right corner
+   here). `.activityCard` alone carries the border/radius/background and
+   never scrolls itself, so it always renders fully rounded; `.activityScroll`
+   inside it owns the actual `overflow-y` and can run its scrollbar wherever
+   it likes without ever touching `.activityCard`'s edge. */
+.activityCard {
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  /* Same fill as the description's own box (`editableRichText.module.scss`/
+     `richTextEditor.module.scss`) — one shared "box on the surface" look
+     instead of a second, slightly different one. */
+  background: var(--surface-container-low);
+  padding-block: 15px 16px;
+}
+
+.activityScroll {
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  padding-inline: 17px;
+}
+
 .commentsEmpty {
   margin: 0;
   font-size: var(--text-base);

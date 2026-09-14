@@ -11,6 +11,7 @@ import { recordAudit } from "@/lib/audit";
 import type {
   LabelChangeItem,
   LabelsChangeMeta,
+  RelationChangeMeta,
   StatusChangeMeta,
 } from "@/lib/audit/actions";
 import { db } from "@/lib/db";
@@ -139,6 +140,7 @@ async function issueContext(id: string) {
       description: true,
       shareToken: true,
       shareTokenExpiresAt: true,
+      parentId: true,
       project: { select: { workspaceId: true, prefix: true } },
     },
   });
@@ -190,7 +192,15 @@ async function recordIssueAudit(
     | "issue.type.changed"
     | "issue.labels.changed"
     | "issue.shared"
-    | "issue.share.revoked",
+    | "issue.share.revoked"
+    | "issue.parent.set"
+    | "issue.parent.cleared"
+    | "issue.child.added"
+    | "issue.child.removed"
+    | "issue.relation.added"
+    | "issue.relation.removed"
+    | "issue.attachment.added"
+    | "issue.attachment.removed",
   id: string,
   issue: { projectId: string; project: { workspaceId: string } } & Parameters<
     typeof issueRef
@@ -669,11 +679,7 @@ async function requireAttachmentAccess(issueId: string) {
       ownerIds: [issue.reporterId, issue.assigneeId],
     },
   ]);
-  return {
-    actorId,
-    projectId: issue.projectId,
-    workspaceId: issue.project.workspaceId,
-  };
+  return { actorId, issue };
 }
 
 export async function requestIssueAttachmentUpload(
@@ -689,8 +695,7 @@ export async function confirmIssueAttachmentUpload(
   key: string,
   input: { fileName: string; contentType: string },
 ): Promise<{ ok: true; attachment: IssueAttachment } | { error: string }> {
-  const { actorId, projectId, workspaceId } =
-    await requireAttachmentAccess(issueId);
+  const { actorId, issue } = await requireAttachmentAccess(issueId);
 
   const finalized = await finalizeAttachmentUpload(issueId, key);
   if ("error" in finalized) return finalized;
@@ -708,7 +713,18 @@ export async function confirmIssueAttachmentUpload(
     },
   });
 
-  await revalidate({ workspaceId, projectId, issueId });
+  await revalidate({
+    workspaceId: issue.project.workspaceId,
+    projectId: issue.projectId,
+    issueId,
+  });
+  await recordIssueAudit(
+    "issue.attachment.added",
+    issueId,
+    issue,
+    actorId,
+    row.name,
+  );
   return {
     ok: true,
     attachment: {
@@ -738,8 +754,7 @@ export async function addIssueLinkAttachment(
   issueId: string,
   input: { url: string; name?: string; mimeType?: string | null },
 ): Promise<{ ok: true; attachment: IssueAttachment } | { error: string }> {
-  const { actorId, projectId, workspaceId } =
-    await requireAttachmentAccess(issueId);
+  const { actorId, issue } = await requireAttachmentAccess(issueId);
 
   const href = input.url.trim();
   if (!isWebUrl(href)) return { error: "Only http(s) links are allowed." };
@@ -756,7 +771,18 @@ export async function addIssueLinkAttachment(
     },
   });
 
-  await revalidate({ workspaceId, projectId, issueId });
+  await revalidate({
+    workspaceId: issue.project.workspaceId,
+    projectId: issue.projectId,
+    issueId,
+  });
+  await recordIssueAudit(
+    "issue.attachment.added",
+    issueId,
+    issue,
+    actorId,
+    row.name,
+  );
   return {
     ok: true,
     attachment: {
@@ -776,7 +802,7 @@ export async function deleteIssueAttachment(
   issueId: string,
   attachmentId: string,
 ): Promise<{ ok: true } | { error: string }> {
-  const { projectId, workspaceId } = await requireAttachmentAccess(issueId);
+  const { actorId, issue } = await requireAttachmentAccess(issueId);
 
   const row = await db.attachment.findUnique({ where: { id: attachmentId } });
   if (!row || row.issueId !== issueId) return { error: "Not found." };
@@ -784,7 +810,18 @@ export async function deleteIssueAttachment(
   await db.attachment.delete({ where: { id: attachmentId } });
   if (row.kind === "file") await deleteAttachmentObject(row.key);
 
-  await revalidate({ workspaceId, projectId, issueId });
+  await revalidate({
+    workspaceId: issue.project.workspaceId,
+    projectId: issue.projectId,
+    issueId,
+  });
+  await recordIssueAudit(
+    "issue.attachment.removed",
+    issueId,
+    issue,
+    actorId,
+    row.name,
+  );
   return { ok: true };
 }
 
@@ -1566,7 +1603,7 @@ export async function setIssueParent(
 ): Promise<ActionResult> {
   const issue = await issueContext(id);
   const ctx = { projectId: issue.projectId };
-  await requirePermissionOr([
+  const actorId = await requirePermissionOr([
     { permission: "issue.update.any", ctx },
     {
       permission: "issue.update.own",
@@ -1574,6 +1611,8 @@ export async function setIssueParent(
       ownerIds: [issue.reporterId, issue.assigneeId],
     },
   ]);
+
+  if (parentId === issue.parentId) return { ok: true };
 
   if (parentId) {
     if (parentId === id) return { error: "An issue cannot be its own parent." };
@@ -1594,13 +1633,71 @@ export async function setIssueParent(
     }
   }
 
+  // Fetched before the write, for the audit trail below — `issueRef()`
+  // needs each side's key/prefix, and the old parent won't be reachable
+  // through `issue` anymore afterwards.
+  const [newParent, oldParent] = await Promise.all([
+    parentId ? issueContext(parentId) : Promise.resolve(null),
+    issue.parentId ? issueContext(issue.parentId) : Promise.resolve(null),
+  ]);
+
   await db.issue.update({ where: { id }, data: { parentId } });
   await revalidate({
     workspaceId: issue.project.workspaceId,
     projectId: issue.projectId,
     issueId: id,
   });
+
+  // Logged on every issue the change is visible from — this one, the
+  // parent it lost, and the parent it gained — the same "shown on both
+  // ends" framing `IssueRelations` already uses for relation edges.
+  if (newParent) {
+    await recordIssueAudit(
+      "issue.parent.set",
+      id,
+      issue,
+      actorId,
+      oldParent
+        ? `${issueRef(oldParent)} → ${issueRef(newParent)}`
+        : issueRef(newParent),
+    );
+    await recordIssueAudit(
+      "issue.child.added",
+      parentId as string,
+      newParent,
+      actorId,
+      issueRef(issue),
+    );
+  } else {
+    await recordIssueAudit("issue.parent.cleared", id, issue, actorId);
+  }
+  if (oldParent) {
+    await recordIssueAudit(
+      "issue.child.removed",
+      issue.parentId as string,
+      oldParent,
+      actorId,
+      issueRef(issue),
+    );
+  }
+
   return { ok: true };
+}
+
+/** The two sides of a relation edge, in the same wording `IssueRelations.tsx`
+ *  already uses to render them (`RELATION_GROUPS`) — `[fromId's kind,
+ *  relatedId's kind]`. `RELATES_TO` reads the same from either end. */
+function relationKinds(
+  type: IssueRelationKind,
+): [RelationChangeMeta["kind"], RelationChangeMeta["kind"]] {
+  switch (type) {
+    case "BLOCKS":
+      return ["blocks", "blockedBy"];
+    case "DUPLICATES":
+      return ["duplicateOf", "duplicatedBy"];
+    case "RELATES_TO":
+      return ["relatesTo", "relatesTo"];
+  }
 }
 
 /**
@@ -1624,7 +1721,7 @@ export async function addIssueRelation(
 
   const issue = await issueContext(id);
   const ctx = { projectId: issue.projectId };
-  await requirePermissionOr([
+  const actorId = await requirePermissionOr([
     { permission: "issue.update.any", ctx },
     {
       permission: "issue.update.own",
@@ -1663,6 +1760,35 @@ export async function addIssueRelation(
     projectId: issue.projectId,
     issueId: id,
   });
+
+  // Only for an edge that's actually new — repicking the same pair and type
+  // is a no-op above (`existing`), and shouldn't add a second log line.
+  // Logged on both issues it connects, each phrased from its own side
+  // (`relationKinds`) — the same "shown on both ends" the relation itself
+  // already gets in `IssueRelations`.
+  if (!existing) {
+    const relatedCtx = await issueContext(relatedId);
+    const [ownKind, relatedKind] = relationKinds(type);
+    const ownRef = issueRef(issue);
+    const relatedRef = issueRef(relatedCtx);
+    await recordIssueAudit(
+      "issue.relation.added",
+      id,
+      issue,
+      actorId,
+      relatedRef,
+      { kind: ownKind, ref: relatedRef } satisfies RelationChangeMeta,
+    );
+    await recordIssueAudit(
+      "issue.relation.added",
+      relatedId,
+      relatedCtx,
+      actorId,
+      ownRef,
+      { kind: relatedKind, ref: ownRef } satisfies RelationChangeMeta,
+    );
+  }
+
   return { ok: true };
 }
 
@@ -1692,7 +1818,7 @@ export async function removeIssueRelation(
   });
   if (!relation) return { error: "This relation no longer exists." };
 
-  await requirePermissionOr([
+  const actorId = await requirePermissionOr([
     {
       permission: "issue.update.any",
       ctx: { projectId: relation.issue.projectId },
@@ -1715,5 +1841,32 @@ export async function removeIssueRelation(
 
   await db.issueRelation.delete({ where: { id: relationId } });
   await revalidate({ workspaceId: relation.issue.project.workspaceId });
+
+  // Full ref-capable context for both ends — `relation.issue`/`.related`
+  // above only carry what the permission check needed.
+  const [fromCtx, toCtx] = await Promise.all([
+    issueContext(relation.issueId),
+    issueContext(relation.relatedId),
+  ]);
+  const [fromKind, toKind] = relationKinds(relation.type);
+  const fromRef = issueRef(fromCtx);
+  const toRef = issueRef(toCtx);
+  await recordIssueAudit(
+    "issue.relation.removed",
+    relation.issueId,
+    fromCtx,
+    actorId,
+    toRef,
+    { kind: fromKind, ref: toRef } satisfies RelationChangeMeta,
+  );
+  await recordIssueAudit(
+    "issue.relation.removed",
+    relation.relatedId,
+    toCtx,
+    actorId,
+    fromRef,
+    { kind: toKind, ref: fromRef } satisfies RelationChangeMeta,
+  );
+
   return { ok: true };
 }

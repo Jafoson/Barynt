@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { listAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { issueShareUrl } from "@/lib/issue-share";
 import {
@@ -592,6 +593,7 @@ export async function getIssuesByProject(
       parent: null,
       children: [],
       relations: [],
+      activity: [],
     })),
   );
 }
@@ -645,6 +647,7 @@ export async function getMyIssues(
       parent: null,
       children: [],
       relations: [],
+      activity: [],
     })),
   );
 }
@@ -828,15 +831,15 @@ export async function getIssueById(id: string): Promise<IssueDetail | null> {
   const access = await issueAccessFor(i);
   const attachments = await resolveIssueAttachments(i.attachments);
   const viewerId = await currentUserId();
-  const relations = await loadIssueRelations(
-    i.id,
-    i.parentId,
-    i.project.workspaceId,
-  );
+  const [relations, activity] = await Promise.all([
+    loadIssueRelations(i.id, i.parentId, i.project.workspaceId),
+    listAudit({ targetId: i.id, projectId: i.projectId }),
+  ]);
   return {
     ...withIssueAttachments(mapIssue(i, viewerId), attachments),
     access,
     ...relations,
+    activity,
   };
 }
 
@@ -878,11 +881,15 @@ export const getIssueByRef = cache(
     const access = await issueAccessFor(i);
     const attachments = await resolveIssueAttachments(i.attachments);
     const viewerId = await currentUserId();
-    const relations = await loadIssueRelations(i.id, i.parentId, workspaceId);
+    const [relations, activity] = await Promise.all([
+      loadIssueRelations(i.id, i.parentId, workspaceId),
+      listAudit({ targetId: i.id, projectId: project.id }),
+    ]);
     return {
       ...withIssueAttachments(mapIssue(i, viewerId), attachments),
       access,
       ...relations,
+      activity,
     };
   },
 );
