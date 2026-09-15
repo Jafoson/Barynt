@@ -114,6 +114,12 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          # Same fix as the app build step below (see its comment) — without
+          # this, the scan was actually built from the `migrate` stage,
+          # which deliberately keeps the full `prisma` CLI and its deps
+          # (mysql2, deepmerge-ts) instead of the pruned `runner`/app image
+          # the scan is meant to represent.
+          target: runner
           platforms: linux/amd64
           load: true
           tags: ${{ needs.vars.outputs.image }}:scan
@@ -177,6 +183,15 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
+          # Explicit, matching the `migrate` step below — without it, a
+          # multi-stage build with no --target builds the *last* stage in
+          # the Dockerfile, which is `migrate`, not `runner` (the app).
+          # That shipped the migrate image's content as `barynt:latest` on
+          # 2026-09-14 (no HEALTHCHECK, CMD running `prisma migrate deploy`
+          # instead of the server) — likely masked by GHA cache reuse in
+          # every build since the `migrate` stage was added (BARY-27) until
+          # this one finally missed the cache.
+          target: runner
           platforms: ${{ matrix.platform }}
           provenance: true
           sbom: true
