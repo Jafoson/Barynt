@@ -47,7 +47,16 @@
 # (AGENTS.md/CLAUDE.md have the full rationale for pinning it there too).
 # Bump deliberately, alongside a full test-suite run, not via a Dependabot
 # auto-merge.
-ARG BUN_VERSION=1.3.14
+#
+# Bumped from 1.3.14 (2026-09-15): 1.3.14's JSC GC has a segfault that hit
+# `bun run build` reliably inside `docker buildx build` on GitHub Actions'
+# ubuntu-24.04 runners (not locally — hardware/timing-sensitive), matching
+# multiple upstream reports of the same JSC GC instability in that release
+# (oven-sh/bun#31832, #31939, #31159). Confirmed clean on 1.4.2: local
+# `docker build --target runner` plus the full `bun run test` suite in an
+# `oven/bun:1.4.2-slim` container, specifically checking for the
+# module-cache race described below (none observed).
+ARG BUN_VERSION=1.4.2
 
 # ---------------------------------------------------------------------------
 # deps: full install (build needs the TypeScript compiler etc.)
