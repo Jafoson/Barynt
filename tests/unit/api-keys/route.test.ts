@@ -69,6 +69,13 @@ const mockWorkspaceMemberFindMany = mock();
 const mockWorkspaceMemberCreate = mock();
 const mockProjectMemberCreateMany = mock();
 const mockProjectMemberFindMany = mock();
+// Only exercised through `recordAudit`/`recordIssueAudit` (see
+// `features/issues/audit.ts`), now reached by the mutations this file
+// tests — not the subject of any test here, just needs to not be
+// `undefined` so a real write doesn't throw inside `recordAudit`'s own
+// swallowed try/catch.
+const mockUserFindUnique = mock(async () => null);
+const mockAuditLogCreate = mock(async () => ({}));
 
 // `db.$transaction` in the real mutations either takes a callback (given
 // the same `db` this test mocks) or an array of already-built promises —
@@ -127,6 +134,8 @@ const db = {
     createMany: mockProjectMemberCreateMany,
     findMany: mockProjectMemberFindMany,
   },
+  user: { findUnique: mockUserFindUnique },
+  auditLog: { create: mockAuditLogCreate },
   $transaction: mockTransaction,
 };
 

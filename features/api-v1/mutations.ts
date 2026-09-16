@@ -11,7 +11,19 @@ import {
   getIssueUnchecked,
 } from "@/features/api-v1/queries";
 import { richTextFromApiMarkdown } from "@/features/api-v1/richtext";
+import {
+  issueAuditCtx,
+  issueRef,
+  issueTypeName,
+  priorityName,
+  recordIssueAudit,
+  recordLabelsChangeAudit,
+  recordStatusChangeAudit,
+  relationKinds,
+} from "@/features/issues/audit";
 import type { ProjectVisibility } from "@/features/projects/types";
+import { recordAudit } from "@/lib/audit";
+import type { RelationChangeMeta } from "@/lib/audit/actions";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { notify } from "@/lib/notify";
@@ -44,13 +56,17 @@ import {
 // same shared helpers (`toPlainText`, `stripAttachmentAttrs`, `uid`,
 // `isClosedStatus`) so the two paths can't drift on *how* a write happens,
 // only on the plumbing around it. Known duplication, accepted for this MVP
-// slice — revisit once real API usage patterns are clear. Audit logging
-// (`recordIssueAudit` in actions.ts) stays out of scope for the same
-// reason: it's private to that file. Mention *notifications* are the one
-// exception — `notifyMentions()` below mirrors actions.ts's own helper of
-// the same name closely enough (down to the diffing on update) that
-// leaving it out would make an API-authored `@handle` a chip that quietly
-// never tells the person it named.
+// slice — revisit once real API usage patterns are clear. Mention
+// *notifications* and audit logging are the two exceptions:
+// `notifyMentions()` below mirrors actions.ts's own helper of the same name
+// closely enough (down to the diffing on update) that leaving it out would
+// make an API-authored `@handle` a chip that quietly never tells the person
+// it named, and the audit calls (`recordIssueAudit` & co., now shared via
+// `features/issues/audit.ts` instead of file-private to actions.ts) mirror
+// `updateIssue()`'s diff block field for field — otherwise an issue's
+// activity tab would silently miss whatever the MCP server or the API did
+// to it. Comments stay unaudited on both surfaces alike: there's no
+// `comment.*` action in `AUDIT_ACTIONS` at all yet.
 
 /** Who was newly mentioned in a document, minus whoever wrote it — mirrors
  *  `notifyMentions()` in `features/issues/actions.ts` (private there, so
@@ -189,10 +205,10 @@ export async function createIssueForUser(
 
   const status = input.status ?? "backlog";
 
-  const { lastIssueKey, workspaceId } = await db.project.update({
+  const { lastIssueKey, workspaceId, prefix } = await db.project.update({
     where: { id: projectId },
     data: { lastIssueKey: { increment: 1 } },
-    select: { lastIssueKey: true, workspaceId: true },
+    select: { lastIssueKey: true, workspaceId: true, prefix: true },
   });
 
   // Markdown → doc, with `@handle`/`#PREFIX-123`/`//date`/`[label|url]`
@@ -240,6 +256,36 @@ export async function createIssueForUser(
     userId,
   );
 
+  const auditCtx = {
+    key: lastIssueKey,
+    projectId,
+    project: { workspaceId, prefix },
+  };
+  await recordIssueAudit("issue.created", id, auditCtx, userId, title);
+
+  // A sub-issue set at creation is a relationship worth logging on both
+  // ends, same as `setIssueParent` does after the fact — the web app has no
+  // equivalent at creation time, but the relationship itself is identical.
+  if (input.parentId) {
+    const newParent = await issueAuditCtx(input.parentId);
+    if (newParent) {
+      await recordIssueAudit(
+        "issue.parent.set",
+        id,
+        auditCtx,
+        userId,
+        issueRef(newParent),
+      );
+      await recordIssueAudit(
+        "issue.child.added",
+        input.parentId,
+        newParent,
+        userId,
+        issueRef(auditCtx),
+      );
+    }
+  }
+
   return { ok: true, data };
 }
 
@@ -265,15 +311,21 @@ export async function updateIssueForUser(
   const issue = await db.issue.findUnique({
     where: { id: issueId },
     select: {
+      key: true,
+      title: true,
       projectId: true,
       reporterId: true,
       assigneeId: true,
       status: true,
+      priority: true,
+      type: true,
+      labels: true,
+      parentId: true,
       closedAt: true,
       // Only read for the mention diff below (`mentionedUserIds`) — the
       // rest of this function never looks at the current description.
       description: true,
-      project: { select: { workspaceId: true } },
+      project: { select: { workspaceId: true, prefix: true } },
     },
   });
   if (!issue) return fail(404);
@@ -349,6 +401,159 @@ export async function updateIssueForUser(
       },
       userId,
     );
+  }
+
+  // ── Broadly log what changed ──
+  // Mirrors the diff block in `updateIssue()` (`features/issues/actions.ts`)
+  // field for field, so an edit looks the same in the activity tab whether
+  // it came from the app, the MCP server, or the public API.
+  const auditCtx = {
+    key: issue.key,
+    projectId: issue.projectId,
+    title: issue.title,
+    project: issue.project,
+  };
+
+  if (patch.assignee !== undefined && patch.assignee !== issue.assigneeId) {
+    if (patch.assignee) {
+      const [assignee, previous] = await Promise.all([
+        db.user.findUnique({
+          where: { id: patch.assignee },
+          select: { firstName: true, lastName: true, color: true },
+        }),
+        issue.assigneeId
+          ? db.user.findUnique({
+              where: { id: issue.assigneeId },
+              select: { firstName: true, lastName: true },
+            })
+          : null,
+      ]);
+      const assigneeName = assignee
+        ? `${assignee.firstName} ${assignee.lastName}`.trim()
+        : patch.assignee;
+      const previousName = previous
+        ? `${previous.firstName} ${previous.lastName}`.trim()
+        : null;
+      await recordIssueAudit(
+        "issue.assigned",
+        issueId,
+        auditCtx,
+        userId,
+        previousName ? `${previousName} → ${assigneeName}` : assigneeName,
+        undefined,
+        assignee?.color ?? null,
+      );
+    } else {
+      await recordIssueAudit("issue.unassigned", issueId, auditCtx, userId);
+    }
+  }
+
+  if (patch.title !== undefined && patch.title !== issue.title) {
+    await recordIssueAudit(
+      "issue.title.changed",
+      issueId,
+      auditCtx,
+      userId,
+      `${issue.title} → ${patch.title}`,
+    );
+  }
+
+  if (
+    doc !== null &&
+    JSON.stringify(doc) !== JSON.stringify(issue.description)
+  ) {
+    await recordIssueAudit(
+      "issue.description.changed",
+      issueId,
+      auditCtx,
+      userId,
+    );
+  }
+
+  if (patch.status !== undefined && patch.status !== issue.status) {
+    await recordStatusChangeAudit(
+      issueId,
+      auditCtx,
+      userId,
+      issue.status,
+      patch.status,
+    );
+  }
+
+  if (patch.priority !== undefined && patch.priority !== issue.priority) {
+    const [fromName, toName] = await Promise.all([
+      priorityName(issue.priority),
+      priorityName(patch.priority),
+    ]);
+    await recordIssueAudit(
+      "issue.priority.changed",
+      issueId,
+      auditCtx,
+      userId,
+      `${fromName ?? issue.priority} → ${toName ?? patch.priority}`,
+      { from: issue.priority, to: patch.priority },
+    );
+  }
+
+  if (patch.type !== undefined && patch.type !== issue.type) {
+    const [fromName, toName] = await Promise.all([
+      issueTypeName(issue.type),
+      issueTypeName(patch.type),
+    ]);
+    await recordIssueAudit(
+      "issue.type.changed",
+      issueId,
+      auditCtx,
+      userId,
+      `${fromName ?? issue.type} → ${toName ?? patch.type}`,
+      { from: issue.type, to: patch.type },
+    );
+  }
+
+  if (patch.labels !== undefined) {
+    await recordLabelsChangeAudit(
+      issueId,
+      auditCtx,
+      userId,
+      issue.labels,
+      patch.labels,
+    );
+  }
+
+  if (patch.parentId !== undefined && patch.parentId !== issue.parentId) {
+    const [newParent, oldParent] = await Promise.all([
+      patch.parentId ? issueAuditCtx(patch.parentId) : Promise.resolve(null),
+      issue.parentId ? issueAuditCtx(issue.parentId) : Promise.resolve(null),
+    ]);
+    if (newParent) {
+      await recordIssueAudit(
+        "issue.parent.set",
+        issueId,
+        auditCtx,
+        userId,
+        oldParent
+          ? `${issueRef(oldParent)} → ${issueRef(newParent)}`
+          : issueRef(newParent),
+      );
+      await recordIssueAudit(
+        "issue.child.added",
+        patch.parentId as string,
+        newParent,
+        userId,
+        issueRef(auditCtx),
+      );
+    } else if (patch.parentId === null) {
+      await recordIssueAudit("issue.parent.cleared", issueId, auditCtx, userId);
+    }
+    if (oldParent) {
+      await recordIssueAudit(
+        "issue.child.removed",
+        issue.parentId as string,
+        oldParent,
+        userId,
+        issueRef(auditCtx),
+      );
+    }
   }
 
   return { ok: true, data: { id: issueId } };
@@ -433,6 +638,37 @@ export async function addIssueRelationForUser(
       },
     }));
 
+  // Only for an edge that's actually new — same as `addIssueRelation()`
+  // (`features/issues/actions.ts`), which this mirrors. Logged on both
+  // issues it connects, each phrased from its own side.
+  if (!existing) {
+    const [ownCtx, relatedCtx] = await Promise.all([
+      issueAuditCtx(issueId),
+      issueAuditCtx(relatedId),
+    ]);
+    if (ownCtx && relatedCtx) {
+      const [ownKind, relatedKind] = relationKinds(input.type);
+      const ownRef = issueRef(ownCtx);
+      const relatedRef = issueRef(relatedCtx);
+      await recordIssueAudit(
+        "issue.relation.added",
+        issueId,
+        ownCtx,
+        userId,
+        relatedRef,
+        { kind: ownKind, ref: relatedRef } satisfies RelationChangeMeta,
+      );
+      await recordIssueAudit(
+        "issue.relation.added",
+        relatedId,
+        relatedCtx,
+        userId,
+        ownRef,
+        { kind: relatedKind, ref: ownRef } satisfies RelationChangeMeta,
+      );
+    }
+  }
+
   return { ok: true, data: { id: row.id } };
 }
 
@@ -479,6 +715,35 @@ export async function removeIssueRelationForUser(
   if (!allowed) return fail(404);
 
   await db.issueRelation.delete({ where: { id: relationId } });
+
+  // Same "shown on both ends" treatment as `removeIssueRelation()`
+  // (`features/issues/actions.ts`), which this mirrors.
+  const [fromCtx, toCtx] = await Promise.all([
+    issueAuditCtx(relation.issueId),
+    issueAuditCtx(relation.relatedId),
+  ]);
+  if (fromCtx && toCtx) {
+    const [fromKind, toKind] = relationKinds(relation.type);
+    const fromRef = issueRef(fromCtx);
+    const toRef = issueRef(toCtx);
+    await recordIssueAudit(
+      "issue.relation.removed",
+      relation.issueId,
+      fromCtx,
+      userId,
+      toRef,
+      { kind: fromKind, ref: toRef } satisfies RelationChangeMeta,
+    );
+    await recordIssueAudit(
+      "issue.relation.removed",
+      relation.relatedId,
+      toCtx,
+      userId,
+      fromRef,
+      { kind: toKind, ref: fromRef } satisfies RelationChangeMeta,
+    );
+  }
+
   return { ok: true, data: { id: relationId } };
 }
 
@@ -704,6 +969,14 @@ export async function createLabelForUser(
     select: { id: true, name: true, slug: true, color: true, projectId: true },
   });
 
+  await recordAudit({
+    action: "label.created",
+    actorId: userId,
+    target: { type: "label", id: label.id, label: label.name },
+    workspaceId: effectiveWorkspaceId,
+    projectId: input.projectId ?? null,
+  });
+
   return { ok: true, data: label };
 }
 
@@ -759,6 +1032,14 @@ export async function deleteLabelForUser(
     ),
     db.label.delete({ where: { id: labelId } }),
   ]);
+
+  await recordAudit({
+    action: "label.deleted",
+    actorId: userId,
+    target: { type: "label", id: labelId, label: scoped.label.name },
+    workspaceId: scoped.label.workspaceId,
+    projectId: scoped.label.projectId,
+  });
 
   return { ok: true, data: { id: labelId } };
 }
