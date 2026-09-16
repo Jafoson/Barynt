@@ -25,10 +25,12 @@ import { useHasOpenModal } from "@/lib/context";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import type { IssueDetail } from "@/types";
 import {
+  DueDateCell,
   LabelsCell,
   PriorityCell,
   ProjectCell,
   StatusCell,
+  StoryPointsCell,
   TypeCell,
   UpdatedCell,
 } from "./components/IssueCells";
@@ -280,6 +282,18 @@ export function ListView({
       id: "assignee",
       align: "end",
       cell: (issue) => <AssigneePicker issue={issue} members={members} />,
+    },
+    {
+      id: "storyPoints",
+      width: "max-content",
+      align: "end",
+      cell: (issue) => <StoryPointsCell issue={issue} />,
+    },
+    {
+      id: "dueDate",
+      width: "max-content",
+      align: "end",
+      cell: (issue) => <DueDateCell issue={issue} />,
     },
     {
       id: "updated",

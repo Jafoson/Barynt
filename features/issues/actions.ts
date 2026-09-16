@@ -14,6 +14,10 @@ import {
   recordStatusChangeAudit,
   relationKinds,
 } from "@/features/issues/audit";
+import {
+  ESTIMATE_UNIT_ABBR,
+  hoursToEstimate,
+} from "@/features/issues/estimate";
 import { searchWorkspaceIssues } from "@/features/issues/queries";
 import type { IssuePatch } from "@/features/issues/types";
 import { recordAudit } from "@/lib/audit";
@@ -52,6 +56,7 @@ import { isValidEmail } from "@/lib/utils/parse-emails";
 import { fireWebhookEvent } from "@/lib/webhooks/deliver";
 import { isClosedStatus } from "@/lib/workspace-defaults";
 import type {
+  EstimateUnit,
   IssueAttachment,
   IssueRelationKind,
   SearchableIssue,
@@ -140,6 +145,10 @@ async function issueContext(id: string) {
       type: true,
       labels: true,
       closedAt: true,
+      dueDate: true,
+      storyPoints: true,
+      estimateHours: true,
+      estimateUnit: true,
       title: true,
       description: true,
       shareToken: true,
@@ -320,6 +329,18 @@ export async function updateIssue(id: string, patch: IssuePatch) {
       ...(patch.assignee !== undefined && { assigneeId: patch.assignee }),
       ...(patch.labels !== undefined && { labels: patch.labels }),
       ...(patch.title !== undefined && { title: patch.title }),
+      ...(patch.dueDate !== undefined && {
+        dueDate: patch.dueDate === null ? null : new Date(patch.dueDate),
+      }),
+      ...(patch.storyPoints !== undefined && {
+        storyPoints: patch.storyPoints,
+      }),
+      ...(patch.estimateHours !== undefined && {
+        estimateHours: patch.estimateHours,
+      }),
+      ...(patch.estimateUnit !== undefined && {
+        estimateUnit: patch.estimateUnit,
+      }),
       // The document and its derived plain text belong together — otherwise
       // search would run against a stale state. `stripAttachmentAttrs`
       // strips back off the attachment attributes (url, name, mimeType,
@@ -476,6 +497,65 @@ export async function updateIssue(id: string, patch: IssuePatch) {
       actorId,
       issue.labels,
       patch.labels,
+    );
+  }
+
+  if (
+    patch.dueDate !== undefined &&
+    patch.dueDate !== (issue.dueDate ? issue.dueDate.getTime() : null)
+  ) {
+    const fmt = (ms: number | null) =>
+      ms === null ? "—" : new Date(ms).toISOString().slice(0, 10);
+    await recordIssueAudit(
+      "issue.dueDate.changed",
+      id,
+      issue,
+      actorId,
+      `${fmt(issue.dueDate ? issue.dueDate.getTime() : null)} → ${fmt(patch.dueDate)}`,
+      {
+        from: issue.dueDate ? issue.dueDate.getTime() : null,
+        to: patch.dueDate,
+      },
+    );
+  }
+
+  if (
+    patch.storyPoints !== undefined &&
+    patch.storyPoints !== issue.storyPoints
+  ) {
+    await recordIssueAudit(
+      "issue.storyPoints.changed",
+      id,
+      issue,
+      actorId,
+      `${issue.storyPoints ?? "—"} → ${patch.storyPoints ?? "—"}`,
+      { from: issue.storyPoints, to: patch.storyPoints },
+    );
+  }
+
+  if (
+    patch.estimateHours !== undefined &&
+    patch.estimateHours !== issue.estimateHours
+  ) {
+    // Each side in the unit it actually had/gets — a value changed from
+    // "2 days" to "20 hours" should read as such, not as two numbers that
+    // both happen to be labeled the same unit.
+    const fromUnit = (issue.estimateUnit as EstimateUnit | null) ?? "hours";
+    const toUnit =
+      (patch.estimateUnit !== undefined
+        ? patch.estimateUnit
+        : (issue.estimateUnit as EstimateUnit | null)) ?? "hours";
+    const fmt = (hours: number | null, unit: EstimateUnit) =>
+      hours === null
+        ? "—"
+        : `${hoursToEstimate(hours, unit)}${ESTIMATE_UNIT_ABBR[unit]}`;
+    await recordIssueAudit(
+      "issue.estimateHours.changed",
+      id,
+      issue,
+      actorId,
+      `${fmt(issue.estimateHours, fromUnit)} → ${fmt(patch.estimateHours, toUnit)}`,
+      { from: issue.estimateHours, to: patch.estimateHours },
     );
   }
 
@@ -662,6 +742,13 @@ export async function createIssue(data: {
   type: string;
   projectId: string;
   reporterId: string;
+  /** Epoch ms — the composer (`CreateIssueModal`) doesn't set these today;
+   *  kept optional so a future form field can without another signature
+   *  change. */
+  dueDate?: number | null;
+  storyPoints?: number | null;
+  estimateHours?: number | null;
+  estimateUnit?: EstimateUnit | null;
 }) {
   // The reporter is always the logged-in user — not the client parameter.
   const userId = await requirePermission("issue.create", {
@@ -696,6 +783,11 @@ export async function createIssue(data: {
       projectId: data.projectId,
       reporterId: userId,
       rank: Date.now(),
+      dueDate: data.dueDate ? new Date(data.dueDate) : null,
+      storyPoints: data.storyPoints ?? null,
+      estimateHours: data.estimateHours ?? null,
+      estimateUnit:
+        data.estimateHours != null ? (data.estimateUnit ?? "hours") : null,
     },
   });
 

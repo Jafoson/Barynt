@@ -10,6 +10,12 @@ import type { SearchableIssue } from "./workspace";
  *  every other enum in this file. */
 export type ContentSource = "APP" | "API" | "MCP";
 
+/** Unit a time estimate was entered in (BARY-4) — `Issue.estimateHours`
+ *  itself always stores the value normalized to hours; this says which
+ *  unit to redisplay it in (see `features/issues/estimate.ts` for the
+ *  conversion). `null` exactly when `estimateHours` is `null`. */
+export type EstimateUnit = "hours" | "days" | "weeks" | "months" | "years";
+
 export interface Status {
   id: string;
   name: string;
@@ -111,6 +117,16 @@ export interface Issue {
    *  variables that never reach the browser. */
   shareUrl: string | null;
   source: ContentSource;
+  /** Epoch ms, same convention as `created`/`updated` — `null` when unset. */
+  dueDate: number | null;
+  /** Story points (BARY-4) — typically a Fibonacci value (1/2/3/5/8/13),
+   *  but not enforced server-side. Independent of `estimateHours`: an issue
+   *  can carry either, both, or neither. */
+  storyPoints: number | null;
+  /** Time estimate, normalized to hours (BARY-4), e.g. `2.5`. */
+  estimateHours: number | null;
+  /** Which unit `estimateHours` was entered in — `null` iff `estimateHours` is. */
+  estimateUnit: EstimateUnit | null;
 }
 
 /**

@@ -133,6 +133,17 @@
     "createdVia": "Erstellt über {source}",
     "unassigned": "Nicht zugewiesen",
     "none": "Keine",
+    "planning": "Planung",
+    "storyPoints": "Story Points",
+    "dueDate": "Fälligkeitsdatum",
+    "estimateHours": "Zeitschätzung",
+    "noEstimate": "Keine Schätzung",
+    "noDueDate": "Kein Datum",
+    "estimateUnitHours": "Stunden",
+    "estimateUnitDays": "Tage",
+    "estimateUnitWeeks": "Wochen",
+    "estimateUnitMonths": "Monate",
+    "estimateUnitYears": "Jahre",
     "name": "Name",
     "email": "E-Mail",
     "password": "Passwort",
@@ -641,7 +652,13 @@
     "priorities": "{count, plural, one {# Priorität} other {# Prioritäten}}",
     "people": "{count, plural, one {# Person} other {# Personen}}",
     "projects": "{count, plural, one {# Projekt} other {# Projekte}}",
-    "labels": "{count, plural, one {# Label} other {# Labels}}"
+    "labels": "{count, plural, one {# Label} other {# Labels}}",
+    "storyPoints": "{count, plural, one {# Story Points} other {# Story Points}}",
+    "dueDates": "{count} Fälligkeit",
+    "dueDateOverdue": "Überfällig",
+    "dueDateToday": "Heute fällig",
+    "dueDateWeek": "Diese Woche fällig",
+    "dueDateNone": "Ohne Fälligkeitsdatum"
   },
   "toast": {
     "issueCreated": "Aufgabe erstellt",
@@ -1153,6 +1170,9 @@
       "issueAttachmentRemoved": "Anhang entfernt",
       "issueCommentAdded": "Kommentar hinzugefügt",
       "issueCommentRemoved": "Kommentar entfernt",
+      "issueDueDateChanged": "Fälligkeitsdatum geändert",
+      "issueStoryPointsChanged": "Story Points geändert",
+      "issueEstimateHoursChanged": "Zeitschätzung geändert",
       "labelCreated": "Label angelegt",
       "labelDeleted": "Label gelöscht"
     }

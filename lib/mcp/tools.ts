@@ -406,6 +406,29 @@ export function registerBaryntTools(server: McpServer): void {
           .nullable()
           .optional()
           .describe("Makes the new issue a sub-issue of this one right away."),
+        dueDate: z
+          .string()
+          .nullable()
+          .optional()
+          .describe('ISO 8601 date, e.g. "2026-09-20".'),
+        storyPoints: z
+          .number()
+          .int()
+          .nullable()
+          .optional()
+          .describe("Typically a Fibonacci value (1/2/3/5/8/13)."),
+        estimateHours: z
+          .number()
+          .nullable()
+          .optional()
+          .describe("Normalized to hours, e.g. 2.5."),
+        estimateUnit: z
+          .enum(["hours", "days", "weeks", "months", "years"])
+          .nullable()
+          .optional()
+          .describe(
+            "Which unit estimateHours was entered in. Defaults to hours.",
+          ),
       }),
     },
     async ({ projectId, ...input }, ctx) => {
@@ -446,7 +469,7 @@ export function registerBaryntTools(server: McpServer): void {
     {
       title: "Update issue",
       description:
-        "Update an issue's title, description, status, priority, assignee, labels, type, or parent.",
+        "Update an issue's title, description, status, priority, assignee, labels, type, parent, due date, story points, or time estimate.",
       inputSchema: z.object({
         issueId: z.string(),
         title: z.string().optional(),
@@ -467,6 +490,29 @@ export function registerBaryntTools(server: McpServer): void {
           .optional()
           .describe(
             "Sets the issue's parent (sub-issue of); `null` clears it.",
+          ),
+        dueDate: z
+          .string()
+          .nullable()
+          .optional()
+          .describe('ISO 8601 date, e.g. "2026-09-20"; `null` clears it.'),
+        storyPoints: z
+          .number()
+          .int()
+          .nullable()
+          .optional()
+          .describe("Typically a Fibonacci value (1/2/3/5/8/13)."),
+        estimateHours: z
+          .number()
+          .nullable()
+          .optional()
+          .describe("Normalized to hours, e.g. 2.5. `null` clears it."),
+        estimateUnit: z
+          .enum(["hours", "days", "weeks", "months", "years"])
+          .nullable()
+          .optional()
+          .describe(
+            "Relabels estimateHours's display unit. Defaults to hours when set alongside a new estimateHours.",
           ),
       }),
     },

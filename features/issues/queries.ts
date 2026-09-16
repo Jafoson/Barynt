@@ -19,6 +19,7 @@ import type { PMDoc } from "@/lib/richtext/types";
 import { resolveAttachmentUrl, resolveAvatarUrl } from "@/lib/storage";
 import type {
   ContentSource,
+  EstimateUnit,
   Issue,
   IssueAccess,
   IssueAttachment,
@@ -57,6 +58,10 @@ function mapIssue(
     projectId: string;
     created: Date;
     updated: Date;
+    dueDate: Date | null;
+    storyPoints: number | null;
+    estimateHours: number | null;
+    estimateUnit: string | null;
     source: ContentSource;
     comments: {
       id: string;
@@ -89,6 +94,10 @@ function mapIssue(
     project: i.projectId,
     created: i.created.getTime(),
     updated: i.updated.getTime(),
+    dueDate: i.dueDate ? i.dueDate.getTime() : null,
+    storyPoints: i.storyPoints,
+    estimateHours: i.estimateHours,
+    estimateUnit: i.estimateUnit as EstimateUnit | null,
     source: i.source,
     comments: i.comments.map((c) => ({
       id: c.id,
@@ -414,6 +423,45 @@ export interface IssueFilters {
   /** Only populated in cross-project views (see `getMyIssues`). */
   project?: string;
   q?: string;
+  /** Comma-separated exact values, e.g. `1,2,3` — no catalog to translate
+   *  through (BARY-4), unlike `priority`/`label`/`assignee`. */
+  storyPoints?: string;
+  /** Comma-separated buckets: `overdue`, `today`, `week`, `none` (BARY-4).
+   *  Matches OR'd together — "overdue or has no due date" is a valid
+   *  combination, same as picking several statuses at once. */
+  dueDate?: string;
+}
+
+/** `dueDate` bucket → the `Issue.dueDate` condition it stands for, evaluated
+ *  against "now" at request time. `week` includes `today` and `overdue`
+ *  stays exclusive of it — the three together plus `none` cover every
+ *  issue exactly once, matching how a status filter's options are also
+ *  mutually exclusive by default (picking several is still a union, same
+ *  as any other multi-select here). */
+function dueDateBucketWhere(bucket: string): Record<string, unknown> | null {
+  const now = new Date();
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  );
+  const startOfTomorrow = new Date(startOfToday);
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+  const startOfNextWeek = new Date(startOfToday);
+  startOfNextWeek.setDate(startOfNextWeek.getDate() + 7);
+
+  switch (bucket) {
+    case "overdue":
+      return { dueDate: { lt: startOfToday } };
+    case "today":
+      return { dueDate: { gte: startOfToday, lt: startOfTomorrow } };
+    case "week":
+      return { dueDate: { gte: startOfToday, lt: startOfNextWeek } };
+    case "none":
+      return { dueDate: null };
+    default:
+      return null;
+  }
 }
 
 /**
@@ -535,19 +583,40 @@ async function resolveIssueFilters(
   // which rows show up, it doesn't reshuffle a manually-ordered board.
   const matchedIds = q ? await searchIssueIds(q) : null;
 
+  const storyPointsList = list(filters.storyPoints)
+    .map(Number)
+    .filter((n) => Number.isFinite(n));
+  const dueDateConditions = list(filters.dueDate)
+    .map(dueDateBucketWhere)
+    .filter((c): c is Record<string, unknown> => c !== null);
+
+  // Combined via `AND` rather than spread into one object: `q` and
+  // `dueDate` each contribute their own `OR` clause, and a plain object
+  // can only hold one key named `OR` — the second would silently
+  // overwrite the first.
+  const conditions: Record<string, unknown>[] = [
+    ...(statuses.length ? [{ status: { in: statuses } }] : []),
+    ...(priorities.length ? [{ priority: { in: priorities } }] : []),
+    ...(assignees.length ? [{ assigneeId: { in: assignees } }] : []),
+    ...(labels.length ? [{ labels: { hasSome: labels } }] : []),
+    ...(storyPointsList.length
+      ? [{ storyPoints: { in: storyPointsList } }]
+      : []),
+    ...(dueDateConditions.length ? [{ OR: dueDateConditions }] : []),
+    ...(q
+      ? [
+          {
+            OR: [
+              { id: { in: matchedIds ? [...matchedIds.keys()] : [] } },
+              ...(key !== undefined ? [{ key }] : []),
+            ],
+          },
+        ]
+      : []),
+  ];
+
   return {
-    where: {
-      ...(statuses.length && { status: { in: statuses } }),
-      ...(priorities.length && { priority: { in: priorities } }),
-      ...(assignees.length && { assigneeId: { in: assignees } }),
-      ...(labels.length && { labels: { hasSome: labels } }),
-      ...(q && {
-        OR: [
-          { id: { in: matchedIds ? [...matchedIds.keys()] : [] } },
-          ...(key !== undefined ? [{ key }] : []),
-        ],
-      }),
-    },
+    where: conditions.length ? { AND: conditions } : {},
     projectIds: projectRows.length ? projectRows.map((p) => p.id) : null,
   };
 }

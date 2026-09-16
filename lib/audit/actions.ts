@@ -84,6 +84,9 @@ export const AUDIT_ACTIONS = {
   "issue.attachment.removed": "Attachment removed",
   "issue.comment.added": "Comment added",
   "issue.comment.removed": "Comment removed",
+  "issue.dueDate.changed": "Due date changed",
+  "issue.storyPoints.changed": "Story points changed",
+  "issue.estimateHours.changed": "Time estimate changed",
   "label.created": "Label created",
   "label.deleted": "Label deleted",
 } as const;

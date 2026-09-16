@@ -223,6 +223,10 @@ const issueSelect = {
   created: true,
   updated: true,
   closedAt: true,
+  dueDate: true,
+  storyPoints: true,
+  estimateHours: true,
+  estimateUnit: true,
   source: true,
   project: { select: projectRefSelect },
   parent: { select: issueRefSelect },
@@ -257,6 +261,13 @@ export interface ApiIssue {
   created: Date;
   updated: Date;
   closedAt: Date | null;
+  dueDate: Date | null;
+  storyPoints: number | null;
+  estimateHours: number | null;
+  /** "hours" | "days" | "weeks" | "months" | "years" (`EstimateUnit`) — a
+   *  display hint for `estimateHours`, which itself always stays a
+   *  normalized hour value. */
+  estimateUnit: string | null;
   source: ApiContentSource;
   /** `null` for a top-level issue. */
   parent: ApiIssueRef | null;
@@ -307,6 +318,10 @@ async function mapApiIssue(
     created: row.created,
     updated: row.updated,
     closedAt: row.closedAt,
+    dueDate: row.dueDate,
+    storyPoints: row.storyPoints,
+    estimateHours: row.estimateHours,
+    estimateUnit: row.estimateUnit,
     source: row.source,
     parent,
     children,

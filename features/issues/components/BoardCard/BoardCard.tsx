@@ -6,7 +6,9 @@ import { type CSSProperties, useRef, useState } from "react";
 import { Label } from "@/components/ui/atoms/Label/Label";
 import { AssigneePicker } from "@/features/issues/components/AssigneePicker/AssigneePicker";
 import {
+  DueDateBadge,
   PriorityIcon,
+  StoryPointsBadge,
   TypeIcon,
 } from "@/features/issues/components/IssueIcons/IssueIcons";
 import { IssueTitleField } from "@/features/issues/components/IssueTitleField/IssueTitleField";
@@ -273,6 +275,10 @@ export function BoardCard({
       <div className={styles.footer}>
         <PriorityIcon priority={issue.priority} size={14} />
         <span className={styles.id}>{identifier}</span>
+        {issue.storyPoints !== null && (
+          <StoryPointsBadge points={issue.storyPoints} />
+        )}
+        {issue.dueDate !== null && <DueDateBadge dueDate={issue.dueDate} />}
         <span className={styles.time} suppressHydrationWarning>
           {timeAgo(issue.updated)}
         </span>

@@ -133,6 +133,17 @@
     "createdVia": "Created via {source}",
     "unassigned": "Unassigned",
     "none": "None",
+    "planning": "Planning",
+    "storyPoints": "Story points",
+    "dueDate": "Due date",
+    "estimateHours": "Time estimate",
+    "noEstimate": "No estimate",
+    "noDueDate": "No due date",
+    "estimateUnitHours": "Hours",
+    "estimateUnitDays": "Days",
+    "estimateUnitWeeks": "Weeks",
+    "estimateUnitMonths": "Months",
+    "estimateUnitYears": "Years",
     "name": "Name",
     "email": "Email",
     "password": "Password",
@@ -641,7 +652,13 @@
     "priorities": "{count, plural, one {# priority} other {# priorities}}",
     "people": "{count, plural, one {# person} other {# people}}",
     "projects": "{count, plural, one {# project} other {# projects}}",
-    "labels": "{count, plural, one {# label} other {# labels}}"
+    "labels": "{count, plural, one {# label} other {# labels}}",
+    "storyPoints": "{count, plural, one {# story point} other {# story points}}",
+    "dueDates": "{count, plural, one {# due date filter} other {# due date filters}}",
+    "dueDateOverdue": "Overdue",
+    "dueDateToday": "Due today",
+    "dueDateWeek": "Due this week",
+    "dueDateNone": "No due date"
   },
   "toast": {
     "issueCreated": "Issue created",
@@ -1153,6 +1170,9 @@
       "issueAttachmentRemoved": "Attachment removed",
       "issueCommentAdded": "Comment added",
       "issueCommentRemoved": "Comment removed",
+      "issueDueDateChanged": "Due date changed",
+      "issueStoryPointsChanged": "Story points changed",
+      "issueEstimateHoursChanged": "Time estimate changed",
       "labelCreated": "Label created",
       "labelDeleted": "Label deleted"
     }

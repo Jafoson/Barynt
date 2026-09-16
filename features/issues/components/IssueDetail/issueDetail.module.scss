@@ -462,6 +462,31 @@
   &:hover { background: var(--surface-container-highest); }
 }
 
+/* Time-estimate popover (BARY-4): a number and its unit as two adjacent
+   controls, not crammed into one bordered box — a `<select>` needs its own
+   click target and native chrome, unlike a purely decorative prefix/suffix. */
+.estimateRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  > :first-child { flex: 1; min-width: 0; }
+}
+
+.unitSelect {
+  flex: none;
+  height: var(--control-h-sm);
+  padding: 0 6px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-sm);
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  font-size: var(--text-sm);
+  cursor: pointer;
+
+  &:focus { border-color: var(--tertiary); outline: none; }
+}
+
 /* ---------- Description ---------- */
 
 .description {
@@ -885,11 +910,13 @@
   &:hover { background: var(--surface-container-high); }
 }
 
-/* ---------- Details ---------- */
+/* ---------- Details / Planning (column layout) ---------- */
 
-/* Two pairs side by side as long as the column allows it — four separate
-   rows would be too much height for four short values. */
-.metaGrid {
+/* Rows side by side as long as the column allows it — every separate row
+   would be too much height for a handful of short values. Shared by
+   `IssueMeta` (project/creator/created/updated) and `IssuePlanning`
+   (due date/story points/estimate). */
+.rowGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 2px 20px;

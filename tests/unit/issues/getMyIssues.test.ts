@@ -34,10 +34,22 @@ const labelFindMany = db.label.findMany as ReturnType<typeof mock>;
 const projectFindMany = db.project.findMany as ReturnType<typeof mock>;
 const queryRaw = db.$queryRaw as unknown as ReturnType<typeof mock>;
 
-/** The `where` condition of the last `issue.findMany` call. */
+/**
+ * The `where` condition of the last `issue.findMany` call — flattened back
+ * into one object for these tests' convenience. `resolveIssueFilters`
+ * (`features/issues/queries.ts`) combines its per-filter conditions via
+ * `AND: [...]` rather than spreading them into one object, since two of
+ * them (the full-text search and the BARY-4 due-date buckets) each
+ * contribute their own `OR` key and a plain object can only hold one key of
+ * that name. None of the tests below exercise two `AND`-wrapped filters at
+ * once, so merging is safe here.
+ */
 function lastWhere(): Record<string, unknown> {
   const call = issueFindMany.mock.calls.at(-1)?.[0] as { where: object };
-  return call.where as Record<string, unknown>;
+  const { AND, ...rest } = call.where as Record<string, unknown> & {
+    AND?: Record<string, unknown>[];
+  };
+  return AND ? Object.assign({}, ...AND, rest) : rest;
 }
 
 describe("getMyIssues()", () => {
@@ -78,6 +90,18 @@ describe("getMyIssues()", () => {
     await getMyIssues("u-1", "ws-1", { status: "todo,in_progress" });
 
     expect(lastWhere().status).toEqual({ in: ["todo", "in_progress"] });
+  });
+
+  it("takes the story points filter from the URL (BARY-4)", async () => {
+    await getMyIssues("u-1", "ws-1", { storyPoints: "3,5" });
+
+    expect(lastWhere().storyPoints).toEqual({ in: [3, 5] });
+  });
+
+  it("takes the due date bucket filter from the URL (BARY-4)", async () => {
+    await getMyIssues("u-1", "ws-1", { dueDate: "none" });
+
+    expect(lastWhere().OR).toEqual([{ dueDate: null }]);
   });
 
   it("doesn't let `?assignee=` override who's assigned", async () => {

@@ -30,7 +30,9 @@ export type FilterKey =
   | "priority"
   | "assignee"
   | "label"
-  | "project";
+  | "project"
+  | "storyPoints"
+  | "dueDate";
 
 const FILTER_KEYS: FilterKey[] = [
   "status",
@@ -38,6 +40,8 @@ const FILTER_KEYS: FilterKey[] = [
   "assignee",
   "label",
   "project",
+  "storyPoints",
+  "dueDate",
 ];
 
 export type View = "board" | "list";
@@ -57,6 +61,12 @@ export interface FilterState {
   label: string[];
   /** Only in the "My issues" area — within a project there's nothing to narrow down. */
   project: string[];
+  /** Exact story point values — no catalog to translate through (BARY-4),
+   *  unlike `priority`/`label`/`assignee`, so the URL carries the numbers
+   *  themselves. */
+  storyPoints: number[];
+  /** Due-date buckets: `overdue`, `today`, `week`, `none` (BARY-4). */
+  dueDate: string[];
 }
 
 /** Keystrokes are cheap, navigations are not — wait for a pause before pushing. */
@@ -130,6 +140,10 @@ export function useTopbar({
     project: parse("project")
       .map((s) => projectSlugToId(projects, s))
       .filter((id): id is string => Boolean(id)),
+    storyPoints: parse("storyPoints")
+      .map(Number)
+      .filter((n) => Number.isFinite(n)),
+    dueDate: parse("dueDate"),
   };
 
   // The typed text belongs to the search box alone (see IssueSearch): it renders
@@ -151,7 +165,9 @@ export function useTopbar({
     filters.priority.length +
     filters.assignee.length +
     filters.label.length +
-    filters.project.length;
+    filters.project.length +
+    filters.storyPoints.length +
+    filters.dueDate.length;
 
   const sortKey = (searchParams.get("sort") ?? "priority") as SortKey;
 

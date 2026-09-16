@@ -2,14 +2,18 @@
 
 import { useFormatter, useTranslations } from "next-intl";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
+import { Input } from "@/components/ui/atoms/Input/Input";
 import { Label } from "@/components/ui/atoms/Label/Label";
 import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import {
+  DueDateBadge,
   LabelIcon,
   PriorityIcon,
   StatusIcon,
+  StoryPointsBadge,
   TypeIcon,
 } from "@/features/issues/components/IssueIcons/IssueIcons";
+import { ValuePopover } from "@/features/issues/components/ValuePopover/ValuePopover";
 import { useIssuePatch } from "@/features/issues/useIssuePatch";
 import type {
   Issue,
@@ -132,6 +136,122 @@ export function StatusCell({
           }}
           onClose={close}
         />
+      )}
+    </InlinePicker>
+  );
+}
+
+export function StoryPointsCell({ issue }: { issue: IssueDetail }) {
+  const t = useTranslations();
+  const { patch } = useIssuePatch(issue.id);
+
+  if (!issue.access.canEdit) {
+    return issue.storyPoints !== null ? (
+      <StoryPointsBadge points={issue.storyPoints} />
+    ) : null;
+  }
+
+  return (
+    <InlinePicker
+      width={140}
+      stop
+      trigger={
+        <button
+          type="button"
+          className={styles.tagBtn}
+          title={t("fields.storyPoints")}
+          aria-label={t("fields.storyPoints")}
+        >
+          {issue.storyPoints !== null ? (
+            <StoryPointsBadge points={issue.storyPoints} />
+          ) : (
+            <span className={styles.empty}>—</span>
+          )}
+        </button>
+      }
+    >
+      {(close) => (
+        <ValuePopover<number | null>
+          initialValue={issue.storyPoints}
+          clearable={issue.storyPoints !== null}
+          onConfirm={(value) => patch({ storyPoints: value })}
+          onClear={() => patch({ storyPoints: null })}
+          close={close}
+        >
+          {(value, setValue) => (
+            <Input
+              variant="number"
+              size="sm"
+              step={1}
+              value={value ?? ""}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setValue(raw === "" ? null : Number(raw));
+              }}
+              autoFocus
+            />
+          )}
+        </ValuePopover>
+      )}
+    </InlinePicker>
+  );
+}
+
+export function DueDateCell({ issue }: { issue: IssueDetail }) {
+  const t = useTranslations();
+  const format = useFormatter();
+  const { patch } = useIssuePatch(issue.id);
+
+  if (!issue.access.canEdit) {
+    return issue.dueDate !== null ? (
+      <DueDateBadge dueDate={issue.dueDate} />
+    ) : null;
+  }
+
+  return (
+    <InlinePicker
+      width={200}
+      stop
+      trigger={
+        <button
+          type="button"
+          className={styles.tagBtn}
+          title={
+            issue.dueDate !== null
+              ? format.dateTime(issue.dueDate, { dateStyle: "long" })
+              : t("fields.dueDate")
+          }
+          aria-label={t("fields.dueDate")}
+        >
+          {issue.dueDate !== null ? (
+            <DueDateBadge dueDate={issue.dueDate} />
+          ) : (
+            <span className={styles.empty}>—</span>
+          )}
+        </button>
+      }
+    >
+      {(close) => (
+        <ValuePopover<number | null>
+          initialValue={issue.dueDate}
+          clearable={issue.dueDate !== null}
+          onConfirm={(value) => patch({ dueDate: value })}
+          onClear={() => patch({ dueDate: null })}
+          close={close}
+        >
+          {(value, setValue) => (
+            <Input
+              variant="date"
+              size="sm"
+              value={value ? new Date(value).toISOString().slice(0, 10) : ""}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setValue(raw ? new Date(raw).getTime() : null);
+              }}
+              autoFocus
+            />
+          )}
+        </ValuePopover>
       )}
     </InlinePicker>
   );

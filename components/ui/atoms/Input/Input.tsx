@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 import { useId, useState } from "react";
 import styles from "./input.module.scss";
 
-type InputVariant = "text" | "password" | "search" | "date";
+type InputVariant = "text" | "password" | "search" | "date" | "number";
 type InputSize = "sm" | "md";
 
 /**

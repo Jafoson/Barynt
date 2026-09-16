@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
+import { useFormatter } from "next-intl";
 import styles from "./issueIcons.module.scss";
 
 /**
@@ -68,6 +69,54 @@ export function PriorityIcon({
       className={`${styles.icon} ${tone}`}
       aria-hidden="true"
     />
+  );
+}
+
+// ---- Story points badge: hash + number, same neutral tone as an id ----
+export function StoryPointsBadge({
+  points,
+  size = 12,
+}: {
+  points: number;
+  size?: number;
+}) {
+  return (
+    <span className={styles.tag} title="Story points">
+      <Icon
+        icon="lucide:hash"
+        width={size}
+        className={styles.icon}
+        aria-hidden="true"
+      />
+      {points}
+    </span>
+  );
+}
+
+// ---- Due date badge: calendar + short date, red once the day has passed ----
+export function DueDateBadge({
+  dueDate,
+  size = 12,
+}: {
+  /** Epoch ms. */
+  dueDate: number;
+  size?: number;
+}) {
+  const format = useFormatter();
+  const overdue = dueDate < Date.now();
+  return (
+    <span
+      className={overdue ? `${styles.tag} ${styles.overdue}` : styles.tag}
+      title={format.dateTime(dueDate, { dateStyle: "long" })}
+    >
+      <Icon
+        icon="lucide:calendar"
+        width={size}
+        className={styles.icon}
+        aria-hidden="true"
+      />
+      {format.dateTime(dueDate, { month: "short", day: "numeric" })}
+    </span>
   );
 }
 

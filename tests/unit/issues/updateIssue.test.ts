@@ -72,6 +72,10 @@ function issue(overrides: Partial<Record<string, unknown>> = {}) {
     type: "task",
     labels: ["l-a", "l-b"],
     closedAt: null,
+    dueDate: null as Date | null,
+    storyPoints: null as number | null,
+    estimateHours: null as number | null,
+    estimateUnit: null as string | null,
     title: "Ursprünglicher Titel",
     description: EMPTY_DOC,
     project: {
@@ -303,6 +307,83 @@ describe("updateIssue() — Audit log", () => {
   it("logs nothing when the same labels arrive just sorted differently", async () => {
     await updateIssue(ID, { labels: ["l-b", "l-a"] });
     expect(mockAuditCreate).not.toHaveBeenCalled();
+  });
+
+  it("logs a due date change (BARY-4)", async () => {
+    const dueDate = Date.parse("2026-09-20T00:00:00.000Z");
+    await updateIssue(ID, { dueDate });
+
+    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
+    const entry = mockAuditCreate.mock.calls[0][0].data;
+    expect(entry.action).toBe("issue.dueDate.changed");
+    expect(entry.targetLabel).toBe("MOB-1: — → 2026-09-20");
+    expect(entry.meta).toEqual({ from: null, to: dueDate });
+  });
+
+  it("logs nothing when the due date is patched to the same day it already has", async () => {
+    const dueDate = Date.parse("2026-09-20T00:00:00.000Z");
+    mockIssueFindUnique.mockResolvedValue(
+      issue({ dueDate: new Date(dueDate) }),
+    );
+
+    await updateIssue(ID, { dueDate });
+    expect(mockAuditCreate).not.toHaveBeenCalled();
+  });
+
+  it("logs clearing a due date (BARY-4)", async () => {
+    mockIssueFindUnique.mockResolvedValue(
+      issue({ dueDate: new Date(Date.parse("2026-09-20T00:00:00.000Z")) }),
+    );
+
+    await updateIssue(ID, { dueDate: null });
+
+    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
+    const entry = mockAuditCreate.mock.calls[0][0].data;
+    expect(entry.action).toBe("issue.dueDate.changed");
+    expect(entry.targetLabel).toBe("MOB-1: 2026-09-20 → —");
+  });
+
+  it("logs a story points change (BARY-4)", async () => {
+    await updateIssue(ID, { storyPoints: 5 });
+
+    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
+    const entry = mockAuditCreate.mock.calls[0][0].data;
+    expect(entry.action).toBe("issue.storyPoints.changed");
+    expect(entry.targetLabel).toBe("MOB-1: — → 5");
+    expect(entry.meta).toEqual({ from: null, to: 5 });
+  });
+
+  it("logs a time estimate change (BARY-4)", async () => {
+    await updateIssue(ID, { estimateHours: 2.5 });
+
+    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
+    const entry = mockAuditCreate.mock.calls[0][0].data;
+    expect(entry.action).toBe("issue.estimateHours.changed");
+    expect(entry.targetLabel).toBe("MOB-1: — → 2.5h");
+    expect(entry.meta).toEqual({ from: null, to: 2.5 });
+  });
+
+  it("logs a time estimate change in the unit it was actually entered in (BARY-4)", async () => {
+    // 16 stored hours = "2 days" — the audit line reads in that unit, not
+    // in the raw stored hours.
+    await updateIssue(ID, { estimateHours: 16, estimateUnit: "days" });
+
+    expect(mockAuditCreate).toHaveBeenCalledTimes(1);
+    const entry = mockAuditCreate.mock.calls[0][0].data;
+    expect(entry.action).toBe("issue.estimateHours.changed");
+    expect(entry.targetLabel).toBe("MOB-1: — → 2d");
+    expect(entry.meta).toEqual({ from: null, to: 16 });
+  });
+
+  it("reads the 'from' side of a time estimate change in its own stored unit (BARY-4)", async () => {
+    mockIssueFindUnique.mockResolvedValue(
+      issue({ estimateHours: 40, estimateUnit: "weeks" }),
+    );
+
+    await updateIssue(ID, { estimateHours: 80, estimateUnit: "weeks" });
+
+    const entry = mockAuditCreate.mock.calls[0][0].data;
+    expect(entry.targetLabel).toBe("MOB-1: 1w → 2w");
   });
 
   it("logs several changed aspects as separate rows each", async () => {

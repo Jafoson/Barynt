@@ -27,6 +27,7 @@ import {
 } from "./components/IssueDetailActions";
 import { IssueLabels } from "./components/IssueLabels";
 import { IssueMeta } from "./components/IssueMeta";
+import { IssuePlanning } from "./components/IssuePlanning";
 import { IssueProperties } from "./components/IssueProperties";
 import { IssueRelations } from "./components/IssueRelations";
 import { IssueSidebar } from "./components/IssueSidebar";
@@ -422,6 +423,7 @@ export function IssueDetailView({
               readOnly={!issue.access.canEdit}
               onRefresh={onRefresh}
             />
+            <IssuePlanning issue={issue} layout="column" onPatch={onPatch} />
             <IssueLabels
               issue={issue}
               data={data}

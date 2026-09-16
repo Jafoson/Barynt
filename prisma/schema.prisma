@@ -976,6 +976,32 @@ model Issue {
   /// rückwirkend veränderlich.
   closedAt DateTime?
 
+  /// Fälligkeitsdatum (BARY-4) — optional, für Sprint-/Kapazitätsplanung.
+  /// Nur der Kalendertag zählt; die Uhrzeit wird beim Setzen auf Mittag UTC
+  /// gestempelt (`features/issues/actions.ts`), damit ein Tag nicht je nach
+  /// Zeitzone des Betrachters auf den Vor- oder Folgetag rutscht.
+  dueDate DateTime?
+
+  /// Aufwandsschätzung (BARY-4) — zwei unabhängige, beide optionale Felder
+  /// statt eines gemeinsamen, weil Teams unterschiedlich schätzen und ein
+  /// Issue beides gleichzeitig tragen können soll (z. B. Story Points fürs
+  /// Sprint-Board, Stunden für die Abrechnung). Kein Bezug zueinander, keine
+  /// automatische Umrechnung.
+  /// Story Points: ganzzahlig, üblicherweise Fibonacci (1/2/3/5/8/13) —
+  /// nicht als Enum/Katalog modelliert, da die Skala nicht pro Workspace
+  /// konfigurierbar ist (anders als `priority`/`status`/`type`).
+  storyPoints Int?
+  /// Zeitschätzung, normalisiert auf Stunden (z. B. 2.5) — die eine
+  /// gespeicherte Wahrheit fürs Filtern/Sortieren/Reporting, unabhängig
+  /// davon, in welcher Einheit sie eingegeben wurde.
+  estimateHours Float?
+  /// In welcher Einheit `estimateHours` eingegeben wurde ("hours"/"days"/
+  /// "weeks"/"months"/"years", siehe `features/issues/estimate.ts`) — reine
+  /// Anzeige-Information für die Rückumrechnung (z. B. "2 Tage" statt "16
+  /// Stunden"), verändert `estimateHours` selbst nicht. `null` genau dann,
+  /// wenn `estimateHours` auch `null` ist.
+  estimateUnit String?
+
   /// Token für den öffentlichen Lese-Link (`issue.share.manage`). `null` heißt
   /// Teilen aus. Ein Feld statt eines eigenen Modells: es gibt nur einen
   /// aktiven Link pro Issue, kein Verlauf, kein Zähler — genau das, was ein
@@ -1029,6 +1055,9 @@ model Issue {
   @@index([parentId])
   // Der Durchsatz des Dashboards gruppiert je Projekt über diese Spalte.
   @@index([projectId, closedAt])
+  // Für den Fälligkeitsdatum-Filter (BARY-4) — dieselbe Form wie der
+  // closedAt-Index oben, nur fürs offene statt fürs abgeschlossene Issue.
+  @@index([projectId, dueDate])
   @@index([searchVector], type: Gin)
 }
 

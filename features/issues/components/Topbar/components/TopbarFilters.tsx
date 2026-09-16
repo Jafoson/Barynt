@@ -7,10 +7,12 @@ import type { Label, Priority, Project, Status, User } from "@/types";
 import styles from "../topbar.module.scss";
 import type { FilterKey, FilterState, IssueArea } from "../useTopbar";
 import { AssigneeFilter } from "./AssigneeFilter";
+import { DueDateFilter } from "./DueDateFilter";
 import { LabelFilter } from "./LabelFilter";
 import { PriorityFilter } from "./PriorityFilter";
 import { ProjectFilter } from "./ProjectFilter";
 import { StatusFilter } from "./StatusFilter";
+import { StoryPointsFilter } from "./StoryPointsFilter";
 
 interface TopbarFiltersProps {
   filters: FilterState;
@@ -89,6 +91,16 @@ export function TopbarFilters({
         workspaceId={workspaceId}
         onToggle={(id) => onToggle("label", id)}
         onClear={() => onClear("label")}
+      />
+      <StoryPointsFilter
+        value={filters.storyPoints}
+        onToggle={(points) => onToggle("storyPoints", points)}
+        onClear={() => onClear("storyPoints")}
+      />
+      <DueDateFilter
+        value={filters.dueDate}
+        onToggle={(bucket) => onToggle("dueDate", bucket)}
+        onClear={() => onClear("dueDate")}
       />
 
       {filterCount > 0 && (

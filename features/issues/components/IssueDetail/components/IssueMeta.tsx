@@ -110,7 +110,7 @@ export function IssueMeta({ issue, data, layout }: IssueMetaProps) {
         <Icon icon="lucide:info" width={15} aria-hidden="true" />
         <h3 className={styles.sectionTitle}>{t("fields.details")}</h3>
       </header>
-      <div className={styles.metaGrid}>{rows}</div>
+      <div className={styles.rowGrid}>{rows}</div>
     </section>
   );
 }

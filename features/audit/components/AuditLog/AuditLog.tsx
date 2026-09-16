@@ -223,6 +223,18 @@ export const AUDIT_ACTION_META = {
     icon: "lucide:message-square-x",
     message: "issueCommentRemoved",
   },
+  "issue.dueDate.changed": {
+    icon: "lucide:calendar",
+    message: "issueDueDateChanged",
+  },
+  "issue.storyPoints.changed": {
+    icon: "lucide:hash",
+    message: "issueStoryPointsChanged",
+  },
+  "issue.estimateHours.changed": {
+    icon: "lucide:hourglass",
+    message: "issueEstimateHoursChanged",
+  },
   "label.created": { icon: "lucide:tag", message: "labelCreated" },
   "label.deleted": { icon: "lucide:tag", message: "labelDeleted" },
 } as const satisfies Record<

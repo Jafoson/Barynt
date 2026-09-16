@@ -21,6 +21,11 @@ import {
   recordStatusChangeAudit,
   relationKinds,
 } from "@/features/issues/audit";
+import {
+  ESTIMATE_UNIT_ABBR,
+  ESTIMATE_UNITS,
+  hoursToEstimate,
+} from "@/features/issues/estimate";
 import type { ProjectVisibility } from "@/features/projects/types";
 import { recordAudit } from "@/lib/audit";
 import type { RelationChangeMeta } from "@/lib/audit/actions";
@@ -47,6 +52,7 @@ import {
   DEFAULT_STATUSES,
   isClosedStatus,
 } from "@/lib/workspace-defaults";
+import type { EstimateUnit } from "@/types";
 
 // Thin, `userId`-parameterized write helpers for the public API
 // (`app/api/v1`) — deliberately NOT calls into `features/issues/actions.ts`.
@@ -117,6 +123,33 @@ function closedPatch(
   return before.closedAt ? { closedAt: null } : {};
 }
 
+/** Parses a `dueDate` input string (ISO 8601) into a `Date`. `null`/`undefined`
+ *  both mean "no due date" — `createIssueForUser` doesn't need to tell them
+ *  apart (a brand-new issue has no "before" state either way);
+ *  `updateIssueForUser` only calls this once it has already checked
+ *  `patch.dueDate !== undefined`, so there `undefined` never reaches here.
+ *  The literal `"invalid"` return lets the caller turn an unparseable
+ *  string into a 422 rather than silently storing `Invalid Date`. */
+function parseDueDateInput(
+  value: string | null | undefined,
+): Date | null | "invalid" {
+  if (value === undefined || value === null) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "invalid" : date;
+}
+
+/** Same shape as `parseDueDateInput` — `undefined` means "not sent",
+ *  validated against `ESTIMATE_UNITS` (BARY-4) so a typo doesn't silently
+ *  store a unit the UI could never look up a label for. */
+function parseEstimateUnitInput(
+  value: string | null | undefined,
+): EstimateUnit | null | "invalid" {
+  if (value === undefined || value === null) return null;
+  return (ESTIMATE_UNITS as string[]).includes(value)
+    ? (value as EstimateUnit)
+    : "invalid";
+}
+
 /** Mirrors the private `chainContains` in `features/issues/actions.ts`:
  *  walks the parent chain upward from `startId`, `true` as soon as `target`
  *  appears in it — guards `updateIssueForUser`'s `parentId` patch against
@@ -179,6 +212,16 @@ export interface CreateIssueInput {
    *  "sub-issue of" relationship as `updateIssueForUser`'s `parentId`
    *  patch, just set at creation instead of after the fact. */
   parentId?: string | null;
+  /** ISO 8601 date/datetime string, e.g. `"2026-09-20"`. */
+  dueDate?: string | null;
+  /** Typically a Fibonacci value (1/2/3/5/8/13), not enforced. */
+  storyPoints?: number | null;
+  /** Normalized to hours, e.g. `2.5`. */
+  estimateHours?: number | null;
+  /** Which unit `estimateHours` was entered in — `"hours"` (default),
+   *  `"days"`, `"weeks"`, `"months"`, or `"years"`; purely a display hint,
+   *  doesn't change what `estimateHours` means. */
+  estimateUnit?: EstimateUnit | null;
 }
 
 export async function createIssueForUser(
@@ -202,6 +245,12 @@ export async function createIssueForUser(
     const invalid = await validateParentId(userId, null, input.parentId);
     if (invalid) return fail(invalid);
   }
+
+  const dueDate = parseDueDateInput(input.dueDate);
+  if (dueDate === "invalid") return fail(422);
+
+  const estimateUnit = parseEstimateUnitInput(input.estimateUnit);
+  if (estimateUnit === "invalid") return fail(422);
 
   const status = input.status ?? "backlog";
 
@@ -239,6 +288,11 @@ export async function createIssueForUser(
       reporterId: userId,
       source,
       parentId: input.parentId ?? null,
+      dueDate,
+      storyPoints: input.storyPoints ?? null,
+      estimateHours: input.estimateHours ?? null,
+      estimateUnit:
+        input.estimateHours != null ? (estimateUnit ?? "hours") : null,
     },
   });
 
@@ -301,6 +355,15 @@ export interface UpdateIssueInput {
    *  relationship shown on both ends in the app (`IssueRelations`'s
    *  "Parent"/"Sub-issues"). */
   parentId?: string | null;
+  /** ISO 8601 date/datetime string; `null` clears it. */
+  dueDate?: string | null;
+  storyPoints?: number | null;
+  /** Normalized to hours; `null` clears it (and `estimateUnit` with it). */
+  estimateHours?: number | null;
+  /** Relabels `estimateHours`'s display unit — independent of whether
+   *  `estimateHours` itself changes in the same request. Omitted alongside
+   *  a new `estimateHours` defaults to `"hours"`, same as on create. */
+  estimateUnit?: EstimateUnit | null;
 }
 
 export async function updateIssueForUser(
@@ -322,6 +385,10 @@ export async function updateIssueForUser(
       labels: true,
       parentId: true,
       closedAt: true,
+      dueDate: true,
+      storyPoints: true,
+      estimateHours: true,
+      estimateUnit: true,
       // Only read for the mention diff below (`mentionedUserIds`) — the
       // rest of this function never looks at the current description.
       description: true,
@@ -349,6 +416,16 @@ export async function updateIssueForUser(
     if (invalid) return fail(invalid);
   }
 
+  const dueDate =
+    patch.dueDate !== undefined ? parseDueDateInput(patch.dueDate) : undefined;
+  if (dueDate === "invalid") return fail(422);
+
+  const estimateUnit =
+    patch.estimateUnit !== undefined
+      ? parseEstimateUnitInput(patch.estimateUnit)
+      : undefined;
+  if (estimateUnit === "invalid") return fail(422);
+
   const doc =
     patch.description !== undefined
       ? stripAttachmentAttrs(
@@ -370,6 +447,17 @@ export async function updateIssueForUser(
       ...(patch.labels !== undefined && { labels: patch.labels }),
       ...(patch.title !== undefined && { title: patch.title }),
       ...(patch.parentId !== undefined && { parentId: patch.parentId }),
+      ...(dueDate !== undefined && { dueDate }),
+      ...(patch.storyPoints !== undefined && {
+        storyPoints: patch.storyPoints,
+      }),
+      ...(patch.estimateHours !== undefined && {
+        estimateHours: patch.estimateHours,
+        // Defaults to "hours" unless an explicit unit follows below —
+        // same rule as `createIssueForUser`.
+        estimateUnit: patch.estimateHours === null ? null : "hours",
+      }),
+      ...(estimateUnit !== undefined && { estimateUnit }),
       ...(doc !== null && {
         description: doc as unknown as Prisma.InputJsonValue,
         descriptionText: toPlainText(doc),
@@ -517,6 +605,64 @@ export async function updateIssueForUser(
       userId,
       issue.labels,
       patch.labels,
+    );
+  }
+
+  if (
+    dueDate !== undefined &&
+    (dueDate?.getTime() ?? null) !== (issue.dueDate?.getTime() ?? null)
+  ) {
+    const fmt = (d: Date | null) =>
+      d === null ? "—" : d.toISOString().slice(0, 10);
+    await recordIssueAudit(
+      "issue.dueDate.changed",
+      issueId,
+      auditCtx,
+      userId,
+      `${fmt(issue.dueDate)} → ${fmt(dueDate)}`,
+      {
+        from: issue.dueDate?.getTime() ?? null,
+        to: dueDate?.getTime() ?? null,
+      },
+    );
+  }
+
+  if (
+    patch.storyPoints !== undefined &&
+    patch.storyPoints !== issue.storyPoints
+  ) {
+    await recordIssueAudit(
+      "issue.storyPoints.changed",
+      issueId,
+      auditCtx,
+      userId,
+      `${issue.storyPoints ?? "—"} → ${patch.storyPoints ?? "—"}`,
+      { from: issue.storyPoints, to: patch.storyPoints },
+    );
+  }
+
+  if (
+    patch.estimateHours !== undefined &&
+    patch.estimateHours !== issue.estimateHours
+  ) {
+    // Each side in the unit it actually had/gets, same as `updateIssue()`
+    // (`features/issues/actions.ts`).
+    const fromUnit = (issue.estimateUnit as EstimateUnit | null) ?? "hours";
+    const toUnit =
+      (estimateUnit !== undefined
+        ? estimateUnit
+        : (issue.estimateUnit as EstimateUnit | null)) ?? "hours";
+    const fmt = (hours: number | null, unit: EstimateUnit) =>
+      hours === null
+        ? "—"
+        : `${hoursToEstimate(hours, unit)}${ESTIMATE_UNIT_ABBR[unit]}`;
+    await recordIssueAudit(
+      "issue.estimateHours.changed",
+      issueId,
+      auditCtx,
+      userId,
+      `${fmt(issue.estimateHours, fromUnit)} → ${fmt(patch.estimateHours, toUnit)}`,
+      { from: issue.estimateHours, to: patch.estimateHours },
     );
   }
 

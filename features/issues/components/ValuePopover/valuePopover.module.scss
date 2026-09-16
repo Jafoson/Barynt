@@ -1,0 +1,21 @@
+.popover {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.clear {
+  font-size: var(--text-sm);
+  color: var(--on-surface-variant);
+
+  &:hover {
+    color: var(--text);
+  }
+}

@@ -1,5 +1,6 @@
 import type { PMDoc } from "@/lib/richtext/types";
 import type {
+  EstimateUnit,
   IssueType,
   Label,
   Priority,
@@ -75,4 +76,9 @@ export interface IssuePatch {
   labels?: string[];
   title?: string;
   description?: PMDoc;
+  /** Epoch ms; `null` clears it. */
+  dueDate?: number | null;
+  storyPoints?: number | null;
+  estimateHours?: number | null;
+  estimateUnit?: EstimateUnit | null;
 }

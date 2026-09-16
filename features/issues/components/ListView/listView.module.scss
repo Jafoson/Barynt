@@ -98,6 +98,31 @@
   }
 }
 
+/* Same trigger family as `.pickerBtn`, but for a badge with visible text
+   (story points, due date) instead of a bare icon — fixed width would clip
+   it. */
+.tagBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 24px;
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  color: var(--on-surface-variant);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  transition: background 0.12s;
+
+  &:not([data-readonly]):hover {
+    background: var(--surface-container-high);
+  }
+}
+
+.empty {
+  color: var(--text-3);
+}
+
 /* ---------- Group header ---------- */
 
 /* The arrow points down when the group is open, and rotates to the side

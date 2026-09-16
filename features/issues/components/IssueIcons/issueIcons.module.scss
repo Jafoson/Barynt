@@ -24,3 +24,16 @@
   align-items: center;
   gap: 2px;
 }
+
+/* Story points / due date badges — same shape, either can carry its own
+   icon inline. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+}
+
+.overdue {
+  color: var(--error);
+}

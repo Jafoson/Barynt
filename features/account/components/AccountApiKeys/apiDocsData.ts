@@ -298,6 +298,10 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
       "created": "2026-03-01T09:12:00.000Z",
       "updated": "2026-03-04T15:40:00.000Z",
       "closedAt": null,
+      "dueDate": "2026-03-10T00:00:00.000Z",
+      "storyPoints": 5,
+      "estimateHours": 8,
+      "estimateUnit": "days",
       "parent": null,
       "children": [],
       "relations": []
@@ -341,6 +345,26 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
             type: "string | null",
             desc: "Makes the new issue a sub-issue of this one right away.",
           },
+          {
+            name: "dueDate",
+            type: "string | null",
+            desc: 'ISO 8601 date, e.g. "2026-09-20".',
+          },
+          {
+            name: "storyPoints",
+            type: "integer | null",
+            desc: "Typically a Fibonacci value (1/2/3/5/8/13), not enforced.",
+          },
+          {
+            name: "estimateHours",
+            type: "number | null",
+            desc: "Normalized to hours, e.g. 2.5.",
+          },
+          {
+            name: "estimateUnit",
+            type: '"hours" | "days" | "weeks" | "months" | "years" | null',
+            desc: 'Which unit estimateHours was entered in. Default "hours" — a display hint only, doesn\'t change what estimateHours means.',
+          },
         ],
         requestExample: `{
   "title": "Fix broken checkout flow",
@@ -370,6 +394,10 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
     "created": "2026-03-04T15:40:00.000Z",
     "updated": "2026-03-04T15:40:00.000Z",
     "closedAt": null,
+    "dueDate": null,
+    "storyPoints": null,
+    "estimateHours": null,
+    "estimateUnit": null,
     "parent": null,
     "children": [],
     "relations": []
@@ -407,6 +435,10 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
     "created": "2026-03-01T09:12:00.000Z",
     "updated": "2026-03-04T15:40:00.000Z",
     "closedAt": null,
+    "dueDate": "2026-03-10T00:00:00.000Z",
+    "storyPoints": 5,
+    "estimateHours": 8,
+    "estimateUnit": "days",
     "parent": null,
     "children": [
       { "id": "i_2b7c4d", "ref": "WEB-51", "title": "Safari-only regression", "status": "todo" }
@@ -452,6 +484,26 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
             name: "parentId",
             type: "string | null",
             desc: "Sets the issue's parent (sub-issue of); null clears it. Rejected (422) if it would create a cycle.",
+          },
+          {
+            name: "dueDate",
+            type: "string | null",
+            desc: 'ISO 8601 date, e.g. "2026-09-20"; null clears it.',
+          },
+          {
+            name: "storyPoints",
+            type: "integer | null",
+            desc: "Typically a Fibonacci value (1/2/3/5/8/13), not enforced.",
+          },
+          {
+            name: "estimateHours",
+            type: "number | null",
+            desc: "Normalized to hours, e.g. 2.5. null clears it (and estimateUnit with it).",
+          },
+          {
+            name: "estimateUnit",
+            type: '"hours" | "days" | "weeks" | "months" | "years" | null',
+            desc: 'Relabels estimateHours\'s display unit, independent of whether estimateHours itself changes in the same request. Omitted alongside a new estimateHours defaults to "hours".',
           },
         ],
         requestExample: `{

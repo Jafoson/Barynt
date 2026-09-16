@@ -8,6 +8,7 @@ import type { IssueDetail } from "@/types";
 import styles from "../issueDetail.module.scss";
 import { IssueLabels } from "./IssueLabels";
 import { IssueMeta } from "./IssueMeta";
+import { IssuePlanning } from "./IssuePlanning";
 import { IssueProperties } from "./IssueProperties";
 
 interface IssueSidebarProps {
@@ -36,14 +37,15 @@ const DEFAULT_W = 300;
 export const PAGE_SIDEBAR_W = 380;
 
 /**
- * The attributes sidebar of the two-column view — the same three blocks
+ * The attributes sidebar of the two-column view — the same four blocks
  * that appear stacked in the main column of the side panel, here just next
  * to the content and in their narrow form (`layout="aside"`).
  *
- * At the top, what you change (type, status, priority, assignee, labels);
- * at the bottom, what's fixed. How wide it is is decided by the handle on
- * its left edge. The dragged width applies for the current open view and
- * resets to the starting width the next time it's opened.
+ * At the top, what you change (type/status/priority/assignee, planning
+ * inputs, labels); at the bottom, what's fixed. How wide it is is decided
+ * by the handle on its left edge. The dragged width applies for the
+ * current open view and resets to the starting width the next time it's
+ * opened.
  */
 export function IssueSidebar({
   issue,
@@ -81,6 +83,10 @@ export function IssueSidebar({
           layout="aside"
           onPatch={onPatch}
         />
+
+        <div className={styles.divider} />
+
+        <IssuePlanning issue={issue} layout="aside" onPatch={onPatch} />
 
         <div className={styles.divider} />
 
