@@ -1151,6 +1151,8 @@
       "issueRelationRemoved": "Beziehung entfernt",
       "issueAttachmentAdded": "Anhang hinzugefügt",
       "issueAttachmentRemoved": "Anhang entfernt",
+      "issueCommentAdded": "Kommentar hinzugefügt",
+      "issueCommentRemoved": "Kommentar entfernt",
       "labelCreated": "Label angelegt",
       "labelDeleted": "Label gelöscht"
     }

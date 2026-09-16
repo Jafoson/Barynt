@@ -1151,6 +1151,8 @@
       "issueRelationRemoved": "Relation removed",
       "issueAttachmentAdded": "Attachment added",
       "issueAttachmentRemoved": "Attachment removed",
+      "issueCommentAdded": "Comment added",
+      "issueCommentRemoved": "Comment removed",
       "labelCreated": "Label created",
       "labelDeleted": "Label deleted"
     }

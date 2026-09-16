@@ -551,8 +551,10 @@ describe("GET/POST /api/v1/issues/:id/comments", () => {
   it("creates a comment, authored by the token's user", async () => {
     mockResolveApiUser.mockResolvedValue(AUTH_FULL);
     mockIssueFindUnique.mockResolvedValue({
+      key: 5,
+      title: "Some issue",
       projectId: "p-1",
-      project: { workspaceId: "ws-1" },
+      project: { workspaceId: "ws-1", prefix: "PRJ" },
     });
     mockCan.mockResolvedValue(true);
     mockCommentCreate.mockResolvedValue({ id: "c-1" });
@@ -643,7 +645,14 @@ describe("PATCH/DELETE /api/v1/comments/:id", () => {
     mockResolveApiUser.mockResolvedValue(AUTH_FULL);
     mockCommentFindUnique.mockResolvedValue({
       authorId: "u-1",
-      issue: { projectId: "p-1" },
+      issueId: "i-1",
+      body: { type: "doc", content: [] },
+      issue: {
+        key: 5,
+        title: "Some issue",
+        projectId: "p-1",
+        project: { workspaceId: "ws-1", prefix: "PRJ" },
+      },
     });
     mockCan.mockImplementation(
       async (_userId: string, permission: string) =>

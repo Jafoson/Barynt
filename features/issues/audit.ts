@@ -87,7 +87,9 @@ export async function recordIssueAudit(
     | "issue.relation.added"
     | "issue.relation.removed"
     | "issue.attachment.added"
-    | "issue.attachment.removed",
+    | "issue.attachment.removed"
+    | "issue.comment.added"
+    | "issue.comment.removed",
   id: string,
   issue: { projectId: string; project: { workspaceId: string } } & Parameters<
     typeof issueRef

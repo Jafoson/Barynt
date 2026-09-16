@@ -215,6 +215,14 @@ export const AUDIT_ACTION_META = {
     icon: "lucide:paperclip",
     message: "issueAttachmentRemoved",
   },
+  "issue.comment.added": {
+    icon: "lucide:message-square",
+    message: "issueCommentAdded",
+  },
+  "issue.comment.removed": {
+    icon: "lucide:message-square-x",
+    message: "issueCommentRemoved",
+  },
   "label.created": { icon: "lucide:tag", message: "labelCreated" },
   "label.deleted": { icon: "lucide:tag", message: "labelDeleted" },
 } as const satisfies Record<

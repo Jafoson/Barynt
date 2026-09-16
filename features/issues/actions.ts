@@ -1159,10 +1159,12 @@ export async function addComment(
   const issue = await db.issue.findUnique({
     where: { id: issueId },
     select: {
+      key: true,
+      title: true,
       projectId: true,
       assigneeId: true,
       reporterId: true,
-      project: { select: { workspaceId: true } },
+      project: { select: { workspaceId: true, prefix: true } },
     },
   });
   if (!issue) throw new PermissionError("comment.create");
@@ -1207,6 +1209,8 @@ export async function addComment(
   }
 
   const text = toPreview(body);
+  await recordIssueAudit("issue.comment.added", issueId, issue, userId, text);
+
   const mentionedIds = mentionedUserIds(body).filter((id) => id !== userId);
   await notifyMentions(
     mentionedIds,
@@ -1278,14 +1282,20 @@ export async function deleteComment(commentId: string) {
     select: {
       authorId: true,
       issueId: true,
+      body: true,
       issue: {
-        select: { projectId: true, project: { select: { workspaceId: true } } },
+        select: {
+          key: true,
+          title: true,
+          projectId: true,
+          project: { select: { workspaceId: true, prefix: true } },
+        },
       },
     },
   });
   if (!comment) throw new PermissionError("comment.delete.any");
   const ctx = { projectId: comment.issue.projectId };
-  await requirePermissionOr([
+  const actorId = await requirePermissionOr([
     { permission: "comment.delete.any", ctx },
     {
       permission: "comment.delete.own",
@@ -1294,6 +1304,13 @@ export async function deleteComment(commentId: string) {
     },
   ]);
   await db.comment.delete({ where: { id: commentId } });
+  await recordIssueAudit(
+    "issue.comment.removed",
+    comment.issueId,
+    comment.issue,
+    actorId,
+    toPreview(comment.body),
+  );
   await revalidate({
     workspaceId: comment.issue.project.workspaceId,
     projectId: comment.issue.projectId,

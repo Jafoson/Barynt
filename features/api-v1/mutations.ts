@@ -761,7 +761,12 @@ export async function createCommentForUser(
 ): Promise<MutationResult<ApiComment>> {
   const issue = await db.issue.findUnique({
     where: { id: issueId },
-    select: { projectId: true, project: { select: { workspaceId: true } } },
+    select: {
+      key: true,
+      title: true,
+      projectId: true,
+      project: { select: { workspaceId: true, prefix: true } },
+    },
   });
   if (!issue) return fail(404);
   if (!(await can(userId, "comment.create", { projectId: issue.projectId })))
@@ -805,6 +810,13 @@ export async function createCommentForUser(
       text: toPreview(doc),
     },
     userId,
+  );
+  await recordIssueAudit(
+    "issue.comment.added",
+    issueId,
+    issue,
+    userId,
+    toPreview(doc),
   );
 
   return { ok: true, data };
@@ -871,7 +883,19 @@ export async function deleteCommentForUser(
 ): Promise<MutationResult<{ id: string }>> {
   const comment = await db.comment.findUnique({
     where: { id: commentId },
-    select: { authorId: true, issue: { select: { projectId: true } } },
+    select: {
+      authorId: true,
+      issueId: true,
+      body: true,
+      issue: {
+        select: {
+          key: true,
+          title: true,
+          projectId: true,
+          project: { select: { workspaceId: true, prefix: true } },
+        },
+      },
+    },
   });
   if (!comment) return fail(404);
 
@@ -883,6 +907,13 @@ export async function deleteCommentForUser(
   if (!allowed) return fail(404);
 
   await db.comment.delete({ where: { id: commentId } });
+  await recordIssueAudit(
+    "issue.comment.removed",
+    comment.issueId,
+    comment.issue,
+    userId,
+    toPreview(comment.body),
+  );
 
   return { ok: true, data: { id: commentId } };
 }
