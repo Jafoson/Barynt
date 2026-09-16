@@ -66,11 +66,22 @@ spec:
               done
               bun prisma migrate deploy
               bun prisma/bootstrap.ts
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           env:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   {{- include "barynt.databaseUrlRef" . | nindent 18 }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraVolumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           resources:
             {{- toYaml .Values.migration.resources | nindent 12 }}
         {{- if and .Values.rustfs.enabled (not .Values.s3.existingSecret) }}
@@ -104,6 +115,10 @@ spec:
               aws --endpoint-url "$endpoint" s3 mb "s3://{{ .Values.s3.bucketIssues }}" || true
               aws --endpoint-url "$endpoint" s3api put-bucket-cors --bucket "{{ .Values.s3.bucketAvatars }}" --cors-configuration "$cors" || true
               aws --endpoint-url "$endpoint" s3api put-bucket-cors --bucket "{{ .Values.s3.bucketIssues }}" --cors-configuration "$cors" || true
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           env:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
@@ -115,6 +130,13 @@ spec:
                   {{- include "barynt.s3SecretKeyRef" . | nindent 18 }}
             - name: AWS_DEFAULT_REGION
               value: {{ .Values.s3.region | quote }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraVolumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           resources:
             {{- toYaml .Values.migration.resources | nindent 12 }}
         {{- end }}

@@ -229,9 +229,14 @@ hostAliases:
       - "idp.internal.example.com"
 ```
 
-`extraEnv`/`extraEnvFrom`/`extraVolumeMounts` landen am App-Container,
-`extraVolumes`/`hostAliases` am App-Pod — unverändert durchgereicht, keine
-Chart-seitige Sonderlogik.
+`extraEnv`/`extraEnvFrom`/`extraVolumeMounts` landen auf allen Containern
+des Pods (App, `migrate`-initContainer, `rustfs-init`) — unverändert
+durchgereicht, keine Chart-seitige Sonderlogik. `migrate` und `rustfs-init`
+sprechen dieselbe Datenbank bzw. denselben Endpunkt an wie der App-Container
+und brauchen deshalb praktisch immer dieselbe Konfiguration, z. B. einen
+internen CA-Trust-Anchor per `NODE_EXTRA_CA_CERTS` gegen ein Postgres mit
+selbstsigniertem Zertifikat. `extraVolumes`/`hostAliases` landen ohnehin am
+App-Pod und gelten damit schon für alle Container.
 
 ## Pod Security Standard "restricted"
 

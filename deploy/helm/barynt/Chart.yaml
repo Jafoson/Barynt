@@ -8,7 +8,7 @@ type: application
 # README.md "Versionierung". Kein `dependencies:`-Block: Postgres, Redis und
 # RustFS sind eigene, minimale Templates statt externer Subcharts (siehe
 # README.md "Warum keine Bitnami-Subcharts").
-version: 0.1.0
+version: 0.1.1
 appVersion: "latest"
 
 keywords:

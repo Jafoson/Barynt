@@ -320,8 +320,11 @@ migration:
 
 # Generische Escape-Hatches für alles, was der Chart nicht selbst abbildet
 # (z. B. ein interner CA-Trust-Anchor, ein Split-Horizon-DNS-Eintrag für
-# einen internen IdP) — werden unverändert an App-Pod/-Container
-# durchgereicht, ohne Chart-seitige Sonderlogik. Bleiben bewusst generisch
+# einen internen IdP) — werden unverändert an alle Container des Pods
+# durchgereicht (app, migrate-initContainer, rustfs-init), da migrate und
+# rustfs-init dieselbe Datenbank/denselben Endpunkt ansprechen und damit
+# praktisch immer dieselbe Konfiguration brauchen. extraVolumes hängt schon
+# am Pod und gilt damit ohnehin für alle Container. Bleiben bewusst generisch
 # statt eine konkrete Installation (z. B. einen bestimmten IdP-Hostnamen)
 # fest zu verdrahten.
 extraEnv: []
