@@ -141,7 +141,7 @@ jobs:
       # hochkommt (BARY-29), lässt sich nur gegen einen echten API-Server
       # beantworten, nicht per `helm template`.
       - name: Create kind cluster
-        uses: helm/kind-action@v1.10.0
+        uses: helm/kind-action@v1.15.0
         with:
           cluster_name: barynt-pss
           wait: 120s
@@ -197,7 +197,7 @@ jobs:
       # Chart-Name -> Postgres-Host ist "barynt-postgres", siehe
       # barynt.fullname).
       - name: Create kind cluster
-        uses: helm/kind-action@v1.10.0
+        uses: helm/kind-action@v1.15.0
         with:
           cluster_name: barynt-pg-secret
           wait: 120s
