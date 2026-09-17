@@ -1,0 +1,41 @@
+/* Same table-card layout as ProjectSettings — see that module's own
+   comment for why these three values deviate from the table's default. */
+.content {
+  --table-row-height: 52px;
+  --table-divider: var(--outline-variant);
+  --table-hover: transparent;
+
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 24px 32px;
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.icon {
+  flex: none;
+  color: var(--on-surface-variant);
+}
+
+.label {
+  font-size: var(--text-md);
+  font-weight: 550;
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  background: var(--error-container);
+  color: var(--on-error-container);
+  font-size: var(--text-sm);
+}

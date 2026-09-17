@@ -22,6 +22,7 @@ const projects: Project[] = [
     prefix: "FUX",
     color: "#3b82f6",
     avatarUrl: null,
+    hiddenDetailFields: [],
   },
   {
     id: "p-2",
@@ -30,6 +31,7 @@ const projects: Project[] = [
     prefix: "SID",
     color: "#22c55e",
     avatarUrl: null,
+    hiddenDetailFields: [],
   },
 ];
 
@@ -319,6 +321,7 @@ describe("Projects with the same name but different slugs", () => {
       prefix: "FUCH",
       color: "#f59e0b",
       avatarUrl: null,
+      hiddenDetailFields: [],
     },
     {
       id: "p-fuc1",
@@ -327,6 +330,7 @@ describe("Projects with the same name but different slugs", () => {
       prefix: "FUC1",
       color: "#a78bfa",
       avatarUrl: null,
+      hiddenDetailFields: [],
     },
   ];
 

@@ -15,6 +15,7 @@
     "general": "Allgemein",
     "roles": "Rollen & Rechte",
     "labels": "Labels",
+    "fields": "Felder",
     "backToWorkspace": "Zurück zum Workspace",
     "backToProject": "Zurück zu {name}",
     "breadcrumb": "Pfad",
@@ -275,7 +276,8 @@
     "colorDesc": "Die Marke des Projekts — im Board, in den Reitern und in der Seitenleiste.",
     "url": "Projekt-Adresse",
     "urlDesc": "Steht in jedem geteilten Link und ändert sich nicht mit dem Namen.",
-    "descDesc": "Ein Satz für die Projektübersicht — wofür ist es da?"
+    "descDesc": "Ein Satz für die Projektübersicht — wofür ist es da?",
+    "fieldsDesc": "Welche Felder in der Detailansicht eines Issues in diesem Projekt angezeigt werden."
   },
   "projectLabels": {
     "subtitle": "Labels, die im Projekt „{project}“ vergeben werden können.",

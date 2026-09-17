@@ -28,6 +28,16 @@ export interface ProjectSettingsView {
   canDelete: boolean;
 }
 
+/** Everything the "Fields" settings page of a project renders (BARY-31). */
+export interface ProjectFieldsView {
+  projectId: string;
+  /** Raw stored keys — resolve with `visibleDetailFields()`
+   *  (`features/projects/detail-fields.ts`), don't read directly. */
+  hiddenDetailFields: string[];
+  /** `project.update` — the only permission this page's toggle needs. */
+  canUpdate: boolean;
+}
+
 /**
  * Where the role someone holds in the project comes from:
  * `project` = their own project role from `ProjectMember`, the normal case.

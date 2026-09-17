@@ -261,6 +261,7 @@ export const getProjects = cache(
         prefix: p.prefix,
         color: p.color,
         avatarUrl: await resolveAvatarUrl(p.avatarKey),
+        hiddenDetailFields: p.hiddenDetailFields,
       })),
     );
   },

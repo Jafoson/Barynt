@@ -20,6 +20,10 @@ export interface Project {
   prefix: string;
   color: string;
   avatarUrl: string | null;
+  /** Which issue-detail fields this project has turned off (BARY-31) — raw
+   *  strings from the database; resolve with `visibleDetailFields()`
+   *  (`features/projects/detail-fields.ts`) rather than reading directly. */
+  hiddenDetailFields: string[];
 }
 
 export interface Team {

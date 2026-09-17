@@ -1,5 +1,6 @@
 import { cache } from "react";
 import type {
+  ProjectFieldsView,
   ProjectLabelRow,
   ProjectLabelsView,
   ProjectMemberRow,
@@ -204,6 +205,28 @@ export const getProjectSettingsView = cache(
       },
       canUpdate: access.has("project.update"),
       canDelete: access.has("project.delete"),
+    };
+  },
+);
+
+/** Everything the "Fields" settings page needs (BARY-31) — which issue-detail
+ *  fields this project has turned off, and whether the viewer may change
+ *  that. */
+export const getProjectFieldsView = cache(
+  async (projectId: string): Promise<ProjectFieldsView | null> => {
+    const project = await db.project.findUnique({
+      where: { id: projectId },
+      select: { hiddenDetailFields: true },
+    });
+    if (!project) return null;
+
+    const access = await accessFor(await currentUserId(), { projectId });
+    if (!access.has("project.view")) return null;
+
+    return {
+      projectId,
+      hiddenDetailFields: project.hiddenDetailFields,
+      canUpdate: access.has("project.update"),
     };
   },
 );

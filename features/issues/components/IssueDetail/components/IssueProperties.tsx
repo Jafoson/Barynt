@@ -11,6 +11,7 @@ import {
   TypeIcon,
 } from "@/features/issues/components/IssueIcons/IssueIcons";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
+import type { DetailFieldKey } from "@/features/projects/detail-fields";
 import { useHasOpenModal } from "@/lib/context";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import { fullName } from "@/lib/utils/string";
@@ -25,6 +26,9 @@ interface IssuePropertiesProps {
   issue: IssueDetail;
   data: IssueComposerData;
   layout: IssueDetailLayout;
+  /** Which of type/status/priority/assignee this project's settings show
+   *  (BARY-31, `visibleDetailFields()`). */
+  visibleFields: Set<DetailFieldKey>;
   onPatch: (patch: IssuePatch) => void;
 }
 
@@ -83,6 +87,7 @@ export function IssueProperties({
   issue,
   data,
   layout,
+  visibleFields,
   onPatch,
 }: IssuePropertiesProps) {
   const { members, statuses, priorities, issueTypes } = data;
@@ -90,20 +95,27 @@ export function IssueProperties({
   const { canEdit, canAssign } = issue.access;
   const hasOpenModal = useHasOpenModal();
 
+  const showType = visibleFields.has("type");
+  const showStatus = visibleFields.has("status");
+  const showPriority = visibleFields.has("priority");
+  const showAssignee = visibleFields.has("assignee");
+
   // Which picker a keyboard shortcut opened — not which one is open at all:
   // a plain click still runs through `InlinePicker`'s own internal state.
   // Only set while this component is mounted, i.e. only while this issue is
-  // actually showing — the shortcuts below live and die with it.
+  // actually showing — the shortcuts below live and die with it. A hidden
+  // field's shortcut is disabled the same way a lack of `canEdit` already
+  // disables it — no picker to open, so no shortcut to open it with.
   const [shortcutField, setShortcutField] = useState<ShortcutField>(null);
 
   useShortcut("s", () => setShortcutField("status"), {
-    enabled: canEdit && !hasOpenModal,
+    enabled: showStatus && canEdit && !hasOpenModal,
   });
   useShortcut("p", () => setShortcutField("priority"), {
-    enabled: canEdit && !hasOpenModal,
+    enabled: showPriority && canEdit && !hasOpenModal,
   });
   useShortcut("a", () => setShortcutField("assignee"), {
-    enabled: canAssign && !hasOpenModal,
+    enabled: showAssignee && canAssign && !hasOpenModal,
   });
   // "i" assigns to yourself directly — no picker, no precedent either way in
   // this codebase for what a second press should do, so it toggles: press
@@ -113,8 +125,10 @@ export function IssueProperties({
     "i",
     () =>
       onPatch({ assignee: issue.assignee === data.me.id ? null : data.me.id }),
-    { enabled: canAssign && !hasOpenModal },
+    { enabled: showAssignee && canAssign && !hasOpenModal },
   );
+
+  if (!showType && !showStatus && !showPriority && !showAssignee) return null;
 
   const type = issueTypes.find((x) => x.id === issue.type);
   const status = statuses.find((s) => s.id === issue.status);
@@ -125,182 +139,218 @@ export function IssueProperties({
 
   return (
     <div className={layout === "aside" ? undefined : styles.properties}>
-      <Field label={t("fields.type")} layout={layout}>
-        {canEdit ? (
-          <InlinePicker
-            width={190}
-            stop
-            trigger={
-              <button type="button" className={styles.valueBtn} data-field-nav>
-                <TypeIcon type={issue.type} size={14} color={type?.color} />
-                <span className={styles.valueText}>
-                  {type?.name ?? issue.type}
-                </span>
-              </button>
-            }
-          >
-            {(close) => (
-              <SelectMenu
-                items={issueTypes.map((x) => ({
-                  value: x.id,
-                  label: x.name,
-                  icon: <TypeIcon type={x.id} size={15} color={x.color} />,
-                }))}
-                value={issue.type}
-                onPick={(value) => {
-                  onPatch({ type: value as string });
-                  close();
-                }}
-                onClose={close}
-              />
-            )}
-          </InlinePicker>
-        ) : (
-          <ValueDisplay>
-            <TypeIcon type={issue.type} size={14} color={type?.color} />
-            <span className={styles.valueText}>{type?.name ?? issue.type}</span>
-          </ValueDisplay>
-        )}
-      </Field>
-
-      <Field label={t("fields.status")} layout={layout}>
-        {canEdit ? (
-          <InlinePicker
-            width={200}
-            stop
-            open={shortcutField === "status"}
-            onOpenChange={(open) => setShortcutField(open ? "status" : null)}
-            trigger={
-              <button type="button" className={styles.valueBtn} data-field-nav>
-                <StatusIcon
-                  status={issue.status}
-                  size={14}
-                  color={status?.color}
+      {showType && (
+        <Field label={t("fields.type")} layout={layout}>
+          {canEdit ? (
+            <InlinePicker
+              width={190}
+              stop
+              trigger={
+                <button
+                  type="button"
+                  className={styles.valueBtn}
+                  data-field-nav
+                >
+                  <TypeIcon type={issue.type} size={14} color={type?.color} />
+                  <span className={styles.valueText}>
+                    {type?.name ?? issue.type}
+                  </span>
+                </button>
+              }
+            >
+              {(close) => (
+                <SelectMenu
+                  items={issueTypes.map((x) => ({
+                    value: x.id,
+                    label: x.name,
+                    icon: <TypeIcon type={x.id} size={15} color={x.color} />,
+                  }))}
+                  value={issue.type}
+                  onPick={(value) => {
+                    onPatch({ type: value as string });
+                    close();
+                  }}
+                  onClose={close}
                 />
-                <span className={styles.valueText}>
-                  {status?.name ?? issue.status}
-                </span>
-              </button>
-            }
-          >
-            {(close) => (
-              <SelectMenu
-                items={statuses.map((s) => ({
-                  value: s.id,
-                  label: s.name,
-                  icon: <StatusIcon status={s.id} size={15} color={s.color} />,
-                }))}
-                value={issue.status}
-                onPick={(value) => {
-                  onPatch({ status: value as string });
-                  close();
-                }}
-                onClose={close}
-              />
-            )}
-          </InlinePicker>
-        ) : (
-          <ValueDisplay>
-            <StatusIcon status={issue.status} size={14} color={status?.color} />
-            <span className={styles.valueText}>
-              {status?.name ?? issue.status}
-            </span>
-          </ValueDisplay>
-        )}
-      </Field>
+              )}
+            </InlinePicker>
+          ) : (
+            <ValueDisplay>
+              <TypeIcon type={issue.type} size={14} color={type?.color} />
+              <span className={styles.valueText}>
+                {type?.name ?? issue.type}
+              </span>
+            </ValueDisplay>
+          )}
+        </Field>
+      )}
 
-      <Field label={t("fields.priority")} layout={layout}>
-        {canEdit ? (
-          <InlinePicker
-            width={190}
-            stop
-            open={shortcutField === "priority"}
-            onOpenChange={(open) => setShortcutField(open ? "priority" : null)}
-            trigger={
-              <button type="button" className={styles.valueBtn} data-field-nav>
-                <PriorityIcon priority={issue.priority} size={14} />
-                <span className={styles.valueText}>
-                  {priority?.name ?? String(issue.priority)}
-                </span>
-              </button>
-            }
-          >
-            {(close) => (
-              <SelectMenu
-                items={priorities.map((p) => ({
-                  value: p.id,
-                  label: p.name,
-                  icon: <PriorityIcon priority={p.id} size={15} />,
-                }))}
-                value={issue.priority}
-                onPick={(value) => {
-                  onPatch({ priority: value as number });
-                  close();
-                }}
-                onClose={close}
+      {showStatus && (
+        <Field label={t("fields.status")} layout={layout}>
+          {canEdit ? (
+            <InlinePicker
+              width={200}
+              stop
+              open={shortcutField === "status"}
+              onOpenChange={(open) => setShortcutField(open ? "status" : null)}
+              trigger={
+                <button
+                  type="button"
+                  className={styles.valueBtn}
+                  data-field-nav
+                >
+                  <StatusIcon
+                    status={issue.status}
+                    size={14}
+                    color={status?.color}
+                  />
+                  <span className={styles.valueText}>
+                    {status?.name ?? issue.status}
+                  </span>
+                </button>
+              }
+            >
+              {(close) => (
+                <SelectMenu
+                  items={statuses.map((s) => ({
+                    value: s.id,
+                    label: s.name,
+                    icon: (
+                      <StatusIcon status={s.id} size={15} color={s.color} />
+                    ),
+                  }))}
+                  value={issue.status}
+                  onPick={(value) => {
+                    onPatch({ status: value as string });
+                    close();
+                  }}
+                  onClose={close}
+                />
+              )}
+            </InlinePicker>
+          ) : (
+            <ValueDisplay>
+              <StatusIcon
+                status={issue.status}
+                size={14}
+                color={status?.color}
               />
-            )}
-          </InlinePicker>
-        ) : (
-          <ValueDisplay>
-            <PriorityIcon priority={issue.priority} size={14} />
-            <span className={styles.valueText}>
-              {priority?.name ?? String(issue.priority)}
-            </span>
-          </ValueDisplay>
-        )}
-      </Field>
+              <span className={styles.valueText}>
+                {status?.name ?? issue.status}
+              </span>
+            </ValueDisplay>
+          )}
+        </Field>
+      )}
 
-      <Field label={t("fields.assignee")} layout={layout}>
-        {canAssign ? (
-          <InlinePicker
-            width={220}
-            align="end"
-            stop
-            open={shortcutField === "assignee"}
-            onOpenChange={(open) => setShortcutField(open ? "assignee" : null)}
-            trigger={
-              <button type="button" className={styles.valueBtn} data-field-nav>
-                <Avatar avatar={assignee} size={20} placeholder />
-                <span className={styles.valueText}>
-                  {assignee ? fullName(assignee) : t("fields.unassigned")}
-                </span>
-              </button>
-            }
-          >
-            {(close) => (
-              <SelectMenu
-                items={[
-                  {
-                    value: null,
-                    label: t("fields.unassigned"),
-                    icon: <Avatar avatar={null} size={18} placeholder />,
-                  },
-                  ...members.map((user) => ({
-                    value: user.id,
-                    label: fullName(user),
-                    icon: <Avatar avatar={user} size={18} />,
-                  })),
-                ]}
-                value={issue.assignee}
-                onPick={(value) => {
-                  onPatch({ assignee: value as string | null });
-                  close();
-                }}
-                onClose={close}
-                searchable
-              />
-            )}
-          </InlinePicker>
-        ) : (
-          <ValueDisplay>
-            <Avatar avatar={assignee} size={20} placeholder />
-            <span className={styles.valueText}>
-              {assignee ? fullName(assignee) : t("fields.unassigned")}
-            </span>
-          </ValueDisplay>
-        )}
-      </Field>
+      {showPriority && (
+        <Field label={t("fields.priority")} layout={layout}>
+          {canEdit ? (
+            <InlinePicker
+              width={190}
+              stop
+              open={shortcutField === "priority"}
+              onOpenChange={(open) =>
+                setShortcutField(open ? "priority" : null)
+              }
+              trigger={
+                <button
+                  type="button"
+                  className={styles.valueBtn}
+                  data-field-nav
+                >
+                  <PriorityIcon priority={issue.priority} size={14} />
+                  <span className={styles.valueText}>
+                    {priority?.name ?? String(issue.priority)}
+                  </span>
+                </button>
+              }
+            >
+              {(close) => (
+                <SelectMenu
+                  items={priorities.map((p) => ({
+                    value: p.id,
+                    label: p.name,
+                    icon: <PriorityIcon priority={p.id} size={15} />,
+                  }))}
+                  value={issue.priority}
+                  onPick={(value) => {
+                    onPatch({ priority: value as number });
+                    close();
+                  }}
+                  onClose={close}
+                />
+              )}
+            </InlinePicker>
+          ) : (
+            <ValueDisplay>
+              <PriorityIcon priority={issue.priority} size={14} />
+              <span className={styles.valueText}>
+                {priority?.name ?? String(issue.priority)}
+              </span>
+            </ValueDisplay>
+          )}
+        </Field>
+      )}
+
+      {showAssignee && (
+        <Field label={t("fields.assignee")} layout={layout}>
+          {canAssign ? (
+            <InlinePicker
+              width={220}
+              align="end"
+              stop
+              open={shortcutField === "assignee"}
+              onOpenChange={(open) =>
+                setShortcutField(open ? "assignee" : null)
+              }
+              trigger={
+                <button
+                  type="button"
+                  className={styles.valueBtn}
+                  data-field-nav
+                >
+                  <Avatar avatar={assignee} size={20} placeholder />
+                  <span className={styles.valueText}>
+                    {assignee ? fullName(assignee) : t("fields.unassigned")}
+                  </span>
+                </button>
+              }
+            >
+              {(close) => (
+                <SelectMenu
+                  items={[
+                    {
+                      value: null,
+                      label: t("fields.unassigned"),
+                      icon: <Avatar avatar={null} size={18} placeholder />,
+                    },
+                    ...members.map((user) => ({
+                      value: user.id,
+                      label: fullName(user),
+                      icon: <Avatar avatar={user} size={18} />,
+                    })),
+                  ]}
+                  value={issue.assignee}
+                  onPick={(value) => {
+                    onPatch({ assignee: value as string | null });
+                    close();
+                  }}
+                  onClose={close}
+                  searchable
+                />
+              )}
+            </InlinePicker>
+          ) : (
+            <ValueDisplay>
+              <Avatar avatar={assignee} size={20} placeholder />
+              <span className={styles.valueText}>
+                {assignee ? fullName(assignee) : t("fields.unassigned")}
+              </span>
+            </ValueDisplay>
+          )}
+        </Field>
+      )}
     </div>
   );
 }

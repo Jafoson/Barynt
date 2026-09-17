@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
+import { DEFAULT_HIDDEN_DETAIL_FIELDS } from "../features/projects/detail-fields";
 import { type Prisma, PrismaClient } from "../lib/generated/prisma/client";
 import { enrollWorkspaceMembers } from "../lib/project-membership";
 import { systemRoleId } from "../lib/rbac";
@@ -1029,6 +1030,7 @@ async function main() {
         color: p.color,
         visibility,
         createdById: ref(realUserId, p.ownerId, "project owner"),
+        hiddenDetailFields: DEFAULT_HIDDEN_DETAIL_FIELDS,
       },
     });
     if (visibility === "public") {

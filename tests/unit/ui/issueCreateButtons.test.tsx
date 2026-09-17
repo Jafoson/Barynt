@@ -52,6 +52,7 @@ const PROJECTS = [
     prefix: "WEB",
     color: "#111",
     avatarUrl: null,
+    hiddenDetailFields: [],
   },
   {
     id: "p-2",
@@ -60,6 +61,7 @@ const PROJECTS = [
     prefix: "APP",
     color: "#222",
     avatarUrl: null,
+    hiddenDetailFields: [],
   },
 ];
 

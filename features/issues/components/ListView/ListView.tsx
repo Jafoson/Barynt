@@ -20,6 +20,10 @@ import { IssueTitleField } from "@/features/issues/components/IssueTitleField/Is
 import { useIssueOpen } from "@/features/issues/issue-links";
 import { rankBetween, sortByRank } from "@/features/issues/rank";
 import type { IssueComposerData } from "@/features/issues/types";
+import {
+  type DetailFieldKey,
+  visibleDetailFields,
+} from "@/features/projects/detail-fields";
 import { Link } from "@/i18n/navigation";
 import { useHasOpenModal } from "@/lib/context";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
@@ -109,6 +113,13 @@ export function ListView({
 
   const identifier = (issue: IssueDetail) =>
     `${projects.find((p) => p.id === issue.project)?.prefix ?? "?"}-${issue.key}`;
+
+  // Per row, not once for the whole table — a cross-project list ("my
+  // issues") can mix projects with different field visibility.
+  const isFieldVisible = (issue: IssueDetail, key: DetailFieldKey) => {
+    const project = projects.find((p) => p.id === issue.project);
+    return visibleDetailFields(project?.hiddenDetailFields ?? []).has(key);
+  };
 
   // The open issue is stored as an identifier in the URL — the detail view
   // uses the same source, so the matching row highlights itself without
@@ -211,7 +222,10 @@ export function ListView({
   const columns: TableColumn<IssueDetail>[] = [
     {
       id: "priority",
-      cell: (issue) => <PriorityCell issue={issue} priorities={priorities} />,
+      cell: (issue) =>
+        isFieldVisible(issue, "priority") ? (
+          <PriorityCell issue={issue} priorities={priorities} />
+        ) : null,
     },
     {
       id: "identifier",
@@ -276,7 +290,10 @@ export function ListView({
       id: "labels",
       width: "max-content",
       align: "end",
-      cell: (issue) => <LabelsCell issue={issue} labels={labels} />,
+      cell: (issue) =>
+        isFieldVisible(issue, "labels") ? (
+          <LabelsCell issue={issue} labels={labels} />
+        ) : null,
     },
     {
       id: "assignee",
@@ -287,13 +304,17 @@ export function ListView({
       id: "storyPoints",
       width: "max-content",
       align: "end",
-      cell: (issue) => <StoryPointsCell issue={issue} />,
+      cell: (issue) =>
+        isFieldVisible(issue, "storyPoints") ? (
+          <StoryPointsCell issue={issue} />
+        ) : null,
     },
     {
       id: "dueDate",
       width: "max-content",
       align: "end",
-      cell: (issue) => <DueDateCell issue={issue} />,
+      cell: (issue) =>
+        isFieldVisible(issue, "dueDate") ? <DueDateCell issue={issue} /> : null,
     },
     {
       id: "updated",

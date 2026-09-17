@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { issuePath } from "@/features/issues/issue-links";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
+import { visibleDetailFields } from "@/features/projects/detail-fields";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useHasOpenModal } from "@/lib/context";
 import type { PMDoc } from "@/lib/richtext/types";
@@ -60,6 +61,10 @@ export function IssueDetailPageView({
   const t = useTranslations();
   const router = useRouter();
   const identifier = `${project?.prefix ?? "?"}-${issue.key}`;
+  // Field visibility (BARY-31) is a per-project setting.
+  const visibleFields = visibleDetailFields(project?.hiddenDetailFields ?? []);
+  const showRelations = visibleFields.has("relations");
+  const showAttachments = visibleFields.has("attachments");
   const backLabel = project
     ? t("nav.backToProject", { name: project.name })
     : t("nav.backToWorkspace");
@@ -198,13 +203,17 @@ export function IssueDetailPageView({
             onPatch={onPatch}
             onRefresh={onRefresh}
           />
-          <IssueRelations issue={issue} data={data} onRefresh={onRefresh} />
-          <IssueAttachments
-            issueId={issue.id}
-            attachments={issue.attachments}
-            readOnly={!issue.access.canEdit}
-            onRefresh={onRefresh}
-          />
+          {showRelations && (
+            <IssueRelations issue={issue} data={data} onRefresh={onRefresh} />
+          )}
+          {showAttachments && (
+            <IssueAttachments
+              issueId={issue.id}
+              attachments={issue.attachments}
+              readOnly={!issue.access.canEdit}
+              onRefresh={onRefresh}
+            />
+          )}
           <IssueComments
             issueId={issue.id}
             workspaceId={data.workspaceId}

@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/layout/Modal/Modal";
 import { Resizer } from "@/components/ui/layout/Resizer/Resizer";
 import { issuePath } from "@/features/issues/issue-links";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
+import { visibleDetailFields } from "@/features/projects/detail-fields";
 import { getPathname, useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { useHasOpenModal } from "@/lib/context";
@@ -278,8 +279,13 @@ export function IssueDetailView({
   // Only the panel is resizable — the expanded dialog scales with the
   // screen width.
   const [panelWidth, setPanelWidth] = useState(PANEL_DEFAULT_W);
-  const prefix = data.projects.find((p) => p.id === issue.project)?.prefix;
-  const identifier = `${prefix ?? "?"}-${issue.key}`;
+  const project = data.projects.find((p) => p.id === issue.project);
+  const identifier = `${project?.prefix ?? "?"}-${issue.key}`;
+  // Field visibility (BARY-31) is a per-project setting.
+  const visibleFields = visibleDetailFields(project?.hiddenDetailFields ?? []);
+  const showRelations = visibleFields.has("relations");
+  const showAttachments = visibleFields.has("attachments");
+  const showLabels = visibleFields.has("labels");
 
   const hasOpenModal = useHasOpenModal();
   const { toast } = useUI();
@@ -406,6 +412,7 @@ export function IssueDetailView({
               issue={issue}
               data={data}
               layout="column"
+              visibleFields={visibleFields}
               onPatch={onPatch}
             />
             <IssueDescription
@@ -416,20 +423,31 @@ export function IssueDetailView({
               onPatch={onPatch}
               onRefresh={onRefresh}
             />
-            <IssueRelations issue={issue} data={data} onRefresh={onRefresh} />
-            <IssueAttachments
-              issueId={issue.id}
-              attachments={issue.attachments}
-              readOnly={!issue.access.canEdit}
-              onRefresh={onRefresh}
-            />
-            <IssuePlanning issue={issue} layout="column" onPatch={onPatch} />
-            <IssueLabels
+            {showRelations && (
+              <IssueRelations issue={issue} data={data} onRefresh={onRefresh} />
+            )}
+            {showAttachments && (
+              <IssueAttachments
+                issueId={issue.id}
+                attachments={issue.attachments}
+                readOnly={!issue.access.canEdit}
+                onRefresh={onRefresh}
+              />
+            )}
+            <IssuePlanning
               issue={issue}
-              data={data}
               layout="column"
+              visibleFields={visibleFields}
               onPatch={onPatch}
             />
+            {showLabels && (
+              <IssueLabels
+                issue={issue}
+                data={data}
+                layout="column"
+                onPatch={onPatch}
+              />
+            )}
             <IssueMeta issue={issue} data={data} layout="column" />
             <IssueComments
               issueId={issue.id}
@@ -462,13 +480,21 @@ export function IssueDetailView({
                 onPatch={onPatch}
                 onRefresh={onRefresh}
               />
-              <IssueRelations issue={issue} data={data} onRefresh={onRefresh} />
-              <IssueAttachments
-                issueId={issue.id}
-                attachments={issue.attachments}
-                readOnly={!issue.access.canEdit}
-                onRefresh={onRefresh}
-              />
+              {showRelations && (
+                <IssueRelations
+                  issue={issue}
+                  data={data}
+                  onRefresh={onRefresh}
+                />
+              )}
+              {showAttachments && (
+                <IssueAttachments
+                  issueId={issue.id}
+                  attachments={issue.attachments}
+                  readOnly={!issue.access.canEdit}
+                  onRefresh={onRefresh}
+                />
+              )}
               <IssueComments
                 issueId={issue.id}
                 workspaceId={data.workspaceId}

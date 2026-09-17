@@ -574,6 +574,16 @@ model Project {
   /// hochgeladenes Bild. Ohne S3-Konfiguration oder ohne Upload bleibt es
   /// beim Initialen-Avatar.
   avatarKey    String?
+  /// Welche Felder der Issue-Detailansicht in diesem Projekt ausgeblendet
+  /// sind (BARY-31) — Keys aus `DETAIL_FIELD_KEYS`
+  /// (`features/projects/detail-fields.ts`). Nur die *ausgeblendeten*
+  /// gespeichert (nicht die sichtbaren): neu hinzukommende Felder landen so
+  /// automatisch bei "sichtbar", ohne dass alte Projekt-Zeilen nachgezogen
+  /// werden müssten — dieselbe Überlegung wie bei `DashboardPreference.hidden`.
+  /// `description` darf hier nie auftauchen (in der Server Action gefiltert);
+  /// alle anderen Keys sind für neue Projekte per Default schon enthalten
+  /// (`DEFAULT_HIDDEN_DETAIL_FIELDS`), nicht per Spalten-Default hier.
+  hiddenDetailFields String[] @default([])
 
   /// Wann es angelegt wurde.
   createdAt   DateTime  @default(now())

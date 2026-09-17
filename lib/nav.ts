@@ -24,6 +24,7 @@ export type NavLabelKey =
   | "general"
   | "roles"
   | "labels"
+  | "fields"
   | "workspaces"
   | "account"
   | "appearance"
@@ -335,6 +336,7 @@ export const PROJECT_SETTINGS_NAV: NavEntry[] = [
     permission: "role.manage",
   },
   { section: "labels", icon: "lucide:tag", labelKey: "labels" },
+  { section: "fields", icon: "lucide:layout-list", labelKey: "fields" },
   {
     section: "activity",
     icon: "lucide:scroll-text",

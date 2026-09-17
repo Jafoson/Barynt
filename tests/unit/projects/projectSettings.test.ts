@@ -51,7 +51,11 @@ mock.module("@/lib/user-defaults", () => ({
   pickUserColor: () => "#6e63e6",
 }));
 
-import { deleteProject, updateProject } from "@/features/projects/actions";
+import {
+  deleteProject,
+  setProjectFieldVisibility,
+  updateProject,
+} from "@/features/projects/actions";
 
 const PROJECT = "p-1";
 const WS = "acme";
@@ -217,6 +221,49 @@ describe("updateProject() — Sichtbarkeit", () => {
   it("protokolliert nichts, wenn die Sichtbarkeit gar nicht angefasst wird", async () => {
     await updateProject(PROJECT, { name: "Neuer Name" });
     expect(mockAuditLogCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe("setProjectFieldVisibility() (BARY-31)", () => {
+  beforeEach(reset);
+
+  it("verlangt project.update", async () => {
+    mockCan.mockResolvedValue(false);
+    expect(await setProjectFieldVisibility(PROJECT, ["dueDate"])).toEqual({
+      error: "You are not allowed to change this project.",
+    });
+    expect(mockProjectUpdate).not.toHaveBeenCalled();
+  });
+
+  it("schreibt die übergebene Menge als hiddenDetailFields", async () => {
+    await setProjectFieldVisibility(PROJECT, [
+      "dueDate",
+      "storyPoints",
+      "estimateHours",
+    ]);
+    expect(mockProjectUpdate.mock.calls[0][0].data).toEqual({
+      hiddenDetailFields: ["dueDate", "storyPoints", "estimateHours"],
+    });
+  });
+
+  it("verwirft unbekannte Keys", async () => {
+    await setProjectFieldVisibility(PROJECT, ["dueDate", "sowieso-nicht"]);
+    expect(mockProjectUpdate.mock.calls[0][0].data.hiddenDetailFields).toEqual([
+      "dueDate",
+    ]);
+  });
+
+  it("lässt keine permanenten Felder zu, selbst wenn sie mitgeschickt werden", async () => {
+    await setProjectFieldVisibility(PROJECT, [
+      "type",
+      "status",
+      "assignee",
+      "description",
+      "dueDate",
+    ]);
+    expect(mockProjectUpdate.mock.calls[0][0].data.hiddenDetailFields).toEqual([
+      "dueDate",
+    ]);
   });
 });
 

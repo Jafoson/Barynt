@@ -84,6 +84,7 @@ export function TopbarClient({
           area={area}
           projectId={project?.id ?? ""}
           projectName={project?.name ?? ""}
+          hiddenDetailFields={project?.hiddenDetailFields ?? []}
           workspaceId={workspaceId}
           statuses={statuses}
           priorities={priorities}

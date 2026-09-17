@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Resizer } from "@/components/ui/layout/Resizer/Resizer";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
+import { visibleDetailFields } from "@/features/projects/detail-fields";
 import type { IssueDetail } from "@/types";
 import styles from "../issueDetail.module.scss";
 import { IssueLabels } from "./IssueLabels";
@@ -56,6 +57,13 @@ export function IssueSidebar({
   const t = useTranslations();
   const [width, setWidth] = useState(defaultWidth);
 
+  // Field visibility (BARY-31) is a per-project setting, resolved from the
+  // same `data.projects` lookup `identifier`/`prefix` already use elsewhere
+  // in the detail views — no extra fetch needed.
+  const project = data.projects.find((p) => p.id === issue.project);
+  const visibleFields = visibleDetailFields(project?.hiddenDetailFields ?? []);
+  const showLabels = visibleFields.has("labels");
+
   return (
     <>
       {/* A separate element between the columns instead of a border on the
@@ -81,23 +89,33 @@ export function IssueSidebar({
           issue={issue}
           data={data}
           layout="aside"
+          visibleFields={visibleFields}
           onPatch={onPatch}
         />
 
         <div className={styles.divider} />
 
-        <IssuePlanning issue={issue} layout="aside" onPatch={onPatch} />
-
-        <div className={styles.divider} />
-
-        <IssueLabels
+        <IssuePlanning
           issue={issue}
-          data={data}
           layout="aside"
+          visibleFields={visibleFields}
           onPatch={onPatch}
         />
 
         <div className={styles.divider} />
+
+        {showLabels && (
+          <>
+            <IssueLabels
+              issue={issue}
+              data={data}
+              layout="aside"
+              onPatch={onPatch}
+            />
+
+            <div className={styles.divider} />
+          </>
+        )}
 
         <IssueMeta issue={issue} data={data} layout="aside" />
       </aside>

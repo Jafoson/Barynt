@@ -3,6 +3,7 @@
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/atoms/Button/Button";
+import { visibleDetailFields } from "@/features/projects/detail-fields";
 import type { Label, Priority, Project, Status, User } from "@/types";
 import styles from "../topbar.module.scss";
 import type { FilterKey, FilterState, IssueArea } from "../useTopbar";
@@ -22,6 +23,8 @@ interface TopbarFiltersProps {
   /** Empty in the "My issues" area: there is no single project there. */
   projectId: string;
   projectName: string;
+  /** Empty in the "My issues" area — same reasoning, nothing to hide against. */
+  hiddenDetailFields: string[];
   workspaceId: string;
   statuses: Status[];
   priorities: Priority[];
@@ -39,6 +42,7 @@ export function TopbarFilters({
   area,
   projectId,
   projectName,
+  hiddenDetailFields,
   workspaceId,
   statuses,
   priorities,
@@ -50,6 +54,7 @@ export function TopbarFilters({
   onClearAll,
 }: TopbarFiltersProps) {
   const t = useTranslations();
+  const visibleFields = visibleDetailFields(hiddenDetailFields);
 
   return (
     <>
@@ -59,12 +64,14 @@ export function TopbarFilters({
         onToggle={(id) => onToggle("status", id)}
         onClear={() => onClear("status")}
       />
-      <PriorityFilter
-        value={filters.priority}
-        priorities={priorities}
-        onToggle={(id) => onToggle("priority", id)}
-        onClear={() => onClear("priority")}
-      />
+      {visibleFields.has("priority") && (
+        <PriorityFilter
+          value={filters.priority}
+          priorities={priorities}
+          onToggle={(id) => onToggle("priority", id)}
+          onClear={() => onClear("priority")}
+        />
+      )}
       {/* The last slot answers whatever the area leaves open: within a
           project that's the assignee, for my issues it's the project — the
           other question is already settled in each case. */}
@@ -83,25 +90,31 @@ export function TopbarFilters({
           onClear={() => onClear("project")}
         />
       )}
-      <LabelFilter
-        value={filters.label}
-        labels={labels}
-        projectId={projectId}
-        projectName={projectName}
-        workspaceId={workspaceId}
-        onToggle={(id) => onToggle("label", id)}
-        onClear={() => onClear("label")}
-      />
-      <StoryPointsFilter
-        value={filters.storyPoints}
-        onToggle={(points) => onToggle("storyPoints", points)}
-        onClear={() => onClear("storyPoints")}
-      />
-      <DueDateFilter
-        value={filters.dueDate}
-        onToggle={(bucket) => onToggle("dueDate", bucket)}
-        onClear={() => onClear("dueDate")}
-      />
+      {visibleFields.has("labels") && (
+        <LabelFilter
+          value={filters.label}
+          labels={labels}
+          projectId={projectId}
+          projectName={projectName}
+          workspaceId={workspaceId}
+          onToggle={(id) => onToggle("label", id)}
+          onClear={() => onClear("label")}
+        />
+      )}
+      {visibleFields.has("storyPoints") && (
+        <StoryPointsFilter
+          value={filters.storyPoints}
+          onToggle={(points) => onToggle("storyPoints", points)}
+          onClear={() => onClear("storyPoints")}
+        />
+      )}
+      {visibleFields.has("dueDate") && (
+        <DueDateFilter
+          value={filters.dueDate}
+          onToggle={(bucket) => onToggle("dueDate", bucket)}
+          onClear={() => onClear("dueDate")}
+        />
+      )}
 
       {filterCount > 0 && (
         <Button

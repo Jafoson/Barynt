@@ -15,6 +15,7 @@ import { IssueTitleField } from "@/features/issues/components/IssueTitleField/Is
 import { isBrowserClick } from "@/features/issues/issue-links";
 import type { IssueLookups } from "@/features/issues/types";
 import { useIssuePatch } from "@/features/issues/useIssuePatch";
+import { visibleDetailFields } from "@/features/projects/detail-fields";
 import { onActivate } from "@/lib/a11y";
 import { useTimeAgo } from "@/lib/utils/useTimeAgo";
 import type { IssueDetail, Label as LabelType } from "@/types";
@@ -105,7 +106,9 @@ export function BoardCard({
       prefix: "?",
       name: "?",
       color: "#686d76",
+      hiddenDetailFields: [],
     };
+  const visibleFields = visibleDetailFields(project.hiddenDetailFields ?? []);
   const identifier = `${project.prefix}-${issue.key}`;
   const typeLabel = issue.type
     ? issue.type.charAt(0).toUpperCase() + issue.type.slice(1)
@@ -242,7 +245,7 @@ export function BoardCard({
         </div>
       )}
 
-      {issueLabels.length > 0 && (
+      {visibleFields.has("labels") && issueLabels.length > 0 && (
         <div className={styles.labels} ref={labelRow}>
           {shownLabels.map((l) => (
             <Label key={l.id} color={l.color} size="xs">
@@ -273,12 +276,16 @@ export function BoardCard({
 
       {/* Meta: priority + identifier | time + comments */}
       <div className={styles.footer}>
-        <PriorityIcon priority={issue.priority} size={14} />
+        {visibleFields.has("priority") && (
+          <PriorityIcon priority={issue.priority} size={14} />
+        )}
         <span className={styles.id}>{identifier}</span>
-        {issue.storyPoints !== null && (
+        {visibleFields.has("storyPoints") && issue.storyPoints !== null && (
           <StoryPointsBadge points={issue.storyPoints} />
         )}
-        {issue.dueDate !== null && <DueDateBadge dueDate={issue.dueDate} />}
+        {visibleFields.has("dueDate") && issue.dueDate !== null && (
+          <DueDateBadge dueDate={issue.dueDate} />
+        )}
         <span className={styles.time} suppressHydrationWarning>
           {timeAgo(issue.updated)}
         </span>

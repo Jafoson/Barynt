@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  DEFAULT_HIDDEN_DETAIL_FIELDS,
+  detailFieldDef,
+  isDetailFieldKey,
+} from "@/features/projects/detail-fields";
+import {
   getPendingProjectInvitationsView,
   getProjectLabelsView,
   getProjectMembersView,
@@ -148,6 +153,9 @@ export async function createProject(data: {
         prefix,
         color: data.color,
         visibility,
+        // Every new project starts with the same field configuration
+        // (BARY-31) — the planning fields hidden, everything else shown.
+        hiddenDetailFields: DEFAULT_HIDDEN_DETAIL_FIELDS,
         // Who created it stays on record. Not as a permission — access comes
         // solely from `ProjectMember` — but as an ownership marker: if this
         // account disappears, platform administration recognizes the project
@@ -298,6 +306,35 @@ export async function updateProject(
       meta: { from: guard.visibility, to: data.visibility },
     });
   }
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/**
+ * Which issue-detail fields this project shows (BARY-31).
+ *
+ * Writes on every toggle, same as the visibility control above — a switch
+ * whose position only takes effect via a separate "Save" would show
+ * something incorrect in the meantime. `description` is filtered out even
+ * if the caller (a stale client, a bug) sends it: it can't be turned off,
+ * full stop, not just hidden from the toggle list.
+ */
+export async function setProjectFieldVisibility(
+  projectId: string,
+  hidden: string[],
+): Promise<ProjectResult> {
+  const guard = await requireProjectManage(projectId, "project.update");
+  if ("error" in guard) return guard;
+
+  await db.project.update({
+    where: { id: projectId },
+    data: {
+      hiddenDetailFields: hidden.filter(
+        (key) => isDetailFieldKey(key) && !detailFieldDef(key).permanent,
+      ),
+    },
+  });
 
   revalidatePath("/", "layout");
   return { ok: true };

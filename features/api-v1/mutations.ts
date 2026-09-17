@@ -26,6 +26,7 @@ import {
   ESTIMATE_UNITS,
   hoursToEstimate,
 } from "@/features/issues/estimate";
+import { DEFAULT_HIDDEN_DETAIL_FIELDS } from "@/features/projects/detail-fields";
 import type { ProjectVisibility } from "@/features/projects/types";
 import { recordAudit } from "@/lib/audit";
 import type { RelationChangeMeta } from "@/lib/audit/actions";
@@ -1439,6 +1440,9 @@ export async function createProjectForUser(
         color: input.color,
         visibility,
         createdById: userId,
+        // Same default as the web app's own createProject() (BARY-31) — the
+        // planning fields hidden, everything else shown.
+        hiddenDetailFields: DEFAULT_HIDDEN_DETAIL_FIELDS,
       },
     });
 

@@ -15,6 +15,7 @@
     "general": "General",
     "roles": "Roles & Permissions",
     "labels": "Labels",
+    "fields": "Fields",
     "backToWorkspace": "Back to workspace",
     "backToProject": "Back to {name}",
     "breadcrumb": "Breadcrumb",
@@ -275,7 +276,8 @@
     "colorDesc": "The project's mark — on the board, in tabs and in the sidebar.",
     "url": "Project path",
     "urlDesc": "Part of every shared link; it does not change with the name.",
-    "descDesc": "One line for the project overview — what is it for?"
+    "descDesc": "One line for the project overview — what is it for?",
+    "fieldsDesc": "Which fields appear on an issue's detail view in this project."
   },
   "projectLabels": {
     "subtitle": "Labels that can be applied in the “{project}” project.",
