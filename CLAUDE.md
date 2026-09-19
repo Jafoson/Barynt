@@ -64,6 +64,48 @@ components/
 - Keep state as close as possible to where it's used, don't lift it globally when avoidable
 - Forms via `<form action={serverAction}>` instead of `onSubmit` + fetch
 
+## Responsive / mobile (BARY-36)
+
+The desktop layout is the base; the mixins in `styles/breakpoints.scss` reach
+*down* (`@use "breakpoints" as bp;`). Test widths: 375 / 768 / 1280px.
+
+| Mixin | Applies | JS twin (`lib/utils/useMediaQuery`) |
+|---|---|---|
+| `bp.phone` | ≤ 640px | `PHONE_QUERY` |
+| `bp.tablet-down` | ≤ 1024px (phone + tablet) | `COMPACT_QUERY` |
+| `bp.tablet-only`, `bp.desktop`, `bp.rail` | tablet / > 1024px / collapsed icon rail | — |
+| `bp.coarse`, `bp.no-hover` | touch / no hover (input capability, not width) | — |
+
+- **Layout in CSS, behavior in JS.** Width-only differences belong in SCSS;
+  `useMediaQuery` is for behavior that has to differ (sheet vs. dialog, one
+  column of a matrix). It is `false` on the server and during hydration.
+- **Sheet on a phone, dialog from a tablet up.** Creation and edit windows are
+  one component with a `sheet` prop (`Modal variant="sheet"` +
+  `SheetHeader` + `useSwipeToClose`, no "Cancel", no `autoFocus` so the
+  keyboard doesn't open); the opener passes `{ placement: "bottom" }` on a
+  phone. Where several places open the same window, a hook owns the choice
+  (`useOpenCreateProject`, `useOpenLabelModal`).
+- **Tables as card rows.** `styles/card-rows.scss`: `card-rows` (phone or
+  `$upTo: tablet`) turns rows into wrapping flex cards — each cell is found by
+  its column id (`td[data-col="…"]`), the page only sets `order` and
+  `flex: 1 1 100%`. Give the label `flex: 1 1 calc(100% - 6.5rem)` to keep
+  the actions on its line; `flex: 1 1 0` fits *everything* on one line.
+  `setting-rows` stacks a settings card's control under its text by the
+  page's own width (container query, so a tablet's narrow panel counts too).
+  `page-scroll-lists` makes the page scroll instead of each `fill` table
+  (two lists in strips cut rows off).
+- **Column-per-role matrices** show one column at a time on a phone/tablet
+  (`PermissionMatrix`); wide controls (`SegmentedControl`) scroll sideways.
+- **Settings** are a section list on a phone; a section is its own screen
+  (`SettingsBody`, `?open` marks the start page as a page, not the list).
+- **Shortcuts only with a keyboard.** `lib/shortcuts/useHasKeyboard`
+  (a mouse/trackpad, or a physical keypress seen this session);
+  `Shortcut` renders nothing without one. Don't hard-code shortcut hints.
+- A flex column that scrolls needs `& > * { flex: none }`: a child with its
+  own `overflow` has no minimum height there and is squeezed to its scrollbar.
+- Touch targets: `--touch-min` (44px); safe areas: `--safe-*`; keyboard:
+  `--kb-inset`.
+
 ## Rich Text (descriptions and comments)
 
 `Issue.description` and `Comment.body` are **ProseMirror documents** (`Json`),
