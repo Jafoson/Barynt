@@ -36,10 +36,10 @@ import {
   type DetailFieldKey,
   visibleDetailFields,
 } from "@/features/projects/detail-fields";
-import { Link } from "@/i18n/navigation";
 import { useHasOpenModal } from "@/lib/context";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
-import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
+import { useUI } from "@/lib/ui-store";
+import { COMPACT_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import type { IssueDetail } from "@/types";
 import {
   DueDateCell,
@@ -51,6 +51,7 @@ import {
   TypeCell,
   UpdatedCell,
 } from "./components/IssueCells";
+import { IssueRowLink } from "./components/IssueRowLink";
 import { ListGroupHeader } from "./components/ListGroupHeader";
 import styles from "./listView.module.scss";
 
@@ -203,9 +204,11 @@ export function ListView({
   const flatRows = groups.flatMap((g) => (g.collapsed ? [] : g.rows));
   const containerRef = useRef<HTMLDivElement>(null);
   const hasOpenModal = useHasOpenModal();
-  // A phone shows the rows as cards and only reads them: a tap opens the
-  // issue, nothing is edited in place or dragged (`listView.module.scss`).
-  const isPhone = useMediaQuery(PHONE_QUERY);
+  // A phone or tablet shows the rows as cards and only reads them: a tap
+  // opens the issue, a long press the quick actions; nothing is edited in
+  // place or dragged (`listView.module.scss`).
+  const isCompact = useMediaQuery(COMPACT_QUERY);
+  const { toast } = useUI();
 
   const focusRow = (issue: IssueDetail) => {
     setFocusedId(issue.id);
@@ -264,6 +267,25 @@ export function ListView({
   useShortcut("enter", openFocused, { enabled: noPanelOpen && !!focusedId });
   useShortcut("o", openFocused, { enabled: noPanelOpen && !!focusedId });
 
+  /** "Move to…" from the quick-action sheet: the end of the target group. */
+  const moveRow = (issue: IssueDetail, groupId: string) => {
+    if (groupIdOf(issue, groupKey) === groupId) return;
+    const target = groups.find((g) => g.id === groupId);
+    if (!target) return;
+    const rows = target.rows.filter((r) => r.id !== issue.id);
+    const rank = rankBetween(rows[rows.length - 1] ?? null, null);
+    const patch = groupPatch(groupKey, groupId);
+    toast(t("issues.movedTo", { group: target.label ?? "" }));
+    startTransition(async () => {
+      applyPatch({ id: issue.id, ...patch, rank } as {
+        id: string;
+      } & Partial<IssueDetail>);
+      await reorderIssue(issue.id, patch.status ?? issue.status, rank);
+      if (groupKey !== "status") await updateIssue(issue.id, patch);
+      router.refresh();
+    });
+  };
+
   const columns: TableColumn<IssueDetail>[] = [
     {
       id: "priority",
@@ -309,14 +331,14 @@ export function ListView({
       // would reject the patch anyway (`updateIssue`), and a button that
       // triggers nothing is just a false invitation.
       cell: (issue) =>
-        editing === issue.id && issue.access.canEdit && !isPhone ? (
+        editing === issue.id && issue.access.canEdit ? (
           <IssueTitleField
             className={styles.titleEdit}
             value={issue.title}
             onSave={(value) => saveTitle(issue, value)}
             onDone={() => setEditing(null)}
           />
-        ) : issue.access.canEdit && !isPhone ? (
+        ) : issue.access.canEdit && !isCompact ? (
           <button
             type="button"
             className={styles.title}
@@ -344,7 +366,7 @@ export function ListView({
       id: "assignee",
       align: "end",
       cell: (issue) => (
-        <AssigneePicker issue={issue} members={members} readOnly={isPhone} />
+        <AssigneePicker issue={issue} members={members} readOnly={isCompact} />
       ),
     },
     {
@@ -426,14 +448,22 @@ export function ListView({
         columns={columns}
         groups={groups}
         getRowKey={(issue) => issue.id}
-        dnd={isPhone ? undefined : dnd}
+        dnd={isCompact ? undefined : dnd}
         isRowActive={(issue) => identifier(issue) === openIssue}
         isRowFocused={(issue) => issue.id === focusedId}
         rowOverlay={(issue) => (
-          <Link
-            {...issueOpen.linkProps(identifier(issue))}
-            scroll={false}
-            aria-label={`${identifier(issue)} ${issue.title}`}
+          <IssueRowLink
+            issue={issue}
+            identifier={identifier(issue)}
+            linkProps={issueOpen.linkProps(identifier(issue))}
+            compact={isCompact}
+            members={members}
+            moveTargets={visibleGroups(defs, shown)}
+            currentGroupId={groupIdOf(issue, groupKey)}
+            onMoveTo={(groupId) => moveRow(issue, groupId)}
+            onOpen={() => issueOpen.openPanel(identifier(issue))}
+            onOpenInNewTab={() => issueOpen.openPageInNewTab(identifier(issue))}
+            onEditTitle={() => setEditing(issue.id)}
           />
         )}
         empty={

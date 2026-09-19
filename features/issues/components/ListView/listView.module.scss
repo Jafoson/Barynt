@@ -169,7 +169,7 @@
   color: var(--on-surface-variant);
 }
 
-/* ---------- Phone: rows as cards ----------
+/* ---------- Phone and tablet: rows as cards ----------
 
    A grid of eleven columns doesn't fit; each row becomes three lines
    instead: key, project and age on top, the title, and under it the fields
@@ -183,14 +183,20 @@
    Element selectors, deliberately: the table's own class names are hashed
    inside its module, but its structure is stable. */
 .content {
-  @include bp.phone {
+  @include bp.tablet-down {
     /* A line between the rows, since there's no more column alignment to
        structure them (`--table-divider` is the table's own knob). */
     --table-divider: var(--outline-variant);
 
-    /* The rows are cards here, not columns — nothing to scroll sideways. */
+    /* The rows are cards here, not columns — nothing to scroll sideways, and
+       no classic scrollbar beside the group headers' buttons. */
     table {
       min-width: 0;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
     }
 
     table thead {
@@ -279,7 +285,7 @@
 /* The title may take two lines, and starts at the row's edge (there's no
    hover border to indent for). */
 .title {
-  @include bp.phone {
+  @include bp.tablet-down {
     margin-inline-start: 0;
     padding-inline: 0;
     white-space: normal;
