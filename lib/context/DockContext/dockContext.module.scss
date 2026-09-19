@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 /* The dock's spot in the app shell — a sibling of the content, not an
    overlay on top of it. The panel inside brings its own width; the shell
    hands the rest to the content next to it. */
@@ -16,6 +18,20 @@
   display: none;
 }
 
+/* Phone: a panel doesn't sit beside the content — it takes the whole screen
+   (over the page, under dialogs and menus). */
+.dock:not(:empty) {
+  @include bp.phone {
+    position: fixed;
+    inset: 0 0 var(--kb-inset, 0px) 0;
+    z-index: calc(var(--z-overlay) - 50);
+    max-width: none;
+    padding: var(--safe-top) var(--safe-right) var(--safe-bottom)
+      var(--safe-left);
+    background: var(--surface-container-low);
+  }
+}
+
 /* The layer between dock and panel. At the edge it just passes the
    dimensions through — it exists so the panel stays at the same spot in
    the tree when expanding, instead of being rebuilt. */
@@ -23,6 +39,10 @@
   display: flex;
   min-width: 0;
   max-width: 100%;
+
+  @include bp.phone {
+    width: 100%;
+  }
 }
 
 .panel {
@@ -41,6 +61,10 @@
      the dialog. */
   outline: none !important;
   animation: dockIn .18s ease both;
+
+  @include bp.phone {
+    width: 100%;
+  }
 }
 
 /* ---------- Expanded: floating over the page instead ---------- */

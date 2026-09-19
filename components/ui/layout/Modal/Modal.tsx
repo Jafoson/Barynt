@@ -14,6 +14,11 @@ interface ModalProps extends React.HTMLAttributes<HTMLDivElement> {
   width?: number | string;
   /** Default: "dialog". */
   variant?: ModalVariant;
+  /**
+   * A small dialog (a confirmation) that stays a centered card on a phone.
+   * Every other dialog fills the screen there.
+   */
+  compact?: boolean;
 }
 
 /**
@@ -29,6 +34,7 @@ interface ModalProps extends React.HTMLAttributes<HTMLDivElement> {
 export function Modal({
   width,
   variant = "dialog",
+  compact = false,
   className,
   style,
   children,
@@ -36,10 +42,14 @@ export function Modal({
 }: ModalProps) {
   return (
     <div
+      // Read by the modal frame (`ModalContext`): a dialog that is a sheet sits
+      // at the bottom of the screen, whatever placement it was opened with.
+      data-sheet={variant === "sheet" || undefined}
       className={[
         styles.modal,
         variant === "panel" && styles.panel,
         variant === "sheet" && styles.sheet,
+        compact && styles.compact,
         className,
       ]
         .filter(Boolean)

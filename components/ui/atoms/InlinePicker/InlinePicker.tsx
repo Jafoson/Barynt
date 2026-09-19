@@ -10,6 +10,8 @@ interface InlinePickerProps {
   width?: number;
   maxWidth?: number;
   align?: "start" | "center" | "end";
+  /** The field's name — see `Popover`'s `title`. */
+  title?: string;
   /**
    * Keeps the picker's clicks to itself — both the trigger's and the
    * selection's. Necessary as soon as it sits inside something clickable
@@ -34,6 +36,7 @@ export function InlinePicker({
   width,
   maxWidth,
   align,
+  title,
   stop,
   open: openProp,
   onOpenChange,
@@ -78,6 +81,7 @@ export function InlinePicker({
         width={width}
         maxWidth={maxWidth}
         align={align}
+        title={title}
       >
         {stop ? (
           // Just a seal, not a control: `display: contents` lets the menu

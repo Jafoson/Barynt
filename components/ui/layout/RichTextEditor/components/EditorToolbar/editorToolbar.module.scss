@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 /* Toolbar above the text field. Sits within the same border as the text —
    hence no border of its own, just a light tint and a hairline below. The
    hint about the `/` menu no longer lives here but in the empty field's
@@ -25,7 +27,41 @@
   border-bottom: 1px solid color-mix(in oklab, var(--outline-variant) 60%, transparent);
 }
 
+/* Phone: one row that scrolls sideways instead of wrapping into several
+   (best practice for a mobile editor bar: it keeps its height, and the text
+   under it stays where it is). A fade at the right edge says "there's more";
+   `scroll-snap` lands the row on a whole button after a swipe. */
+.toolbar {
+  @include bp.phone {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    padding: 0.25rem 0.5rem;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 calc(100% - 2rem),
+      transparent
+    );
+    mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Room after the last button, so at the end of the row it scrolls clear
+       of the fade instead of staying half-faded. */
+    &::after {
+      content: "";
+      flex: none;
+      width: 2rem;
+    }
+  }
+}
+
 .btn {
+  flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -52,4 +88,30 @@
   height: 1rem;
   margin: 0 0.3125rem;
   background: color-mix(in oklab, var(--outline-variant) 70%, transparent);
+}
+
+/* Phone: a fingertip-sized target (44px), with the pressed state showing at
+   once — there's no hover to give that feedback on a touch screen. */
+.btn {
+  @include bp.phone {
+    width: var(--touch-min);
+    height: var(--touch-min);
+    scroll-snap-align: start;
+
+    &:active {
+      background: var(--surface-container-highest);
+      color: var(--on-surface);
+    }
+
+    &[data-active]:active {
+      background: color-mix(in oklab, var(--tertiary) 30%, transparent);
+    }
+  }
+}
+
+.divider {
+  @include bp.phone {
+    flex: none;
+    height: 1.5rem;
+  }
 }

@@ -471,6 +471,7 @@
     "empty": "Noch keine Änderungen protokolliert."
   },
   "attachments": {
+    "tapHint": "Tippen, um einen Anhang hinzuzufügen",
     "add": "Anhang hinzufügen",
     "addFile": "Datei hochladen",
     "addLink": "Link hinzufügen",
@@ -689,6 +690,8 @@
     "copiedLink": "Link kopiert"
   },
   "issues": {
+    "detailProperties": "Eigenschaften",
+    "back": "Zurück",
     "quickActions": "Schnellaktionen",
     "quickOpen": "Öffnen",
     "quickOpenNewTab": "In neuem Tab öffnen",

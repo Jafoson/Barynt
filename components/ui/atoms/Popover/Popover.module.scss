@@ -17,3 +17,117 @@
 @keyframes pop {
   from { opacity: .2; transform: translateY(-0.25rem) scale(.985); }
 }
+
+/* ── Phone: a bottom sheet instead of the floating menu ── */
+
+.sheetOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-popover);
+  display: flex;
+  align-items: flex-end;
+  background: rgb(0, 0, 0, 0.32);
+  animation: fadeIn .16s ease both;
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 75dvh;
+  background: var(--surface-container);
+  border-top: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  box-shadow: var(--shadow-pop);
+  padding-bottom: var(--safe-bottom);
+  animation: slideUp .22s cubic-bezier(.22, .61, .36, 1);
+
+  /* The grab handle. */
+  &::before {
+    content: "";
+    flex: none;
+    display: block;
+    width: 2.5rem;
+    height: 0.25rem;
+    margin: 0.5rem auto 0.25rem;
+    border-radius: var(--radius-pill);
+    background: var(--outline-variant);
+  }
+}
+
+.sheetBody {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.25rem 0.5rem 0.5rem;
+  /* A pull at the top edge is the swipe-to-close, not pull-to-refresh. */
+  overscroll-behavior: contain;
+}
+
+/* Local copies — keyframe names are hashed per module. */
+@keyframes fadeIn  { from { opacity: .35; } }
+@keyframes slideUp { from { opacity: .6; transform: translateY(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheetOverlay, .sheet { animation-duration: .01ms; }
+}
+
+/* ── Phone, opened from inside a bottom sheet: a page over the sheet ──
+   Fills the sheet (`.modal` is the positioned box, `Modal`) instead of
+   stacking a second sheet. The bar has a back button and the field's name. */
+
+.sheetPage {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-container);
+  animation: fadeIn .12s ease both;
+}
+
+.pageBar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 1rem 0 0.5rem;
+  border-bottom: 1px solid var(--outline-variant);
+}
+
+.pageBack {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+
+  &:active {
+    background: var(--surface-container-high);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--tertiary);
+  }
+}
+
+.pageTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.pageBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.25rem 0.5rem 0.5rem;
+  overscroll-behavior: contain;
+}

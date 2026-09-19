@@ -32,6 +32,7 @@ import { emptyDoc, isEmptyDoc } from "@/lib/richtext/doc";
 import type { PMDoc } from "@/lib/richtext/types";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import type { Comment, User } from "@/types";
+import { InComposerSlot } from "../composerSlot";
 import styles from "../issueDetail.module.scss";
 import { CommentThread } from "./CommentThread";
 
@@ -392,41 +393,43 @@ export function IssueComments({
           comments tab — the activity tab is a read-only log, nothing to
           compose there. */}
       {tab === "comments" && (
-        <div className={styles.composer}>
-          <Avatar avatar={me} size={28} />
-          {/* Marks the composer for the panel's field-roving (`IssueDetailView.tsx`):
+        <InComposerSlot>
+          <div className={styles.composer}>
+            <Avatar avatar={me} size={28} />
+            {/* Marks the composer for the panel's field-roving (`IssueDetailView.tsx`):
               ArrowUp out of it, back to the last field, only while it's still
               empty — once there's real multi-line text, ArrowUp goes back to
               being the cursor's, same as the description once editing. */}
-          <div className={styles.composerBox} data-comment-editor>
-            <RichTextEditor
-              key={round}
-              ref={editorHandle}
-              value={body}
-              onChange={setBody}
-              onSubmit={submit}
-              label={t("fields.description")}
-              placeholder={t("placeholders.addComment")}
-              members={sources.members}
-              issues={sources.issues}
-              {...attachmentHandlers}
-            />
-            <div className={styles.composerFoot}>
-              <ModalShortcut keys="mod+enter">
-                {t("comments.toSend")}
-              </ModalShortcut>
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                disabled={isEmpty || isSending}
-                onClick={submit}
-              >
-                {t("actions.comment")}
-              </Button>
+            <div className={styles.composerBox} data-comment-editor>
+              <RichTextEditor
+                key={round}
+                ref={editorHandle}
+                value={body}
+                onChange={setBody}
+                onSubmit={submit}
+                label={t("fields.description")}
+                placeholder={t("placeholders.addComment")}
+                members={sources.members}
+                issues={sources.issues}
+                {...attachmentHandlers}
+              />
+              <div className={styles.composerFoot}>
+                <ModalShortcut keys="mod+enter">
+                  {t("comments.toSend")}
+                </ModalShortcut>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  disabled={isEmpty || isSending}
+                  onClick={submit}
+                >
+                  {t("actions.comment")}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        </InComposerSlot>
       )}
     </section>
   );

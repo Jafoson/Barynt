@@ -99,3 +99,11 @@ position: relative;
 .menuInput {
   @include bp.touch-target;
 }
+
+/* Phone: the menu is a bottom sheet — every row the same, thumb-sized height
+   whatever the pointer reports (a narrow desktop window isn't `coarse`). */
+.menuItem {
+  @include bp.phone {
+    min-height: var(--touch-min);
+  }
+}

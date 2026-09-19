@@ -50,6 +50,7 @@ export function FilterChip({
     <InlinePicker
       width={width}
       maxWidth={maxWidth}
+      title={name}
       stop
       trigger={
         <Chip

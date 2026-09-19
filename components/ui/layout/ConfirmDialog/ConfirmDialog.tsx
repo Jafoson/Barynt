@@ -88,7 +88,7 @@ function ConfirmDialog({
 
   return (
     // Narrower than a form modal: this only holds two sentences and two buttons.
-    <Modal width={440}>
+    <Modal width={440} compact>
       <ModalHeader title={options.title} divider={false} />
 
       {options.description && (

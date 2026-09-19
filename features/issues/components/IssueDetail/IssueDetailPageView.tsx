@@ -11,18 +11,18 @@ import { useHasOpenModal } from "@/lib/context";
 import type { PMDoc } from "@/lib/richtext/types";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import { useUI } from "@/lib/ui-store";
+import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import type { IssueDetail, Project } from "@/types";
 import { IssueAttachments } from "./components/IssueAttachments";
 import { IssueComments } from "./components/IssueComments";
 import { IssueDescription } from "./components/IssueDescription";
-import {
-  IssueActionsMenu,
-  ShareIssueButton,
-} from "./components/IssueDetailActions";
+import { IssueActionsMenu } from "./components/IssueDetailActions";
 import { IssueRelations } from "./components/IssueRelations";
 import { IssueSidebar, PAGE_SIDEBAR_W } from "./components/IssueSidebar";
 import { IssueTitle } from "./components/IssueTitle";
+import { ComposerSlotProvider } from "./composerSlot";
 import { useFieldNav } from "./IssueDetailView";
+import { IssueStackedBody } from "./IssueStackedBody";
 import styles from "./issueDetail.module.scss";
 
 interface IssueDetailPageViewProps {
@@ -60,6 +60,9 @@ export function IssueDetailPageView({
 }: IssueDetailPageViewProps) {
   const t = useTranslations();
   const router = useRouter();
+  // A phone has no room for two columns: the page then looks like the side
+  // panel does on a desktop — one column, the attribute bar under the title.
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const identifier = `${project?.prefix ?? "?"}-${issue.key}`;
   // Field visibility (BARY-31) is a per-project setting.
   const visibleFields = visibleDetailFields(project?.hiddenDetailFields ?? []);
@@ -172,71 +175,88 @@ export function IssueDetailPageView({
               onClick={() => goToSibling(nextSibling)}
             />
           </span>
-          {issue.access.canShare && (
-            <ShareIssueButton
-              issueId={issue.id}
-              shareUrl={issue.shareUrl}
-              members={data.members}
-              me={data.me}
-            />
-          )}
           {/* No `OpenPageButton` next to it — this already is the page. */}
           <IssueActionsMenu
             onDelete={onDelete}
             canDelete={issue.access.canDelete}
+            share={
+              issue.access.canShare
+                ? {
+                    issueId: issue.id,
+                    shareUrl: issue.shareUrl,
+                    members: data.members,
+                    me: data.me,
+                  }
+                : undefined
+            }
           />
         </div>
       </header>
 
-      <div className={styles.split}>
-        <div className={styles.main}>
-          <IssueTitle
-            title={issue.title}
-            readOnly={!issue.access.canEdit}
-            onPatch={onPatch}
-          />
-          <IssueDescription
-            issueId={issue.id}
-            description={issue.description}
+      {isPhone ? (
+        <ComposerSlotProvider enabled>
+          <IssueStackedBody
+            issue={issue}
             data={data}
-            readOnly={!issue.access.canEdit}
+            identifier={identifier}
+            visibleFields={visibleFields}
+            isPhone={false}
             onPatch={onPatch}
+            onComment={onComment}
             onRefresh={onRefresh}
           />
-          {showRelations && (
-            <IssueRelations issue={issue} data={data} onRefresh={onRefresh} />
-          )}
-          {showAttachments && (
-            <IssueAttachments
-              issueId={issue.id}
-              attachments={issue.attachments}
+        </ComposerSlotProvider>
+      ) : (
+        <div className={styles.split}>
+          <div className={styles.main}>
+            <IssueTitle
+              title={issue.title}
               readOnly={!issue.access.canEdit}
+              onPatch={onPatch}
+            />
+            <IssueDescription
+              issueId={issue.id}
+              description={issue.description}
+              data={data}
+              readOnly={!issue.access.canEdit}
+              onPatch={onPatch}
               onRefresh={onRefresh}
             />
-          )}
-          <IssueComments
-            issueId={issue.id}
-            workspaceId={data.workspaceId}
-            identifier={identifier}
-            comments={issue.comments}
-            activity={issue.activity}
-            members={data.members}
-            me={data.me}
+            {showRelations && (
+              <IssueRelations issue={issue} data={data} onRefresh={onRefresh} />
+            )}
+            {showAttachments && (
+              <IssueAttachments
+                issueId={issue.id}
+                attachments={issue.attachments}
+                readOnly={!issue.access.canEdit}
+                onRefresh={onRefresh}
+              />
+            )}
+            <IssueComments
+              issueId={issue.id}
+              workspaceId={data.workspaceId}
+              identifier={identifier}
+              comments={issue.comments}
+              activity={issue.activity}
+              members={data.members}
+              me={data.me}
+              data={data}
+              canUpdateAnyComment={issue.access.canUpdateAnyComment}
+              canDeleteAnyComment={issue.access.canDeleteAnyComment}
+              onSubmit={onComment}
+              onRefresh={onRefresh}
+            />
+          </div>
+
+          <IssueSidebar
+            issue={issue}
             data={data}
-            canUpdateAnyComment={issue.access.canUpdateAnyComment}
-            canDeleteAnyComment={issue.access.canDeleteAnyComment}
-            onSubmit={onComment}
-            onRefresh={onRefresh}
+            defaultWidth={PAGE_SIDEBAR_W}
+            onPatch={onPatch}
           />
         </div>
-
-        <IssueSidebar
-          issue={issue}
-          data={data}
-          defaultWidth={PAGE_SIDEBAR_W}
-          onPatch={onPatch}
-        />
-      </div>
+      )}
     </article>
   );
 }

@@ -12,6 +12,7 @@ import {
 import { Resizer } from "@/components/ui/layout/Resizer/Resizer";
 import { usePathname } from "@/i18n/navigation";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
+import { useKeyboardInset } from "@/lib/utils/useKeyboardInset";
 import styles from "./appShell.module.scss";
 import {
   NAV_COLLAPSE_BELOW_REM,
@@ -91,6 +92,8 @@ export function ShellFrame({
   initialWidthRem,
 }: ShellFrameProps) {
   const t = useTranslations("nav");
+  // `--kb-inset`: what fixed layers (the phone's detail view) lift above.
+  useKeyboardInset();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [widthRem, setWidthRem] = useState(initialWidthRem);

@@ -8,6 +8,41 @@ import {
   type SuggestionMenuHandle,
 } from "../components/SuggestionMenu/SuggestionMenu";
 import styles from "../components/SuggestionMenu/suggestionMenu.module.scss";
+import { dockPlacement } from "./suggestionDock";
+
+/** Same value as `bp.$phone` in `styles/breakpoints.scss`. */
+const PHONE_QUERY = "(max-width: 640px)";
+
+/** Side margin (px) of the list on a phone. */
+const PHONE_MARGIN = 8;
+
+/**
+ * Phone: puts the list where the keyboard leaves room (see
+ * `suggestionDock.ts`). Full width minus a margin, above or below the caret
+ * line, its list capped to the room it has.
+ */
+function placeOnPhone(element: HTMLElement, caret: DOMRect | null) {
+  if (!caret) return;
+  const viewport = window.visualViewport;
+  const placement = dockPlacement({
+    caret,
+    visible: {
+      top: viewport?.offsetTop ?? 0,
+      height: viewport?.height ?? window.innerHeight,
+    },
+    layoutHeight: window.innerHeight,
+  });
+  element.style.setProperty("--suggest-max-h", `${placement.maxHeight}px`);
+  Object.assign(element.style, {
+    position: "fixed",
+    left: `${PHONE_MARGIN}px`,
+    right: `${PHONE_MARGIN}px`,
+    width: "auto",
+    top: placement.side === "below" ? `${placement.top}px` : "auto",
+    bottom: placement.side === "above" ? `${placement.bottom}px` : "auto",
+    visibility: "",
+  });
+}
 
 /**
  * The shared foundation of all four triggers (`@`, `#`, `:`, `/`).
@@ -72,6 +107,21 @@ export function createSuggestion<I extends SuggestionItem>({
     render: () => {
       let renderer: ReactRenderer<SuggestionMenuHandle> | null = null;
       let unmount: (() => void) | null = null;
+      // Phone only: re-places the list when the caret moves, the list changes
+      // size, or the keyboard comes and goes.
+      let reposition: (() => void) | null = null;
+      let clientRect: (() => DOMRect | null) | null | undefined;
+      let stopViewportWatch: (() => void) | null = null;
+
+      const teardown = () => {
+        stopViewportWatch?.();
+        stopViewportWatch = null;
+        reposition = null;
+        unmount?.();
+        unmount = null;
+        renderer?.destroy();
+        renderer = null;
+      };
 
       return {
         onStart: (props) => {
@@ -90,16 +140,37 @@ export function createSuggestion<I extends SuggestionItem>({
           // Marks the wrapper as part of the editor: `EditableRichText`
           // must not treat a focus change into it as leaving the editor.
           renderer.updateAttributes({ "data-editor-floating": "" });
-          unmount = props.mount(renderer.element as HTMLElement);
+          clientRect = props.clientRect;
+          const element = renderer.element as HTMLElement;
+          if (window.matchMedia(PHONE_QUERY).matches) {
+            reposition = () => placeOnPhone(element, clientRect?.() ?? null);
+            unmount = props.mount(element, { onPosition: reposition });
+            reposition();
+            // The keyboard changes the visible area without a window
+            // resize on every browser — watch the visual viewport itself.
+            const viewport = window.visualViewport;
+            const place = () => reposition?.();
+            viewport?.addEventListener("resize", place);
+            viewport?.addEventListener("scroll", place);
+            stopViewportWatch = () => {
+              viewport?.removeEventListener("resize", place);
+              viewport?.removeEventListener("scroll", place);
+            };
+          } else {
+            unmount = props.mount(element);
+          }
         },
 
         onUpdate: (props) => {
+          clientRect = props.clientRect;
           renderer?.updateProps({
             items: props.items,
             loading: props.loading,
             emptyLabel: emptyLabel(),
             command: (item: SuggestionItem) => props.command(item as I),
           });
+          // The list may have grown or shrunk: look at its room again.
+          reposition?.();
         },
 
         onKeyDown: (props) => {
@@ -107,20 +178,14 @@ export function createSuggestion<I extends SuggestionItem>({
           // otherwise the editor would discard the whole edit right away.
           if (props.event.key === "Escape") {
             props.event.stopPropagation();
-            unmount?.();
-            unmount = null;
-            renderer?.destroy();
-            renderer = null;
+            teardown();
             return true;
           }
           return renderer?.ref?.onKeyDown(props.event) ?? false;
         },
 
         onExit: () => {
-          unmount?.();
-          unmount = null;
-          renderer?.destroy();
-          renderer = null;
+          teardown();
         },
       };
     },

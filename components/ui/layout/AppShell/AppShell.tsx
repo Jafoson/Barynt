@@ -4,6 +4,7 @@ import { Toast } from "@/components/ui/atoms/Toast/Toast";
 import { Sidebar } from "@/components/ui/layout/Sidebar/Sidebar";
 import { ShortcutsHelpTrigger } from "@/features/account/components/AccountShortcuts/ShortcutsHelpTrigger";
 import { CommandPaletteTrigger } from "@/features/issues/components/CommandPalette/CommandPaletteTrigger";
+import { NewIssueFab } from "@/features/issues/components/NewIssueButton/NewIssueFab";
 import { GoToShortcuts } from "@/features/workspaces/components/GoToShortcuts/GoToShortcuts";
 import { DockOutlet, ModalOutlet } from "@/lib/context";
 import { TabBar } from "../TabBar/TabBar";
@@ -84,6 +85,8 @@ export async function AppShell({
       <GoToShortcuts isAdminRoute={isAdminRoute} />
       {/* Global "mod+k" → search/jump palette (issues, projects, nav). */}
       <CommandPaletteTrigger isAdminRoute={isAdminRoute} />
+      {/* Phone only (CSS): the floating "new issue" plus. */}
+      {!isAdminRoute && <NewIssueFab />}
       <Toast />
     </ShellFrame>
   );

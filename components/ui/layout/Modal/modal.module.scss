@@ -51,6 +51,31 @@
   box-shadow: var(--modal-shadow, var(--shadow-panel));
 }
 
+/* ---------- Phone: dialogs fill the screen ----------
+
+   A form with an editor and a keyboard needs the room; a floating card
+   would leave slivers around it. Only `dialog` (the panel and the sheet
+   have their own placement) and not the small confirmations (`compact`). */
+.modal:not(.panel):not(.sheet):not(.compact) {
+  @include bp.phone {
+    --modal-w: 100%;
+
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+  }
+}
+
+/* The bar clears the notch. */
+.modal:not(.panel):not(.sheet):not(.compact) .header {
+  @include bp.phone {
+    padding-top: calc(0.875rem + var(--safe-top));
+  }
+}
+
 /* ---------- Variant: bottom sheet ---------- */
 
 /* Full width on a phone, a centered 36rem sheet on a wider screen; only the
@@ -81,6 +106,12 @@
     border-radius: var(--radius-pill);
     background: var(--outline-variant);
   }
+}
+
+/* A menu taking over the sheet as a page (`Popover`) needs room for its list
+   even when the sheet's own content is short. */
+.modal.sheet:has(> :global([data-sheet-page])) {
+  min-height: min(26rem, 85dvh);
 }
 
 /* ---------- Header ---------- */

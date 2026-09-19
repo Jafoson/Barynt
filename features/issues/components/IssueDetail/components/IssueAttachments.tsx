@@ -245,7 +245,10 @@ export function IssueAttachments({
             data-field-nav
           >
             <Icon icon="lucide:paperclip" width={20} aria-hidden="true" />
-            <span>{t("attachments.dropHint")}</span>
+            {/* Dragging a file in is a desktop thing: on a tablet or phone the
+                box just says to tap (CSS swaps the two). */}
+            <span className={styles.hintDrop}>{t("attachments.dropHint")}</span>
+            <span className={styles.hintTap}>{t("attachments.tapHint")}</span>
           </button>
         ) : (
           <button

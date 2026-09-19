@@ -44,53 +44,25 @@ export function OpenPageButton({
   );
 }
 
-interface ShareIssueButtonProps {
+/** What the share dialog needs — given only where `issue.access.canShare`. */
+interface ShareOptions {
   issueId: string;
+  /** Ready-made URL from the server — `null` while sharing is off. */
   shareUrl: string | null;
   members: User[];
   me: { id: string };
 }
 
-/** Opens the dialog for enabling/disabling the public read-only link —
- *  without `issue.share.manage` the button is left out entirely. */
-export function ShareIssueButton({
-  issueId,
-  shareUrl,
-  members,
-  me,
-}: ShareIssueButtonProps) {
-  const t = useTranslations();
-  const { openModal } = useModal();
-
-  const open = () =>
-    openModal(({ close }) => (
-      <ShareIssueModal
-        issueId={issueId}
-        shareUrl={shareUrl}
-        members={members}
-        me={me}
-        close={close}
-      />
-    ));
-
-  const label = t("share.trigger");
-
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      icon={<Icon icon="lucide:link" width={15} />}
-      aria-label={label}
-      title={label}
-      onClick={open}
-    />
-  );
-}
-
 interface IssueActionsMenuProps {
   onDelete: () => void;
-  /** `issue.access.canDelete` — without `issue.delete.any`/`.own` the menu is left out. */
+  /** `issue.access.canDelete` — without `issue.delete.any`/`.own` there is no delete entry. */
   canDelete: boolean;
+  /**
+   * Adds "share the public link": opens the dialog for enabling/disabling the
+   * public read-only link. Leave out without `issue.share.manage` — the entry
+   * then doesn't exist at all.
+   */
+  share?: ShareOptions;
 }
 
 /**
@@ -100,28 +72,57 @@ interface IssueActionsMenuProps {
  * button next to it (`OpenPageButton`), and having the same action twice in
  * the same row would just be noise.
  *
- * Currently the only entry is delete — without `canDelete` the menu would
- * be left with nothing in it, so it isn't rendered at all in that case.
+ * Entries: sharing the public link (with `share`) and delete (with
+ * `canDelete`). Without either the menu would be left with nothing in it, so
+ * it isn't rendered at all in that case.
  */
 export function IssueActionsMenu({
   onDelete,
   canDelete,
+  share,
 }: IssueActionsMenuProps) {
   const t = useTranslations();
+  const { openModal } = useModal();
 
-  if (!canDelete) return null;
+  if (!canDelete && !share) return null;
 
   const items = [
-    {
-      value: "delete",
-      label: t("actions.deleteIssue"),
-      icon: <Icon icon="lucide:trash-2" width={15} />,
-    },
+    ...(share
+      ? [
+          {
+            value: "share",
+            label: t("share.trigger"),
+            icon: <Icon icon="lucide:link" width={15} />,
+          },
+        ]
+      : []),
+    ...(canDelete
+      ? [
+          {
+            value: "delete",
+            label: t("actions.deleteIssue"),
+            icon: <Icon icon="lucide:trash-2" width={15} />,
+          },
+        ]
+      : []),
   ];
+
+  const openShare = () => {
+    if (!share) return;
+    openModal(({ close }) => (
+      <ShareIssueModal
+        issueId={share.issueId}
+        shareUrl={share.shareUrl}
+        members={share.members}
+        me={share.me}
+        close={close}
+      />
+    ));
+  };
 
   return (
     <InlinePicker
-      width={200}
+      width={260}
       align="end"
       trigger={
         <Button
@@ -139,7 +140,8 @@ export function IssueActionsMenu({
           value={null}
           onPick={(value) => {
             close();
-            if (value === "delete") onDelete();
+            if (value === "share") openShare();
+            else if (value === "delete") onDelete();
           }}
           onClose={close}
         />

@@ -471,6 +471,7 @@
     "empty": "No changes logged yet."
   },
   "attachments": {
+    "tapHint": "Tap to add an attachment",
     "add": "Add attachment",
     "addFile": "Upload a file",
     "addLink": "Add link",
@@ -689,6 +690,8 @@
     "copiedLink": "Link copied"
   },
   "issues": {
+    "detailProperties": "Properties",
+    "back": "Back",
     "quickActions": "Quick actions",
     "quickOpen": "Open",
     "quickOpenNewTab": "Open in new tab",

@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 .overlay {
   justify-content: center;
   align-items: center;
@@ -7,6 +9,49 @@
   background: rgb(0, 0, 0, 0.32);
   display: flex;
   animation: fadeIn .16s ease both;
+}
+
+/* Phone: a dialog fills the screen — no offset, no gaps, and it rises above
+   the keyboard (`--kb-inset`, set by `useKeyboardInset`). The side panel and
+   the bottom sheet keep their own placement. */
+.overlay:not(.right):not(.bottom) {
+  @include bp.phone {
+    inset: 0 0 var(--kb-inset, 0px) 0;
+    padding: 0;
+    align-items: stretch;
+  }
+}
+
+.comp:not(.right):not(.bottom) {
+  @include bp.phone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    /* `!important`: the dialog's own `width` option is set inline. */
+    width: 100% !important;
+  }
+}
+
+/* Phone: a dialog that asks to be a sheet (`Modal variant="sheet"`, the
+   create-issue dialog) sits at the bottom instead of filling the screen. The
+   frame around it must let taps beside and above it through to the backdrop,
+   same as the bottom placement above. */
+.overlay:not(.right):not(.bottom):has(:global([data-sheet])) {
+  @include bp.phone {
+    align-items: flex-end;
+  }
+}
+
+.comp:not(.right):not(.bottom):has(:global([data-sheet])) {
+  @include bp.phone {
+    align-items: flex-end;
+    pointer-events: none;
+
+    & > * {
+      pointer-events: auto;
+    }
+  }
 }
 
 .backdrop{

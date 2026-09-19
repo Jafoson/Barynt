@@ -17,6 +17,7 @@ import { useHasOpenModal } from "@/lib/context";
 import type { PMDoc } from "@/lib/richtext/types";
 import { dispatchShortcut, useShortcut } from "@/lib/shortcuts/useShortcut";
 import { useUI } from "@/lib/ui-store";
+import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import type { IssueDetail } from "@/types";
 import { IssueAttachments } from "./components/IssueAttachments";
 import { IssueComments } from "./components/IssueComments";
@@ -24,15 +25,12 @@ import { IssueDescription } from "./components/IssueDescription";
 import {
   IssueActionsMenu,
   OpenPageButton,
-  ShareIssueButton,
 } from "./components/IssueDetailActions";
-import { IssueLabels } from "./components/IssueLabels";
-import { IssueMeta } from "./components/IssueMeta";
-import { IssuePlanning } from "./components/IssuePlanning";
-import { IssueProperties } from "./components/IssueProperties";
 import { IssueRelations } from "./components/IssueRelations";
 import { IssueSidebar } from "./components/IssueSidebar";
 import { IssueTitle } from "./components/IssueTitle";
+import { ComposerSlotProvider } from "./composerSlot";
+import { IssueStackedBody } from "./IssueStackedBody";
 import styles from "./issueDetail.module.scss";
 
 /**
@@ -236,6 +234,27 @@ function NavArrows() {
   );
 }
 
+/**
+ * What leads the header. A phone has the whole screen for the detail, so
+ * there's a back button — and no prev/next arrows (they steer the board's
+ * cursor, which isn't on screen).
+ */
+function HeaderLeading({ onClose }: { onClose: () => void }) {
+  const t = useTranslations();
+  const isPhone = useMediaQuery(PHONE_QUERY);
+  if (!isPhone) return <NavArrows />;
+  return (
+    <Button
+      variant="ghost"
+      size="md"
+      className={styles.headBack}
+      icon={<Icon icon="lucide:chevron-left" width={22} />}
+      aria-label={t("issues.back")}
+      onClick={onClose}
+    />
+  );
+}
+
 interface IssueDetailViewProps {
   issue: IssueDetail;
   data: IssueComposerData;
@@ -275,7 +294,10 @@ export function IssueDetailView({
   onRefresh,
 }: IssueDetailViewProps) {
   const t = useTranslations();
-  const isPanel = !isExpanded;
+  const isPhone = useMediaQuery(PHONE_QUERY);
+  // A phone always gets the stacked panel layout, filling the screen —
+  // whatever was chosen for the large dialog.
+  const isPanel = !isExpanded || isPhone;
   // Only the panel is resizable — the expanded dialog scales with the
   // screen width.
   const [panelWidth, setPanelWidth] = useState(PANEL_DEFAULT_W);
@@ -285,7 +307,6 @@ export function IssueDetailView({
   const visibleFields = visibleDetailFields(project?.hiddenDetailFields ?? []);
   const showRelations = visibleFields.has("relations");
   const showAttachments = visibleFields.has("attachments");
-  const showLabels = visibleFields.has("labels");
 
   const hasOpenModal = useHasOpenModal();
   const { toast } = useUI();
@@ -338,14 +359,19 @@ export function IssueDetailView({
     <Modal
       variant={isPanel ? "panel" : "dialog"}
       width={isPanel ? panelWidth : undefined}
-      className={shellClass(isExpanded)}
+      className={shellClass(isExpanded && !isPhone)}
     >
       <ModalHeader
-        leading={<NavArrows />}
-        title={<span className={styles.ref}>{identifier}</span>}
+        leading={<HeaderLeading onClose={onClose} />}
+        title={
+          <>
+            <span className={styles.ref}>{identifier}</span>
+            {isPhone && <span className={styles.headTitle}>{issue.title}</span>}
+          </>
+        }
         actions={
           <>
-            {onToggleExpanded && (
+            {onToggleExpanded && !isPhone && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -366,25 +392,30 @@ export function IssueDetailView({
             )}
             {/* Both the panel and the dialog sit over something else — from
                 here, the button leads to the page that stands on its own. */}
-            <OpenPageButton
-              workspaceId={data.workspaceId}
-              identifier={identifier}
-            />
-            {issue.access.canShare && (
-              <ShareIssueButton
-                issueId={issue.id}
-                shareUrl={issue.shareUrl}
-                members={data.members}
-                me={data.me}
+            {!isPhone && (
+              <OpenPageButton
+                workspaceId={data.workspaceId}
+                identifier={identifier}
               />
             )}
             <IssueActionsMenu
               onDelete={onDelete}
               canDelete={issue.access.canDelete}
+              share={
+                issue.access.canShare
+                  ? {
+                      issueId: issue.id,
+                      shareUrl: issue.shareUrl,
+                      members: data.members,
+                      me: data.me,
+                    }
+                  : undefined
+              }
             />
           </>
         }
-        onClose={onClose}
+        // The back button is the way out on a phone.
+        onClose={isPhone ? undefined : onClose}
         closeLabel={t("actions.close")}
       />
 
@@ -392,8 +423,9 @@ export function IssueDetailView({
           overlay without disturbing that layout's own flex sizing (the
           wrapper takes over the `flex: 1 1 auto` that `.body`/`.split`
           used to claim directly from `.modal`). */}
-      <div className={styles.contentWrap}>
-        {/* The narrow side panel shows everything stacked, in the order you'd
+      <ComposerSlotProvider enabled={isPhone}>
+        <div className={styles.contentWrap}>
+          {/* The narrow side panel shows everything stacked, in the order you'd
           read the issue: what it's about, how it's categorized, what was
           said about it. A second column there would just have produced a
           stack with a divider line.
@@ -401,132 +433,81 @@ export function IssueDetailView({
           The large dialog has the width for two columns — there, just like
           on the full page, it stays content on the left, attributes on the
           right. */}
-        {isPanel ? (
-          <div className={styles.body}>
-            <IssueTitle
-              title={issue.title}
-              readOnly={!issue.access.canEdit}
-              onPatch={onPatch}
-            />
-            <IssueProperties
+          {isPanel ? (
+            <IssueStackedBody
               issue={issue}
               data={data}
-              layout="column"
-              visibleFields={visibleFields}
-              onPatch={onPatch}
-            />
-            <IssueDescription
-              issueId={issue.id}
-              description={issue.description}
-              data={data}
-              readOnly={!issue.access.canEdit}
-              onPatch={onPatch}
-              onRefresh={onRefresh}
-            />
-            {showRelations && (
-              <IssueRelations issue={issue} data={data} onRefresh={onRefresh} />
-            )}
-            {showAttachments && (
-              <IssueAttachments
-                issueId={issue.id}
-                attachments={issue.attachments}
-                readOnly={!issue.access.canEdit}
-                onRefresh={onRefresh}
-              />
-            )}
-            <IssuePlanning
-              issue={issue}
-              layout="column"
-              visibleFields={visibleFields}
-              onPatch={onPatch}
-            />
-            {showLabels && (
-              <IssueLabels
-                issue={issue}
-                data={data}
-                layout="column"
-                onPatch={onPatch}
-              />
-            )}
-            <IssueMeta issue={issue} data={data} layout="column" />
-            <IssueComments
-              issueId={issue.id}
-              workspaceId={data.workspaceId}
               identifier={identifier}
-              comments={issue.comments}
-              activity={issue.activity}
-              members={data.members}
-              me={data.me}
-              data={data}
-              canUpdateAnyComment={issue.access.canUpdateAnyComment}
-              canDeleteAnyComment={issue.access.canDeleteAnyComment}
-              onSubmit={onComment}
+              visibleFields={visibleFields}
+              isPhone={isPhone}
+              onPatch={onPatch}
+              onComment={onComment}
               onRefresh={onRefresh}
             />
-          </div>
-        ) : (
-          <div className={styles.split}>
-            <div className={styles.main}>
-              <IssueTitle
-                title={issue.title}
-                readOnly={!issue.access.canEdit}
-                onPatch={onPatch}
-              />
-              <IssueDescription
-                issueId={issue.id}
-                description={issue.description}
-                data={data}
-                readOnly={!issue.access.canEdit}
-                onPatch={onPatch}
-                onRefresh={onRefresh}
-              />
-              {showRelations && (
-                <IssueRelations
-                  issue={issue}
-                  data={data}
-                  onRefresh={onRefresh}
-                />
-              )}
-              {showAttachments && (
-                <IssueAttachments
-                  issueId={issue.id}
-                  attachments={issue.attachments}
+          ) : (
+            <div className={styles.split}>
+              <div className={styles.main}>
+                <IssueTitle
+                  title={issue.title}
                   readOnly={!issue.access.canEdit}
+                  onPatch={onPatch}
+                />
+                <IssueDescription
+                  issueId={issue.id}
+                  description={issue.description}
+                  data={data}
+                  readOnly={!issue.access.canEdit}
+                  onPatch={onPatch}
                   onRefresh={onRefresh}
                 />
-              )}
-              <IssueComments
-                issueId={issue.id}
-                workspaceId={data.workspaceId}
-                identifier={identifier}
-                comments={issue.comments}
-                activity={issue.activity}
-                members={data.members}
-                me={data.me}
-                data={data}
-                canUpdateAnyComment={issue.access.canUpdateAnyComment}
-                canDeleteAnyComment={issue.access.canDeleteAnyComment}
-                onSubmit={onComment}
-                onRefresh={onRefresh}
-              />
-            </div>
+                {showRelations && (
+                  <IssueRelations
+                    issue={issue}
+                    data={data}
+                    onRefresh={onRefresh}
+                  />
+                )}
+                {showAttachments && (
+                  <IssueAttachments
+                    issueId={issue.id}
+                    attachments={issue.attachments}
+                    readOnly={!issue.access.canEdit}
+                    onRefresh={onRefresh}
+                  />
+                )}
+                <IssueComments
+                  issueId={issue.id}
+                  workspaceId={data.workspaceId}
+                  identifier={identifier}
+                  comments={issue.comments}
+                  activity={issue.activity}
+                  members={data.members}
+                  me={data.me}
+                  data={data}
+                  canUpdateAnyComment={issue.access.canUpdateAnyComment}
+                  canDeleteAnyComment={issue.access.canDeleteAnyComment}
+                  onSubmit={onComment}
+                  onRefresh={onRefresh}
+                />
+              </div>
 
-            <IssueSidebar issue={issue} data={data} onPatch={onPatch} />
-          </div>
-        )}
-        {/* Delayed via CSS, not skipped here: a switch that resolves fast
+              <IssueSidebar issue={issue} data={data} onPatch={onPatch} />
+            </div>
+          )}
+          {/* Delayed via CSS, not skipped here: a switch that resolves fast
           (warm cache, quick connection) shouldn't flash a spinner at all —
           see the animation-delay in `issueDetail.module.scss`. */}
-        {isLoading && (
-          <div className={styles.loadingOverlay} aria-hidden="true">
-            <Icon
-              icon="lucide:loader-2"
-              width={22}
-              className={styles.loadingSpinner}
-            />
-          </div>
-        )}
-      </div>
+          {isLoading && (
+            <div className={styles.loadingOverlay} aria-hidden="true">
+              <Icon
+                icon="lucide:loader-2"
+                width={22}
+                className={styles.loadingSpinner}
+              />
+            </div>
+          )}
+        </div>
+      </ComposerSlotProvider>
 
       {/* At the panel's left edge, absolutely positioned above everything.
           Placed last in the markup, so it doesn't jump ahead of the header
@@ -559,19 +540,20 @@ export function IssueDetailSkeleton({
   onClose: () => void;
 }) {
   const t = useTranslations();
-  const isPanel = !isExpanded;
+  const isPhone = useMediaQuery(PHONE_QUERY);
+  const isPanel = !isExpanded || isPhone;
 
   return (
     <Modal
       variant={isPanel ? "panel" : "dialog"}
       width={isPanel ? PANEL_DEFAULT_W : undefined}
-      className={shellClass(isExpanded)}
+      className={shellClass(isExpanded && !isPhone)}
       aria-busy="true"
     >
       <ModalHeader
-        leading={<NavArrows />}
+        leading={<HeaderLeading onClose={onClose} />}
         title={<span className={styles.ref}>…</span>}
-        onClose={onClose}
+        onClose={isPhone ? undefined : onClose}
         closeLabel={t("actions.close")}
       />
       {isPanel ? (
@@ -612,18 +594,19 @@ export function IssueDetailMissing({
   onClose: () => void;
 }) {
   const t = useTranslations();
-  const isPanel = !isExpanded;
+  const isPhone = useMediaQuery(PHONE_QUERY);
+  const isPanel = !isExpanded || isPhone;
 
   return (
     <Modal
       variant={isPanel ? "panel" : "dialog"}
       width={isPanel ? PANEL_DEFAULT_W : undefined}
-      className={shellClass(isExpanded)}
+      className={shellClass(isExpanded && !isPhone)}
     >
       <ModalHeader
-        leading={<NavArrows />}
+        leading={<HeaderLeading onClose={onClose} />}
         title={<span className={styles.ref}>—</span>}
-        onClose={onClose}
+        onClose={isPhone ? undefined : onClose}
         closeLabel={t("actions.close")}
       />
       <div className={styles.missing}>

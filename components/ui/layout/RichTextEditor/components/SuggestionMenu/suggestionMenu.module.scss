@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 /* The suggestion list under the cursor. Positioned by Floating UI
    (`props.mount` from @tiptap/suggestion) — this file only holds the look.
 
@@ -28,6 +30,12 @@
    scrolling handled one level deeper, clips it cleanly along with the rest. */
 .menu {
   width: 20rem;
+
+  /* Phone: as wide as the list's wrapper (which spans the screen). */
+  @include bp.phone {
+    width: 100%;
+  }
+
   background: var(--surface);
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius);
@@ -42,6 +50,13 @@
   overflow-y: auto;
   padding: 0.3125rem;
   scrollbar-width: thin;
+  overscroll-behavior: contain;
+
+  /* Phone: as tall as the room above the keyboard allows (`--suggest-max-h`,
+     set by `suggestion.ts`) instead of a fixed 300px. */
+  @include bp.phone {
+    max-height: var(--suggest-max-h, 45dvh);
+  }
 }
 
 .row {
@@ -56,6 +71,13 @@
   text-align: left;
 
   &.active { background: var(--surface-container-highest); }
+
+  /* Phone: a row a fingertip can hit. */
+  @include bp.phone {
+    min-height: var(--touch-min);
+    padding: 0 0.625rem;
+    font-size: var(--text-base);
+  }
 }
 
 .icon {

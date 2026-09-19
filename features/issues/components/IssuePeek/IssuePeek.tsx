@@ -5,10 +5,16 @@ import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { IssueDetail } from "@/features/issues/components/IssueDetail/IssueDetail";
-import { closeIssuePanel, ISSUE_PARAM } from "@/features/issues/issue-links";
+import {
+  closeIssuePanel,
+  ISSUE_PARAM,
+  issuePath,
+} from "@/features/issues/issue-links";
 import { recordIssueOpened } from "@/features/issues/recent-issues";
 import type { IssueComposerData } from "@/features/issues/types";
+import { useRouter } from "@/i18n/navigation";
 import { DockPanel, useDock } from "@/lib/context";
+import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useSessionFlag } from "@/lib/utils/useSessionFlag";
 
 /**
@@ -46,13 +52,26 @@ export function IssuePeek({ data }: IssuePeekProps) {
   const searchParams = useSearchParams();
   const { node } = useDock();
   const [isExpanded, setExpanded] = useSessionFlag(EXPANDED_KEY);
+  // A phone shows it full screen already — no separate expanded state.
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const issueRef = searchParams.get(ISSUE_PARAM);
+
+  const router = useRouter();
 
   useEffect(() => {
     if (issueRef) recordIssueOpened(issueRef);
   }, [issueRef]);
 
-  if (!issueRef || !node) return null;
+  // A `?issue=` link on a phone (a mention in a comment, a shared address)
+  // leads to the issue's page instead — no panel there. The list's own
+  // clicks already go straight to the page (`useIssueOpen`); `replace`
+  // keeps this hop out of the back stack.
+  useEffect(() => {
+    if (isPhone && issueRef)
+      router.replace(issuePath(data.workspaceId, issueRef));
+  }, [isPhone, issueRef, router, data.workspaceId]);
+
+  if (!issueRef || !node || isPhone) return null;
 
   return createPortal(
     // Expanded, the panel raises itself above the page — the shell and the
@@ -60,7 +79,7 @@ export function IssuePeek({ data }: IssuePeekProps) {
     // already switched and the other hasn't.
     <DockPanel
       label={issueRef}
-      overlay={isExpanded}
+      overlay={isExpanded && !isPhone}
       closeLabel={t("actions.close")}
       onClose={closeIssuePanel}
     >

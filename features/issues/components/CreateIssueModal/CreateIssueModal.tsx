@@ -42,6 +42,7 @@ import { emptyDoc } from "@/lib/richtext/doc";
 import type { PMDoc } from "@/lib/richtext/types";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import { fullName } from "@/lib/utils/string";
+import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useSubmitShortcut } from "@/lib/utils/useSubmitShortcut";
 import type { Label } from "@/types";
 
@@ -78,6 +79,8 @@ export function CreateIssueModal({
   } = data;
   const t = useTranslations();
   const router = useRouter();
+  // A phone gets a bottom sheet: a new issue doesn't need the whole screen.
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -406,7 +409,7 @@ export function CreateIssueModal({
   );
 
   return (
-    <Modal>
+    <Modal variant={isPhone ? "sheet" : "dialog"}>
       <ModalHeader
         leading={projectPicker}
         title={t("actions.newIssue")}
