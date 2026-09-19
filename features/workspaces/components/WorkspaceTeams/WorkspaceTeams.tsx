@@ -213,7 +213,15 @@ export function WorkspaceTeams({
       width: "minmax(90px, max-content)",
       align: "end",
       sortValue: (row) => row.openIssues,
-      cell: (row) => <span className={styles.count}>{row.openIssues}</span>,
+      cell: (row) => (
+        <span className={styles.count}>
+          {row.openIssues}
+          {/* A bare number under no column header: on a phone it says what it counts. */}
+          <span className={styles.countLabel}>
+            {t("workspaceTeams.colOpen")}
+          </span>
+        </span>
+      ),
     },
     {
       id: "actions",

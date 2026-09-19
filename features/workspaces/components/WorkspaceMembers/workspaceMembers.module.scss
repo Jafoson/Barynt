@@ -1,3 +1,6 @@
+@use "breakpoints" as bp;
+@use "card-rows";
+
 /* It's not the page that scrolls, but the table itself (`fill`). A member
    row carries two lines of text next to the avatar and therefore gets
    noticeably more breathing room than the table's single-line default. */
@@ -11,6 +14,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+
+  @include card-rows.card-rows;
+
 }
 
 /* Trigger for the role menu: the arrow sits next to the role, not inside
@@ -80,4 +86,15 @@
   background: var(--error-container);
   color: var(--on-error-container);
   font-size: var(--text-sm);
+}
+
+/* Phone rows: who on top, then role, (teams,) status, and the action at the end. */
+.content {
+  @include bp.phone {
+    td[data-col="member"] { order: 1; flex: 1 1 100%; }
+    td[data-col="role"] { order: 2; }
+    td[data-col="teams"] { order: 3; flex: 1 1 auto; }
+    td[data-col="status"] { order: 4; }
+    td[data-col="actions"] { order: 5; margin-inline-start: auto; }
+  }
 }

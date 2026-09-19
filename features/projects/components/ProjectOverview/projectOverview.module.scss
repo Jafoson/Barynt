@@ -1,3 +1,6 @@
+@use "breakpoints" as bp;
+@use "card-rows";
+
 /* It's not the page that scrolls, but the table itself (`fill`). */
 .content {
   --table-row-height: 3.5rem;
@@ -8,6 +11,9 @@
   padding: 0.75rem 1.5rem 2rem;
   display: flex;
   flex-direction: column;
+
+  @include card-rows.card-rows;
+
 }
 
 .project {
@@ -53,4 +59,14 @@
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   color: var(--on-surface-variant);
+}
+
+/* Phone rows: name and prefix on top, the description under it, the lead last. */
+.content {
+  @include bp.phone {
+    td[data-col="project"] { order: 1; flex: 1 1 0; }
+    td[data-col="prefix"] { order: 2; }
+    td[data-col="desc"] { order: 3; flex: 1 1 100%; }
+    td[data-col="lead"] { order: 4; flex: 1 1 100%; }
+  }
 }

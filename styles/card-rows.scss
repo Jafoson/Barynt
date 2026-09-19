@@ -1,0 +1,53 @@
+@use "breakpoints" as bp;
+
+/* Phone: a table's rows as cards — the rows of the issue list (see
+   `ListView`) laid out the same way for tables with fewer columns.
+
+   Include inside the class that wraps the table. Each cell is found by the
+   column id the table puts on it (`data-col`), so the caller only says where
+   a cell goes: `order`, `flex: 1 1 100%` for a cell that takes its own line,
+   `margin-inline-start: auto` for one that sits at the end of a line. Group
+   headers keep their own layout (only `tr[data-row-key]` changes). */
+@mixin card-rows {
+  @include bp.phone {
+    --table-min-w: 0;
+    --table-divider: var(--outline-variant);
+
+    padding-inline: 0.75rem;
+
+    table {
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+
+    table thead {
+      display: none;
+    }
+
+    table,
+    table tbody {
+      display: block;
+    }
+
+    table tbody tr[data-row-key] {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.375rem 0.75rem;
+      min-height: 0;
+      padding: 0.75rem 0.875rem;
+    }
+
+    table tbody tr[data-row-key] td {
+      width: auto;
+      min-width: 0;
+    }
+
+    table tbody tr[data-row-key] td:empty {
+      display: none;
+    }
+  }
+}

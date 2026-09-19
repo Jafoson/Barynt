@@ -6,7 +6,10 @@ interface PageHeaderProps {
   title: ReactNode;
   /** Counter right after the title — usually the row count of the list below. */
   count?: number;
-  /** One sentence about what this page manages. */
+  /**
+   * Not shown: the pages no longer carry an explaining sentence under the
+   * title. Still accepted so the callers compile — remove it there.
+   */
   description?: ReactNode;
   /** Slot to the left of the title — icon, color dot, avatar … */
   leading?: ReactNode;
@@ -21,7 +24,7 @@ interface PageHeaderProps {
 }
 
 /**
- * Header of a management page: title, counter, description, actions.
+ * Header of a management page: title, counter, actions.
  *
  * The counterpart to the `Topbar` of the issue views — that one filters and
  * counts, this one only labels. Deliberately without its own state and
@@ -31,7 +34,6 @@ interface PageHeaderProps {
 export function PageHeader({
   title,
   count,
-  description,
   leading,
   actions,
   divider = true,
@@ -51,8 +53,6 @@ export function PageHeader({
         {count !== undefined && <Badge mono>{count}</Badge>}
         {actions && <div className={styles.actions}>{actions}</div>}
       </div>
-
-      {description && <p className={styles.description}>{description}</p>}
     </header>
   );
 }

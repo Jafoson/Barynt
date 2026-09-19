@@ -286,6 +286,7 @@ export function ProjectMembers({
       <PageHeader
         divider={false}
         title={t("nav.members")}
+        count={items.length}
         description={t("projectMembers.subtitle", {
           count: items.length,
           project: projectName,

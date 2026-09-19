@@ -6,20 +6,7 @@
   flex-direction: column;
   gap: 0.25rem;
   flex: none;
-  /* More padding below than above: the extra cushion belongs to the
-     description sentence, which sits lower than the title row and needs
-     more room below it. */
-  padding: 0.5rem 1.5rem 0.875rem;
-}
-
-/* Without a description, the header is single-line, and the padding
-   staggered from above visibly tips it downward. In that case, the row
-   should sit centered in its strip. Via `:has()` instead of a modifier from
-   outside: whether there's a description is something the header itself
-   knows — every caller would otherwise have to communicate it a second time
-   and could forget to. */
-.header:not(:has(.description)) {
-  padding-block: 0.75rem;
+  padding: 0.75rem 1.5rem;
 }
 
 .divider {
@@ -46,14 +33,5 @@
   gap: 0.5rem;
   /* Pushes the actions to the end, no matter how wide the title turns out. */
   margin-inline-start: auto;
-}
-
-.description {
-  margin: 0;
-  /* Readable line length — the sentence explains, it doesn't fill the page. */
-  max-width: 72ch;
-  color: var(--on-surface-variant);
-  font-size: var(--text-sm);
-  line-height: var(--leading-normal);
 }
 

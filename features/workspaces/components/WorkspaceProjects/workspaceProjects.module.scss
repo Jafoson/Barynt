@@ -1,3 +1,6 @@
+@use "breakpoints" as bp;
+@use "card-rows";
+
 /* It's not the page that scrolls, but each table on its own (`fill`). */
 .content {
   --table-row-height: 3.5rem;
@@ -9,6 +12,9 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+
+  @include card-rows.card-rows;
+
 }
 
 .project {
@@ -105,4 +111,16 @@
   background: var(--error-container);
   color: var(--on-error-container);
   font-size: var(--text-sm);
+}
+
+/* Phone rows: the project on top; visibility, members and count under it,
+   the actions at the end. */
+.content {
+  @include bp.phone {
+    td[data-col="project"] { order: 1; flex: 1 1 100%; }
+    td[data-col="visibility"] { order: 2; }
+    td[data-col="members"] { order: 3; }
+    td[data-col="issues"] { order: 4; }
+    td[data-col="actions"] { order: 5; margin-inline-start: auto; }
+  }
 }
