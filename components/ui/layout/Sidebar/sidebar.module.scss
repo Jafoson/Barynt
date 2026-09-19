@@ -17,6 +17,11 @@
     text-align: center;
   }
 
+  /* Tablet: the menu is a panel of its own — more air all around. */
+  @include bp.tablet-only {
+    padding: 1rem 1.25rem 0.75rem;
+  }
+
   /* Phone: the menu is the whole screen — more air at the sides. */
   @include bp.phone {
     padding: 0.75rem 1rem 0.5rem;
@@ -87,6 +92,12 @@
   @include bp.phone {
     margin-inline: 0;
   }
+
+  /* Phone and tablet: neither button — the round "new issue" button floats
+     over the page and the top bar has the search icon. */
+  @include bp.tablet-down {
+    display: none;
+  }
 }
 
 .nav {
@@ -94,6 +105,12 @@
   flex-direction: column;
   gap: 1px;
   padding-top: 0.25rem;
+
+  /* Phone and tablet: the quick actions that used to sit between the
+     workspace switcher and the menu are gone — their space stays. */
+  @include bp.tablet-down {
+    padding-top: 0.875rem;
+  }
 }
 
 /* Workspace overview and dashboard, at the top of the sidebar. The spacing
