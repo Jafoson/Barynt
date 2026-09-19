@@ -317,7 +317,16 @@ export function CommandPalette({
               }
             }}
           />
-          <span className="kbd">ESC</span>
+          {/* A keyboard hint on a desktop, a close button on a phone (CSS). */}
+          <span className={`kbd ${styles.escHint}`}>ESC</span>
+          <button
+            type="button"
+            className={styles.closeBtn}
+            aria-label={t("actions.close")}
+            onClick={onClose}
+          >
+            <Icon icon="lucide:x" width={20} />
+          </button>
         </div>
 
         <div className={styles.results} ref={resultsRef}>
@@ -450,7 +459,7 @@ export function CommandPalette({
           )}
         </div>
 
-        <div className={styles.footer}>
+        <div className={`${styles.footer} ${styles.keyHints}`}>
           <span className="kbd">↑↓</span> {t("palette.navigate")}
           <span className="kbd" style={{ marginLeft: 8 }}>
             ↵
