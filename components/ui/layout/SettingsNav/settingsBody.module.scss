@@ -1,0 +1,39 @@
+@use "breakpoints" as bp;
+
+/* Only the phone's rules: one of the two columns at a time. Both children
+   belong to the layout (its own modules), so they're found by position —
+   the nav is a `<nav>`, the panel the last child. */
+.body {
+  @include bp.phone {
+    /* The list: the nav fills the screen, no panel. */
+    &[data-view="list"] > :last-child {
+      display: none;
+    }
+
+    /* A section: the panel alone, with the way back above it. */
+    &[data-view="page"] > nav {
+      display: none;
+    }
+  }
+}
+
+/* Way back from a section to the list — only on a phone, and only inside a
+   section. */
+.back {
+  display: none;
+
+  @include bp.phone {
+    .body[data-view="page"] > & {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      flex: none;
+      min-height: var(--touch-min);
+      padding: 0 0.75rem;
+      border-top: 1px solid var(--outline-variant);
+      color: var(--on-surface-variant);
+      font-size: var(--text-md);
+      font-weight: 500;
+    }
+  }
+}

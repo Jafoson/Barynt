@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { SettingsHeader } from "@/components/ui/layout/SettingsHeader/SettingsHeader";
+import { SettingsBody } from "@/components/ui/layout/SettingsNav/SettingsBody";
 import {
   SettingsNav,
   type SettingsNavItem,
@@ -117,7 +118,11 @@ export default async function WorkspaceSettingsLayout({
           label={t("settings.scopeLabel")}
         />
       )}
-      <div className={styles.body}>
+      <SettingsBody
+        className={styles.body}
+        basePath={workspaceSettingsPath(workspace, "")}
+        backLabel={t("nav.settings")}
+      >
         <SettingsNav
           subject={current.name}
           color={current.color}
@@ -126,9 +131,10 @@ export default async function WorkspaceSettingsLayout({
           siblingsLabel={t("settings.scopeWorkspace")}
           title={t("nav.settings")}
           items={items}
+          basePath={workspaceSettingsPath(workspace, "")}
         />
         <div className={styles.panel}>{children}</div>
-      </div>
+      </SettingsBody>
     </div>
   );
 }

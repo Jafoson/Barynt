@@ -1,10 +1,12 @@
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { NavLink } from "@/components/ui/layout/NavLink/NavLink";
+import { KeyboardOnly } from "./KeyboardOnly";
 import {
   type SettingsNavSubject,
   SettingsSubjectMenu,
 } from "./SettingsSubjectMenu";
 import styles from "./settingsNav.module.scss";
+import { OPEN_PARAM } from "./settingsView";
 
 export type { SettingsNavSubject };
 
@@ -12,6 +14,8 @@ export interface SettingsNavItem {
   href: string;
   label: string;
   icon: string;
+  /** Shown only where there's a keyboard — the shortcuts page, say. */
+  needsKeyboard?: boolean;
 }
 
 interface Props {
@@ -36,6 +40,12 @@ interface Props {
    * for. This component checks nothing — it renders whatever it receives.
    */
   items: SettingsNavItem[];
+  /**
+   * Address of the settings' start page — the first entry ("General") lives
+   * there too. On a phone that address is the section list, so this entry
+   * links with `?open` to say "the page, not the list".
+   */
+  basePath: string;
 }
 
 /**
@@ -64,6 +74,7 @@ export function SettingsNav({
   siblingsLabel,
   title,
   items,
+  basePath,
 }: Props) {
   // The header only becomes a switcher when there's something to switch
   // between: one's own account has no siblings, and a single project isn't
@@ -98,11 +109,27 @@ export function SettingsNav({
       <p className={styles.title}>{title}</p>
 
       <ul className={styles.list}>
-        {items.map((item) => (
-          <li key={item.href}>
-            <NavLink href={item.href} icon={item.icon} label={item.label} />
-          </li>
-        ))}
+        {items.map((item) => {
+          const row = (
+            <li key={item.href}>
+              <NavLink
+                href={
+                  item.href === basePath
+                    ? `${item.href}?${OPEN_PARAM}=1`
+                    : item.href
+                }
+                activeHref={item.href}
+                icon={item.icon}
+                label={item.label}
+              />
+            </li>
+          );
+          return item.needsKeyboard ? (
+            <KeyboardOnly key={item.href}>{row}</KeyboardOnly>
+          ) : (
+            row
+          );
+        })}
       </ul>
     </nav>
   );

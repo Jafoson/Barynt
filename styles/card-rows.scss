@@ -8,46 +8,136 @@
    a cell goes: `order`, `flex: 1 1 100%` for a cell that takes its own line,
    `margin-inline-start: auto` for one that sits at the end of a line. Group
    headers keep their own layout (only `tr[data-row-key]` changes). */
-@mixin card-rows {
+@mixin card-rows($upTo: phone) {
+  @if $upTo == tablet {
+    @include bp.tablet-down {
+      @include -card-rows-rules;
+    }
+  } @else {
+    @include bp.phone {
+      @include -card-rows-rules;
+    }
+  }
+}
+
+@mixin -card-rows-rules {
+  --table-min-w: 0;
+  --table-divider: var(--outline-variant);
+
+  padding-inline: 0.75rem;
+
+  table {
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  table thead {
+    display: none;
+  }
+
+  table,
+  table tbody {
+    display: block;
+  }
+
+  table tbody tr[data-row-key] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem 0.75rem;
+    min-height: 0;
+    padding: 0.75rem 0.875rem;
+  }
+
+  table tbody tr[data-row-key] td {
+    width: auto;
+    min-width: 0;
+  }
+
+  table tbody tr[data-row-key] td:empty {
+    display: none;
+  }
+}
+
+/* The cards of a settings page (`setting` text + `control`). When the page
+   is narrow — a phone, or a tablet with the menu column beside it — the
+   control goes under the text: a toggle and a label don't both fit, and a
+   long value (an address with its copy button) would squeeze the text into
+   a sliver. Decided by the page's own width (`container-type`), not the
+   screen's, since the tablet's panel is narrower than the tablet.
+
+   Include inside the page's own class like `card-rows`; only tables with a
+   `control` column change their rows, the others (stats, several columns)
+   just lose the minimum width on a phone. */
+@mixin setting-rows {
+  container-type: inline-size;
+
   @include bp.phone {
     --table-min-w: 0;
-    --table-divider: var(--outline-variant);
 
     padding-inline: 0.75rem;
+  }
 
-    table {
-      scrollbar-width: none;
+  @container (max-width: 44rem) {
+    table:has(td[data-col="control"]) {
+      display: block;
 
-      &::-webkit-scrollbar {
+      thead {
         display: none;
       }
+
+      tbody {
+        display: block;
+      }
+
+      tbody tr[data-row-key] {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.25rem;
+        min-height: 0;
+        padding: 0.5rem 0.875rem 0.75rem;
+      }
+
+      tbody tr[data-row-key] td {
+        width: auto;
+        min-width: 0;
+      }
+
+      tbody tr[data-row-key] td:empty {
+        display: none;
+      }
+
+      td[data-col="control"] {
+        justify-content: flex-start;
+        text-align: start;
+      }
+    }
+  }
+}
+
+/* Phone and tablet: the page scrolls as a whole and every list in it is as
+   tall as its rows. Lists that each scroll inside a strip of the screen (two
+   `fill` tables in one column) cut their rows off and leave the last one half
+   visible. Include inside the page's own class; the section wrapping each
+   table is `.group` (its own module), so this takes the tables by element.
+   The element selectors beat the table's own `fill` rules. */
+@mixin page-scroll-lists {
+  @include bp.tablet-down {
+    overflow-y: auto;
+
+    /* `[role]` for the specificity: the table's own `.card.fill` is two
+       classes, and a bare element would lose against it. */
+    table[role="table"] {
+      flex: none;
+      overflow: visible;
     }
 
-    table thead {
-      display: none;
-    }
-
-    table,
-    table tbody {
-      display: block;
-    }
-
-    table tbody tr[data-row-key] {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.375rem 0.75rem;
-      min-height: 0;
-      padding: 0.75rem 0.875rem;
-    }
-
-    table tbody tr[data-row-key] td {
-      width: auto;
-      min-width: 0;
-    }
-
-    table tbody tr[data-row-key] td:empty {
-      display: none;
+    & > * {
+      flex: none;
     }
   }
 }

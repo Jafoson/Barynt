@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 /* Second navigation level, directly next to the sidebar. Slightly narrower
    than it, so the hierarchy stays recognizable even without labels: the app
    on the outside, then the subject (workspace or project), then the
@@ -133,4 +135,18 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
+}
+
+/* ---------- Phone: the menu is a page of its own ----------
+
+   On a phone the sections are a full-screen list; a tap opens one full
+   screen (`SettingsBody` shows one or the other). So the nav here just fills
+   the width instead of being a column. */
+.nav {
+  @include bp.phone {
+    flex: 1;
+    max-width: none;
+    padding: 0.75rem 1rem;
+    border-right: 0;
+  }
 }

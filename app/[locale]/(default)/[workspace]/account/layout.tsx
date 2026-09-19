@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { enabledOAuthProviders } from "@/auth.config";
 import { SettingsHeader } from "@/components/ui/layout/SettingsHeader/SettingsHeader";
+import { SettingsBody } from "@/components/ui/layout/SettingsNav/SettingsBody";
 import {
   SettingsNav,
   type SettingsNavItem,
@@ -91,6 +92,8 @@ export default async function AccountLayout({
     href: accountPath(workspace, entry.section),
     label: t(`nav.${entry.labelKey}`),
     icon: entry.icon,
+    // Without a keyboard there's nothing to press shortcuts on.
+    needsKeyboard: entry.section === "shortcuts" || undefined,
   }));
 
   return (
@@ -103,14 +106,19 @@ export default async function AccountLayout({
           label={t("settings.scopeLabel")}
         />
       )}
-      <div className={styles.body}>
+      <SettingsBody
+        className={styles.body}
+        basePath={accountPath(workspace, "")}
+        backLabel={t("nav.settings")}
+      >
         <SettingsNav
           subject={t("nav.account")}
           title={t("nav.settings")}
           items={items}
+          basePath={accountPath(workspace, "")}
         />
         <div className={styles.panel}>{children}</div>
-      </div>
+      </SettingsBody>
     </div>
   );
 }

@@ -8,6 +8,19 @@
   border-radius: var(--radius-sm);
   padding: 0.1875rem;
   gap: 0.125rem;
+
+  /* Wider than its space (four tabs on a phone): the row scrolls sideways
+     instead of cutting the last segment off. No scrollbar — a touch screen
+     scrolls by swiping, and a bar would eat the row's height. */
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .item {
@@ -17,6 +30,7 @@
      pushed it upward. A button is a row of icon and text, so it's laid out
      here the same way (`atoms/Button`). */
   display: inline-flex;
+  flex: none;
   align-items: center;
   justify-content: center;
   /* Previously icon and word sat flush against each other with no gap — the

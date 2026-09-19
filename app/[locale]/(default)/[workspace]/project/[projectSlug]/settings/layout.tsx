@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { SettingsHeader } from "@/components/ui/layout/SettingsHeader/SettingsHeader";
+import { SettingsBody } from "@/components/ui/layout/SettingsNav/SettingsBody";
 import {
   SettingsNav,
   type SettingsNavItem,
@@ -108,7 +109,11 @@ export default async function ProjectSettingsLayout({
           label={t("settings.scopeLabel")}
         />
       )}
-      <div className={styles.body}>
+      <SettingsBody
+        className={styles.body}
+        basePath={projectSettingsPath(workspace, projectSlug, "")}
+        backLabel={t("nav.settings")}
+      >
         <SettingsNav
           subject={project.name}
           color={project.color}
@@ -117,9 +122,10 @@ export default async function ProjectSettingsLayout({
           siblingsLabel={t("settings.scopeProject")}
           title={t("nav.settings")}
           items={items}
+          basePath={projectSettingsPath(workspace, projectSlug, "")}
         />
         <div className={styles.panel}>{children}</div>
-      </div>
+      </SettingsBody>
     </div>
   );
 }

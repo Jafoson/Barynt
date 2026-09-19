@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import styles from "./segmentedControl.module.scss";
 
 interface SegmentedItem {
@@ -47,9 +47,24 @@ export function SegmentedControl({
 }: SegmentedControlProps) {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const hasActive = items.some((item) => item.value === value);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Too many segments for the width: the row scrolls sideways. The active one
+  // is brought into view — without touching the page's own scroll position.
+  useEffect(() => {
+    const root = rootRef.current;
+    const active =
+      buttonRefs.current[items.findIndex((i) => i.value === value)];
+    if (!root || !active) return;
+    const bounds = root.getBoundingClientRect();
+    const box = active.getBoundingClientRect();
+    if (box.left < bounds.left) root.scrollLeft -= bounds.left - box.left + 8;
+    else if (box.right > bounds.right)
+      root.scrollLeft += box.right - bounds.right + 8;
+  }, [items, value]);
 
   return (
-    <div className={styles.root} role="radiogroup">
+    <div ref={rootRef} className={styles.root} role="radiogroup">
       {items.map((item, index) => {
         const isActive = value === item.value;
         const iconOnly = !!item.icon && !item.label;

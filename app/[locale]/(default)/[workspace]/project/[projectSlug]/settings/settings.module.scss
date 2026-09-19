@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 /* Same layout as in the workspace settings: header with the section switcher
    on top, two columns below. */
 .shell {
@@ -17,6 +19,11 @@
   min-height: 0;
   display: flex;
   overflow: hidden;
+
+  /* Phone: the nav is a strip above the content, not a column beside it. */
+  @include bp.phone {
+    flex-direction: column;
+  }
 }
 
 /* The panel brings its own header (`PageHeader`) and handles its own

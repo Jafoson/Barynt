@@ -143,6 +143,16 @@
   margin-inline-start: auto;
 }
 
+/* Phone: without a banner between them (the passkey reminder is an `<output>`),
+   the bar's bottom line and the page's own top line (`PageHeader`, `Topbar`,
+   the settings header) sit right on top of each other — one thick line. Then
+   the page's line is the only one. */
+.topBar:has(+ .tabs + .content > :first-child:not(output)) {
+  @include bp.phone {
+    border-bottom: none;
+  }
+}
+
 .tabs {
   display: contents;
 

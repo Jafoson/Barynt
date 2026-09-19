@@ -94,7 +94,13 @@ export function SettingsList({
   const table = (
     <Table
       variant="card"
-      className={[styles.table, danger && styles.danger, className]
+      className={[
+        styles.table,
+        !columns && styles.stacked,
+        columns && styles.multi,
+        danger && styles.danger,
+        className,
+      ]
         .filter(Boolean)
         .join(" ")}
       label={label ?? title}
