@@ -5,6 +5,7 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { getMyPreferences } from "@/features/account/queries";
 import { routing } from "@/i18n/routing";
+import { IconBundle } from "@/lib/icons/IconBundle";
 import { DockProvider, ModalProvider } from "@/lib/context";
 import { UIProvider } from "@/lib/ui-store";
 
@@ -66,6 +67,7 @@ export default async function LocaleLayout({
       className={`${hankenGrotesk.variable} ${jetbrainsMono.variable}`}
     >
       <body>
+        <IconBundle />
         {/* Messages/locale are picked up automatically from the server configuration. */}
         <NextIntlClientProvider>
           <UIProvider>

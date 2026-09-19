@@ -90,6 +90,25 @@ not strings. Reading and writing are separate:
   scripts): `toDoc`/`isEmptyDoc` (input from the DB), `toPlainText`/`toPreview`
   (search, previews), `fromMarkdown` (seed and one-off migration).
 
+## Icons (`@iconify/react`)
+
+Icons are `<Icon icon="lucide:name" />` — but they don't load from
+`api.iconify.design` at runtime. `lib/icons/bundle.generated.ts` holds the
+icons the app uses (cut from the `@iconify-json/*` devDependencies) and
+`lib/icons/IconBundle.tsx`, mounted in the root layout, registers them
+before anything renders. Otherwise an ad blocker, a proxy or an outage
+leaves every icon empty (BARY-45).
+
+- **Add or remove an icon → `bun run icons:build`** and commit the generated
+  file. `tests/unit/ui/iconBundle.test.ts` (and `bun run icons:check`) fail
+  while it's out of date. A missing icon isn't broken — it falls back to the
+  API — but it quietly reintroduces the runtime dependency.
+- The scan (`scripts/build-icons.ts`) reads string literals `"prefix:name"`
+  from `app/`, `components/`, `features/`, `lib/`. Write icon names as
+  literals; a name assembled at runtime isn't seen and always hits the API.
+- A new icon *set* (a prefix other than lucide/logos/material-symbols/mdi)
+  needs its `@iconify-json/<prefix>` as a devDependency.
+
 ## Email (`lib/mail`)
 
 SMTP, configured exclusively through the environment (`SMTP_HOST`, `SMTP_PORT`,
