@@ -46,6 +46,7 @@ function TabItem({ item }: { item: TabGroup }) {
           color={item.color}
           image={item.image}
           shape={item.shape}
+          hideOnPhone={item.hideOnPhone}
         />
         {hasGroup && (
           <span className={styles.toggle}>

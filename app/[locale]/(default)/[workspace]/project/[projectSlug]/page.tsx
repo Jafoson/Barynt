@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Board } from "@/features/issues/components/Board/Board";
+import { BoardUnlessPhone } from "@/features/issues/components/Board/BoardUnlessPhone";
 import { IssuePeek } from "@/features/issues/components/IssuePeek/IssuePeek";
 import { Topbar } from "@/features/issues/components/Topbar/Topbar";
 import { getIssueComposerData } from "@/features/issues/editor-data";
@@ -43,15 +44,17 @@ export default async function BoardPage({
   return (
     <>
       <Topbar count={issues.length} view="board" projectId={project.id} />
-      <Board
-        issues={issues}
-        projectId={project.id}
-        statuses={statuses}
-        composer={composer}
-        hiddenCardFields={hiddenCardFields}
-        sortKey={sortKeyFromParam(filters.sort)}
-        groupKey={groupKeyFromParam(filters.group)}
-      />
+      <BoardUnlessPhone>
+        <Board
+          issues={issues}
+          projectId={project.id}
+          statuses={statuses}
+          composer={composer}
+          hiddenCardFields={hiddenCardFields}
+          sortKey={sortKeyFromParam(filters.sort)}
+          groupKey={groupKeyFromParam(filters.group)}
+        />
+      </BoardUnlessPhone>
       {/* Opens the clicked issue as a side panel (`?issue=` in the URL). */}
       <IssuePeek data={composer} />
     </>

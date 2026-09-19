@@ -20,6 +20,8 @@ export interface NavLinkProps {
   /** Shape of the color dot/image when using `color`. Default: circle. */
   shape?: AvatarShape;
   onClick?: () => void;
+  /** Left out of the sidebar menu on a phone (the board, which a phone doesn't have). */
+  hideOnPhone?: boolean;
 }
 
 /**
@@ -42,6 +44,7 @@ export function NavLink({
   image,
   shape,
   onClick,
+  hideOnPhone,
 }: NavLinkProps) {
   const pathname = usePathname();
 
@@ -73,7 +76,7 @@ export function NavLink({
   return (
     <Link
       href={href}
-      className={`${styles.btn} ${styles.ghost} ${styles.md} ${styles.full} ${styles.hasIcon} ${styles["textAlign-left"]} ${styles.link} ${navStyles.row}`}
+      className={`${styles.btn} ${styles.ghost} ${styles.md} ${styles.full} ${styles.hasIcon} ${styles["textAlign-left"]} ${styles.link} ${navStyles.row}${hideOnPhone ? ` ${navStyles.phoneHidden}` : ""}`}
       // The full name: the row only truncates it visually, and in the
       // sidebar's icon rail the text isn't shown at all.
       title={label}

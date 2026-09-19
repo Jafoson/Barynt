@@ -60,6 +60,8 @@ export default async function NavGroupProjects() {
             ...(entry.section === "settings"
               ? { activeHref: `${href}/*` }
               : {}),
+            // A phone has no board — only the list ("Issues").
+            ...(entry.section === "" ? { hideOnPhone: true } : {}),
           };
         }),
       ],

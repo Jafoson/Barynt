@@ -92,3 +92,11 @@
     display: none;
   }
 }
+
+/* An entry a phone doesn't have (the board). `!important`: the button's own
+   `display` is as specific as this. */
+.phoneHidden {
+  @include bp.phone {
+    display: none !important;
+  }
+}
