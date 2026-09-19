@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 /* ============================================================
    Table — one raster, many rows.
 
@@ -28,6 +30,28 @@
   padding: 0 var(--table-inset) var(--table-inset);
   text-indent: 0;
   border-spacing: 0;
+}
+
+/* Phone: a table with several columns doesn't shrink to the screen — it
+   keeps a width of its own (`--table-min-w`, 36rem unless the caller says
+   otherwise, `0` where it fits) and scrolls sideways instead: in this wrapper
+   when it doesn't fill its view, in the card frame when it does. Above a
+   phone the wrapper is no box at all (`display: contents`). */
+.scrollX {
+  display: contents;
+
+  @include bp.phone {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+}
+
+.table {
+  @include bp.phone {
+    min-width: var(--table-min-w, 36rem);
+  }
 }
 
 /* Fills the remaining height of a flex column and scrolls itself — the
@@ -578,6 +602,13 @@ tbody.group {
 /* The card inside now only supplies the scroll area — the border, base
    surface, and rounding are now carried by the frame, otherwise there'd
    be a doubled border. */
+.cardFrame {
+  @include bp.phone {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+}
+
 .cardFrame > :is(.card, .empty) {
   flex: 1;
   min-height: 0;

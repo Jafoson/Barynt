@@ -10,8 +10,8 @@ import {
 import styles from "../components/SuggestionMenu/suggestionMenu.module.scss";
 import { dockPlacement } from "./suggestionDock";
 
-/** Same value as `bp.$phone` in `styles/breakpoints.scss`. */
-const PHONE_QUERY = "(max-width: 640px)";
+/** Same value as `bp.$tablet` in `styles/breakpoints.scss`: phone and tablet. */
+const PHONE_QUERY = "(max-width: 1024px)";
 
 /** Side margin (px) of the list on a phone. */
 const PHONE_MARGIN = 8;

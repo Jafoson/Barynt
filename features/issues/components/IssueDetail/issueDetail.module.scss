@@ -580,6 +580,12 @@
    `.body`/`.main` (which space *their* direct children at 1.625rem, `.body`) —
    internally they sit much closer, since they all belong to the same
    "how this issue connects to others" idea. */
+/* The small relation tables have few columns: they fit a phone, no sideways
+   scrolling (see `--table-min-w` in `table.module.scss`). */
+.miniTableWrap {
+  --table-min-w: 0;
+}
+
 .relationsWrap {
   display: flex;
   flex-direction: column;
@@ -1475,10 +1481,10 @@
   }
 }
 
-/* Phone: the page's bar names only the issue — the project step and the
+/* Phone and tablet: the page's bar names only the issue — the project step and the
    slash give way (the back arrow still leads to the project). */
 .crumbs {
-  @include bp.phone {
+  @include bp.tablet-down {
     .crumb,
     .crumbSep {
       display: none;

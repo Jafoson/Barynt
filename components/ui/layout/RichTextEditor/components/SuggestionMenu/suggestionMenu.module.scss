@@ -32,7 +32,7 @@
   width: 20rem;
 
   /* Phone: as wide as the list's wrapper (which spans the screen). */
-  @include bp.phone {
+  @include bp.tablet-down {
     width: 100%;
   }
 
@@ -54,7 +54,7 @@
 
   /* Phone: as tall as the room above the keyboard allows (`--suggest-max-h`,
      set by `suggestion.ts`) instead of a fixed 300px. */
-  @include bp.phone {
+  @include bp.tablet-down {
     max-height: var(--suggest-max-h, 45dvh);
   }
 }
@@ -73,7 +73,7 @@
   &.active { background: var(--surface-container-highest); }
 
   /* Phone: a row a fingertip can hit. */
-  @include bp.phone {
+  @include bp.tablet-down {
     min-height: var(--touch-min);
     padding: 0 0.625rem;
     font-size: var(--text-base);

@@ -32,7 +32,7 @@
    under it stays where it is). A fade at the right edge says "there's more";
    `scroll-snap` lands the row on a whole button after a swipe. */
 .toolbar {
-  @include bp.phone {
+  @include bp.tablet-down {
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
@@ -93,7 +93,7 @@
 /* Phone: a fingertip-sized target (44px), with the pressed state showing at
    once — there's no hover to give that feedback on a touch screen. */
 .btn {
-  @include bp.phone {
+  @include bp.tablet-down {
     width: var(--touch-min);
     height: var(--touch-min);
     scroll-snap-align: start;
@@ -110,7 +110,7 @@
 }
 
 .divider {
-  @include bp.phone {
+  @include bp.tablet-down {
     flex: none;
     height: 1.5rem;
   }

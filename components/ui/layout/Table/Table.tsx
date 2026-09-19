@@ -244,6 +244,9 @@ export function Table<T>({
                 <th
                   key={column.id}
                   className={cellClass(column)}
+                  // Which column this is — for a caller's own layout of the
+                  // row (the issue list re-arranges its cells on a phone).
+                  data-col={column.id}
                   role="columnheader"
                   scope="col"
                   // `none` says "sortable, but not currently sorted" —
@@ -349,6 +352,7 @@ export function Table<T>({
                     <td
                       key={column.id}
                       className={cellClass(column)}
+                      data-col={column.id}
                       role="cell"
                     >
                       {/* Handle and overlay hang in the first cell, spanned
@@ -404,5 +408,8 @@ export function Table<T>({
     </table>
   );
 
-  return cardFill ? <div className={styles.cardFrame}>{tableEl}</div> : tableEl;
+  if (cardFill) return <div className={styles.cardFrame}>{tableEl}</div>;
+  // A table that doesn't fill its view can be wider than a phone: this wrapper
+  // scrolls it sideways there, and doesn't exist as a box anywhere else.
+  return fill ? tableEl : <div className={styles.scrollX}>{tableEl}</div>;
 }

@@ -14,7 +14,7 @@ import { recordIssueOpened } from "@/features/issues/recent-issues";
 import type { IssueComposerData } from "@/features/issues/types";
 import { useRouter } from "@/i18n/navigation";
 import { DockPanel, useDock } from "@/lib/context";
-import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
+import { COMPACT_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useSessionFlag } from "@/lib/utils/useSessionFlag";
 
 /**
@@ -52,8 +52,8 @@ export function IssuePeek({ data }: IssuePeekProps) {
   const searchParams = useSearchParams();
   const { node } = useDock();
   const [isExpanded, setExpanded] = useSessionFlag(EXPANDED_KEY);
-  // A phone shows it full screen already — no separate expanded state.
-  const isPhone = useMediaQuery(PHONE_QUERY);
+  // A phone or tablet opens the issue as a page — no panel, no expanded state.
+  const isPhone = useMediaQuery(COMPACT_QUERY);
   const issueRef = searchParams.get(ISSUE_PARAM);
 
   const router = useRouter();
@@ -62,7 +62,7 @@ export function IssuePeek({ data }: IssuePeekProps) {
     if (issueRef) recordIssueOpened(issueRef);
   }, [issueRef]);
 
-  // A `?issue=` link on a phone (a mention in a comment, a shared address)
+  // A `?issue=` link on a phone or tablet (a mention in a comment, a shared address)
   // leads to the issue's page instead — no panel there. The list's own
   // clicks already go straight to the page (`useIssueOpen`); `replace`
   // keeps this hop out of the back stack.

@@ -1,13 +1,13 @@
 @use "breakpoints" as bp;
 
-/* The floating plus — a phone only, in thumb reach at the bottom right.
+/* The floating plus — a phone or tablet only, in thumb reach at the bottom right.
    Above the page, below the menu, the detail view and dialogs, so those
    simply cover it. With two things to create it's a FAB menu: the choices
    fan out above the plus as labelled buttons. */
 .root {
   display: none;
 
-  @include bp.phone {
+  @include bp.tablet-down {
     position: fixed;
     right: calc(1rem + var(--safe-right));
     bottom: calc(1rem + var(--safe-bottom));

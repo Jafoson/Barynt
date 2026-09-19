@@ -80,6 +80,7 @@ export function CreateIssueModal({
   const t = useTranslations();
   const router = useRouter();
   // A phone gets a bottom sheet: a new issue doesn't need the whole screen.
+  // From a tablet up it is the ordinary centered dialog.
   const isPhone = useMediaQuery(PHONE_QUERY);
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);

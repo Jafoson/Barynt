@@ -39,6 +39,7 @@ import {
 import { Link } from "@/i18n/navigation";
 import { useHasOpenModal } from "@/lib/context";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
+import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import type { IssueDetail } from "@/types";
 import {
   DueDateCell,
@@ -202,6 +203,9 @@ export function ListView({
   const flatRows = groups.flatMap((g) => (g.collapsed ? [] : g.rows));
   const containerRef = useRef<HTMLDivElement>(null);
   const hasOpenModal = useHasOpenModal();
+  // A phone shows the rows as cards and only reads them: a tap opens the
+  // issue, nothing is edited in place or dragged (`listView.module.scss`).
+  const isPhone = useMediaQuery(PHONE_QUERY);
 
   const focusRow = (issue: IssueDetail) => {
     setFocusedId(issue.id);
@@ -305,14 +309,14 @@ export function ListView({
       // would reject the patch anyway (`updateIssue`), and a button that
       // triggers nothing is just a false invitation.
       cell: (issue) =>
-        editing === issue.id && issue.access.canEdit ? (
+        editing === issue.id && issue.access.canEdit && !isPhone ? (
           <IssueTitleField
             className={styles.titleEdit}
             value={issue.title}
             onSave={(value) => saveTitle(issue, value)}
             onDone={() => setEditing(null)}
           />
-        ) : issue.access.canEdit ? (
+        ) : issue.access.canEdit && !isPhone ? (
           <button
             type="button"
             className={styles.title}
@@ -339,7 +343,9 @@ export function ListView({
     {
       id: "assignee",
       align: "end",
-      cell: (issue) => <AssigneePicker issue={issue} members={members} />,
+      cell: (issue) => (
+        <AssigneePicker issue={issue} members={members} readOnly={isPhone} />
+      ),
     },
     {
       id: "storyPoints",
@@ -420,7 +426,7 @@ export function ListView({
         columns={columns}
         groups={groups}
         getRowKey={(issue) => issue.id}
-        dnd={dnd}
+        dnd={isPhone ? undefined : dnd}
         isRowActive={(issue) => identifier(issue) === openIssue}
         isRowFocused={(issue) => issue.id === focusedId}
         rowOverlay={(issue) => (

@@ -11,7 +11,7 @@ import { useHasOpenModal } from "@/lib/context";
 import type { PMDoc } from "@/lib/richtext/types";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import { useUI } from "@/lib/ui-store";
-import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
+import { COMPACT_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import type { IssueDetail, Project } from "@/types";
 import { IssueAttachments } from "./components/IssueAttachments";
 import { IssueComments } from "./components/IssueComments";
@@ -60,9 +60,9 @@ export function IssueDetailPageView({
 }: IssueDetailPageViewProps) {
   const t = useTranslations();
   const router = useRouter();
-  // A phone has no room for two columns: the page then looks like the side
+  // A phone or tablet has no room for two columns: the page then looks like the side
   // panel does on a desktop — one column, the attribute bar under the title.
-  const isPhone = useMediaQuery(PHONE_QUERY);
+  const isPhone = useMediaQuery(COMPACT_QUERY);
   const identifier = `${project?.prefix ?? "?"}-${issue.key}`;
   // Field visibility (BARY-31) is a per-project setting.
   const visibleFields = visibleDetailFields(project?.hiddenDetailFields ?? []);

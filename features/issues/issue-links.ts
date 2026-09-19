@@ -5,7 +5,7 @@ import { useLocale } from "next-intl";
 import { openInBarayntTab } from "@/components/ui/layout/TabBar/tabEvents";
 import { getPathname, usePathname, useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { PHONE_QUERY } from "@/lib/utils/useMediaQuery";
+import { COMPACT_QUERY } from "@/lib/utils/useMediaQuery";
 
 /** The URL parameter the side panel depends on: `?issue=PREFIX-123`. */
 export const ISSUE_PARAM = "issue";
@@ -83,9 +83,9 @@ export function useIssueOpen(workspaceId: string) {
    * the other end of the window instead.
    */
   const openPanel = (identifier: string) => {
-    // A phone has no room beside the list: the issue opens as its own page,
-    // which looks the same there as the panel does on a desktop.
-    if (window.matchMedia(PHONE_QUERY).matches) {
+    // A phone or tablet has no room beside the list: the issue opens as its
+    // own page, which looks the same there as the panel does on a desktop.
+    if (window.matchMedia(COMPACT_QUERY).matches) {
       router.push(issuePath(workspaceId, identifier));
       return;
     }
