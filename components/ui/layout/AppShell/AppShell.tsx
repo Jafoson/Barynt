@@ -15,6 +15,7 @@ import {
   NAV_WIDTH_COOKIE,
   parseNavWidth,
 } from "./navState";
+import { PaletteToggle } from "./PaletteToggle";
 import { ShellFrame } from "./ShellFrame";
 
 interface AppShellProps {
@@ -41,7 +42,7 @@ export async function AppShell({
       sidebar={<Sidebar isAdminRoute={isAdminRoute} />}
       main={
         <>
-          {/* Phone only (≤ 640px): menu button and logo. On a tablet the menu
+          {/* Phone only (≤ 640px): menu button, logo and search button. On a tablet the menu
               button is in the tab bar; hidden by CSS above the phone. */}
           <div className={styles.topBar}>
             <NavToggle />
@@ -61,6 +62,7 @@ export async function AppShell({
                 className={styles.brandLight}
               />
             </div>
+            <PaletteToggle className={styles.paletteToggle} />
           </div>
           {/* `display: contents` on desktop, hidden on phones (the drawer
               and the page's own navigation replace it). */}

@@ -169,6 +169,11 @@
   }
 }
 
+/* No keyboard detected (a tablet without one): the button shows there too. */
+.closeBtn.closeAlways {
+  display: inline-flex;
+}
+
 .keyHints {
   @include bp.phone {
     display: none;

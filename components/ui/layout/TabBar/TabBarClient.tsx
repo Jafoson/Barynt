@@ -6,6 +6,7 @@ import type { Project } from "@/types";
 import { Button } from "../../atoms/Button/Button";
 import { Logo } from "../../atoms/Logo/Logo";
 import { NavToggle } from "../AppShell/NavToggle";
+import { PaletteToggle } from "../AppShell/PaletteToggle";
 import { Tab } from "./Tab";
 import styles from "./tabBar.module.scss";
 import { useTabBar } from "./useTabBar";
@@ -40,6 +41,7 @@ export function TabBarClient({
     return (
       <div className={styles.bar}>
         <NavToggle className={styles.menuToggle} />
+        <PaletteToggle className={styles.searchToggle} />
       </div>
     );
   }
@@ -90,6 +92,9 @@ export function TabBarClient({
           className={styles.brandLight}
         />
       </div>
+
+      {/* Tablet only (CSS): the search button, after the brand mark. */}
+      <PaletteToggle className={styles.searchToggle} />
     </div>
   );
 }

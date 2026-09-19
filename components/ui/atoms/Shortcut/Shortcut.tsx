@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { formatShortcut } from "@/lib/shortcuts/format";
+import { useHasKeyboard } from "@/lib/shortcuts/useHasKeyboard";
 import styles from "./shortcut.module.scss";
 
 interface ShortcutProps {
@@ -26,6 +27,7 @@ interface ShortcutProps {
  * first thing painted anyway.
  */
 export function Shortcut({ keys, className }: ShortcutProps) {
+  const hasKeyboard = useHasKeyboard();
   const specs = Array.isArray(keys) ? keys : [keys];
   // Collapsed into one string: a fresh array literal from an inline caller
   // would otherwise look like a new value on every render and re-run the
@@ -43,6 +45,9 @@ export function Shortcut({ keys, className }: ShortcutProps) {
       (JSON.parse(specsKey) as string[]).map((spec) => formatShortcut(spec)),
     );
   }, [specsKey]);
+
+  // Nothing to press them on (a phone, a bare tablet): no badge at all.
+  if (!hasKeyboard) return null;
 
   return (
     <span className={[styles.shortcut, className].filter(Boolean).join(" ")}>

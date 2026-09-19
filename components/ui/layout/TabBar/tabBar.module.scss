@@ -179,6 +179,15 @@
   opacity: 1;
 }
 
+.bar .searchToggle {
+  display: none;
+  flex: none;
+
+  @include bp.tablet-only {
+    display: inline-flex;
+  }
+}
+
 .add {
   flex: none;
   color: var(--on-surface-variant);

@@ -1,4 +1,7 @@
+"use client";
+
 import { Shortcut } from "@/components/ui/atoms/Shortcut/Shortcut";
+import { useHasKeyboard } from "@/lib/shortcuts/useHasKeyboard";
 import styles from "../modal.module.scss";
 
 interface ModalFooterProps {
@@ -37,6 +40,9 @@ interface ModalShortcutProps {
 
 /** Keyboard shortcut hint for the `ModalFooter`'s `hint` slot. */
 export function ModalShortcut({ keys, children }: ModalShortcutProps) {
+  // The hint is "keys + what they do" — without the keys it means nothing.
+  if (!useHasKeyboard()) return null;
+
   return (
     <span className={styles.shortcut}>
       <Shortcut keys={keys} />

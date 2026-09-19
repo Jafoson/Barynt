@@ -13,6 +13,7 @@ import { useRouter } from "@/i18n/navigation";
 import type { Translator } from "@/i18n/types";
 import { modKey } from "@/lib/a11y";
 import { type NavLabelKey, WORKSPACE_SECTIONS, workspacePath } from "@/lib/nav";
+import { useHasKeyboard } from "@/lib/shortcuts/useHasKeyboard";
 import type { Project, SearchableIssue, Status } from "@/types";
 import styles from "./commandPalette.module.scss";
 
@@ -69,6 +70,9 @@ export function CommandPalette({
   onShowShortcuts,
 }: CommandPaletteProps) {
   const t = useTranslations();
+  // Without a keyboard the palette shows no shortcuts, and no command that
+  // only lists them.
+  const hasKeyboard = useHasKeyboard();
   const router = useRouter();
   const base = `/${workspaceId}`;
   const [q, setQ] = useState("");
@@ -108,7 +112,7 @@ export function CommandPalette({
           },
         ]
       : []),
-    ...(onShowShortcuts
+    ...(onShowShortcuts && hasKeyboard
       ? [
           {
             id: "show-shortcuts",
@@ -248,7 +252,7 @@ export function CommandPalette({
   // different action every time the query changes would be worse than not
   // having one).
   const quickSelectBadge = (idx: number) =>
-    idx < QUICK_SELECT_COUNT ? (
+    hasKeyboard && idx < QUICK_SELECT_COUNT ? (
       <span className="kbd" style={{ marginLeft: "auto" }}>
         {mod}
         {idx + 1}
@@ -317,11 +321,14 @@ export function CommandPalette({
               }
             }}
           />
-          {/* A keyboard hint on a desktop, a close button on a phone (CSS). */}
-          <span className={`kbd ${styles.escHint}`}>ESC</span>
+          {/* A keyboard hint where there's a keyboard, a close button on a
+              phone (CSS) and wherever there's no keyboard to press Escape on. */}
+          {hasKeyboard && <span className={`kbd ${styles.escHint}`}>ESC</span>}
           <button
             type="button"
-            className={styles.closeBtn}
+            className={[styles.closeBtn, !hasKeyboard && styles.closeAlways]
+              .filter(Boolean)
+              .join(" ")}
             aria-label={t("actions.close")}
             onClick={onClose}
           >
@@ -459,25 +466,27 @@ export function CommandPalette({
           )}
         </div>
 
-        <div className={`${styles.footer} ${styles.keyHints}`}>
-          <span className="kbd">↑↓</span> {t("palette.navigate")}
-          <span className="kbd" style={{ marginLeft: 8 }}>
-            ↵
-          </span>{" "}
-          {t("palette.select")}
-          {boardHits.length > 0 && (
-            <>
-              <span className="kbd" style={{ marginLeft: 8 }}>
-                {mod}1-9
-              </span>{" "}
-              {t("palette.jump")}
-            </>
-          )}
-          <span className="kbd" style={{ marginLeft: 8 }}>
-            ESC
-          </span>{" "}
-          {t("palette.close")}
-        </div>
+        {hasKeyboard && (
+          <div className={`${styles.footer} ${styles.keyHints}`}>
+            <span className="kbd">↑↓</span> {t("palette.navigate")}
+            <span className="kbd" style={{ marginLeft: 8 }}>
+              ↵
+            </span>{" "}
+            {t("palette.select")}
+            {boardHits.length > 0 && (
+              <>
+                <span className="kbd" style={{ marginLeft: 8 }}>
+                  {mod}1-9
+                </span>{" "}
+                {t("palette.jump")}
+              </>
+            )}
+            <span className="kbd" style={{ marginLeft: 8 }}>
+              ESC
+            </span>{" "}
+            {t("palette.close")}
+          </div>
+        )}
       </div>
     </div>,
     document.body,
