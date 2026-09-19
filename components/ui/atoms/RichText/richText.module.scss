@@ -37,17 +37,17 @@
   }
 
   code {
-    padding: 1px 5px;
+    padding: 1px 0.3125rem;
     background: var(--surface-container-high);
     border: 1px solid var(--outline-variant);
-    border-radius: 5px;
+    border-radius: 0.3125rem;
     font-family: var(--font-mono);
     font-size: var(--text-sm);
   }
 
   pre {
     margin: 0;
-    padding: 10px 0;
+    padding: 0.625rem 0;
     /* Long code scrolls within its block instead of stretching the panel wide. */
     overflow-x: auto;
 
@@ -56,8 +56,8 @@
 
   blockquote {
     margin: .7em 0;
-    padding: 4px 14px;
-    border-left: 3px solid var(--outline-variant);
+    padding: 0.25rem 0.875rem;
+    border-left: 0.1875rem solid var(--outline-variant);
     border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
     /* One step lighter than the panel below — the same as the code block,
        inline code, and table header. The quote used to be the only inset
@@ -87,7 +87,7 @@
 
 .taskItem {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   align-items: flex-start;
 
   > input {
@@ -118,7 +118,7 @@
   }
 
   th, td {
-    padding: 6px 10px;
+    padding: 0.375rem 0.625rem;
     border: 1px solid var(--outline-variant);
     text-align: left;
     vertical-align: top;
@@ -142,7 +142,7 @@
   position: relative;
   margin: .7em 0;
   /* Room for the icon on the left. */
-  padding: 11px 14px 11px 46px;
+  padding: 0.6875rem 0.875rem 0.6875rem 2.875rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--kind-border);
   background: var(--kind-bg);
@@ -168,11 +168,11 @@
     content: "";
     /* Centered on the whole box, not on the first line. */
     position: absolute;
-    left: 15px;
+    left: 0.9375rem;
     top: 50%;
     transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
+    width: 1.25rem;
+    height: 1.25rem;
     /* Bolder than the text: the icon carries the meaning. */
     background: var(--kind-accent);
     mask: var(--kind-icon) center / contain no-repeat;
@@ -258,7 +258,7 @@
   /* Favicon on top — unclipped. */
   &::after {
     background: var(--favicon) center / contain no-repeat;
-    border-radius: 2px;
+    border-radius: 0.125rem;
   }
 }
 
@@ -302,8 +302,8 @@
 .codeHead {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 3px 6px 3px 12px;
+  gap: 0.5rem;
+  padding: 0.1875rem 0.375rem 0.1875rem 0.75rem;
   background: color-mix(in oklab, var(--on-surface) 4%, transparent);
   border-bottom: 1px solid var(--outline-variant);
 }
@@ -324,7 +324,7 @@
   display: block;
   counter-increment: codeline;
   /* Room on the left for the number column. */
-  padding-left: 52px;
+  padding-left: 3.25rem;
   /* Empty lines keep their height. */
   min-height: 1.5em;
 
@@ -332,8 +332,8 @@
     content: counter(codeline);
     position: absolute;
     left: 0;
-    width: 40px;
-    padding-right: 12px;
+    width: 2.5rem;
+    padding-right: 0.75rem;
     text-align: right;
     color: var(--outline);
     /* Equal-width digits: otherwise the column wobbles from the tenth line on. */
@@ -370,7 +370,7 @@
 .attachmentImage {
   display: inline-block;
   vertical-align: top;
-  margin: 2px 6px 2px 0;
+  margin: 0.125rem 0.375rem 0.125rem 0;
 }
 
 /* Stays block-like despite sharing the same scheme as the image — see
@@ -396,8 +396,8 @@
 .attachmentCaption {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: 0.5rem;
+  padding: 0.375rem 0.625rem;
   border-top: 1px solid var(--outline-variant);
   font-size: var(--text-xs);
 }
@@ -420,9 +420,9 @@
 .attachmentFile {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   margin: .7em 0;
-  padding: 8px 10px;
+  padding: 0.5rem 0.625rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--outline-variant);
   background: var(--surface-container-high);
@@ -437,7 +437,7 @@
 
 .attachmentMissing {
   margin: .7em 0;
-  padding: 8px 10px;
+  padding: 0.5rem 0.625rem;
   border-radius: var(--radius-sm);
   border: 1px dashed var(--outline-variant);
   color: var(--outline);

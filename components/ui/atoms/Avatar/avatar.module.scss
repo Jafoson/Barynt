@@ -12,13 +12,13 @@
 }
 
 // Corners scale with size: a 64px avatar needs more rounding than a 16px avatar.
-$square-radius: clamp(3px, calc(var(--avatar-size) * 0.28), var(--radius-lg));
+$square-radius: clamp(0.1875rem, calc(var(--avatar-size) * 0.28), var(--radius-lg));
 
 .avatar {
   /* Set by the component: --avatar-size, --avatar-bg, --avatar-fg
      and optionally --avatar-font-size as an override. */
-  --avatar-size: 22px;
-  --avatar-font-size: max(7px, calc(var(--avatar-size) * 0.5));
+  --avatar-size: 1.375rem;
+  --avatar-font-size: max(0.4375rem, calc(var(--avatar-size) * 0.5));
   --avatar-radius: #{$square-radius};
 
   position: relative;
@@ -47,7 +47,7 @@ $square-radius: clamp(3px, calc(var(--avatar-size) * 0.28), var(--radius-lg));
 
 /* Two initials need more width than one — otherwise they overflow the edge. */
 .avatar[data-initials="2"] {
-  --avatar-font-size: max(7px, calc(var(--avatar-size) * 0.42));
+  --avatar-font-size: max(0.4375rem, calc(var(--avatar-size) * 0.42));
 }
 
 .circle {
@@ -59,7 +59,7 @@ $square-radius: clamp(3px, calc(var(--avatar-size) * 0.28), var(--radius-lg));
 }
 
 .ring {
-  box-shadow: 0 0 0 2px var(--shadow);
+  box-shadow: 0 0 0 0.125rem var(--shadow);
 }
 
 /* Empty state: dashed ring + person icon signals "nobody assigned".
@@ -80,7 +80,7 @@ $square-radius: clamp(3px, calc(var(--avatar-size) * 0.28), var(--radius-lg));
 .more {
   --avatar-bg: var(--elev);
   --avatar-fg: var(--text-2);
-  --avatar-font-size: max(7px, calc(var(--avatar-size) * 0.4));
+  --avatar-font-size: max(0.4375rem, calc(var(--avatar-size) * 0.4));
 
-  box-shadow: 0 0 0 2px var(--panel);
+  box-shadow: 0 0 0 0.125rem var(--panel);
 }

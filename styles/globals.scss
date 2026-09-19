@@ -8,6 +8,17 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 
+/* Every size in the stylesheets is in rem, so the whole UI scales with the
+   root font size: 1080p (and below) stays as designed, 1440p and up gets
+   larger components. */
+@media (min-width: 2200px) {
+  html { font-size: 105%; }
+}
+
+@media (min-width: 3800px) {
+  html { font-size: 140%; }
+}
+
 body {
   font-family: var(--font-ui);
   background: var(--background);
@@ -32,13 +43,13 @@ button {
 }
 input, textarea, select { font-family: inherit; }
 ::selection { background: color-mix(in oklab, var(--tertiary-container) 50%, transparent); }
-:focus-visible { outline: 2px solid var(--tertiary); outline-offset: 1px; }
+:focus-visible { outline: 0.125rem solid var(--tertiary); outline-offset: 1px; }
 
-*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar { width: 0.625rem; height: 0.625rem; }
 *::-webkit-scrollbar-thumb {
   background: var(--outline-variant);
-  border-radius: 20px;
-  border: 3px solid transparent;
+  border-radius: 1.25rem;
+  border: 0.1875rem solid transparent;
   background-clip: content-box;
 }
 *::-webkit-scrollbar-thumb:hover { background: var(--on-surface); background-clip: content-box; }
@@ -50,7 +61,7 @@ input, textarea, select { font-family: inherit; }
 .faint   { color: var(--outline-variant); }
 .scroll-y { overflow-y: auto; overflow-x: hidden; }
 .divider { height: 1px; background: var(--outline-variant); }
-.dot     { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.dot     { width: 0.4375rem; height: 0.4375rem; border-radius: 50%; flex: none; }
 .cursor-normal { cursor: default; }
 /* As long as a width is being dragged anywhere (`components/ui/layout/Resizer`):
    select nothing and keep the handle's cursor, even once it's long past the
@@ -65,8 +76,8 @@ body:has([data-resizing]) {
 .kbd {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-  padding: 1px 5px;
-  border-radius: 5px;
+  padding: 1px 0.3125rem;
+  border-radius: 0.3125rem;
   background: var(--panel-2);
   border: 1px solid var(--border);
   color: var(--text-2);
@@ -154,7 +165,7 @@ body:has([data-resizing]) {
 .orbit-cmd {
   position: relative;
   z-index: 1;
-  width: min(620px, 94vw);
+  width: min(38.75rem, 94vw);
   background: var(--elev);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
@@ -167,12 +178,12 @@ body:has([data-resizing]) {
 .orbit-toast {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 0.5625rem;
   background: var(--elev);
   border: 1px solid var(--border-strong);
-  border-radius: 10px;
-  padding: 11px 16px;
-  font-size: 13.5px;
+  border-radius: 0.625rem;
+  padding: 0.6875rem 1rem;
+  font-size: 0.8438rem;
   color: var(--text);
   box-shadow: var(--shadow-pop);
   animation: toastIn .22s cubic-bezier(.22, .61, .36, 1);
@@ -180,5 +191,5 @@ body:has([data-resizing]) {
 
 /* ---------- Animations ---------- */
 @keyframes fadeIn  { from { opacity: .35; } }
-@keyframes pop     { from { opacity: .2; transform: translateY(-4px) scale(.985); } }
-@keyframes toastIn { from { opacity: .2; transform: translate(-50%, 12px); } }
+@keyframes pop     { from { opacity: .2; transform: translateY(-0.25rem) scale(.985); } }
+@keyframes toastIn { from { opacity: .2; transform: translate(-50%, 0.75rem); } }

@@ -1,7 +1,7 @@
 .body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .intro {
@@ -14,7 +14,7 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0.125rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -23,8 +23,8 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 7px 10px;
+  gap: 0.6875rem;
+  padding: 0.4375rem 0.625rem;
   border-radius: var(--radius-sm);
   transition: opacity 0.12s;
 
@@ -49,11 +49,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 15px;
+  width: 1.25rem;
+  height: 0.9375rem;
   padding: 0;
   border: none;
-  border-radius: 3px;
+  border-radius: 0.1875rem;
   background: none;
   color: var(--on-surface-variant);
   cursor: pointer;

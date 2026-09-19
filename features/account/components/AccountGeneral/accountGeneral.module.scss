@@ -7,7 +7,7 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .fieldLabel {
@@ -26,7 +26,7 @@
 .saved {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 0.3125rem;
   color: var(--green);
   font-size: var(--text-sm);
 }
@@ -34,9 +34,9 @@
 .error {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   margin: 0;
-  padding: 9px 12px;
+  padding: 0.5625rem 0.75rem;
   border-radius: var(--radius);
   background: var(--error-container);
   color: var(--on-error-container);

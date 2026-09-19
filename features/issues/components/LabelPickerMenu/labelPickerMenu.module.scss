@@ -3,8 +3,8 @@
 .colorHeader {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 4px 8px;
+  gap: 0.5rem;
+  padding: 0.25rem 0.25rem 0.5rem;
   font-size: var(--text-sm);
   color: var(--on-surface-variant);
 
@@ -15,7 +15,7 @@
 
 .backButton {
   display: flex;
-  padding: 2px;
+  padding: 0.125rem;
   border: none;
   border-radius: var(--radius-sm);
   background: none;
@@ -29,5 +29,5 @@
 
 /* Just the padding in the menu — grid layout and swatch appearance come from the ColorPicker. */
 .colorGrid {
-  padding: 0 4px 4px;
+  padding: 0 0.25rem 0.25rem;
 }

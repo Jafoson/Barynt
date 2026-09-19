@@ -2,8 +2,8 @@
    only the form fields live here. */
 
 .body {
-  gap: 18px;
-  padding: 18px var(--modal-pad-x);
+  gap: 1.125rem;
+  padding: 1.125rem var(--modal-pad-x);
 }
 
 .headerIcon {
@@ -13,7 +13,7 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .label {
@@ -33,7 +33,7 @@
 /* Four characters don't need a full-width field — keep it narrow so the
    example hint below reads as one unit with it. */
 .prefixRow {
-  max-width: 220px;
+  max-width: 13.75rem;
 }
 
 .prefixInput {

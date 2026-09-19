@@ -5,10 +5,10 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 12px 24px 32px;
+  padding: 0.75rem 1.5rem 2rem;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 1.25rem;
 }
 
 /* Three values deviate from the table's defaults. A setting isn't a list of
@@ -17,7 +17,7 @@
    each row stands on its own here; and it doesn't light up when the
    pointer passes over it — only the control on the right is clickable. */
 .table {
-  --table-row-height: 62px;
+  --table-row-height: 3.875rem;
   --table-divider: var(--outline-variant);
   --table-hover: transparent;
 }
@@ -25,7 +25,7 @@
 .group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0.25rem;
 }
 
 .title {
@@ -54,9 +54,9 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 3px;
+  gap: 0.1875rem;
   min-width: 0;
-  padding-block: 10px;
+  padding-block: 0.625rem;
 }
 
 .label {

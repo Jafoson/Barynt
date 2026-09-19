@@ -7,10 +7,10 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 12px 24px 40px;
+  padding: 0.75rem 1.5rem 2.5rem;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1rem;
 }
 
 /* As in `ProjectDashboard/projectDashboard.module.scss`: the overview
@@ -28,8 +28,8 @@
 }
 
 .dot {
-  width: 9px;
-  height: 9px;
+  width: 0.5625rem;
+  height: 0.5625rem;
   border-radius: 50%;
 }
 
@@ -38,13 +38,13 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .tools {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 /* The notice that only your own numbers are shown here — terse, no card of
@@ -52,7 +52,7 @@
 .scopeHint {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 0.4375rem;
   margin: 0;
   font-size: var(--text-sm);
   color: var(--on-surface-variant);
@@ -61,7 +61,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 0.75rem;
   align-items: stretch;
   transition: opacity 0.15s;
 }
@@ -90,21 +90,21 @@
   }
 
   .body {
-    padding-inline: 16px;
+    padding-inline: 1rem;
   }
 }
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(11.25rem, 1fr));
+  gap: 0.625rem;
 }
 
 .stat {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 14px 16px 15px;
+  gap: 0.25rem;
+  padding: 0.875rem 1rem 0.9375rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius);
   background: var(--surface);
@@ -149,7 +149,7 @@ a.stat:hover {
 
 .none {
   margin: 0;
-  padding: 14px 0 4px;
+  padding: 0.875rem 0 0.25rem;
   font-size: var(--text-sm);
   color: var(--outline);
 }

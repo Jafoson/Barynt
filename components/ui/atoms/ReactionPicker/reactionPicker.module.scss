@@ -1,25 +1,25 @@
 .picker {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  width: 220px;
-  padding: 8px;
+  gap: 0.5rem;
+  width: 13.75rem;
+  padding: 0.5rem;
 }
 
 .quickRow {
   display: flex;
   justify-content: space-between;
-  gap: 2px;
+  gap: 0.125rem;
 }
 
 .quickOption {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 1.875rem;
+  height: 1.875rem;
   border-radius: var(--radius-sm);
-  font-size: 17px;
+  font-size: 1.0625rem;
   transition: background .12s;
 
   &:hover { background: var(--surface-container-high); }
@@ -28,8 +28,8 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 2px;
-  max-height: 160px;
+  gap: 0.125rem;
+  max-height: 10rem;
   overflow-y: auto;
 }
 
@@ -37,9 +37,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 30px;
+  height: 1.875rem;
   border-radius: var(--radius-sm);
-  font-size: 16px;
+  font-size: 1rem;
   transition: background .12s;
 
   &:hover { background: var(--surface-container-high); }

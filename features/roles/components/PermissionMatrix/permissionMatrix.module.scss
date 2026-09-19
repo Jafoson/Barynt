@@ -6,11 +6,11 @@
    can carry that. The values live here as a result — whoever changes them
    in `table.module.scss` has to update them here too. */
 .matrix {
-  --matrix-pad: 14px;
+  --matrix-pad: 0.875rem;
   /* Slightly taller than the list header's 38px: this holds a proper name
      that's allowed to wrap onto two lines. Fixed height, because the
      section bands below stick to exactly this measurement. */
-  --matrix-head-h: 42px;
+  --matrix-head-h: 2.625rem;
   --matrix-surface: var(--background);
   --matrix-band: var(--surface-container-low);
 
@@ -18,7 +18,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 /* ---------- Toolbar ---------- */
@@ -26,23 +26,23 @@
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 12px 20px;
+  gap: 0.75rem 1.25rem;
   flex-wrap: wrap;
 }
 
 .search {
   flex: none;
-  width: 240px;
+  width: 15rem;
   max-width: 100%;
 }
 
 /* Sits between the search field and the legend: first what you're
    searching for, then how you change it, then what the symbols mean.
-   `flex: 1 1 320px` keeps the sentence on one line as long as it fits
+   `flex: 1 1 20rem` keeps the sentence on one line as long as it fits
    there — below that it wraps as a whole onto the next line instead of
    squeezing into a three-line column. */
 .hint {
-  flex: 1 1 320px;
+  flex: 1 1 20rem;
   min-width: 0;
   margin: 0;
   font-size: var(--text-xs);
@@ -54,7 +54,7 @@
 .legend {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 0.875rem;
   margin: 0 0 0 auto;
   padding: 0;
   list-style: none;
@@ -64,15 +64,15 @@
   li {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.375rem;
   }
 }
 
 .swatch {
   display: grid;
   place-items: center;
-  width: 17px;
-  height: 17px;
+  width: 1.0625rem;
+  height: 1.0625rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-sm);
 
@@ -88,7 +88,7 @@
    would jump around on every keystroke that hits nothing. */
 .noMatch {
   margin: auto;
-  padding: 48px 16px;
+  padding: 3rem 1rem;
   text-align: center;
   font-size: var(--text-base);
   color: var(--on-surface-variant);
@@ -127,7 +127,7 @@
   width: 100%;
   /* Below this width no readable column would be left — better to scroll
      horizontally than to squeeze everything. */
-  min-width: calc(300px + var(--role-cols) * 132px);
+  min-width: calc(18.75rem + var(--role-cols) * 8.25rem);
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
@@ -141,7 +141,7 @@
 }
 
 .colRole {
-  width: 132px;
+  width: 8.25rem;
 }
 
 /* ---------- Header row ---------- */
@@ -152,7 +152,7 @@
   top: 0;
   z-index: 3;
   height: var(--matrix-head-h);
-  padding: 0 10px;
+  padding: 0 0.625rem;
   background: var(--matrix-band);
   border-bottom: 1px solid var(--outline-variant);
   color: var(--on-surface-variant);
@@ -185,7 +185,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 0.3125rem;
   min-width: 0;
 }
 
@@ -194,8 +194,8 @@
    mid-word. Here the dot carries the color, the name is allowed to wrap. */
 .roleDot {
   flex: none;
-  width: 6px;
-  height: 6px;
+  width: 0.375rem;
+  height: 0.375rem;
   border-radius: var(--radius-pill);
 }
 
@@ -224,7 +224,7 @@
   position: sticky;
   top: var(--matrix-head-h);
   z-index: 2;
-  height: 34px;
+  height: 2.125rem;
   padding: 0 var(--matrix-pad);
   background: var(--matrix-band);
   border-block: 1px solid var(--outline-variant);
@@ -268,7 +268,7 @@ tbody tr:first-child .groupHead {
   left: 0;
   z-index: 1;
   min-height: var(--row-h);
-  padding: 8px var(--matrix-pad);
+  padding: 0.5rem var(--matrix-pad);
   background: var(--matrix-surface);
   /* The edge of the sticky column — without it, cells would slide out from
      underneath it during horizontal scroll without any visible boundary. */
@@ -286,7 +286,7 @@ tbody tr:first-child .groupHead {
 
 .permKey {
   display: block;
-  margin-top: 3px;
+  margin-top: 0.1875rem;
   font-family: var(--font-mono);
   font-size: var(--text-xxs);
   color: var(--on-surface-variant);
@@ -325,9 +325,9 @@ tbody tr:first-child .groupHead {
   display: inline-grid;
   place-items: center;
   vertical-align: middle;
-  width: 24px;
-  height: 24px;
-  margin: 6px 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0.375rem 0;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-sm);
   background: transparent;
@@ -386,10 +386,10 @@ button.mark {
   &::after {
     content: '';
     position: absolute;
-    top: 3px;
-    right: 3px;
-    width: 5px;
-    height: 5px;
+    top: 0.1875rem;
+    right: 0.1875rem;
+    width: 0.3125rem;
+    height: 0.3125rem;
     border-radius: var(--radius-pill);
     background: var(--primary);
   }
@@ -406,8 +406,8 @@ button.mark {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid color-mix(in srgb, var(--primary) 45%, var(--outline-variant));
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--primary) 8%, var(--background));

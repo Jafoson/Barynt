@@ -3,9 +3,9 @@
     border: 1px solid var(--outline-variant);
     border-radius: var(--radius);
     box-shadow: var(--shadow-pop);
-    min-width: 200px;
+    min-width: 12.5rem;
     z-index: var(--z-popover);
-    padding: 5px;
+    padding: 0.3125rem;
     animation: pop .12s ease;
 }
 
@@ -15,5 +15,5 @@
    anywhere — the animation silently ran into nothing. Values identical to
    the global `pop`. */
 @keyframes pop {
-  from { opacity: .2; transform: translateY(-4px) scale(.985); }
+  from { opacity: .2; transform: translateY(-0.25rem) scale(.985); }
 }

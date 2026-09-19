@@ -2,8 +2,8 @@
    over the page for the same reason and shouldn't look out of place next to it. */
 
 .calendar {
-  width: 252px;
-  padding: 8px;
+  width: 15.75rem;
+  padding: 0.5rem;
   background: var(--surface);
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius);
@@ -15,8 +15,8 @@
 .head {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 2px 6px;
+  gap: 0.25rem;
+  padding: 0 0.125rem 0.375rem;
 }
 
 .month {
@@ -35,8 +35,8 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 26px;
-  height: 26px;
+  width: 1.625rem;
+  height: 1.625rem;
   border-radius: var(--radius-sm);
   color: var(--on-surface-variant);
   transition: background .12s, color .12s;
@@ -51,7 +51,7 @@
 }
 
 .weekday {
-  padding-bottom: 4px;
+  padding-bottom: 0.25rem;
   font-size: var(--text-xxs);
   font-weight: 600;
   letter-spacing: .03em;
@@ -92,15 +92,15 @@
 
 .quick {
   display: flex;
-  gap: 4px;
-  margin-top: 8px;
-  padding-top: 8px;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
   border-top: 1px solid var(--outline-variant);
 }
 
 .quickBtn {
   flex: 1;
-  padding: 5px 8px;
+  padding: 0.3125rem 0.5rem;
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
   font-weight: 550;
@@ -114,5 +114,5 @@
    names even when they're not defined here — otherwise the reference would
    point to a name that doesn't exist anywhere. */
 @keyframes pop {
-  from { opacity: .2; transform: translateY(-4px) scale(.985); }
+  from { opacity: .2; transform: translateY(-0.25rem) scale(.985); }
 }

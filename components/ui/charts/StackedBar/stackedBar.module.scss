@@ -6,21 +6,21 @@
   flex: 1;
   flex-direction: column;
   justify-content: center;
-  gap: 14px;
+  gap: 0.875rem;
 }
 
 /* Same thickness and same radius as `BarList`'s track — both are the same
    mark, once divided and once filled. */
 .bar {
   display: flex;
-  gap: 2px;
-  height: 8px;
-  border-radius: 4px;
+  gap: 0.125rem;
+  height: 0.5rem;
+  border-radius: 0.25rem;
   overflow: hidden;
 }
 
 .segment {
-  min-width: 3px;
+  min-width: 0.1875rem;
   /* Without this line, narrow segments would shrink below their minimum
      width as soon as many stand side by side. */
   flex-shrink: 0;
@@ -37,7 +37,7 @@
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px 18px;
+  gap: 0.4375rem 1.125rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -46,15 +46,15 @@
 .item {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 0.4375rem;
   font-size: var(--text-sm);
 }
 
 .swatch {
   flex: none;
-  width: 9px;
-  height: 9px;
-  border-radius: 2px;
+  width: 0.5625rem;
+  height: 0.5625rem;
+  border-radius: 0.125rem;
 }
 
 /* Text color, never the segment's color — a light hue is unreadable as
@@ -79,7 +79,7 @@
 
   th,
   td {
-    padding: 5px 8px;
+    padding: 0.3125rem 0.5rem;
     text-align: right;
     border-bottom: 1px solid var(--outline-variant);
   }
@@ -102,7 +102,7 @@
 }
 
 .caption {
-  padding-bottom: 6px;
+  padding-bottom: 0.375rem;
   font-size: var(--text-sm);
   color: var(--on-surface-variant);
   text-align: left;

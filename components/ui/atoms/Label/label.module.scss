@@ -1,19 +1,19 @@
 /* All vertical dimensions land on whole, even pixels — line box, padding,
    dot, and cross. The reason is the environment: the label sits centered in
-   a table row (40px minus 2×4px padding = 32px) or on a card, and
+   a table row (2.5rem minus 2×0.25rem padding = 2rem) or on a card, and
    `align-items: center` halves the difference. If the chip height is odd,
    the whole chip lands on a half pixel, and the browser blurs border, text,
    and dot. The dot then looks like it's sitting next to the line rather
    than on it.
 
-   That's why `line-height` is in pixels rather than a factor: `1.25 × 11px`
-   is 13.75 — that made the `sm` chip 23.75px tall, and everything in the
-   issue list looked crooked. The three sizes this way come out to 28 / 24 / 20px. */
+   That's why `line-height` is in pixels rather than a factor: `1.25 × 0.6875rem`
+   is 13.75 — that made the `sm` chip 1.4844rem tall, and everything in the
+   issue list looked crooked. The three sizes this way come out to 28 / 24 / 1.25rem. */
 .label {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
+  gap: 0.3125rem;
+  padding: 0.375rem 0.75rem;
   border-radius: var(--radius-pill);
   font-size: var(--text-sm);
   font-weight: 500;
@@ -21,19 +21,19 @@
   background: var(--surface-container-low);
   color: var(--on-surface);
   white-space: nowrap;
-  line-height: 14px;
+  line-height: 0.875rem;
 
   &.sm {
-    padding: 4px 10px;
+    padding: 0.25rem 0.625rem;
     font-size: var(--text-xs);
-    gap: 4px;
+    gap: 0.25rem;
   }
 
   &.xs {
-    padding: 3px 8px;
+    padding: 0.1875rem 0.5rem;
     font-size: var(--text-xxs);
-    line-height: 12px;
-    gap: 4px;
+    line-height: 0.75rem;
+    gap: 0.25rem;
 
     /* At 10px text size, rounding naturally positions the dot correctly. */
     .dot { translate: none; }
@@ -41,11 +41,11 @@
 
   /* Less padding on the right, the cross brings its own hit area. */
   &.removable {
-    padding-right: 6px;
+    padding-right: 0.375rem;
   }
 
-  &.sm.removable { padding-right: 5px; }
-  &.xs.removable { padding-right: 4px; }
+  &.sm.removable { padding-right: 0.3125rem; }
+  &.xs.removable { padding-right: 0.25rem; }
 
   &.filled {
     background: color-mix(in oklab, var(--label-color) 15%, transparent);
@@ -58,14 +58,14 @@
      (`boardCard.module.scss`), the app-wide convention for "this is where
      the keyboard is right now". */
   &.removable:focus-visible {
-    outline: 2px solid var(--tertiary);
+    outline: 0.125rem solid var(--tertiary);
     outline-offset: 1px;
   }
 }
 
 /* The dot is the same size everywhere: it carries the label's color, not a
    size statement — and only an even measurement stays on whole pixels
-   within the even line box (it used to be 7px, and thus half a pixel off).
+   within the even line box (it used to be 0.4375rem, and thus half a pixel off).
 
    Flex centers it on the middle of the line box. That sits above the middle
    of the word: ascenders and descenders count too, but the word itself
@@ -73,8 +73,8 @@
    `translate` nudges it down by exactly that one pixel, no less: half a
    pixel made the circle blurry, and blurry looks more crooked than crooked. */
 .dot {
-  width: 6px;
-  height: 6px;
+  width: 0.375rem;
+  height: 0.375rem;
   border-radius: var(--radius-pill);
   flex: none;
   translate: 0 1px;
@@ -83,7 +83,7 @@
 /* The remove cross — understated until hovered. It inherits color from the
    label so it follows along in the filled variant.
 
-   It deliberately stays within the line box (14px or 12px): if it were
+   It deliberately stays within the line box (0.875rem or 0.75rem): if it were
    taller, it would dictate the chip's height, and the row would sit one
    pixel off for removable labels compared to fixed ones. */
 .remove {
@@ -91,8 +91,8 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 14px;
-  height: 14px;
+  width: 0.875rem;
+  height: 0.875rem;
   border-radius: var(--radius-pill);
   color: inherit;
   opacity: .5;
@@ -106,6 +106,6 @@
 
 .sm .remove,
 .xs .remove {
-  width: 12px;
-  height: 12px;
+  width: 0.75rem;
+  height: 0.75rem;
 }

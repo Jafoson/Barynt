@@ -12,16 +12,16 @@
      line, that's enough. The two states below, which do sit above the
      page, reclaim their shadow. */
   --modal-shadow: none;
-  --detail-pad-x: 28px;
+  --detail-pad-x: 1.75rem;
   /* Starting width of the attributes sidebar. Dragging overrides it
      inline — `DEFAULT_W` in `components/IssueSidebar.tsx` holds the same
      value. */
-  --detail-sidebar-w: 300px;
+  --detail-sidebar-w: 18.75rem;
   /* Cap on the text width in the single-column view. The panel is up to
-     880px wide — without a cap, the description and comments would run
+     55rem wide — without a cap, the description and comments would run
      the full width, and the eye would lose track when wrapping to the
      next line. */
-  --detail-content-w: 780px;
+  --detail-content-w: 48.75rem;
 }
 
 /* Expanded: a large dialog instead of a side panel.
@@ -29,14 +29,14 @@
    The width lives here rather than in the modal options: `.modal` reads it
    from `--modal-w`, the `width` option only measures the wrapper around it
    and would have no effect. This state used to borrow the full page's
-   class and thereby inherited its 1080px cap. */
+   class and thereby inherited its 67.5rem cap. */
 .expanded {
-  --modal-w: min(1440px, 70vw);
+  --modal-w: min(90rem, 70vw);
   --modal-shadow: var(--shadow-pop);
   /* No offset from the top (`centered`) — 32px of breathing room on both
      edges. The absolute cap keeps the dialog manageable on very tall
      screens. */
-  --modal-max-h: min(920px, calc(100dvh - 64px));
+  --modal-max-h: min(57.5rem, calc(100dvh - 4rem));
 }
 
 /* ---------- Full page ---------- */
@@ -50,8 +50,8 @@
    each other: the panel carries `.detail`, the page `.page`, and the
    blocks below read the same values either way. */
 .page {
-  --detail-pad-x: 32px;
-  --detail-sidebar-w: 380px;
+  --detail-pad-x: 2rem;
+  --detail-sidebar-w: 23.75rem;
   /* Wider than in the panel (780px): here the column doesn't just hold
      running text. Code blocks, tables, and callouts bring their own width
      and would scroll or wrap below it even though space is free next to
@@ -61,7 +61,7 @@
      screens, leaving only the padding (`--detail-pad-x`). The cap only
      kicks in above that — somewhere the line has to end for the eye to
      still follow along when it wraps. */
-  --detail-content-w: 1400px;
+  --detail-content-w: 87.5rem;
 
   display: flex;
   flex: 1 1 auto;
@@ -76,9 +76,9 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: 6px;
-  min-height: 45px;
-  padding: 0 12px 0 8px;
+  gap: 0.375rem;
+  min-height: 2.8125rem;
+  padding: 0 0.75rem 0 0.5rem;
   border-top: 1px solid var(--outline-variant);
   border-bottom: 1px solid var(--outline-variant);
 }
@@ -90,8 +90,8 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 1.75rem;
+  height: 1.75rem;
   border-radius: var(--radius-sm);
   color: var(--on-surface-variant);
   transition: background .12s, color .12s;
@@ -107,16 +107,16 @@
 .crumbs {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
   min-width: 0;
 }
 
 .crumb {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 0.4375rem;
   min-width: 0;
-  padding: 3px 7px;
+  padding: 0.1875rem 0.4375rem;
   border-radius: var(--radius-sm);
   font-size: var(--text-base);
   color: var(--on-surface-variant);
@@ -144,7 +144,7 @@
 /* The last step isn't a link — it's the page you're already on. */
 .crumbCurrent {
   flex: none;
-  padding: 0 3px;
+  padding: 0 0.1875rem;
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   letter-spacing: .04em;
@@ -154,20 +154,20 @@
 .pageActions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
   margin-left: auto;
-  padding-left: 8px;
+  padding-left: 0.5rem;
 }
 
 /* On the page there's no modal width to keep the text short: the padding
    grows along with it, until the content settles at `--detail-content-w`
    and sits centered — the same calculation as in the panel (`.body`). */
 .page .main {
-  gap: 26px;
+  gap: 1.625rem;
   padding:
-    32px
+    2rem
     max(var(--detail-pad-x), calc((100% - var(--detail-content-w)) / 2))
-    64px;
+    4rem;
 }
 
 /* Here the title carries the hierarchy of the whole page — unlike in the
@@ -180,7 +180,7 @@
    margin behind the values would grow, instead of the block gaining
    breathing room. */
 .page .sidebar {
-  padding: 22px 22px 32px;
+  padding: 1.375rem 1.375rem 2rem;
 }
 
 /* The handle on the panel's left edge. Absolute instead of in flow: the
@@ -197,7 +197,7 @@
 /* ---------- Header ---------- */
 
 /* Prev/next — no gap between the two, so they read as one stepper instead
-   of two unrelated buttons (`ModalHeader`'s own `gap: 8px` already
+   of two unrelated buttons (`ModalHeader`'s own `gap: 0.5rem` already
    separates this from the reference next to it). */
 .navArrows {
   display: flex;
@@ -220,8 +220,8 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 1.625rem;
+  height: 1.625rem;
   border-radius: var(--radius-sm);
   color: var(--on-background);
 
@@ -287,12 +287,12 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 26px;
+  gap: 1.625rem;
   min-height: 0;
   padding:
-    26px
+    1.625rem
     max(var(--detail-pad-x), calc((100% - var(--detail-content-w)) / 2))
-    44px;
+    2.75rem;
   overflow-y: auto;
 }
 
@@ -308,9 +308,9 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 22px;
+  gap: 1.375rem;
   min-width: 0;
-  padding: 26px var(--detail-pad-x) 36px;
+  padding: 1.625rem var(--detail-pad-x) 2.25rem;
   overflow-y: auto;
 }
 
@@ -324,12 +324,12 @@
 
 /* The width is draggable (`IssueSidebar` writes it as an inline variable).
    The cap at half the split is the last line of defense: it kicks in
-   where the dialog is narrower than the 460px the handle allows for. */
+   where the dialog is narrower than the 28.75rem the handle allows for. */
 .sidebar {
   flex: none;
   width: var(--detail-sidebar-w);
   max-width: 50%;
-  padding: 18px 18px 28px;
+  padding: 1.125rem 1.125rem 1.75rem;
   border-left: 1px solid var(--outline-variant);
   overflow-y: auto;
 }
@@ -340,12 +340,12 @@
 .sidebarResizer {
   position: relative;
   z-index: 1;
-  margin: 0 -4px 0 -5px;
+  margin: 0 -0.25rem 0 -0.3125rem;
 }
 
 .divider {
   height: 1px;
-  margin: 10px 0;
+  margin: 0.625rem 0;
   background: var(--outline-variant);
 }
 
@@ -353,7 +353,7 @@
    margin pulls their inner padding back out, so the text lines up on the
    same edge as everything below it despite the hover area. */
 .title {
-  margin: 0 -8px;
+  margin: 0 -0.5rem;
   font-size: var(--text-2xl);
   font-weight: 600;
   line-height: var(--leading-tight);
@@ -376,8 +376,8 @@
 .sectionHead {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 0.5rem;
+  margin-bottom: 0.625rem;
   color: var(--on-surface-variant);
 }
 
@@ -396,9 +396,9 @@
    four. */
 .properties {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px 4px;
-  padding: 12px 10px;
+  grid-template-columns: repeat(auto-fit, minmax(9.375rem, 1fr));
+  gap: 0.625rem 0.25rem;
+  padding: 0.75rem 0.625rem;
   background: var(--surface-container-high);
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
@@ -414,7 +414,7 @@
 /* Smaller and in uppercase — the label shouldn't compete with the value
    below it for attention, just name it. */
 .fieldLabel {
-  padding: 0 6px;
+  padding: 0 0.375rem;
   font-size: var(--text-xs);
   font-weight: 500;
   letter-spacing: .06em;
@@ -430,11 +430,11 @@
 .valueBtn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   width: 100%;
   min-width: 0;
-  min-height: 28px;
-  padding: 4px 6px;
+  min-height: 1.75rem;
+  padding: 0.25rem 0.375rem;
   border-radius: var(--radius-sm);
   font-size: var(--text-base);
   color: var(--on-surface);
@@ -468,7 +468,7 @@
 .estimateRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
 
   > :first-child { flex: 1; min-width: 0; }
 }
@@ -476,7 +476,7 @@
 .unitSelect {
   flex: none;
   height: var(--control-h-sm);
-  padding: 0 6px;
+  padding: 0 0.375rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-sm);
   background: var(--surface-container-lowest);
@@ -490,7 +490,7 @@
 /* ---------- Description ---------- */
 
 .description {
-  margin: 0 -8px;
+  margin: 0 -0.5rem;
   font-size: var(--text-base);
   line-height: var(--leading-loose);
   color: var(--on-surface-variant);
@@ -502,31 +502,31 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 /* In the attributes sidebar, the row sits below its header and aligns to
    the edge of the values next to it. */
 .labels {
-  padding: 4px 0;
+  padding: 0.25rem 0;
 }
 
 .labelsHead {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 26px;
+  gap: 0.5rem;
+  min-height: 1.625rem;
 }
 
 .labelsListAside {
-  margin-top: 8px;
-  padding: 0 6px;
+  margin-top: 0.5rem;
+  padding: 0 0.375rem;
 }
 
 .labelsEmpty {
   display: block;
-  margin-top: 4px;
-  padding: 0 6px;
+  margin-top: 0.25rem;
+  padding: 0 0.375rem;
   font-size: var(--text-base);
   color: var(--outline);
 }
@@ -536,8 +536,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 1.375rem;
+  height: 1.375rem;
   margin-left: auto;
   border-radius: var(--radius-sm);
   color: var(--on-surface-variant);
@@ -555,8 +555,8 @@
 .addLabel {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
   border: 1px dashed var(--outline-variant);
   border-radius: var(--radius-pill);
   font-size: var(--text-xs);
@@ -575,13 +575,13 @@
 /* ---------- Relations (sub-issues, blocks/relates to/duplicates) ---------- */
 
 /* Groups "Parent"/"Sub-issues"/"Relationships" into a single flex child of
-   `.body`/`.main` (which space *their* direct children at 26px, `.body`) —
+   `.body`/`.main` (which space *their* direct children at 1.625rem, `.body`) —
    internally they sit much closer, since they all belong to the same
    "how this issue connects to others" idea. */
 .relationsWrap {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 /* Same rotate-on-collapse trick as `.groupToggle` in `listView.module.scss`. */
@@ -589,8 +589,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 1.375rem;
+  height: 1.375rem;
   border-radius: var(--radius-sm);
   color: var(--outline);
   transition: transform .15s, color .12s, background .12s;
@@ -605,9 +605,9 @@
    zeroes `--table-inset` itself; the rest still defaults to page-sized
    values otherwise. */
 .miniTableWrap {
-  --table-pad: 8px;
-  --table-gap: 8px;
-  --table-row-height: 34px;
+  --table-pad: 0.5rem;
+  --table-gap: 0.5rem;
+  --table-row-height: 2.125rem;
   --table-radius: var(--radius-sm);
   font-size: var(--text-sm);
 }
@@ -617,7 +617,7 @@
    same `Popover`, without a container of their own to put a border on. */
 .pickerDivider {
   height: 1px;
-  margin: 4px 0;
+  margin: 0.25rem 0;
   background: var(--outline-variant);
 }
 
@@ -631,8 +631,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 1.375rem;
+  height: 1.375rem;
   border-radius: var(--radius-sm);
   color: var(--on-surface-variant);
   transition: background .12s;
@@ -643,7 +643,7 @@
 .tableIdentTitle {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   min-width: 0;
 }
 
@@ -658,8 +658,8 @@
    editable, same trick as `listView.module.scss`'s `.title`. */
 .tableTitle {
   min-width: 0;
-  padding: 2px 6px;
-  margin-inline-start: -6px;
+  padding: 0.125rem 0.375rem;
+  margin-inline-start: -0.375rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -679,7 +679,7 @@
 .tableTitleEdit {
   min-width: 0;
   flex: 1;
-  margin-inline-start: -8px;
+  margin-inline-start: -0.5rem;
   font-size: var(--text-sm);
 }
 
@@ -690,8 +690,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 1.375rem;
+  height: 1.375rem;
   border-radius: var(--radius-sm);
   color: var(--outline);
   transition: color .12s, background .12s;
@@ -705,7 +705,7 @@
    dropped attachment lands in exactly the area that would already be
    showing it. */
 .attachmentBox {
-  padding: 10px;
+  padding: 0.625rem;
   border-radius: var(--radius);
   border: 1px dashed var(--outline-variant);
   background: color-mix(in oklab, var(--on-surface) 2%, transparent);
@@ -731,9 +731,9 @@
 .attachmentGrid {
   display: flex;
   flex-wrap: nowrap;
-  gap: 8px;
+  gap: 0.5rem;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding-bottom: 0.125rem;
 }
 
 /* Border and rounding now live on the tile itself, no longer split between
@@ -744,8 +744,8 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  width: 104px;
-  height: 128px;
+  width: 6.5rem;
+  height: 8rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -767,8 +767,8 @@
 /* Like `.linkIcon` in `richText.module.scss` — a fallback icon underneath,
    the site's favicon on top of it if it provides one. */
 .attachmentTileFavicon {
-  width: 22px;
-  height: 22px;
+  width: 1.375rem;
+  height: 1.375rem;
   background: var(--favicon) center / contain no-repeat;
 }
 
@@ -777,10 +777,10 @@
   flex-direction: column;
   flex-shrink: 0;
   gap: 1px;
-  padding: 4px 6px;
+  padding: 0.25rem 0.375rem;
   border-top: 1px solid var(--outline-variant);
   background: var(--surface-container-high);
-  font-size: 10px;
+  font-size: 0.625rem;
   line-height: 1.3;
 
   span {
@@ -797,14 +797,14 @@
 
 .attachmentTileRemove {
   position: absolute;
-  top: 3px;
-  right: 3px;
+  top: 0.1875rem;
+  right: 0.1875rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 62.4375rem;
   background: color-mix(in oklab, var(--surface) 80%, transparent);
   border: 1px solid var(--outline-variant);
   color: var(--on-surface-variant);
@@ -830,17 +830,17 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  gap: 4px;
-  width: 104px;
-  height: 128px;
+  gap: 0.25rem;
+  width: 6.5rem;
+  height: 8rem;
   border-radius: var(--radius-sm);
   border: 1px dashed var(--outline-variant);
   color: var(--outline);
-  font-size: 10px;
+  font-size: 0.625rem;
   text-align: center;
   transition: color .12s, border-color .12s, background .12s;
 
-  span { padding: 0 4px; }
+  span { padding: 0 0.25rem; }
 
   &:hover { background: var(--surface-container-high); border-color: var(--outline); color: var(--on-surface); }
   &:disabled { opacity: .5; pointer-events: none; }
@@ -858,9 +858,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 0.375rem;
   width: 100%;
-  padding: 18px 10px;
+  padding: 1.125rem 0.625rem;
   color: var(--outline);
   font-size: var(--text-sm);
   transition: color .12s;
@@ -874,14 +874,14 @@
 
 .attachmentEmpty {
   display: block;
-  padding: 18px 10px;
+  padding: 1.125rem 0.625rem;
   text-align: center;
   font-size: var(--text-sm);
   color: var(--outline);
 }
 
 .attachmentError {
-  margin: 6px 0 0;
+  margin: 0.375rem 0 0;
   font-size: var(--text-xs);
   color: var(--error);
 }
@@ -893,14 +893,14 @@
 .attachmentChooser {
   display: flex;
   flex-direction: column;
-  padding: 4px;
+  padding: 0.25rem;
 }
 
 .attachmentChooserOption {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 8px;
+  gap: 0.5rem;
+  padding: 0.4375rem 0.5rem;
   border-radius: var(--radius-sm);
   color: var(--on-surface);
   font-size: var(--text-sm);
@@ -918,16 +918,16 @@
    (due date/story points/estimate). */
 .rowGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2px 20px;
+  grid-template-columns: repeat(auto-fit, minmax(17.5rem, 1fr));
+  gap: 0.125rem 1.25rem;
 }
 
 .row {
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr);
+  grid-template-columns: 5.25rem minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
-  min-height: 32px;
+  gap: 0.5rem;
+  min-height: 2rem;
 }
 
 .rowLabel {
@@ -945,7 +945,7 @@
 /* The only section with a divider: this is where the issue ends and what
    others have said about it begins. */
 .comments {
-  padding-top: 24px;
+  padding-top: 1.5rem;
   border-top: 1px solid var(--outline-variant);
 }
 
@@ -977,13 +977,13 @@
      `richTextEditor.module.scss`) — one shared "box on the surface" look
      instead of a second, slightly different one. */
   background: var(--surface-container-low);
-  padding-block: 15px 16px;
+  padding-block: 0.9375rem 1rem;
 }
 
 .activityScroll {
-  max-height: min(52vh, 420px);
+  max-height: min(52vh, 26.25rem);
   overflow-y: auto;
-  padding-inline: 17px;
+  padding-inline: 1.0625rem;
 }
 
 .commentsEmpty {
@@ -995,19 +995,19 @@
 .commentList {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 1.125rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .loadMoreComments {
-  margin-top: 18px;
+  margin-top: 1.125rem;
 }
 
 .comment {
   display: flex;
-  gap: 12px;
+  gap: 0.75rem;
   align-items: flex-start;
   border-radius: var(--radius-sm);
   transition: background 1.6s ease-out;
@@ -1035,11 +1035,11 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin: 12px 0 0;
-  padding: 0 0 0 20px;
+  gap: 0.875rem;
+  margin: 0.75rem 0 0;
+  padding: 0 0 0 1.25rem;
   list-style: none;
-  border-left: 2px solid var(--outline-variant);
+  border-left: 0.125rem solid var(--outline-variant);
 
   /* 14px hits the middle of the 28px avatar (`.comment` with
      `align-items: flex-start`) — independent of the height of the
@@ -1052,10 +1052,10 @@
     &::before {
       content: "";
       position: absolute;
-      top: 14px;
-      left: -20px;
-      width: 20px;
-      height: 2px;
+      top: 0.875rem;
+      left: -1.25rem;
+      width: 1.25rem;
+      height: 0.125rem;
       background: var(--outline-variant);
     }
   }
@@ -1075,9 +1075,9 @@
 .repliesToggle {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
   width: fit-content;
-  margin-top: 10px;
+  margin-top: 0.625rem;
   padding: 0;
   background: none;
   border: none;
@@ -1101,8 +1101,8 @@
    letters). Doubled class beats `Badge`'s own rules regardless of
    stylesheet injection order, without `!important`. */
 .sourceBadge.sourceBadge {
-  height: 22px;
-  padding: 0 9px;
+  height: 1.375rem;
+  padding: 0 0.5625rem;
   font-size: var(--text-xs);
 }
 
@@ -1111,21 +1111,21 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .commentActionButtons {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 0.125rem;
 }
 
 .commentActionButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 1.375rem;
+  height: 1.375rem;
   border-radius: var(--radius-sm);
   color: var(--outline);
   transition: background .12s, color .12s;
@@ -1140,7 +1140,7 @@
    (avatar + gap) to the right of the text of the comment it's replying
    to. */
 .reply {
-  margin-top: 10px;
+  margin-top: 0.625rem;
 }
 
 .commentBody {
@@ -1151,8 +1151,8 @@
 .commentMeta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 3px;
+  gap: 0.5rem;
+  margin-bottom: 0.1875rem;
 }
 
 .commentAuthor {
@@ -1167,9 +1167,9 @@
 .nestedReplyLink {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
   width: fit-content;
-  margin-bottom: 3px;
+  margin-bottom: 0.1875rem;
   font-size: var(--text-xs);
   font-weight: 550;
   color: var(--outline);
@@ -1196,9 +1196,9 @@
 
 .composer {
   display: flex;
-  gap: 12px;
+  gap: 0.75rem;
   align-items: flex-start;
-  margin-top: 24px;
+  margin-top: 1.5rem;
 }
 
 .composerBox {
@@ -1209,7 +1209,7 @@
 /* Shown while the editor is still loading. Same shape as the editor
    itself, so nothing jumps once it arrives. */
 .composerLoading {
-  min-height: 140px;
+  min-height: 8.75rem;
   background: var(--surface-container-low);
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
@@ -1219,8 +1219,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 8px;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
 }
 
 /* ---------- Loading and empty state ---------- */
@@ -1230,25 +1230,25 @@
   flex: 1 1 auto;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 1.5rem;
 }
 
 .shimmer {
   flex: none;
-  height: 14px;
+  height: 0.875rem;
   border-radius: var(--radius-sm);
   background: var(--surface-container-high);
   animation: pulse 1.4s ease-in-out infinite;
 }
 
 .shimmerTitle {
-  height: 26px;
+  height: 1.625rem;
   width: 60%;
 }
 
 /* Stands in for the attribute bar — it's the first thing after the title. */
 .shimmerBox {
-  height: 62px;
+  height: 3.875rem;
   border-radius: var(--radius-lg);
 }
 
@@ -1269,17 +1269,17 @@
 @media (max-width: 720px) {
   .detail,
   .page {
-    --detail-pad-x: 18px;
+    --detail-pad-x: 1.125rem;
   }
 
   .body {
-    gap: 22px;
-    padding-top: 20px;
+    gap: 1.375rem;
+    padding-top: 1.25rem;
   }
 
   .page .main {
-    gap: 22px;
-    padding: 20px var(--detail-pad-x) 32px;
+    gap: 1.375rem;
+    padding: 1.25rem var(--detail-pad-x) 2rem;
   }
 
   /* The breadcrumb path steps back behind the actions: the identifier
@@ -1301,7 +1301,7 @@
   }
 
   .main {
-    padding: 20px 18px 24px;
+    padding: 1.25rem 1.125rem 1.5rem;
   }
 
   .sidebar {

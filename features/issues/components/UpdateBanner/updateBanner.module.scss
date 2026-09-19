@@ -8,14 +8,14 @@
   // bottom-center spot at `bottom: 28px` — the two can appear at once (a
   // copy-link toast right as a live update arrives), so this sits above it
   // rather than overlapping.
-  bottom: 84px;
+  bottom: 5.25rem;
   transform: translateX(-50%);
   z-index: var(--z-toast);
   display: flex;
   align-items: center;
-  gap: 12px;
-  max-width: min(92vw, 420px);
-  padding: 10px 16px;
+  gap: 0.75rem;
+  max-width: min(92vw, 26.25rem);
+  padding: 0.625rem 1rem;
   border-radius: var(--radius-lg);
   background: var(--primary-container);
   color: var(--on-primary-container);
@@ -27,7 +27,7 @@
 
 .refresh {
   flex: none;
-  padding: 3px 12px;
+  padding: 0.1875rem 0.75rem;
   border: 1px solid var(--on-primary-container);
   border-radius: var(--radius-pill);
   background: transparent;
@@ -45,7 +45,7 @@
 @keyframes floatIn {
   from {
     opacity: 0;
-    transform: translate(-50%, 8px);
+    transform: translate(-50%, 0.5rem);
   }
   to {
     opacity: 1;

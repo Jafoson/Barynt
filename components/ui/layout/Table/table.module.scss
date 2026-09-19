@@ -8,11 +8,11 @@
 
 .table {
   /* Distance of the rows to the edge — without it, the rounded corners would run into nothing. */
-  --table-inset: 16px;
-  --table-pad: 12px;
-  --table-gap: 10px;
+  --table-inset: 1rem;
+  --table-pad: 0.75rem;
+  --table-gap: 0.625rem;
   --table-row-h: var(--row-h);
-  --table-head-h: 32px;
+  --table-head-h: 2rem;
   --table-radius: var(--radius);
 
   display: grid;
@@ -46,8 +46,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 48px 16px;
+  gap: 0.625rem;
+  padding: 3rem 1rem;
   color: var(--on-surface-variant);
   font-size: var(--text-base);
 }
@@ -105,11 +105,11 @@ tbody.group {
 .sortButton {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
   /* Slightly taller than the text, without stretching the header row: a
-     target of nearly 30px is also hit with a trackpad. */
-  margin-block: -7px;
-  padding-block: 7px;
+     target of nearly 1.875rem is also hit with a trackpad. */
+  margin-block: -0.4375rem;
+  padding-block: 0.4375rem;
   font: inherit;
   letter-spacing: inherit;
   text-transform: inherit;
@@ -136,8 +136,8 @@ tbody.group {
    permanently visible, just dialed back enough not to make the header row
    louder than the list underneath. */
 .sortArrow {
-  width: 10px;
-  height: 14px;
+  width: 0.625rem;
+  height: 0.875rem;
   flex: none;
   /* Dialed back as long as it only indicates the possibility — the header
      row shouldn't get louder than the list underneath. */
@@ -179,8 +179,8 @@ tbody.group {
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 34px;
+  gap: 0.5rem;
+  min-height: 2.125rem;
   padding-inline: var(--table-pad);
   /* Opaque, otherwise the rows scrolling underneath would show through. */
   background: var(--surface-container);
@@ -215,7 +215,7 @@ tbody.group {
   /* The minimum height applies to single-line cells. If a cell brings two
      lines (name over email), the row grows — and the padding keeps the
      content away from the neighboring row's divider. */
-  padding-block: 4px;
+  padding-block: 0.25rem;
   border-radius: var(--table-radius);
   /* Deliberately without a divider: the rows separate through rhythm and
      hover, lines between every value would just make the list restless. */
@@ -248,7 +248,7 @@ tbody.group {
      already belong to the drop indicator (`data-drop`), and two rules
      around the same element would only conflict. */
   &[data-active="true"] {
-    box-shadow: inset 2px 0 0 0 var(--tertiary);
+    box-shadow: inset 0.125rem 0 0 0 var(--tertiary);
   }
 
   /* The keyboard cursor (j/k/arrows) — an outline rather than another
@@ -258,15 +258,15 @@ tbody.group {
      second accent — the outline vs. box-shadow shapes are what tell the
      two states apart when both apply to the same row. */
   &[data-focused="true"] {
-    outline: 2px solid var(--tertiary);
-    outline-offset: -2px;
+    outline: 0.125rem solid var(--tertiary);
+    outline-offset: -0.125rem;
   }
 }
 
 .cell {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   min-width: 0;
   font-weight: inherit;
   text-align: start;
@@ -310,7 +310,7 @@ tbody.group {
   }
 
   > *:focus-visible {
-    outline-offset: -2px;
+    outline-offset: -0.125rem;
   }
 }
 
@@ -326,7 +326,7 @@ tbody.group {
    track; only if it's the same everywhere do the columns keep lining up
    underneath each other. */
 .table[data-dnd] {
-  --table-handle: 16px;
+  --table-handle: 1rem;
 
   :is(.headRow, .row, .groupRow) {
     padding-inline-start: calc(var(--table-pad) + var(--table-handle));
@@ -345,7 +345,7 @@ tbody.group {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(var(--table-pad) + var(--table-handle, 16px));
+  width: calc(var(--table-pad) + var(--table-handle, 1rem));
   color: var(--outline);
   cursor: grab;
   /* Invisible until the row is meant — a list full of handles would be
@@ -361,7 +361,7 @@ tbody.group {
   /* Color like the global focus ring, just inset: the handle sits at the
      card's edge, an outer ring would land in the clip. */
   &:focus-visible {
-    outline-offset: -2px;
+    outline-offset: -0.125rem;
     border-radius: var(--radius-sm);
   }
 }
@@ -380,8 +380,8 @@ tbody.group {
 }
 
 .grip {
-  width: 10px;
-  height: 16px;
+  width: 0.625rem;
+  height: 1rem;
   fill: currentcolor;
   pointer-events: none;
 }
@@ -401,9 +401,9 @@ tbody.group {
   position: absolute;
   inset-inline: 0;
   z-index: 3;
-  height: 2px;
+  height: 0.125rem;
   background: var(--primary);
-  border-radius: 2px;
+  border-radius: 0.125rem;
   pointer-events: none;
 }
 
@@ -416,8 +416,8 @@ tbody.group {
   position: absolute;
   inset-inline-start: 0;
   z-index: 3;
-  width: 6px;
-  height: 6px;
+  width: 0.375rem;
+  height: 0.375rem;
   background: var(--primary);
   border-radius: 50%;
   pointer-events: none;
@@ -425,13 +425,13 @@ tbody.group {
 
 .row[data-drop='above'] {
   &::before { top: 0; }
-  &::after { top: -2px; }
+  &::after { top: -0.125rem; }
 }
 
 .row[data-drop='below'],
 .groupRow[data-drop] {
   &::before { bottom: 0; }
-  &::after { bottom: -2px; }
+  &::after { bottom: -0.125rem; }
 }
 
 /* The live region: there for screen readers, not for eyes. `display: none`
@@ -483,9 +483,9 @@ tbody.group {
    content's padding stays unaffected by it. */
 .table.card {
   --table-inset: 0;
-  --table-pad: 14px;
+  --table-pad: 0.875rem;
   --table-radius: 0;
-  --table-head-h: 38px;
+  --table-head-h: 2.375rem;
   --table-row-h: var(--row-h);
 
   margin-block-start: 0;

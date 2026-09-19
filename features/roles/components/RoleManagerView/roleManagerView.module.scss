@@ -21,8 +21,8 @@
   flex: none;
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  padding: 8px 24px 14px;
+  gap: 0.5rem;
+  padding: 0.5rem 1.5rem 0.875rem;
   border-top: 1px solid var(--outline-variant);
   border-bottom: 1px solid var(--outline-variant);
 }
@@ -32,7 +32,7 @@
    putting it in the same header — it *is* the title of this section, not a
    separate bar above it. */
 .pageHeader.underSwitcher {
-  padding-top: 10px;
+  padding-top: 0.625rem;
   border-top: none;
 }
 
@@ -49,7 +49,7 @@
 }
 
 .subtitle {
-  margin: 4px 0 0;
+  margin: 0.25rem 0 0;
   /* Readable line length — the sentence explains, it doesn't fill the page. */
   max-width: 72ch;
   font-size: var(--text-sm);
@@ -60,29 +60,29 @@
 .headAction {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   margin-inline-start: auto;
   flex: none;
 }
 
 /* The top spacing used to come from the header's own padding — now there's
    a line there instead, and the content needs to supply it itself. Same
-   12px as below the headers of the other management pages. */
+   0.75rem as below the headers of the other management pages. */
 .body {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 12px 24px 24px;
+  gap: 0.875rem;
+  padding: 0.75rem 1.5rem 1.5rem;
 }
 
 .error {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   margin: 0;
-  padding: 9px 12px;
+  padding: 0.5625rem 0.75rem;
   border-radius: var(--radius);
   background: var(--error-container);
   color: var(--on-error-container);
@@ -100,16 +100,16 @@
 .createRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   flex-wrap: wrap;
 
   > :nth-child(1) {
-    flex: 1 1 180px;
-    max-width: 260px;
+    flex: 1 1 11.25rem;
+    max-width: 16.25rem;
   }
 
   > :nth-child(2) {
-    flex: 2 1 260px;
-    max-width: 520px;
+    flex: 2 1 16.25rem;
+    max-width: 32.5rem;
   }
 }

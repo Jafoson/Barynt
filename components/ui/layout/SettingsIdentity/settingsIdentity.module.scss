@@ -5,8 +5,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
-  padding: 32px 24px;
+  gap: 1.5rem;
+  padding: 2rem 1.5rem;
   background: var(--table-surface, var(--background));
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
@@ -23,10 +23,10 @@
    of getting lost in the width. */
 .fields {
   width: 100%;
-  max-width: 560px;
+  max-width: 35rem;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 1.125rem;
 }
 
 /* For controls without their own `label` prop (e.g. `ColorPicker`) — the
@@ -34,7 +34,7 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .label {

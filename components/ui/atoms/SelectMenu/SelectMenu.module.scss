@@ -1,5 +1,5 @@
 .content{
-    max-height: 280px;
+    max-height: 17.5rem;
     overflow-y: auto;
     margin: 0 -1px;
 }
@@ -8,10 +8,10 @@
 position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 34px;
+  gap: 0.625rem;
+  height: 2.125rem;
   width: 100%;
-  padding: 0 9px;
+  padding: 0 0.5625rem;
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
   color: var(--on-surface);
@@ -61,7 +61,7 @@ position: relative;
 .menuLabel {
   font-size: var(--text-xs);
   color: var(--on-surface-variant);
-  padding: 7px 9px 4px;
+  padding: 0.4375rem 0.5625rem 0.25rem;
   font-weight: 600;
   letter-spacing: .03em;
   text-transform: uppercase;
@@ -69,14 +69,14 @@ position: relative;
 
 .menuInput {
   width: 100%;
-  height: 32px;
+  height: 2rem;
   background: transparent;
   color: var(--on-surface);
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-sm);
-  padding: 0 9px;
+  padding: 0 0.5625rem;
   font-size: var(--text-sm);
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
   outline: none;
 
   &:focus { border-color: var(--tertiary); }}

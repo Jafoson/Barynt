@@ -2,10 +2,10 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 12px 24px 40px;
+  padding: 0.75rem 1.5rem 2.5rem;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1rem;
   /* Full width, like the other areas of platform administration. What's in
      here fills it too: tiles and charts grow with it instead of sticking to
      the center. The one piece of plain running text — the notice box —
@@ -19,7 +19,7 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 /* ── Notice ───────────────────────────────────────────────────────────────── */
@@ -28,23 +28,23 @@
   position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 11px;
-  padding: 15px 16px;
-  padding-right: 44px;
+  gap: 0.6875rem;
+  padding: 0.9375rem 1rem;
+  padding-right: 2.75rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius);
   background: var(--surface-container-lowest);
 }
 
 .noticeIcon {
-  margin-top: 2px;
+  margin-top: 0.125rem;
   color: var(--on-surface-variant);
 }
 
 .noticeText {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 0.3125rem;
   min-width: 0;
 }
 
@@ -65,8 +65,8 @@
 
 .noticeClose {
   position: absolute;
-  top: 9px;
-  right: 9px;
+  top: 0.5625rem;
+  right: 0.5625rem;
 }
 
 /* ── Content ──────────────────────────────────────────────────────────────
@@ -75,7 +75,7 @@
 .content {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 1.25rem;
   transition: opacity 0.15s;
 }
 
@@ -88,15 +88,15 @@
    before, and what it's a part of. */
 .kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(11.875rem, 1fr));
+  gap: 0.625rem;
 }
 
 .kpi {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 14px 16px 15px;
+  gap: 0.25rem;
+  padding: 0.875rem 1rem 0.9375rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius);
   background: var(--surface);
@@ -113,7 +113,7 @@ a.kpi:hover {
 .kpiHead {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 0.4375rem;
   font-size: var(--text-sm);
   color: var(--on-surface-variant);
 }
@@ -135,7 +135,7 @@ a.kpi:hover {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px 8px;
+  gap: 0.25rem 0.5rem;
   font-size: var(--text-xs);
 }
 
@@ -144,7 +144,7 @@ a.kpi:hover {
 .delta {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 0.1875rem;
   font-variant-numeric: tabular-nums;
   color: var(--on-surface-variant);
 }
@@ -174,13 +174,13 @@ a.kpi:hover {
 .charts {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .chartRow {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 0.75rem;
   align-items: stretch;
 }
 
@@ -189,7 +189,7 @@ a.kpi:hover {
 .group {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 0.5625rem;
 }
 
 .groupTitle {
@@ -201,16 +201,16 @@ a.kpi:hover {
 
 .attention {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(14.375rem, 1fr));
+  gap: 0.625rem;
 }
 
 .card {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
-  padding: 15px 16px 16px;
+  gap: 0.125rem;
+  padding: 0.9375rem 1rem 1rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius);
   background: var(--surface);
@@ -228,9 +228,9 @@ a.card:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  margin-bottom: 9px;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-bottom: 0.5625rem;
   border-radius: var(--radius-sm);
   background: var(--surface-container-high);
   color: var(--on-surface-variant);
@@ -243,13 +243,13 @@ a.card:hover {
 }
 
 .cardLabel {
-  margin-top: 5px;
+  margin-top: 0.3125rem;
   font-size: var(--text-sm);
   color: var(--on-surface-variant);
 }
 
 .cardHint {
-  margin-top: 9px;
+  margin-top: 0.5625rem;
   font-size: var(--text-xs);
   line-height: var(--leading-normal);
   color: var(--outline);

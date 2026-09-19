@@ -11,15 +11,15 @@
   flex: none;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 14px clamp(20px, 4vw, 48px);
+  gap: 1rem;
+  padding: 0.875rem clamp(1.25rem, 4vw, 3rem);
   border-bottom: 1px solid var(--outline-variant);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
   min-width: 0;
 }
 
@@ -32,6 +32,6 @@
 .navActions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   flex: none;
 }

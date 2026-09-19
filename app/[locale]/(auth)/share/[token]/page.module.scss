@@ -6,22 +6,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 1.5rem;
 }
 
 .card {
-  width: min(400px, 100%);
+  width: min(25rem, 100%);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 14px;
+  gap: 0.875rem;
 }
 
 .icon {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 2.75rem;
+  height: 2.75rem;
   border-radius: var(--radius);
   background: var(--surface-container);
   color: var(--on-surface-variant);
@@ -42,24 +42,24 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  max-width: 1180px;
+  max-width: 73.75rem;
   width: 100%;
   margin: 0 auto;
-  padding: 28px clamp(20px, 4vw, 48px) 24px;
+  padding: 1.75rem clamp(1.25rem, 4vw, 3rem) 1.5rem;
 }
 
 .content {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 1.75rem;
 }
 
 .bottom {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 1.25rem;
   margin-top: auto;
-  padding-top: 28px;
+  padding-top: 1.75rem;
 }
 
 /* ── Banner: who shared it and when ───────────────────────────────────────── */
@@ -67,8 +67,8 @@
 .banner {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 14px 18px;
+  gap: 0.75rem;
+  padding: 0.875rem 1.125rem;
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--tertiary-container) 35%, var(--surface));
 }
@@ -88,7 +88,7 @@
 
 .bannerExpiry {
   flex: none;
-  padding-top: 2px;
+  padding-top: 0.125rem;
   font-size: var(--text-xs);
   color: var(--on-surface-variant);
   white-space: nowrap;
@@ -98,8 +98,8 @@
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
-  gap: 40px;
+  grid-template-columns: minmax(0, 1fr) 16.25rem;
+  gap: 2.5rem;
   align-items: start;
 
   @media (max-width: 860px) {
@@ -110,7 +110,7 @@
 .article {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1rem;
   min-width: 0;
 }
 
@@ -122,14 +122,14 @@
 
 .title {
   margin: 0;
-  font-size: var(--text-2xl, 28px);
+  font-size: var(--text-2xl, 1.75rem);
   font-weight: 700;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.0187rem;
   color: var(--on-background);
 }
 
 .description {
-  padding-top: 8px;
+  padding-top: 0.5rem;
   border-top: 1px solid var(--outline-variant);
   color: var(--on-surface);
 }
@@ -137,15 +137,15 @@
 .comments {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-top: 16px;
+  gap: 0.75rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--outline-variant);
 }
 
 .commentsTitle {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   margin: 0;
   font-size: var(--text-md);
   font-weight: 600;
@@ -161,7 +161,7 @@
 .commentList {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -170,8 +170,8 @@
 .comment {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px;
+  gap: 0.375rem;
+  padding: 0.75rem 0.875rem;
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--tertiary-container) 22%, var(--surface));
 }
@@ -179,7 +179,7 @@
 .commentHead {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   font-size: var(--text-sm);
 
   time {
@@ -199,8 +199,8 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 16px 18px;
+  gap: 1.25rem;
+  padding: 1rem 1.125rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius);
   background: var(--surface);
@@ -213,12 +213,12 @@
 .metaGroup {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0.625rem;
   margin: 0;
 }
 
 .metaGroup + .metaGroup {
-  padding-top: 16px;
+  padding-top: 1rem;
   border-top: 1px solid var(--outline-variant);
 }
 
@@ -226,7 +226,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .metaLabel {
@@ -240,7 +240,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 0.375rem;
   min-width: 0;
   margin: 0;
   font-size: var(--text-sm);
@@ -251,7 +251,7 @@
 
 .metaBlockLabel {
   display: block;
-  margin: 0 0 8px;
+  margin: 0 0 0.5rem;
   font-size: var(--text-sm);
   color: var(--on-surface-variant);
 }
@@ -259,7 +259,7 @@
 .labelRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 /* ── CTA: "Want to join the discussion?" ──────────────────────────────────── */
@@ -269,14 +269,14 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 20px 24px;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--tertiary-container) 30%, var(--surface));
 }
 
 .ctaTitle {
-  margin: 0 0 4px;
+  margin: 0 0 0.25rem;
   font-size: var(--text-md);
   font-weight: 700;
   color: var(--on-background);
@@ -297,7 +297,7 @@
 .ctaActions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
   flex: none;
 }
 
@@ -308,7 +308,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 0.5rem;
   font-size: var(--text-xs);
   color: var(--outline);
 }
@@ -316,5 +316,5 @@
 .footerLinks {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 0.875rem;
 }

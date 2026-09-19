@@ -19,7 +19,7 @@
   /* Whole, even measurements: 3px + 16px + 3px + 2×1px border = 24px, the
      same height as an `sm` label. Odd heights land a centered line on
      half-pixels and blur the dot and border. */
-  line-height: 16px;
+  line-height: 1rem;
 
   /* Whoever can't change the role should still be able to read it: the chip
      steps back a level instead of fading out. In a given pool, almost every
@@ -39,17 +39,17 @@
 .name {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 0.3125rem;
   min-width: 0;
-  padding: 3px 9px;
+  padding: 0.1875rem 0.5625rem;
   color: var(--on-surface);
   font-weight: 500;
 }
 
 .dot {
   flex: none;
-  width: 6px;
-  height: 6px;
+  width: 0.375rem;
+  height: 0.375rem;
   border-radius: var(--radius-pill);
 }
 
@@ -71,7 +71,7 @@
   align-items: center;
   /* Kept narrow: every pixel here is a pixel the name next to it doesn't
      get, and the name is what's actually read. */
-  padding: 0 7px;
+  padding: 0 0.4375rem;
   border-left: 1px solid var(--outline-variant);
   /* Two steps above the name field instead of one: in the light theme the
      container tones sit close together, and one step would be

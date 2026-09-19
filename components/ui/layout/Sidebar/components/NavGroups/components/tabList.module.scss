@@ -16,7 +16,7 @@
 .toggle {
   position: absolute;
   top: 50%;
-  right: 6px;
+  right: 0.375rem;
   transform: translateY(-50%);
 }
 
@@ -30,6 +30,6 @@
 }
 
 .nested {
-  padding-left: 12px;
+  padding-left: 0.75rem;
   margin-top: 1px;
 }

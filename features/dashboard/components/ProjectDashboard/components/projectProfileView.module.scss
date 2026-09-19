@@ -4,17 +4,17 @@
    long, it's not the individual block that grows but their count: with
    plenty of space the cards sit three across instead of two, and the
    running text inside them keeps its own line length (`.desc`). A paragraph
-   that spans 1900px isn't generous, it's unreadable — the eye can no longer
+   that spans 118.75rem isn't generous, it's unreadable — the eye can no longer
    find the start of the next line. */
 .page {
   display: grid;
   /* On the left everything that describes the project itself, on the right
      the members. The member column as a fraction rather than a fixed
      width: it claims whatever share the free space offers, and grows along
-     on a wide screen instead of stopping at 400px with plenty of air left
-     next to it. Below 300px the name-and-role-chip line would wrap, hence
+     on a wide screen instead of stopping at 25rem with plenty of air left
+     next to it. Below 18.75rem the name-and-role-chip line would wrap, hence
      the lower bound. */
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 28%);
+  grid-template-columns: minmax(0, 1fr) minmax(18.75rem, 28%);
   /* The two columns on top, the ways out below. `minmax(0, 1fr)` instead of
      bare `1fr`: the top row is allowed to shrink to the height
      `projectDashboard.module.scss` (`.body[data-view="profile"]`) provides,
@@ -23,7 +23,7 @@
      (`.card[data-scroll]`) on their own. "Continue to" always stays fully
      visible in the process: `auto` claims exactly the height it needs. */
   grid-template-rows: minmax(0, 1fr) auto;
-  gap: 20px 12px;
+  gap: 1.25rem 0.75rem;
   align-items: stretch;
   width: 100%;
   min-height: 0;
@@ -38,7 +38,7 @@
 .main {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 1.25rem;
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
@@ -81,7 +81,7 @@
 .subLabel {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 0.4375rem;
   font-size: var(--text-xs);
   font-weight: 550;
   letter-spacing: 0.06em;
@@ -97,8 +97,8 @@
 .hero {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 22px 24px;
+  gap: 1.25rem;
+  padding: 1.375rem 1.5rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
   background: var(--surface);
@@ -107,7 +107,7 @@
 .heroText {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
   min-width: 0;
 }
 
@@ -117,11 +117,11 @@
 .heroEdit {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 0.4375rem;
   flex: none;
   align-self: flex-start;
   margin-inline-start: auto;
-  padding: 7px 13px;
+  padding: 0.4375rem 0.8125rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
@@ -166,13 +166,13 @@
 }
 
 /* On narrow windows, the card stands upright: the 92px icon and a long
-   project name would otherwise share 300px, and the name would wrap after
+   project name would otherwise share 18.75rem, and the name would wrap after
    every word. */
 @media (max-width: 560px) {
   .hero {
     flex-direction: column;
     align-items: flex-start;
-    gap: 14px;
+    gap: 0.875rem;
   }
 
   /* Stacked, there's no right edge left to push the button against —
@@ -197,7 +197,7 @@
   /* 190px, so all four stay side by side even in the narrower left column.
      A larger minimum width would mean three on top and one alone below —
      the most lopsided of all ways to split four items. */
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(11.875rem, 1fr));
   gap: 1px;
   margin: 0;
   border: 1px solid var(--outline-variant);
@@ -209,16 +209,16 @@
 .fact {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 0.4375rem;
   min-width: 0;
-  padding: 13px 16px 14px;
+  padding: 0.8125rem 1rem 0.875rem;
   background: var(--surface);
 }
 
 .factLabel {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   font-size: var(--text-xs);
   color: var(--outline);
 }
@@ -227,7 +227,7 @@
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 0.4375rem;
   margin: 0;
   font-size: var(--text-base);
   font-weight: 550;
@@ -242,7 +242,7 @@
 }
 
 .mono {
-  padding: 2px 7px;
+  padding: 0.125rem 0.4375rem;
   border-radius: var(--radius-sm);
   background: var(--surface-container-high);
   font-family: var(--font-mono);
@@ -262,8 +262,8 @@
    available space allows. */
 .columns {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.75rem;
   align-items: start;
 }
 
@@ -273,9 +273,9 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
   min-width: 0;
-  padding-block: 15px 16px;
+  padding-block: 0.9375rem 1rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius);
   background: var(--surface);
@@ -309,12 +309,12 @@
   background: none;
 
   .cardBody {
-    height: calc(3 * 38px + 2 * 7px);
+    height: calc(3 * 2.375rem + 2 * 0.4375rem);
     padding-inline: 0;
   }
 
   &[data-empty] .cardBody {
-    padding-inline: 17px;
+    padding-inline: 1.0625rem;
   }
 }
 
@@ -381,14 +381,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding-inline: 17px;
+  gap: 0.75rem;
+  padding-inline: 1.0625rem;
 }
 
 .cardTitle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   margin: 0;
   font-size: var(--text-base);
   font-weight: 600;
@@ -396,7 +396,7 @@
 }
 
 .count {
-  padding: 1px 7px;
+  padding: 1px 0.4375rem;
   border-radius: var(--radius-pill);
   background: var(--surface-container-high);
   font-size: var(--text-xs);
@@ -413,9 +413,9 @@
 .cardBody {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0.875rem;
   min-width: 0;
-  padding-inline: 17px;
+  padding-inline: 1.0625rem;
 }
 
 /* The way out of the card sits at its footer, set apart by a line — it
@@ -428,10 +428,10 @@
 .cardLink {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   margin-block-start: auto;
-  margin-inline: 17px;
-  padding-top: 11px;
+  margin-inline: 1.0625rem;
+  padding-top: 0.6875rem;
   border-top: 1px solid var(--outline-variant);
   font-size: var(--text-sm);
   color: var(--on-surface-variant);
@@ -442,7 +442,7 @@
   }
 
   &:hover > svg {
-    transform: translateX(2px);
+    transform: translateX(0.125rem);
   }
 
   & > svg {
@@ -455,7 +455,7 @@
 .people {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0.25rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -464,7 +464,7 @@
 .person {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
   min-width: 0;
 }
 
@@ -477,7 +477,7 @@
 .personName {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   min-width: 0;
   font-size: var(--text-base);
   color: var(--on-surface);
@@ -507,15 +507,15 @@
 .roleBlock {
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  padding-top: 13px;
+  gap: 0.5625rem;
+  padding-top: 0.8125rem;
   border-top: 1px solid var(--outline-variant);
 }
 
 .roster {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 0.4375rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -524,7 +524,7 @@
 .rosterRow {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 0.5625rem;
   min-width: 0;
 }
 
@@ -539,7 +539,7 @@
 /* ── Teams and labels ─────────────────────────────────────────────────────── */
 
 /* Fixed instead of maximum height for three rows — one row is 38px tall
-   (9px padding top and bottom, 1px border, one line of text at
+   (0.5625rem padding top and bottom, 1px border, one line of text at
    `--text-sm`/`--leading-normal` in between). Fixed, so a single team
    doesn't sit in a shorter card than nine labels next to it (see
    `.card[data-dashed] .cardBody`, same height one level up). From four
@@ -551,11 +551,11 @@
 .rows {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 0.4375rem;
   margin: 0;
-  padding-inline: 17px;
+  padding-inline: 1.0625rem;
   list-style: none;
-  height: calc(3 * 38px + 2 * 7px);
+  height: calc(3 * 2.375rem + 2 * 0.4375rem);
   overflow-y: auto;
 }
 
@@ -566,8 +566,8 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
+  gap: 0.625rem;
+  padding: 0.5625rem 0.75rem;
   border: 1px solid var(--outline);
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
@@ -592,7 +592,7 @@
   flex: none;
   color: var(--outline);
   opacity: 0;
-  transform: translateX(-3px);
+  transform: translateX(-0.1875rem);
   transition: opacity 0.12s, transform 0.12s;
 }
 
@@ -605,7 +605,7 @@
    behind text, every team color would need to be checked for contrast, and
    it isn't — it's freely chosen. On the short badge in white, it works. */
 .teamKey {
-  padding: 2px 7px;
+  padding: 0.125rem 0.4375rem;
   border-radius: var(--radius-pill);
   font-size: var(--text-xxs);
   line-height: 1;
@@ -618,9 +618,9 @@
    here per label in its own row instead of per project. */
 .labelDot {
   flex: none;
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 0.1875rem;
 }
 
 /* ── 4. The ways out ──────────────────────────────────────────────────────── */
@@ -631,14 +631,14 @@
   grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  margin-top: 2px;
+  gap: 0.5625rem;
+  margin-top: 0.125rem;
 }
 
 .tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(11.25rem, 1fr));
+  gap: 0.625rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -649,8 +649,8 @@
 .tile {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: 0.625rem;
+  padding: 0.75rem 0.875rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius);
   font-size: var(--text-base);
@@ -681,7 +681,7 @@
   flex: none;
   color: var(--outline);
   opacity: 0;
-  transform: translateX(-3px);
+  transform: translateX(-0.1875rem);
   transition: opacity 0.12s, transform 0.12s;
 }
 

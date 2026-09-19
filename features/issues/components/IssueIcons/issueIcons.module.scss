@@ -22,7 +22,7 @@
 .labelDots {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 0.125rem;
 }
 
 /* Story points / due date badges — same shape, either can carry its own
@@ -30,7 +30,7 @@
 .tag {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 0.1875rem;
   flex: none;
 }
 

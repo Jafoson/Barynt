@@ -3,7 +3,7 @@
 
 .resizer {
   flex: none;
-  width: 9px;
+  width: 0.5625rem;
   cursor: col-resize;
   /* Otherwise the browser scrolls on touch instead of allowing a drag. */
   touch-action: none;

@@ -3,14 +3,14 @@
 .content {
   flex: 1;
   min-height: 0;
-  padding: 12px 24px 32px;
+  padding: 0.75rem 1.5rem 2rem;
   display: flex;
   flex-direction: column;
 }
 
 .filterSelect {
-  height: 32px;
-  padding: 0 10px;
+  height: 2rem;
+  padding: 0 0.625rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--outline-variant);
   background: var(--surface);
@@ -21,7 +21,7 @@
 .action {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 0.5625rem;
   min-width: 0;
 }
 
@@ -63,7 +63,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 5px;
+  gap: 0.3125rem;
   font-size: var(--text-sm);
   color: var(--on-surface-variant);
 }
@@ -76,7 +76,7 @@
    not a running-text link. */
 .ref {
   flex: none;
-  padding: 1px 6px;
+  padding: 1px 0.375rem;
   border-radius: var(--radius-sm);
   background: var(--surface-container-high);
   font-family: var(--font-mono);
@@ -99,8 +99,8 @@ a.ref:hover {
 .projectRef {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 1px 6px;
+  gap: 0.25rem;
+  padding: 1px 0.375rem;
   border-radius: var(--radius-sm);
   background: var(--surface-container-high);
   color: var(--on-surface-variant);
@@ -118,7 +118,7 @@ a.projectRef:hover {
 .changeBefore {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 0.3125rem;
   color: var(--outline);
   text-decoration: line-through;
   text-decoration-color: var(--outline-variant);
@@ -132,7 +132,7 @@ a.projectRef:hover {
 .changeAfter {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 0.3125rem;
   color: var(--on-surface);
   font-weight: 550;
 }
@@ -148,7 +148,7 @@ a.projectRef:hover {
 .actor {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 0.4375rem;
   min-width: 0;
   font-size: var(--text-sm);
   color: var(--on-surface-variant);

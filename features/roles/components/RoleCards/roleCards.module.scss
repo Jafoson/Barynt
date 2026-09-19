@@ -4,10 +4,10 @@
 .cards {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(228px, 1fr);
-  gap: 10px;
+  grid-auto-columns: minmax(14.25rem, 1fr);
+  gap: 0.625rem;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 0.25rem;
   scrollbar-width: thin;
 }
 
@@ -47,8 +47,8 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  padding: 12px 13px;
+  gap: 0.4375rem;
+  padding: 0.75rem 0.8125rem;
   border-radius: inherit;
   text-align: left;
   cursor: pointer;
@@ -58,10 +58,10 @@
 .top {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   min-width: 0;
   /* The corner belongs to either the pencil or the lock. */
-  padding-inline-end: 22px;
+  padding-inline-end: 1.375rem;
 }
 
 .offMark {
@@ -72,12 +72,12 @@
 .edit,
 .lock {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 0.625rem;
+  right: 0.625rem;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 1.375rem;
+  height: 1.375rem;
   border-radius: var(--radius-sm);
 }
 
@@ -116,7 +116,7 @@
 .counts {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   font-family: var(--font-mono);
   font-size: var(--text-xxs);
   font-variant-numeric: tabular-nums;

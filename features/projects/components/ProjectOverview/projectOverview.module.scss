@@ -1,11 +1,11 @@
 /* It's not the page that scrolls, but the table itself (`fill`). */
 .content {
-  --table-row-height: 56px;
+  --table-row-height: 3.5rem;
   --table-divider: var(--outline-variant);
 
   flex: 1;
   min-height: 0;
-  padding: 12px 24px 32px;
+  padding: 0.75rem 1.5rem 2rem;
   display: flex;
   flex-direction: column;
 }
@@ -13,7 +13,7 @@
 .project {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
   min-width: 0;
 }
 

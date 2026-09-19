@@ -2,8 +2,8 @@
    only the content lives here. */
 
 .body {
-  gap: 16px;
-  padding: 18px var(--modal-pad-x);
+  gap: 1rem;
+  padding: 1.125rem var(--modal-pad-x);
 }
 
 .headerIcon {
@@ -20,7 +20,7 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
   align-items: flex-start;
 }
 
@@ -34,8 +34,8 @@
 .roleTrigger {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 4px 3px 0;
+  gap: 0.25rem;
+  padding: 0.1875rem 0.25rem 0.1875rem 0;
   border-radius: var(--radius-sm);
   color: var(--outline);
   transition: color 0.12s;
@@ -48,7 +48,7 @@
 .error {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   margin: 0;
   font-size: var(--text-sm);
   color: var(--error);
@@ -56,7 +56,7 @@
 
 .emailsInput {
   width: 100%;
-  padding: 8px 10px;
+  padding: 0.5rem 0.625rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -83,7 +83,7 @@
 .resultList {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0.875rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -92,8 +92,8 @@
 .resultRow {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-bottom: 14px;
+  gap: 0.375rem;
+  padding-bottom: 0.875rem;
   border-bottom: 1px solid var(--outline-variant);
 
   &:last-child {
@@ -105,7 +105,7 @@
 .resultHead {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .resultEmail {

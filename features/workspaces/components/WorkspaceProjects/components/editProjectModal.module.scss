@@ -3,8 +3,8 @@
    dialog (`CreateProjectModal`): these are the same fields, just populated. */
 
 .body {
-  gap: 18px;
-  padding: 18px var(--modal-pad-x);
+  gap: 1.125rem;
+  padding: 1.125rem var(--modal-pad-x);
 }
 
 .headerIcon {
@@ -14,7 +14,7 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .label {
@@ -34,7 +34,7 @@
 .error {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   margin: 0;
   font-size: var(--text-sm);
   color: var(--error);

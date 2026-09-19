@@ -4,12 +4,12 @@
   border-bottom: 1px solid var(--outline-variant);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0.25rem;
   flex: none;
   /* More padding below than above: the extra cushion belongs to the
      description sentence, which sits lower than the title row and needs
      more room below it. */
-  padding: 8px 24px 14px;
+  padding: 0.5rem 1.5rem 0.875rem;
 }
 
 /* Without a description, the header is single-line, and the padding
@@ -19,7 +19,7 @@
    knows — every caller would otherwise have to communicate it a second time
    and could forget to. */
 .header:not(:has(.description)) {
-  padding-block: 12px;
+  padding-block: 0.75rem;
 }
 
 .divider {
@@ -29,7 +29,7 @@
 .titleRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .title {
@@ -43,7 +43,7 @@
 .actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   /* Pushes the actions to the end, no matter how wide the title turns out. */
   margin-inline-start: auto;
 }

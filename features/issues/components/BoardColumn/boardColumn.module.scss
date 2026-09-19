@@ -3,7 +3,7 @@
      this value, so tune it centrally here rather than in the card itself.
      The min() guard prevents a column from becoming wider than the screen
      on narrow viewports. */
-  --col-w: 320px;
+  --col-w: 20rem;
 
   width: min(var(--col-w), 84vw);
   flex: none;
@@ -11,7 +11,7 @@
   flex-direction: column;
   min-height: 0;
   border-radius: var(--radius-lg);
-  border: 2px solid transparent;
+  border: 0.125rem solid transparent;
   transition: background .15s, border-color .15s;
 }
 
@@ -24,13 +24,13 @@
 .colHeader {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 0 12px 10px;
+  gap: 0.4375rem;
+  padding: 0 0.75rem 0.625rem;
   flex: none;
 }
 
 .colTitle {
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 550;
   color: var(--on-surface);
 }
@@ -42,9 +42,9 @@
 .cards {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 0 10px 10px;
-  min-height: 60px;
+  gap: 0.5rem;
+  padding: 0 0.625rem 0.625rem;
+  min-height: 3.75rem;
   flex: 1;
   overflow-y: auto;
   /* Only lock scrolling vertically: at the end of the column, the page
@@ -64,19 +64,19 @@
   &::after {
     content: '';
     display: block;
-    height: 2px;
+    height: 0.125rem;
     background: var(--primary);
-    border-radius: 2px;
+    border-radius: 0.125rem;
     transform: translateY(-1px);
   }
 
   &::before {
     content: '';
     position: absolute;
-    left: -4px;
-    top: -4px;
-    width: 8px;
-    height: 8px;
+    left: -0.25rem;
+    top: -0.25rem;
+    width: 0.5rem;
+    height: 0.5rem;
     border-radius: 50%;
     background: var(--primary);
   }
@@ -86,10 +86,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 0.375rem;
   width: 100%;
-  padding: 12px 0;
-  font-size: 12.5px;
+  padding: 0.75rem 0;
+  font-size: 0.7812rem;
   font-weight: 500;
   color: var(--outline);
   border: 1px dashed var(--outline-variant);

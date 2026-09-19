@@ -5,9 +5,9 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  max-width: 420px;
-  padding: 18px 20px;
+  gap: 0.875rem;
+  max-width: 26.25rem;
+  padding: 1.125rem 1.25rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
   background: var(--surface);
@@ -16,7 +16,7 @@
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 /* Values with no control: aligned to the same right edge as the buttons
@@ -24,7 +24,7 @@
 .status {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .value {
@@ -35,14 +35,14 @@
 .addEmail {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .verified,
 .unverified {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
   font-size: var(--text-sm);
   white-space: nowrap;
 }
@@ -60,7 +60,7 @@
 .link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   color: var(--on-surface);
   font-size: var(--text-base);
   text-decoration: none;
@@ -73,7 +73,7 @@
 .saved {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 0.3125rem;
   color: var(--green);
   font-size: var(--text-sm);
 }
@@ -81,9 +81,9 @@
 .error {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   margin: 0;
-  padding: 9px 12px;
+  padding: 0.5625rem 0.75rem;
   border-radius: var(--radius);
   background: var(--error-container);
   color: var(--on-error-container);

@@ -3,7 +3,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 0.375rem;
   border-radius: var(--radius-sm);
   font-family: inherit;
   font-weight: 500;
@@ -38,9 +38,9 @@
   & > svg { flex: none; }
 
   /* ── Sizes (base padding, no icon) ── */
-  &.sm { height: 26px; padding: 0 8px;  font-size: var(--text-xs);   gap: 5px; }
-  &.md { height: 32px; padding: 0 12px; font-size: var(--text-sm);   gap: 6px; }
-  &.lg { height: 40px; padding: 0 16px; font-size: var(--text-base); gap: 7px; }
+  &.sm { height: 1.625rem; padding: 0 0.5rem;  font-size: var(--text-xs);   gap: 0.3125rem; }
+  &.md { height: 2rem; padding: 0 0.75rem; font-size: var(--text-sm);   gap: 0.375rem; }
+  &.lg { height: 2.5rem; padding: 0 1rem; font-size: var(--text-base); gap: 0.4375rem; }
 
   /* ── Width ── */
   &.full { width: 100%; }
@@ -66,7 +66,7 @@
   background: var(--surface-container);
   border: 1px solid var(--outline-variant);
   color: var(--on-surface);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 0.125rem rgba(0, 0, 0, 0.1);
 
   &::after { background: var(--on-surface); }
 }
@@ -92,9 +92,9 @@
   border: 1px solid transparent;
   color: var(--on-background);
 
-  &.sm { padding-inline: 4px; }
-  &.md { padding-inline: 6px; }
-  &.lg { padding-inline: 8px; }
+  &.sm { padding-inline: 0.25rem; }
+  &.md { padding-inline: 0.375rem; }
+  &.lg { padding-inline: 0.5rem; }
 
   &::after { background: var(--on-background); }
 }
@@ -103,23 +103,23 @@
 
 /* Icon-only → square, no text padding */
 .iconOnly {
-  &.sm { width: 26px; padding: 0; }
-  &.md { width: 32px; padding: 0; }
-  &.lg { width: 40px; padding: 0; }
+  &.sm { width: 1.625rem; padding: 0; }
+  &.md { width: 2rem; padding: 0; }
+  &.lg { width: 2.5rem; padding: 0; }
 }
 
 /* Leading icon + text → tighter left padding to balance icon weight */
 .hasIcon {
-  &.sm { padding-left: 6px; }
-  &.md { padding-left: 9px; }
-  &.lg { padding-left: 12px; }
+  &.sm { padding-left: 0.375rem; }
+  &.md { padding-left: 0.5625rem; }
+  &.lg { padding-left: 0.75rem; }
 }
 
 /* Trailing icon + text → tighter right padding */
 .hasIconRight {
-  &.sm { padding-right: 6px; }
-  &.md { padding-right: 9px; }
-  &.lg { padding-right: 12px; }
+  &.sm { padding-right: 0.375rem; }
+  &.md { padding-right: 0.5625rem; }
+  &.lg { padding-right: 0.75rem; }
 }
 
 .textAlign-left {

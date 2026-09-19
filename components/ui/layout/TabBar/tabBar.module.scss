@@ -7,12 +7,12 @@
 .bar {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
   flex: none;
   /* Fixed height: the pre-hydration placeholder is an empty .bar, so the
      row has to reserve its final height before the tabs exist. */
-  height: calc(var(--control-h-sm) + 16px);
-  padding: 0 16px;
+  height: calc(var(--control-h-sm) + 1rem);
+  padding: 0 1rem;
 }
 
 /* The tabs scroll, the add button stays pinned behind them.
@@ -21,11 +21,11 @@
 .strip {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
   flex: 0 1 auto;
   min-width: 0;
-  padding-block: 4px;
-  margin-block: -4px;
+  padding-block: 0.25rem;
+  margin-block: -0.25rem;
   overflow-x: auto;
   scrollbar-width: none;
 
@@ -38,14 +38,14 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   flex: 0 1 auto;
   /* Floor keeps the label readable once many tabs share the row — past it
      the strip scrolls instead of squeezing every tab down to its icon. */
-  min-width: 104px;
-  max-width: 200px;
+  min-width: 6.5rem;
+  max-width: 12.5rem;
   height: var(--control-h-sm);
-  padding: 0 6px 0 8px;
+  padding: 0 0.375rem 0 0.5rem;
   border: 1px solid transparent;
   border-radius: var(--radius);
   background: transparent;
@@ -123,8 +123,8 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 18px;
-  height: 18px;
+  width: 1.125rem;
+  height: 1.125rem;
   padding: 0;
   border: none;
   border-radius: var(--radius-pill);
@@ -172,7 +172,7 @@
   align-items: center;
   flex: none;
   margin-inline-start: auto;
-  padding-inline-start: 12px;
+  padding-inline-start: 0.75rem;
 }
 
 /* Two classes, not one — needs to outrank `.logo { display: block }` from

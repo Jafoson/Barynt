@@ -1,8 +1,8 @@
 .root {
   display: flex;
   align-items: stretch;
-  gap: 8px;
-  padding: 8px 8px 8px 10px;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.625rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius);
   background: var(--surface-container-low);
@@ -29,10 +29,10 @@
 .button {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 0.3125rem;
   flex-shrink: 0;
-  padding: 0 10px;
-  height: 28px;
+  padding: 0 0.625rem;
+  height: 1.75rem;
   border-radius: var(--radius-sm);
   background: var(--surface-container-high);
   color: var(--on-surface);

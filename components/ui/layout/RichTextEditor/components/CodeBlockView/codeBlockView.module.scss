@@ -12,8 +12,8 @@
 .head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 3px 6px 3px 8px;
+  gap: 0.5rem;
+  padding: 0.1875rem 0.375rem 0.1875rem 0.5rem;
   background: color-mix(in oklab, var(--on-surface) 4%, transparent);
   border-bottom: 1px solid var(--outline-variant);
   user-select: none;
@@ -22,9 +22,9 @@
 .lang {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
   flex: 1;
-  padding: 4px 6px;
+  padding: 0.25rem 0.375rem;
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
   font-weight: 600;
@@ -48,8 +48,8 @@
   display: flex;
   flex: none;
   flex-direction: column;
-  padding: 10px 12px 10px 0;
-  width: 52px;
+  padding: 0.625rem 0.75rem 0.625rem 0;
+  width: 3.25rem;
   text-align: right;
   font-family: var(--font-mono);
   font-size: var(--text-sm);
@@ -63,7 +63,7 @@
   flex: 1;
   min-width: 0;
   margin: 0;
-  padding: 10px 12px 10px 0;
+  padding: 0.625rem 0.75rem 0.625rem 0;
   overflow-x: auto;
   /* The inline code's border doesn't apply here. */
   code { padding: 0; background: none; border: none; font: inherit; }

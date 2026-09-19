@@ -3,7 +3,7 @@
 .control {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .mark {
@@ -13,7 +13,7 @@
 .connected {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
   color: var(--green);
   font-size: var(--text-sm);
   white-space: nowrap;
@@ -22,9 +22,9 @@
 .note {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   margin: 0;
-  padding: 0 2px;
+  padding: 0 0.125rem;
   color: var(--on-surface-variant);
   font-size: var(--text-sm);
 }
@@ -32,9 +32,9 @@
 .error {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   margin: 0;
-  padding: 9px 12px;
+  padding: 0.5625rem 0.75rem;
   border-radius: var(--radius);
   background: var(--error-container);
   color: var(--on-error-container);

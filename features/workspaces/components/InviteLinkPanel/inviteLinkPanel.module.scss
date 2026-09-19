@@ -1,8 +1,8 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: 0.75rem;
+  padding: 1rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius);
   background: var(--surface-container-low);
@@ -11,7 +11,7 @@
 .head {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0.125rem;
 }
 
 .title {
@@ -30,7 +30,7 @@
 .error {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   margin: 0;
   font-size: var(--text-sm);
   color: var(--error);
@@ -40,13 +40,13 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 16px;
+  gap: 1rem;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
   align-items: flex-start;
 }
 
@@ -59,9 +59,9 @@
 .roleTrigger {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 32px;
-  padding: 0 10px;
+  gap: 0.25rem;
+  height: 2rem;
+  padding: 0 0.625rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -78,7 +78,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .activeMeta {

@@ -1,7 +1,7 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 0.3125rem;
   width: 100%;
 }
 
@@ -33,7 +33,7 @@
   height: var(--control-h);
   background: var(--surface-container-lowest);
   border: 1px solid var(--outline-variant);
-  padding: 0 11px;
+  padding: 0 0.6875rem;
   font-size: var(--text-base);
   transition: border-color 0.12s, box-shadow 0.12s;
 
@@ -49,12 +49,12 @@
   /* Error state */
   &.hasError {
     border-color: var(--error);
-    &:focus { box-shadow: 0 0 0 3px color-mix(in oklab, var(--error) 18%, transparent); }
+    &:focus { box-shadow: 0 0 0 0.1875rem color-mix(in oklab, var(--error) 18%, transparent); }
   }
 
   /* Icon padding adjustments */
-  &.hasIconLeft  { padding-left: 34px; }
-  &.hasIconRight { padding-right: 34px; }
+  &.hasIconLeft  { padding-left: 2.125rem; }
+  &.hasIconRight { padding-right: 2.125rem; }
 
   /* Date: normalize browser chrome */
   &[type="date"] {
@@ -80,7 +80,7 @@
   line-height: var(--leading-tight);
   /* Same padding as the description below — otherwise the two would sit
      offset by eight pixels within the dialog. */
-  padding: 5px 8px;
+  padding: 0.3125rem 0.5rem;
   transition: background .12s, border-color .12s, box-shadow .12s;
 
   &::placeholder {
@@ -108,15 +108,15 @@
   .input {
     height: var(--control-h-sm);
     font-size: var(--text-sm);
-    padding: 0 9px;
-    &.hasIconLeft  { padding-left: 30px; }
-    &.hasIconRight { padding-right: 30px; }
+    padding: 0 0.5625rem;
+    &.hasIconLeft  { padding-left: 1.875rem; }
+    &.hasIconRight { padding-right: 1.875rem; }
   }
 
-  .iconLeft  { left: 8px; }
-  .iconRight { right: 4px; }
+  .iconLeft  { left: 0.5rem; }
+  .iconRight { right: 0.25rem; }
 
-  .iconRight button { width: 22px; height: 22px; }
+  .iconRight button { width: 1.375rem; height: 1.375rem; }
 }
 
 /* ── Appearance: bordered field with a fixed prefix ──
@@ -142,11 +142,11 @@
 
   &:has(.hasError) {
     border-color: var(--error);
-    &:focus-within { box-shadow: 0 0 0 3px color-mix(in oklab, var(--error) 18%, transparent); }
+    &:focus-within { box-shadow: 0 0 0 0.1875rem color-mix(in oklab, var(--error) 18%, transparent); }
   }
 
   /* The marker on the right overlays the field — the input ends before it. */
-  &:has(> .iconRight) .input.bare { padding-right: 34px; }
+  &:has(> .iconRight) .input.bare { padding-right: 2.125rem; }
 }
 
 /* The prefix belongs to the value but isn't something you could edit:
@@ -154,7 +154,7 @@
    the name read as one word. */
 .prefix {
   flex: none;
-  padding-left: 11px;
+  padding-left: 0.6875rem;
   color: var(--on-surface-variant);
   font-size: var(--text-base);
   cursor: text;
@@ -168,7 +168,7 @@
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0 11px 0 0;
+  padding: 0 0.6875rem 0 0;
   border: none;
   background: none;
   font-size: var(--text-base);
@@ -181,8 +181,8 @@
 .sm {
   .framed { height: var(--control-h-sm); }
 
-  .prefix { padding-left: 9px; }
-  .input.bare { padding-right: 9px; }
+  .prefix { padding-left: 0.5625rem; }
+  .input.bare { padding-right: 0.5625rem; }
 
   .input.bare,
   .prefix { font-size: var(--text-sm); }
@@ -199,17 +199,17 @@
   pointer-events: none;
 }
 
-.iconLeft  { left: 10px; }
+.iconLeft  { left: 0.625rem; }
 .iconRight {
-  right: 5px;
+  right: 0.3125rem;
   pointer-events: auto;
 
   button {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
+    width: 1.625rem;
+    height: 1.625rem;
     border-radius: var(--radius-sm);
     border: none;
     background: transparent;
@@ -228,7 +228,7 @@
 .feedback {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
   font-size: var(--text-sm);
   line-height: var(--leading-normal);
 }

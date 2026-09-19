@@ -16,8 +16,8 @@
   /* Two knobs, both here: how tall the switcher is and how much breathing
      room surrounds it. The row's height derives from both — that keeps it
      centered without three numbers needing to line up with each other. */
-  --scope-h: 32px;
-  --scope-air: 22px;
+  --scope-h: 2rem;
+  --scope-air: 1.375rem;
 
   flex: none;
   display: flex;
@@ -28,9 +28,9 @@
      which of the two belongs to which page. */
   height: calc(var(--scope-h) + var(--scope-air));
   /* Flush on the left with the rows of the nav below: 10px of the nav's
-     padding plus the 3px well here add up to the same alignment as its
+     padding plus the 0.1875rem well here add up to the same alignment as its
      buttons. */
-  padding: 0 13px;
+  padding: 0 0.8125rem;
   /* "Workspace", "Project", "Personal" are too short to truncate — nothing
      of "Perso…" would remain a word. If the window gets narrower than the
      three of them, the row therefore scrolls internally instead of being
@@ -58,8 +58,8 @@
 .scope {
   display: inline-flex;
   align-items: stretch;
-  gap: 2px;
-  padding: 3px;
+  gap: 0.125rem;
+  padding: 0.1875rem;
   background: var(--surface-container-low);
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-sm);
@@ -73,10 +73,10 @@
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 0.4375rem;
   height: var(--scope-h);
-  padding: 0 14px;
-  border-radius: calc(var(--radius-sm) - 2px);
+  padding: 0 0.875rem;
+  border-radius: calc(var(--radius-sm) - 0.125rem);
   font-size: var(--text-sm);
   font-weight: 500;
   line-height: 1;
@@ -111,7 +111,7 @@
 
   // Focus is always `--tertiary` across the app, never another accent.
   &:focus-visible {
-    outline: 2px solid var(--tertiary);
+    outline: 0.125rem solid var(--tertiary);
     outline-offset: -1px;
   }
 }
@@ -130,7 +130,7 @@
   background: var(--surface-container-high);
   color: var(--on-surface);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
+  box-shadow: 0 1px 0.125rem rgb(0 0 0 / 0.18);
 
   .icon {
     opacity: 1;

@@ -4,9 +4,9 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  width: 320px;
-  padding: 5px 6px;
+  gap: 0.125rem;
+  width: 20rem;
+  padding: 0.3125rem 0.375rem;
   background: var(--surface);
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius);
@@ -17,25 +17,25 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
 }
 
 /* The second row — the name — sits set apart below the address. */
 .row + .row {
-  padding-top: 4px;
+  padding-top: 0.25rem;
   border-top: 1px solid var(--outline-variant);
 }
 
 .icon {
   flex: none;
-  margin-left: 3px;
+  margin-left: 0.1875rem;
   color: var(--on-surface-variant);
 }
 
 .input {
   flex: 1;
   min-width: 0;
-  padding: 5px 4px;
+  padding: 0.3125rem 0.25rem;
   background: none;
   border: none;
   color: var(--on-surface);
@@ -50,8 +50,8 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 26px;
-  height: 26px;
+  width: 1.625rem;
+  height: 1.625rem;
   border-radius: var(--radius-sm);
   color: var(--on-surface-variant);
   transition: background .12s, color .12s;
@@ -71,5 +71,5 @@
    names even when referenced without being defined here — otherwise the
    reference would point to a name that doesn't exist anywhere. */
 @keyframes pop {
-  from { opacity: .2; transform: translateY(-4px) scale(.985); }
+  from { opacity: .2; transform: translateY(-0.25rem) scale(.985); }
 }

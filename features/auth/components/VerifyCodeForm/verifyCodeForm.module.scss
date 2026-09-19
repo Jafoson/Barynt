@@ -1,15 +1,15 @@
 .boxes {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   justify-content: center;
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
 }
 
 .box {
-  width: 40px;
-  height: 52px;
+  width: 2.5rem;
+  height: 3.25rem;
   border: 1px solid var(--outline-variant);
-  border-radius: 8px;
+  border-radius: 0.5rem;
   background: var(--surface);
   color: var(--on-surface);
   font-family: var(--font-mono);
@@ -22,7 +22,7 @@
   &:focus {
     outline: none;
     border-color: var(--tertiary);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--tertiary) 25%, transparent);
+    box-shadow: 0 0 0 0.125rem color-mix(in srgb, var(--tertiary) 25%, transparent);
   }
 
   &:disabled {
@@ -34,7 +34,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .link {

@@ -2,15 +2,15 @@
    row carries two lines of text next to the avatar and therefore gets
    noticeably more breathing room than the table's single-line default. */
 .content {
-  --table-row-height: 64px;
+  --table-row-height: 4rem;
   --table-divider: var(--outline-variant);
 
   flex: 1;
   min-height: 0;
-  padding: 12px 24px 24px;
+  padding: 0.75rem 1.5rem 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 /* Trigger for the role menu: the arrow sits next to the role, not inside
@@ -18,8 +18,8 @@
 .roleTrigger {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 4px 3px 0;
+  gap: 0.25rem;
+  padding: 0.1875rem 0.25rem 0.1875rem 0;
   border-radius: var(--radius-sm);
   color: var(--outline);
   transition: color 0.12s;
@@ -38,7 +38,7 @@
 .teams {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 0.25rem;
   flex-wrap: wrap;
 }
 
@@ -57,14 +57,14 @@
 .statusInvited {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   color: var(--amber);
   font-size: var(--text-base);
 
   &::before {
     content: "";
-    width: 6px;
-    height: 6px;
+    width: 0.375rem;
+    height: 0.375rem;
     border-radius: 50%;
     background: currentcolor;
   }
@@ -73,9 +73,9 @@
 .error {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   margin: 0;
-  padding: 9px 12px;
+  padding: 0.5625rem 0.75rem;
   border-radius: var(--radius);
   background: var(--error-container);
   color: var(--on-error-container);

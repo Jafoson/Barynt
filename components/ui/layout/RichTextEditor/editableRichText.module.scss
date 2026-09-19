@@ -11,11 +11,11 @@
 
    No negative margin of its own — that's brought in by the wrapper from
    outside (`.title`/`.description` in `issueDetail.module.scss`, both
-   `0 -8px`). With a second one here, the description would sit eight pixels
+   `0 -0.5rem`). With a second one here, the description would sit eight pixels
    off from the title. */
 .preview {
   position: relative;
-  padding: 5px 8px;
+  padding: 0.3125rem 0.5rem;
   border-radius: var(--radius-sm);
   cursor: text;
 
@@ -78,7 +78,7 @@
 /* Shown while the Tiptap bundle is still loading. Takes up roughly the
    height of the editor so the text below doesn't jump once it arrives. */
 .loading {
-  min-height: 132px;
+  min-height: 8.25rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
   background: var(--surface-container-low);
@@ -87,6 +87,6 @@
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
 }

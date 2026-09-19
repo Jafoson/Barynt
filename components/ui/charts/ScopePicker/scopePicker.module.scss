@@ -4,16 +4,16 @@
   display: inline-flex;
   min-width: 0;
   margin: 0;
-  padding: 2px;
+  padding: 0.125rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius);
   background: var(--surface-container-low);
 }
 
 .scope {
-  padding: 5px 11px;
+  padding: 0.3125rem 0.6875rem;
   border: none;
-  border-radius: calc(var(--radius) - 3px);
+  border-radius: calc(var(--radius) - 0.1875rem);
   background: none;
   font-family: inherit;
   font-size: var(--text-sm);

@@ -3,7 +3,7 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
   /* The card dictates the height; the chart fills whatever's left. This
      keeps multiple cards in a row the same height. */
   flex: 1;
@@ -12,7 +12,7 @@
 
 .plotRow {
   display: flex;
-  gap: 10px;
+  gap: 0.625rem;
   flex: 1;
   min-height: 0;
 }
@@ -37,7 +37,7 @@
 .plotCol {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0.375rem;
   flex: 1;
   min-width: 0;
 }
@@ -49,7 +49,7 @@
   position: relative;
   flex: 1;
   min-width: 0;
-  min-height: 150px;
+  min-height: 9.375rem;
 }
 
 /* Four solid hairlines, one step off from the surface. Dashed would read as
@@ -80,7 +80,7 @@
   inset: 0;
   display: flex;
   align-items: flex-end;
-  gap: 2px;
+  gap: 0.125rem;
 }
 
 /* The hit target is the whole column, not the bar: a day with one task
@@ -107,7 +107,7 @@
   }
 
   &:focus-visible {
-    outline-offset: -2px;
+    outline-offset: -0.125rem;
   }
 }
 
@@ -122,22 +122,22 @@
      of overflowing at the top. */
   min-height: 0;
   width: 100%;
-  max-width: 24px;
+  max-width: 1.5rem;
   height: 100%;
   /* The 2px gap between stacked segments. A real gap, not a border: a
      border would be ink that carries no data. */
-  gap: 2px;
+  gap: 0.125rem;
 }
 
 .segment {
   width: 100%;
-  min-height: 2px;
+  min-height: 0.125rem;
   border-radius: 0;
 
   /* Rounded on top, square at the bottom: the end of the column is round,
      the baseline isn't. In a stack, this only applies to the topmost segment. */
   &:last-child {
-    border-radius: 4px 4px 0 0;
+    border-radius: 0.25rem 0.25rem 0 0;
   }
 }
 
@@ -147,8 +147,8 @@
   position: absolute;
   bottom: 0;
   width: 100%;
-  max-width: 24px;
-  height: 2px;
+  max-width: 1.5rem;
+  height: 0.125rem;
   border-radius: 1px;
   background: var(--outline-variant);
 }
@@ -162,13 +162,13 @@
   z-index: 3;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  margin-bottom: 8px;
-  padding: 8px 10px;
+  gap: 0.1875rem;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.625rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius);
   background: var(--surface-container-high);
-  box-shadow: 0 6px 18px rgb(0 0 0 / 0.28);
+  box-shadow: 0 0.375rem 1.125rem rgb(0 0 0 / 0.28);
   white-space: nowrap;
   pointer-events: none;
 }
@@ -183,7 +183,7 @@
 }
 
 .tipTitle {
-  margin-bottom: 2px;
+  margin-bottom: 0.125rem;
   font-size: var(--text-xs);
   color: var(--on-surface-variant);
 }
@@ -191,7 +191,7 @@
 .tipRow {
   display: flex;
   align-items: baseline;
-  gap: 7px;
+  gap: 0.4375rem;
 }
 
 /* A short dash in the series' color — at this density, a filled square
@@ -199,8 +199,8 @@
 .tipKey {
   align-self: center;
   flex: none;
-  width: 10px;
-  height: 2px;
+  width: 0.625rem;
+  height: 0.125rem;
   border-radius: 1px;
 }
 
@@ -221,7 +221,7 @@
    label lines up under its column. */
 .xAxis {
   display: flex;
-  gap: 2px;
+  gap: 0.125rem;
   font-size: var(--text-xs);
   color: var(--outline);
 }
@@ -245,7 +245,7 @@
 
   th,
   td {
-    padding: 5px 8px;
+    padding: 0.3125rem 0.5rem;
     text-align: right;
     border-bottom: 1px solid var(--outline-variant);
   }
@@ -269,7 +269,7 @@
 }
 
 .caption {
-  padding-bottom: 6px;
+  padding-bottom: 0.375rem;
   font-size: var(--text-sm);
   color: var(--on-surface-variant);
   text-align: left;

@@ -6,7 +6,7 @@
 @keyframes toastLife {
   0% {
     opacity: 0;
-    transform: translate(-50%, 8px);
+    transform: translate(-50%, 0.5rem);
   }
   8%,
   88% {
@@ -15,16 +15,16 @@
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, 8px);
+    transform: translate(-50%, 0.5rem);
   }
 }
 
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 28px;
+  bottom: 1.75rem;
   z-index: var(--z-toast);
-  padding: 10px 16px;
+  padding: 0.625rem 1rem;
   border-radius: var(--radius);
   background: var(--inverse-surface);
   color: var(--inverse-on-surface);

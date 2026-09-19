@@ -15,7 +15,7 @@
      therefore rounds its own top corners itself. */
   /* Room for the resize handle, so it doesn't run into the bottom rounding
      and get clipped there. */
-  padding-bottom: 5px;
+  padding-bottom: 0.3125rem;
   transition: border-color .14s ease, box-shadow .14s ease;
 
   /* The field stands out while writing — a soft ring instead of a hard
@@ -26,7 +26,7 @@
 
 .attachmentError {
   margin: 0;
-  padding: 4px 12px;
+  padding: 0.25rem 0.75rem;
   color: var(--error);
   font-size: var(--text-xs);
 }
@@ -37,7 +37,7 @@
      already provides that. The height initially comes from `.surface`
      inside it, and from the browser once dragging starts. */
   resize: vertical;
-  min-height: 96px;
+  min-height: 6rem;
   /* Well below the height of a modal (roughly 88vh): at 85vh the editor
      would fill it almost entirely by itself, the modal body would have to
      scroll and take the title field and toolbar out of view along with it.
@@ -62,13 +62,13 @@
 
 /* Sits on the `contenteditable` itself (see `editorProps.attributes`). */
 .surface {
-  padding: 12px 14px;
+  padding: 0.75rem 0.875rem;
   outline: none;
-  min-height: 96px;
+  min-height: 6rem;
 
   /* ProseMirror sets this while dragging a selection over whole nodes. */
   :global(.ProseMirror-selectednode) {
-    outline: 2px solid var(--tertiary);
+    outline: 0.125rem solid var(--tertiary);
     border-radius: var(--radius-sm);
   }
 
@@ -93,7 +93,7 @@
 
   li[data-type="taskItem"] {
     display: flex;
-    gap: 8px;
+    gap: 0.5rem;
     align-items: flex-start;
 
     > label {
@@ -122,7 +122,7 @@
 
     td, th {
       position: relative;
-      padding: 6px 10px;
+      padding: 0.375rem 0.625rem;
       border: 1px solid var(--outline);
       vertical-align: top;
 
@@ -149,9 +149,9 @@
   :global(.column-resize-handle) {
     position: absolute;
     top: 0;
-    right: -2px;
+    right: -0.125rem;
     bottom: 0;
-    width: 4px;
+    width: 0.25rem;
     background: var(--tertiary);
     pointer-events: none;
   }
@@ -185,8 +185,8 @@
 .attachmentChooser {
   display: flex;
   flex-direction: column;
-  width: 200px;
-  padding: 4px;
+  width: 12.5rem;
+  padding: 0.25rem;
   background: var(--surface);
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius);
@@ -196,8 +196,8 @@
 .attachmentChooserOption {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 8px;
+  gap: 0.5rem;
+  padding: 0.4375rem 0.5rem;
   border-radius: var(--radius-sm);
   color: var(--on-surface);
   font-size: var(--text-sm);

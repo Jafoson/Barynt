@@ -2,10 +2,10 @@
 .content {
   flex: 1;
   min-height: 0;
-  padding: 12px 24px 32px;
+  padding: 0.75rem 1.5rem 2rem;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 /* The role picker's trigger looks like the badge next to it, only with a
@@ -14,9 +14,9 @@
 .roleTrigger {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 5px;
-  margin: -3px -5px;
+  gap: 0.25rem;
+  padding: 0.1875rem 0.3125rem;
+  margin: -0.1875rem -0.3125rem;
   border-radius: var(--radius-sm);
   color: var(--on-surface-variant);
   transition: background 0.1s;
@@ -35,7 +35,7 @@
 .access {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   font-size: var(--text-sm);
   color: var(--on-surface-variant);
 }
@@ -53,9 +53,9 @@
 .error {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
   margin: 0;
-  padding: 9px 12px;
+  padding: 0.5625rem 0.75rem;
   border-radius: var(--radius);
   background: var(--error-container);
   color: var(--on-error-container);
