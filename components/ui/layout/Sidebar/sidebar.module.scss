@@ -1,15 +1,75 @@
+@use "breakpoints" as bp;
+
 .aside {
   display: flex;
   flex-direction: column;
-  width: 14.5rem;
-  flex: none;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   background: var(--background);
   border-right: 1px solid var(--outline-variant);
   padding: 0.625rem 0.625rem 0.5rem;
   overflow: hidden;
   position: relative;
   z-index: 10;
+
+  @include bp.rail {
+    /* Centers the controls that sit in block (not flex) parents. */
+    text-align: center;
+  }
+
+  /* Phone: the menu is the whole screen — more air at the sides. */
+  @include bp.phone {
+    padding: 0.75rem 1rem 0.5rem;
+  }
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  & > :first-child {
+    flex: 1;
+    min-width: 0;
+  }
+
+  @include bp.rail {
+    flex-direction: column;
+    gap: 0.375rem;
+
+    & > :first-child {
+      flex: none;
+      width: 100%;
+    }
+  }
+}
+
+.top .collapseBtn {
+  @include bp.rail {
+    display: none;
+  }
+
+  /* Phone: a square 48px close button. */
+  @include bp.phone {
+    /* `!important`: the button's own size rules are as specific. */
+    width: 3rem !important;
+    height: 3rem !important;
+  }
+}
+
+/* Phone: "close" (X) instead of the desktop's "collapse sidebar" glyph. */
+.iconPhone {
+  display: none;
+
+  @include bp.phone {
+    display: block;
+  }
+}
+
+.iconDesktop {
+  @include bp.phone {
+    display: none;
+  }
 }
 
 .quickActions {
@@ -17,6 +77,16 @@
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
+
+  @include bp.rail {
+    margin-inline: 0;
+    gap: 0.375rem;
+  }
+
+  /* Phone: same left/right edge as every other row of the menu. */
+  @include bp.phone {
+    margin-inline: 0;
+  }
 }
 
 .nav {
@@ -31,6 +101,11 @@
    whole workspace, not part of the sections below. */
 .workspaceDashboardGroup {
   margin-bottom: 0.875rem;
+
+  /* Phone: "Overview" / "Dashboard" are in the bottom bar there. */
+  @include bp.phone {
+    display: none;
+  }
 }
 
 .adminBack {
@@ -143,24 +218,168 @@
   }
 }
 
+/* The tooltip's wrapper defaults to `inline-block`, which would shrink the
+   full-width button; in the rail the icon centers itself in it. Nested under
+   `.quickActions` so it beats the wrapper's own rule regardless of the order
+   the stylesheets load in. */
+.quickActions .searchWrap {
+  display: block;
+  width: 100%;
+}
+
 .search{
   background: var(--surface-container-low);
+
+  /* Phone: same field as on the desktop, just taller. */
+  @include bp.phone {
+    min-height: 3rem;
+  }
+
+  @include bp.rail {
+    /* A plain icon like the nav entries, not an outlined field. */
+    background: transparent !important;
+    border-color: transparent !important;
+    @include bp.rail-square(var(--rail-item));
+
+    & > svg {
+      width: var(--rail-icon);
+      height: var(--rail-icon);
+    }
+  }
+}
+
+.searchLabel {
+  @include bp.phone {
+    font-size: var(--text-md);
+  }
+
+  @include bp.rail {
+    @include bp.sr-only;
+  }
 }
 
 .searchShortcut {
   margin-left: auto;
+
+  /* No keyboard on a phone. */
+  @include bp.phone {
+    display: none;
+  }
+
+  @include bp.rail {
+    display: none;
+  }
+}
+
+/* The navigation between the quick actions (pinned above it) and the
+   footer scrolls as one — every nav group together. */
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* "My tasks" / "Projects": on a phone an outlined pair of buttons side by
+   side (the outline itself: `navLink.module.scss`, via `data-nav-outline`). */
+.globalGroup {
+  @include bp.phone {
+    margin-bottom: 0.875rem;
+
+    & > div {
+      flex-direction: row;
+      gap: 0.5rem;
+
+      & > * {
+        flex: 1;
+        min-width: 0;
+      }
+    }
+  }
+}
+
+/* Phone, workspace menu: nothing above the project list scrolls (quick
+   actions, search, the outlined pair, the "Projects" heading) — only the
+   list itself does. The chain `.scroll` → `.navGroup` → `.projectTabsWrapper`
+   hands the remaining height down to it. */
+.scrollProjects {
+  @include bp.phone {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    & > * {
+      flex: none;
+    }
+
+    & > .navGroup {
+      flex: 1;
+      min-height: 0;
+    }
+  }
 }
 
 .navGroup{
-  flex: 1;
   display: flex;
-  overflow: hidden;
   flex-direction: column;
   padding-bottom: 0.75rem;
 }
 
+/* Stays put above the footer: the scroll area above it gives way. */
+.pinned {
+  flex: none;
+  margin-bottom: 0.5rem;
+  padding-top: 0.5rem;
+
+  /* Phone: a bottom navigation bar — "My tasks", "Projects", members,
+     teams, settings in one row of equally wide items, icon over a small
+     title (see `navLink.module.scss`). Full-bleed across the menu, below the
+     user footer (`order`). The wrappers and lists inside dissolve
+     (`display: contents`) so every item is a cell of `.pinned`. */
+  @include bp.phone {
+    order: 2;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    margin: 0 -1rem -0.5rem;
+    padding: 0.25rem 1rem 0.5rem;
+    border-top: 1px solid var(--outline-variant);
+
+    & > div,
+    & > div > div {
+      display: contents;
+    }
+  }
+}
+
+/* Phone: the user footer moves above the bottom bar, with air between. */
+.aside > :last-child {
+  @include bp.phone {
+    order: 1;
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* Not part of the desktop/tablet sidebar, where the same entries sit in the
+   scrolling part above. */
+.pinnedPhoneOnly {
+  display: none;
+}
+
 .titleWrapper{
+  /* Separates the "Projects" overview entry above from the project list. */
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--outline-variant);
   padding-top: 1rem;
+
+  /* Phone: the "Projects" entry this line separated from is in the bottom
+     bar there, so there's nothing left to divide. */
+  @include bp.phone {
+    margin-top: 0;
+    border-top: 0;
+    padding-top: 0.5rem;
+  }
   padding-inline: 0.5rem;
   display: inline-flex;
   justify-content: space-between;
@@ -170,10 +389,37 @@
   & span{
     color: var(--on-surface-variant);
   }
+
+  /* No room for the heading and the add button in the rail. */
+  @include bp.rail {
+    display: none;
+  }
 }
 
 .projectTabsWrapper{
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* No scrolling of its own — `.scroll` above scrolls the whole menu
+     (on a phone: this list alone, see `.scrollProjects`). */
+  display: flex;
+  flex-direction: column;
+
+  @include bp.phone {
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* The rail has no heading; a line takes over as the separator. */
+  @include bp.rail {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--outline-variant);
+  }
+}
+
+.adminBack,
+.projectSubLink,
+.addProject {
+  @include bp.touch-target;
 }

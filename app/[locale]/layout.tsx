@@ -1,12 +1,12 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { getMyPreferences } from "@/features/account/queries";
 import { routing } from "@/i18n/routing";
-import { IconBundle } from "@/lib/icons/IconBundle";
 import { DockProvider, ModalProvider } from "@/lib/context";
+import { IconBundle } from "@/lib/icons/IconBundle";
 import { UIProvider } from "@/lib/ui-store";
 
 // Design tokens — imported first so they're available everywhere
@@ -30,6 +30,17 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Barynt — Issue Tracker",
   description: "Open source issue tracker",
+};
+
+// `viewportFit: "cover"` lets the page run under the notch / home indicator —
+// `styles/dimensions.css` (`--safe-*`) keeps the content out of it again.
+// `resizes-content`: the on-screen keyboard shrinks the layout viewport (and
+// with it `100dvh`) instead of covering the lower part of the page.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
 };
 
 export function generateStaticParams() {

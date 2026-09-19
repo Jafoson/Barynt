@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 .content{
     max-height: 17.5rem;
     overflow-y: auto;
@@ -91,4 +93,9 @@ position: relative;
   cursor: default;
 
   &:hover::after { opacity: 0; }
+}
+
+.menuItem,
+.menuInput {
+  @include bp.touch-target;
 }

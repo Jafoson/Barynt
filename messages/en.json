@@ -1,5 +1,8 @@
 {
   "nav": {
+    "openMenu": "Open menu",
+    "resizeSidebar": "Resize sidebar",
+    "closeMenu": "Close menu",
     "myIssues": "My Issues",
     "inbox": "Inbox",
     "board": "Board",
@@ -960,6 +963,7 @@
     "shortcutNewProject": "Create a new project",
     "shortcutPalette": "Search and jump",
     "shortcutPaletteDesc": "Search issues, projects, and navigation by name.",
+    "shortcutToggleSidebar": "Show or hide the sidebar",
     "shortcutCloseDialog": "Close a dialog or panel",
     "shortcutHelp": "Open this overview",
     "shortcutGoToDashboard": "Open the dashboard",

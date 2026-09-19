@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 .btn {
   position: relative;
   display: inline-flex;
@@ -136,3 +138,11 @@
   font-size: var(--text-base) !important;
 }
 
+/* Finger: 44px minimum in both directions for icon-only buttons too. */
+.btn {
+  @include bp.touch-target;
+}
+
+.iconOnly {
+  @include bp.touch-target($square: true);
+}

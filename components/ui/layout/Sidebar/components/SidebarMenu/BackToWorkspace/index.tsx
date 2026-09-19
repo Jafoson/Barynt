@@ -17,9 +17,9 @@ function BackToWorkspaceClient() {
       size="lg"
       icon={<Icon icon="lucide:chevron-left" height={18} />}
       onClick={() => router.push("/")}
-      className={styles.elevated}
+      className={`${styles.elevated} ${styles.back}`}
     >
-      {t("backToWorkspace")}
+      <span className={styles.backLabel}>{t("backToWorkspace")}</span>
     </Button>
   );
 }

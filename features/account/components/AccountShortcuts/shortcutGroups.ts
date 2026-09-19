@@ -54,6 +54,11 @@ export function shortcutGroups(t: Translator): ShortcutGroup[] {
           keys: "mod+k",
         },
         {
+          id: "toggle-sidebar",
+          label: t("account.shortcutToggleSidebar"),
+          keys: "mod+b",
+        },
+        {
           id: "close-dialog",
           label: t("account.shortcutCloseDialog"),
           keys: "esc",

@@ -72,6 +72,15 @@
 
 .image, .video, .file { &:hover .remove { opacity: 1; } }
 
+/* No hover on touch — the remove button would never appear. Bigger, too:
+   1.375rem is far below a fingertip. */
+@media (hover: none) {
+  .remove { opacity: 1; }
+}
+@media (pointer: coarse) {
+  .remove { width: 2rem; height: 2rem; }
+}
+
 .image {
   position: relative;
   max-width: 100%;

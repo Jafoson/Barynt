@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 /* The name comes from outside and can be arbitrarily long. Only this text
    may be truncated: `min-width: 0` removes its content width as a floor,
    otherwise everything beside it would yield instead — for a flex item,
@@ -10,11 +12,15 @@
     overflow: hidden;
     text-overflow: ellipsis;
     text-align: left;
+
+    @include bp.rail { display: none; }
 }
 
 .icon{
     margin-left: auto;
     color: var(--surface-bright);
+
+    @include bp.rail { display: none; }
 }
 
 .label{
@@ -25,4 +31,27 @@
 
 .elevated{
     margin-bottom: 1rem;
+}
+/* The workspace button: avatar only in the rail. */
+.trigger {
+    @include bp.phone {
+        min-height: 3rem;
+    }
+
+    @include bp.rail {
+        justify-content: center;
+        @include bp.rail-square(var(--rail-item));
+    }
+}
+
+.backLabel {
+    @include bp.rail { @include bp.sr-only; }
+}
+
+.back {
+    @include bp.rail {
+        @include bp.rail-square(var(--rail-item));
+
+        & > svg { width: var(--rail-icon); height: var(--rail-icon); }
+    }
 }

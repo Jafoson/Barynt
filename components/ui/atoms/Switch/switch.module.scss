@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 /* Track and knob are purely visual; the checkbox underneath is what's
    actually interacted with. It sits exactly on top and is invisible — this
    way click area, keyboard, and focus stay the browser's own, with no need
@@ -85,4 +87,9 @@
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
+}
+
+/* The track itself stays small; the row grows so the tap area is 44px. */
+.root {
+  @include bp.touch-target;
 }

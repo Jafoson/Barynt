@@ -1,5 +1,8 @@
 {
   "nav": {
+    "openMenu": "Menü öffnen",
+    "resizeSidebar": "Breite der Seitenleiste ändern",
+    "closeMenu": "Menü schließen",
     "myIssues": "Meine Aufgaben",
     "inbox": "Posteingang",
     "board": "Board",
@@ -960,6 +963,7 @@
     "shortcutNewProject": "Neues Projekt erstellen",
     "shortcutPalette": "Suchen und springen",
     "shortcutPaletteDesc": "Aufgaben, Projekte und Navigation nach Namen durchsuchen.",
+    "shortcutToggleSidebar": "Seitenleiste ein-/ausblenden",
     "shortcutCloseDialog": "Dialog oder Panel schließen",
     "shortcutHelp": "Diese Übersicht öffnen",
     "shortcutGoToDashboard": "Dashboard öffnen",

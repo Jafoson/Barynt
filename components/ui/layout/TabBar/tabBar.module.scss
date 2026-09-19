@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 /* ── Tab bar ──────────────────────────────────────────────────
    Sits on --background, directly above the Topbar. Inactive tabs
    stay quiet (variant text on the plain background), the active
@@ -13,6 +15,23 @@
      row has to reserve its final height before the tabs exist. */
   height: calc(var(--control-h-sm) + 1rem);
   padding: 0 1rem;
+}
+
+/* Menu button. On a tablet, where the sidebar is a menu but there is no top
+   bar (that one is phone-only); on desktop only while the sidebar is
+   collapsed to its icon rail. Nested under `.bar` so it beats the button's
+   own `display` whichever stylesheet loads last. */
+.bar .menuToggle {
+  display: none;
+  flex: none;
+
+  @include bp.tablet-only {
+    display: inline-flex;
+  }
+
+  @include bp.rail {
+    display: inline-flex;
+  }
 }
 
 /* The tabs scroll, the add button stays pinned behind them.

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import type { Project } from "@/types";
 import { Button } from "../../atoms/Button/Button";
 import { Logo } from "../../atoms/Logo/Logo";
+import { NavToggle } from "../AppShell/NavToggle";
 import { Tab } from "./Tab";
 import styles from "./tabBar.module.scss";
 import { useTabBar } from "./useTabBar";
@@ -35,10 +36,19 @@ export function TabBarClient({
     currentWorkspaceId,
   });
 
-  if (!ready) return <div className={styles.bar} />;
+  if (!ready) {
+    return (
+      <div className={styles.bar}>
+        <NavToggle className={styles.menuToggle} />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.bar}>
+      {/* Tablet only (CSS): the way to the sidebar menu. */}
+      <NavToggle className={styles.menuToggle} />
+
       {/* Own scroll container: with many tabs, the strip scrolls instead
           of squeezing every tab down to illegibility — the plus button
           stays visible throughout. */}

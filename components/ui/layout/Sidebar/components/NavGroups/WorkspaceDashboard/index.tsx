@@ -14,7 +14,12 @@ import TabList, { type TabGroup } from "../components/TabList";
  * top, before "My tasks": whoever opens the workspace should see how
  * things stand first, not have to search for it afterward.
  */
-async function NavGroupWorkspaceDashboard() {
+async function NavGroupWorkspaceDashboard({
+  bare = false,
+}: {
+  /** Just the list, without the spacing wrapper — for the phone bottom bar. */
+  bare?: boolean;
+}) {
   const t = await getTranslations("nav");
   const workspace = await getCurrentWorkspace();
   if (!workspace) return null;
@@ -27,6 +32,8 @@ async function NavGroupWorkspaceDashboard() {
     icon: entry.icon,
     label: t(entry.labelKey),
   }));
+
+  if (bare) return <TabList tabs={tabs} />;
 
   return (
     <div className={styles.workspaceDashboardGroup}>

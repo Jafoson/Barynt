@@ -1,0 +1,118 @@
+// ============================================================
+//  Barynt — Breakpoints & input-capability mixins
+//
+//  Use from any module:  @use "breakpoints" as bp;
+//  (`styles/` is on Sass's load path, see `sassOptions` in next.config.ts)
+//
+//  Widths (mobile first is NOT assumed — the desktop layout is the base,
+//  the mixins below reach *down*):
+//    phone   ≤ 640px    one column, sheets instead of popovers; the
+//                       sidebar menu takes the whole screen
+//    tablet  ≤ 1024px   the sidebar is a menu behind a hamburger (a panel,
+//                       not full screen); reduced side panels
+//    desktop > 1024px   the sidebar is a column, collapsible to an icon rail
+//  Test widths: 375 / 768 / 1280px.
+//
+//  Media queries can't read CSS custom properties, which is why these are
+//  Sass variables and not tokens in dimensions.css.
+// ============================================================
+
+$phone: 640px;
+$tablet: 1024px;
+
+/// Phone width and below.
+@mixin phone {
+  @media (max-width: #{$phone}) {
+    @content;
+  }
+}
+
+/// Tablet width only: wider than a phone, not wider than a tablet.
+@mixin tablet-only {
+  @media (min-width: #{$phone + 1px}) and (max-width: #{$tablet}) {
+    @content;
+  }
+}
+
+/// Tablet width and below (includes phones).
+@mixin tablet-down {
+  @media (max-width: #{$tablet}) {
+    @content;
+  }
+}
+
+/// Primary pointer is a finger. Keyed on the input, not the width: a
+/// tablet in landscape is wide *and* touch, a small desktop window is
+/// narrow *and* mouse.
+@mixin coarse {
+  @media (pointer: coarse) {
+    @content;
+  }
+}
+
+/// No hover at all (the primary input can't hover). Hover-only controls
+/// must be shown permanently inside this.
+@mixin no-hover {
+  @media (hover: none) {
+    @content;
+  }
+}
+
+/// Minimum touch target (WCAG 2.5.5 / web.dev: 44px, with ≥ 8px spacing).
+/// Only under `pointer: coarse` — mouse users keep the compact desktop
+/// density. Grows the box; pass `$square: true` for icon-only controls.
+@mixin touch-target($square: false) {
+  @include coarse {
+    min-height: var(--touch-min);
+    @if $square {
+      min-width: var(--touch-min);
+    }
+  }
+}
+
+/// Wider than a tablet: the sidebar is a column in the layout, not a menu.
+@mixin desktop {
+  @media (min-width: #{$tablet + 1px}) {
+    @content;
+  }
+}
+
+/// The sidebar is collapsed to its icon rail (`data-nav-collapsed` on the
+/// shell, set by `ShellFrame`). Desktop only: at tablet width and below the
+/// sidebar is a menu and the flag has no meaning there. Use inside
+/// the rule of the element that changes, from any module.
+@mixin rail {
+  @include desktop {
+    :global([data-nav-collapsed]) & {
+      @content;
+    }
+  }
+}
+
+/// Visually hidden, still read by screen readers. For a label that's
+/// replaced by an icon in the rail.
+@mixin sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/// A control in the sidebar's icon rail: every one the same square
+/// (`var(--rail-item)`), whatever its height when expanded. `!important`:
+/// the controls' own size rules are as specific as a rail rule and can load
+/// later.
+@mixin rail-square($size) {
+  width: $size !important;
+  height: $size !important;
+  min-width: $size !important;
+  min-height: $size !important;
+  margin-inline: auto;
+  padding: 0 !important;
+  gap: 0 !important;
+}

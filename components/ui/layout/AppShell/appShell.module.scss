@@ -1,15 +1,149 @@
+@use "breakpoints" as bp;
+
 .shell {
   display: flex;
   height: 100dvh;
   overflow: hidden;
+  /* Keeps everything out of the notch / home indicator
+     (`viewport-fit=cover`); 0 on screens without one. */
+  padding: 0 var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+
+/* ── Navigation pane ──
+   Holds the sidebar. On desktop it's a normal column that can shrink to an
+   icon rail (`data-nav-collapsed`, the sidebar's own modules decide what
+   that looks like). At tablet width and below it's a menu that slides in
+   (`data-nav-open`): a panel on a tablet, the whole screen on a phone. */
+.navPane {
+  position: relative;
+  flex: none;
+  /* Set on `.shell` by `ShellFrame` (the user's dragged width). */
+  width: var(--sidebar-w, 14.5rem);
+  height: 100%;
+  outline: none;
+
+  @include bp.desktop {
+    .shell[data-nav-collapsed] & {
+      width: 4rem;
+    }
+
+    /* Expanding, collapsing and the double-click reset glide. Dragging the
+       edge must not: there the width has to follow the pointer exactly. */
+    transition: width 0.2s ease;
+
+    .shell:has([data-resizing]) & {
+      transition: none;
+    }
+  }
+
+  @include bp.tablet-down {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 1410;
+    width: min(22rem, 85vw);
+    padding: var(--safe-top) 0 var(--safe-bottom) var(--safe-left);
+    background: var(--background);
+    box-shadow: var(--shadow-pop);
+    transform: translateX(-100%);
+    /* Closed: out of the tab order and away from screen readers, but only
+       once the slide-out has finished. */
+    visibility: hidden;
+    transition:
+      transform 0.22s ease,
+      visibility 0s linear 0.22s;
+
+    .shell[data-nav-open] & {
+      transform: none;
+      visibility: visible;
+      transition-delay: 0s;
+    }
+
+    /* Phone: the menu takes the whole screen, nothing of the page peeks
+       out beside it. */
+    @include bp.phone {
+      width: 100%;
+      padding-right: var(--safe-right);
+      box-shadow: none;
+    }
+  }
+}
+
+/* The draggable edge of the sidebar (desktop only): straddles the border,
+   above the sidebar's own stacking level and the page next to it. */
+.resizeHandle {
+  display: none;
+
+  @include bp.desktop {
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -0.28125rem;
+    z-index: 20;
+  }
+}
+
+.backdrop {
+  display: none;
+
+  @include bp.tablet-down {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1400;
+    width: 100%;
+    background: rgb(0 0 0 / 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+
+    .shell[data-nav-open] & {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navPane,
+  .backdrop {
+    transition: none;
+  }
 }
 
 .main {
   flex: 1;
-  height: 100dvh;
+  min-width: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* Bar with the menu button and the logo — phone only. On a tablet the menu
+   button sits in the tab bar instead; on desktop the sidebar (or its rail)
+   is always there. */
+.topBar {
+  position: relative;
+  display: none;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border-bottom: 1px solid var(--outline-variant);
+
+  @include bp.phone {
+    display: flex;
+    padding-top: calc(0.375rem + var(--safe-top));
+  }
+}
+
+.tabs {
+  display: contents;
+
+  @include bp.phone {
+    display: none;
+  }
 }
 
 .content {
@@ -17,4 +151,69 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+/* ── Brand mark in the top bar ──
+   Mono lockup: white in the dark theme, black in the light one. Same
+   three-state `data-theme` selector as `styles/colors.scss` and the tab bar. */
+.brand {
+  display: flex;
+  align-items: center;
+
+  /* Phone: bigger, centered in the bar (the hamburger stays on the left). */
+  @include bp.phone {
+    position: absolute;
+    top: calc(50% + var(--safe-top) / 2);
+    left: 50%;
+    translate: -50% -50%;
+  }
+}
+
+/* Two classes, not one — needs to outrank `.logo { height: auto }` from
+   Logo's own module regardless of which CSS chunk loads first. */
+.brand .brandDark,
+.brand .brandLight {
+  display: none;
+  width: auto;
+  height: 1.25rem;
+
+  @include bp.phone {
+    height: 1.75rem;
+  }
+}
+
+[data-theme="dark"] .brand .brandDark,
+[data-theme="system"] .brand .brandDark {
+  display: block;
+}
+
+[data-theme="light"] .brand .brandLight {
+  display: block;
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme="system"] .brand .brandLight {
+    display: block;
+  }
+
+  [data-theme="system"] .brand .brandDark {
+    display: none;
+  }
+}
+
+/* ── Icons of the menu button ──
+   Hamburger while the sidebar is a menu (≤ 1024px), the "panel" glyph on
+   desktop, where it's the counterpart of the collapse button. */
+.navIconPanel {
+  display: none;
+}
+
+@include bp.desktop {
+  .navIconMenu {
+    display: none;
+  }
+
+  .navIconPanel {
+    display: block;
+  }
 }

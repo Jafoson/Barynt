@@ -817,6 +817,14 @@
 
 .attachmentTile:hover .attachmentTileRemove { opacity: 1; }
 
+/* Same as in the editor's attachment view: no hover on touch. */
+@media (hover: none) {
+  .attachmentTileRemove { opacity: 1; }
+}
+@media (pointer: coarse) {
+  .attachmentTileRemove { width: 1.75rem; height: 1.75rem; }
+}
+
 /* Same height as `.attachmentTile` — both tile types should line up flush
    in one row. `sticky` instead of a fixed position in flow: the button
    stays visible on the left even when the row has scrolled sideways —

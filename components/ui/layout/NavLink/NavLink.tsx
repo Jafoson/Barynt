@@ -73,16 +73,20 @@ export function NavLink({
   return (
     <Link
       href={href}
-      className={`${styles.btn} ${styles.ghost} ${styles.md} ${styles.full} ${styles.hasIcon} ${styles["textAlign-left"]} ${styles.link}`}
+      className={`${styles.btn} ${styles.ghost} ${styles.md} ${styles.full} ${styles.hasIcon} ${styles["textAlign-left"]} ${styles.link} ${navStyles.row}`}
+      // The full name: the row only truncates it visually, and in the
+      // sidebar's icon rail the text isn't shown at all.
+      title={label}
       data-active={isActive() ? "true" : undefined}
       onClick={onClick}
     >
       <LeadingIcon />
-      {/* The full name stays in `title` — the row only truncates it visually. */}
-      <span className={navStyles.label} title={label}>
-        {label}
-      </span>
-      {badge && <Badge style={{ marginLeft: "auto" }}>{badge}</Badge>}
+      <span className={navStyles.label}>{label}</span>
+      {badge && (
+        <Badge className={navStyles.badge} style={{ marginLeft: "auto" }}>
+          {badge}
+        </Badge>
+      )}
     </Link>
   );
 }

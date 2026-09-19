@@ -1,9 +1,13 @@
+@use "breakpoints" as bp;
+
 .page {
   position: relative;
   isolation: isolate;
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: 1fr;
+  /* `minmax(0, …)`: a bare `1fr` floors at the content's min-content width,
+     so one wide child would push the card past the screen edge on a phone. */
+  grid-template-columns: minmax(0, 1fr);
   overflow: hidden;
   background: var(--background);
 
@@ -96,6 +100,10 @@
   justify-content: center;
   min-height: 100dvh;
   padding: 3rem;
+
+  @include bp.phone {
+    padding: 1rem;
+  }
 }
 
 .card {
@@ -109,6 +117,11 @@
   background: var(--surface-container-low);
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
+
+  @include bp.phone {
+    padding: 1.5rem;
+    min-height: 0;
+  }
 }
 
 .title {

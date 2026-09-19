@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
@@ -5,6 +6,9 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Lets modules `@use "breakpoints"` (styles/breakpoints.scss) without
+  // relative-path chains.
+  sassOptions: { loadPaths: [path.join(process.cwd(), "styles")] },
   images: {
     remotePatterns: [{ hostname: "www.gravatar.com" }],
   },

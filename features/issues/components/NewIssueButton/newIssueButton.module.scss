@@ -1,6 +1,35 @@
+@use "breakpoints" as bp;
+
 /* `Tooltip`'s wrapper defaults to `inline-block`, which would shrink the
    button's `full` (100%) width back down to its content. */
 .tooltipWrap {
   display: block;
   width: 100%;
+}
+
+/* In the sidebar's icon rail only the plus is left; the label stays for
+   screen readers and the tooltip shows it on hover. */
+.button {
+  @include bp.phone {
+    min-height: 3rem;
+  }
+
+  @include bp.rail {
+    @include bp.rail-square(var(--rail-item));
+
+    & > svg {
+      width: var(--rail-icon);
+      height: var(--rail-icon);
+    }
+  }
+}
+
+.label {
+  @include bp.phone {
+    font-size: var(--text-md);
+  }
+
+  @include bp.rail {
+    @include bp.sr-only;
+  }
 }

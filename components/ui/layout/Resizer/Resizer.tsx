@@ -17,15 +17,31 @@ interface ResizerProps {
   label: string;
   /** Positioning; the handle itself brings its own look. */
   className?: string;
+  /**
+   * Which edge of the measured element the handle sits on. `"left"` (the
+   * default): dragging left makes it wider. `"right"`: dragging right does.
+   */
+  edge?: "left" | "right";
+  /**
+   * Collapsing: dragging narrower than `below` (px) reports `collapsed`
+   * instead of a width; dragging wider again reports it un-collapsed. While
+   * collapsed, `width` is the width of the collapsed state.
+   */
+  collapse?: {
+    below: number;
+    collapsed: boolean;
+    onCollapsedChange: (collapsed: boolean) => void;
+  };
 }
 
 /**
  * A handle for dragging a width.
  *
- * It sits **to the left** of what it measures — dragging left makes things
- * wider. That fits everything anchored to the right edge: the side panel at
- * the screen edge, the attribute column at the panel's edge. It isn't built
- * for the opposite direction, since that doesn't occur anywhere here.
+ * By default it sits **to the left** of what it measures — dragging left
+ * makes things wider. That fits everything anchored to the right edge: the
+ * side panel at the screen edge, the attribute column at the panel's edge.
+ * For something anchored to the left (the sidebar), `edge="right"` flips
+ * that, and `collapse` adds a threshold below which it collapses.
  *
  * It's operable without a mouse too: focusable, with a value range, arrow
  * keys step through it, Home and End jump to the limits — the WAI-ARIA
@@ -44,6 +60,8 @@ export function Resizer({
   step = 16,
   label,
   className,
+  edge = "left",
+  collapse,
 }: ResizerProps) {
   const [isDragging, setIsDragging] = useState(false);
   /** Start point of the current drag — not state, it doesn't trigger a re-render. */
@@ -61,7 +79,17 @@ export function Resizer({
 
   const moveDrag = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!drag.current) return;
-    onChange(clamp(drag.current.width - (event.clientX - drag.current.x)));
+    const dx = event.clientX - drag.current.x;
+    const raw =
+      edge === "right" ? drag.current.width + dx : drag.current.width - dx;
+    if (collapse) {
+      if (raw < collapse.below) {
+        collapse.onCollapsedChange(true);
+        return;
+      }
+      if (collapse.collapsed) collapse.onCollapsedChange(false);
+    }
+    onChange(clamp(raw));
   };
 
   const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -72,9 +100,20 @@ export function Resizer({
   };
 
   const nudge = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "ArrowLeft") onChange(clamp(width + step));
-    else if (event.key === "ArrowRight") onChange(clamp(width - step));
-    else if (event.key === "Home") onChange(min);
+    // Which arrow makes it wider depends on the edge.
+    const wider = edge === "right" ? "ArrowRight" : "ArrowLeft";
+    const narrower = edge === "right" ? "ArrowLeft" : "ArrowRight";
+    if (event.key === wider) {
+      if (collapse?.collapsed) {
+        collapse.onCollapsedChange(false);
+        onChange(min);
+      } else onChange(clamp(width + step));
+    } else if (event.key === narrower) {
+      // At the minimum, one more step narrower collapses.
+      if (collapse && !collapse.collapsed && width <= min) {
+        collapse.onCollapsedChange(true);
+      } else if (!collapse?.collapsed) onChange(clamp(width - step));
+    } else if (event.key === "Home") onChange(min);
     else if (event.key === "End") onChange(max);
     else return;
     event.preventDefault();
@@ -91,14 +130,21 @@ export function Resizer({
       aria-orientation="vertical"
       aria-label={label}
       aria-valuenow={Math.round(width)}
-      aria-valuemin={min}
+      aria-valuemin={Math.min(min, Math.round(width))}
       aria-valuemax={max}
       tabIndex={0}
       onPointerDown={startDrag}
       onPointerMove={moveDrag}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
-      onDoubleClick={reset === undefined ? undefined : () => onChange(reset)}
+      onDoubleClick={
+        reset === undefined
+          ? undefined
+          : () => {
+              if (collapse?.collapsed) collapse.onCollapsedChange(false);
+              onChange(reset);
+            }
+      }
       onKeyDown={nudge}
     />
   );

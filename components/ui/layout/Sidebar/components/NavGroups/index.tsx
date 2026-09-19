@@ -2,7 +2,6 @@ import styles from "../../sidebar.module.scss";
 import NavGroupAdmin from "./Admin";
 import NavGroupGlobal from "./Global";
 import NavGroupProjects from "./Projects";
-import NavGroupWorkspace from "./Workspace";
 import NavGroupWorkspaceDashboard from "./WorkspaceDashboard";
 
 interface NavGroupProps {
@@ -15,9 +14,12 @@ function NavGroup({ isAdminRoute = true }: NavGroupProps) {
       {!isAdminRoute && (
         <>
           <NavGroupWorkspaceDashboard />
-          <NavGroupGlobal />
+          {/* Phone: an outlined pair of buttons instead of the list (the
+              overview/dashboard pair above moves to the bottom bar). */}
+          <div className={styles.globalGroup} data-nav-outline>
+            <NavGroupGlobal />
+          </div>
           <NavGroupProjects />
-          <NavGroupWorkspace />
         </>
       )}
       {isAdminRoute && <NavGroupAdmin />}

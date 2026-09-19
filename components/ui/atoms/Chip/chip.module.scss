@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 .chip {
   position: relative;
   display: inline-flex;
@@ -201,4 +203,8 @@
   &:hover:not(:disabled)::after { opacity: var(--opacity-hover); }
   &:focus-visible::after { opacity: var(--opacity-focus); }
   &:disabled { cursor: not-allowed; opacity: 0.4; }
+}
+
+.chip {
+  @include bp.touch-target;
 }

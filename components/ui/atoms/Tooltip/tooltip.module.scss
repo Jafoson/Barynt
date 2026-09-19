@@ -40,6 +40,17 @@
   --on-surface-variant: var(--inverse-on-surface);
 }
 
+/* Icon rail: to the right of the trigger, vertically centered. The
+   coordinates come inline (`Tooltip.tsx`) — this only replaces the
+   "above, centered" placement. `!important` on `bottom`/`translate`
+   because they're set on `.bubble` above and this must win regardless of
+   order. */
+.bubbleRight {
+  bottom: auto;
+  translate: 0 -50%;
+  animation: none;
+}
+
 /* Local, even though `pop` also exists globally in styles/globals.scss (and
    again in Popover.module.scss): CSS modules rename keyframe names even
    when they aren't defined here at all, so an unqualified reference would

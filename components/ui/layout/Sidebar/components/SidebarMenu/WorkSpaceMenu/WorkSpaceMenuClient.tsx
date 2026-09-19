@@ -56,6 +56,7 @@ export function WorkspaceMenuClient({
       <Button
         variant="ghost"
         size="lg"
+        className={styles.trigger}
         onClick={() => setOpen(!open)}
         style={{ gap: 6, padding: "4px 8px", width: "100%" }}
       >

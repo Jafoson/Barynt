@@ -1,11 +1,21 @@
+@use "breakpoints" as bp;
+
 .wrapper {
     position: relative;
+    flex: none;
     width: 100%;
 }
 
 /* Keep space free on the right so the name doesn't sit under the bell button */
 .trigger {
     padding-right: 2.75rem;
+
+    /* Rail: just the avatar; the bell moves below it (`.bellSlot`). */
+    /* The avatar stays round; the button around it is a square. */
+    @include bp.rail {
+        justify-content: center;
+        @include bp.rail-square(var(--rail-item));
+    }
 }
 
 .title {
@@ -15,6 +25,8 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+
+    @include bp.rail { display: none; }
 }
 
 /* Own positioning wrapper so the button's :active transform
@@ -25,7 +37,23 @@
     right: 1rem;
     transform: translateY(-50%);
     display: flex;
-} 
+
+    @include bp.rail {
+        position: static;
+        transform: none;
+        justify-content: center;
+        margin-top: 0.375rem;
+
+        & > a {
+            @include bp.rail-square(var(--rail-item));
+        }
+
+        & svg {
+            width: var(--rail-icon);
+            height: var(--rail-icon);
+        }
+    }
+}
 
 /* Separates the path onward (settings) from the path out (sign out). */
 .divider {

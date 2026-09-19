@@ -80,11 +80,12 @@ export function NewIssueButton({ data }: NewIssueButtonProps) {
     >
       <Button
         variant="primary"
+        className={styles.button}
         full
         icon={<Icon icon="lucide:plus" width={16} />}
         onClick={open}
       >
-        {t("actions.newIssue")}
+        <span className={styles.label}>{t("actions.newIssue")}</span>
       </Button>
     </Tooltip>
   );
