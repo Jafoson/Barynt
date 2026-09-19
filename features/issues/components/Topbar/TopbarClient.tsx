@@ -4,8 +4,8 @@ import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import type { Label, Priority, Project, Status, User } from "@/types";
 import { IssueSearch } from "./components/IssueSearch";
-import { SortPicker } from "./components/SortPicker";
 import { TopbarFilters } from "./components/TopbarFilters";
+import { ViewSettings } from "./components/ViewSettings";
 import { ViewSwitch } from "./components/ViewSwitch";
 import styles from "./topbar.module.scss";
 import { useTopbar } from "./useTopbar";
@@ -19,6 +19,11 @@ interface TopbarClientProps {
   priorities: Priority[];
   members: User[];
   labels: Label[];
+  /** This person's hidden board-card/list-row fields for this view (BARY-33). */
+  hiddenCardFields: string[];
+  onDisplayChange: (
+    hidden: string[],
+  ) => Promise<{ ok: true } | { error: string }>;
 }
 
 export function TopbarClient({
@@ -29,28 +34,42 @@ export function TopbarClient({
   priorities,
   members,
   labels,
+  hiddenCardFields,
+  onDisplayChange,
 }: TopbarClientProps) {
   const t = useTranslations();
   const {
     isPending,
     area,
     showFilters,
-    showSort,
     project,
     filters,
     filterCount,
     searchValue,
     sortKey,
+    groupKey,
     view,
     toggleFilter,
     clearFilter,
     clearAll,
     search,
     setSort,
+    setGroup,
     setView,
   } = useTopbar({ workspaceId, projects, priorities, members, labels });
 
   if (!showFilters || !area) return null;
+
+  // Inside a project: that project's hidden fields. Across projects ("my
+  // issues"): only what every project hides — otherwise a sort key would
+  // vanish although some rows still show that field.
+  const projectHiddenFields = project
+    ? (project.hiddenDetailFields ?? [])
+    : projects.length === 0
+      ? []
+      : (projects[0].hiddenDetailFields ?? []).filter((key) =>
+          projects.every((p) => (p.hiddenDetailFields ?? []).includes(key)),
+        );
 
   // Inside a project, the title says which view you're looking at — the
   // project itself already appears in the sidebar and the tab. For "my
@@ -96,11 +115,17 @@ export function TopbarClient({
           onClearAll={clearAll}
         />
 
-        {showSort && (
-          <div className={styles.trailing}>
-            <SortPicker value={sortKey} onChange={setSort} />
-          </div>
-        )}
+        <div className={styles.trailing}>
+          <ViewSettings
+            projectHiddenFields={projectHiddenFields}
+            sortKey={sortKey}
+            onSortChange={setSort}
+            groupKey={groupKey}
+            onGroupChange={setGroup}
+            hiddenFields={hiddenCardFields}
+            onDisplayChange={onDisplayChange}
+          />
+        </div>
       </div>
     </header>
   );

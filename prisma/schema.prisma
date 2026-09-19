@@ -55,6 +55,9 @@ model Workspace {
   roles         Role[]
   // Wie einzelne Personen das Dashboard dieses Workspace eingerichtet haben.
   dashboards    WorkspaceDashboardPreference[]
+  // Wie einzelne Personen Board/Liste der projektübergreifenden "Meine
+  // Issues"-Ansicht eingerichtet haben (BARY-33).
+  myIssuesViewPreferences MyIssuesViewPreference[]
   // Wichtige externe Adressen — Dokumentation, Repository, Chat.
   links         WorkspaceLink[]
   notifications Notification[]
@@ -174,6 +177,8 @@ model User {
   preferences         UserPreferences?
   dashboards          DashboardPreference[]
   workspaceDashboards WorkspaceDashboardPreference[]
+  issueViewPreferences   IssueViewPreference[]
+  myIssuesViewPreferences MyIssuesViewPreference[]
   notifications       Notification[]                 @relation("NotificationRecipient")
   notificationsCaused Notification[]                 @relation("NotificationActor")
   apiKeys             ApiKey[]
@@ -478,6 +483,49 @@ model WorkspaceDashboardPreference {
   @@index([workspaceId])
 }
 
+/// Wie eine Person Board/Liste eines Projekts eingerichtet hat — Anzeige,
+/// Sortierung und Gruppierung (BARY-32/33). `hiddenFields` wirkt zusätzlich zu
+/// `Project.hiddenDetailFields` (BARY-31): sichtbar ist ein Feld nur, wenn
+/// weder das Projekt noch diese Einstellung es versteckt. Board und Liste
+/// führen eigene Zeilen (`view`), analog zu `DashboardPreference` eine Ebene
+/// höher.
+model IssueViewPreference {
+  userId    String
+  projectId String
+  /// "board" | "list".
+  view      String
+
+  /// Karten-/Zeilenfelder, die diese Person ausgeblendet hat — Keys aus
+  /// `CARD_FIELD_KEYS` (`features/issues/card-fields.ts`).
+  hiddenFields String[] @default([])
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([userId, projectId, view])
+  @@index([projectId])
+}
+
+/// Dasselbe wie `IssueViewPreference`, aber für die projektübergreifende
+/// "Meine Issues"-Ansicht (`/my`, `/my/list`) — dort gibt es kein einzelnes
+/// Projekt, an das sich die Einstellung hängen ließe, sondern nur den
+/// Workspace. Gleiches Muster wie `WorkspaceDashboardPreference` neben
+/// `DashboardPreference`.
+model MyIssuesViewPreference {
+  userId      String
+  workspaceId String
+  /// "board" | "list".
+  view        String
+
+  hiddenFields String[] @default([])
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@id([userId, workspaceId, view])
+  @@index([workspaceId])
+}
+
 // ─── Auth.js (NextAuth) ─────────────────────────────────────────────────────────
 // Standard-Adapter-Modelle. Session bleibt bei JWT-Strategie ungenutzt, wird aber
 // vom PrismaAdapter typseitig erwartet.
@@ -608,6 +656,10 @@ model Project {
   roles         Role[]
   // Wie einzelne Personen das Dashboard dieses Projekts eingerichtet haben.
   dashboards    DashboardPreference[]
+  // Wie einzelne Personen Board/Liste dieses Projekts eingerichtet haben
+  // (BARY-33) — welche Kartenfelder sie zusätzlich zu Project.hiddenDetailFields
+  // ausgeblendet haben.
+  issueViewPreferences IssueViewPreference[]
   notifications Notification[]
   inviteLinks   InviteLink[]
 

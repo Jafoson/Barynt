@@ -14,6 +14,7 @@ import {
   recordStatusChangeAudit,
   relationKinds,
 } from "@/features/issues/audit";
+import { isCardFieldKey } from "@/features/issues/card-fields";
 import {
   ESTIMATE_UNIT_ABBR,
   hoursToEstimate,
@@ -22,6 +23,7 @@ import { searchWorkspaceIssues } from "@/features/issues/queries";
 import type { IssuePatch } from "@/features/issues/types";
 import { recordAudit } from "@/lib/audit";
 import type { RelationChangeMeta } from "@/lib/audit/actions";
+import { getCurrentWorkspaceId } from "@/lib/current-workspace";
 import { db } from "@/lib/db";
 import { Prisma } from "@/lib/generated/prisma/client";
 import {
@@ -1788,5 +1790,60 @@ export async function removeIssueRelation(
     { kind: toKind, ref: fromRef } satisfies RelationChangeMeta,
   );
 
+  return { ok: true };
+}
+
+// ── Board/list display preference (BARY-33) ────────────────────────────────
+
+/**
+ * Which board-card/list-row fields the acting user hides for themselves in
+ * one project's board or list, on top of whatever the project already shows
+ * (`setProjectFieldVisibility`, BARY-31). A personal setting — no permission
+ * beyond being signed in, same as `DashboardPreference`'s widgets.
+ */
+export async function setIssueViewFieldVisibility(
+  projectId: string,
+  view: "board" | "list",
+  hidden: string[],
+): Promise<{ ok: true } | { error: string }> {
+  const userId = await currentUserId();
+  if (!userId) return { error: "Not signed in." };
+
+  await db.issueViewPreference.upsert({
+    where: { userId_projectId_view: { userId, projectId, view } },
+    create: {
+      userId,
+      projectId,
+      view,
+      hiddenFields: hidden.filter(isCardFieldKey),
+    },
+    update: { hiddenFields: hidden.filter(isCardFieldKey) },
+  });
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Same as `setIssueViewFieldVisibility`, for the cross-project "my issues" board/list. */
+export async function setMyIssuesViewFieldVisibility(
+  view: "board" | "list",
+  hidden: string[],
+): Promise<{ ok: true } | { error: string }> {
+  const userId = await currentUserId();
+  const workspaceId = getCurrentWorkspaceId();
+  if (!userId || !workspaceId) return { error: "Not signed in." };
+
+  await db.myIssuesViewPreference.upsert({
+    where: { userId_workspaceId_view: { userId, workspaceId, view } },
+    create: {
+      userId,
+      workspaceId,
+      view,
+      hiddenFields: hidden.filter(isCardFieldKey),
+    },
+    update: { hiddenFields: hidden.filter(isCardFieldKey) },
+  });
+
+  revalidatePath("/", "layout");
   return { ok: true };
 }

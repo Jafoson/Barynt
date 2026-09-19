@@ -4,6 +4,10 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { type CSSProperties, useRef, useState } from "react";
 import { Label } from "@/components/ui/atoms/Label/Label";
+import {
+  type CardFieldKey,
+  visibleCardFields,
+} from "@/features/issues/card-fields";
 import { AssigneePicker } from "@/features/issues/components/AssigneePicker/AssigneePicker";
 import {
   DueDateBadge,
@@ -38,6 +42,8 @@ interface BoardCardProps {
    */
   showProject?: boolean;
   lookups: IssueLookups;
+  /** This person's hidden card fields for this board (BARY-33). */
+  hiddenCardFields: string[];
   isDragging?: boolean;
   /**
    * Whether this issue is currently shown in the side panel. The card stays
@@ -67,6 +73,7 @@ export function BoardCard({
   projectId,
   showProject,
   lookups: { members, projects, labels, issueTypes },
+  hiddenCardFields,
   isDragging,
   isActive,
   isFocused,
@@ -108,7 +115,12 @@ export function BoardCard({
       color: "#686d76",
       hiddenDetailFields: [],
     };
-  const visibleFields = visibleDetailFields(project.hiddenDetailFields ?? []);
+  const projectVisibleFields = visibleDetailFields(
+    project.hiddenDetailFields ?? [],
+  );
+  const userVisibleFields = visibleCardFields(hiddenCardFields);
+  const showField = (key: CardFieldKey) =>
+    projectVisibleFields.has(key) && userVisibleFields.has(key);
   const identifier = `${project.prefix}-${issue.key}`;
   const typeLabel = issue.type
     ? issue.type.charAt(0).toUpperCase() + issue.type.slice(1)
@@ -245,7 +257,7 @@ export function BoardCard({
         </div>
       )}
 
-      {visibleFields.has("labels") && issueLabels.length > 0 && (
+      {showField("labels") && issueLabels.length > 0 && (
         <div className={styles.labels} ref={labelRow}>
           {shownLabels.map((l) => (
             <Label key={l.id} color={l.color} size="xs">
@@ -276,14 +288,14 @@ export function BoardCard({
 
       {/* Meta: priority + identifier | time + comments */}
       <div className={styles.footer}>
-        {visibleFields.has("priority") && (
+        {showField("priority") && (
           <PriorityIcon priority={issue.priority} size={14} />
         )}
         <span className={styles.id}>{identifier}</span>
-        {visibleFields.has("storyPoints") && issue.storyPoints !== null && (
+        {showField("storyPoints") && issue.storyPoints !== null && (
           <StoryPointsBadge points={issue.storyPoints} />
         )}
-        {visibleFields.has("dueDate") && issue.dueDate !== null && (
+        {showField("dueDate") && issue.dueDate !== null && (
           <DueDateBadge dueDate={issue.dueDate} />
         )}
         <span className={styles.time} suppressHydrationWarning>

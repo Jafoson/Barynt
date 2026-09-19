@@ -5,14 +5,15 @@ import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { BoardCard } from "@/features/issues/components/BoardCard/BoardCard";
 import { CreateIssueModal } from "@/features/issues/components/CreateIssueModal/CreateIssueModal";
-import { StatusIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
+import { GroupIcon } from "@/features/issues/components/GroupIcon/GroupIcon";
+import type { GroupDef } from "@/features/issues/group";
 import type { IssueComposerData, IssueLookups } from "@/features/issues/types";
 import { useModal } from "@/lib/context";
-import type { IssueDetail, Status } from "@/types";
+import type { IssueDetail } from "@/types";
 import styles from "./boardColumn.module.scss";
 
 interface BoardColumnProps {
-  status: Status;
+  group: GroupDef;
   issues: IssueDetail[];
   /** Without a project there is no "New task" — see `Board`. */
   projectId?: string;
@@ -20,6 +21,8 @@ interface BoardColumnProps {
   showProject?: boolean;
   lookups: IssueLookups;
   composer: IssueComposerData;
+  /** This person's hidden card fields for this board (BARY-33). */
+  hiddenCardFields: string[];
   newIssueLabel: string;
   isOver: boolean;
   dragging: string | null;
@@ -41,12 +44,13 @@ interface BoardColumnProps {
 }
 
 export function BoardColumn({
-  status,
+  group,
   issues,
   projectId,
   showProject,
   lookups,
   composer,
+  hiddenCardFields,
   newIssueLabel,
   isOver,
   dragging,
@@ -71,13 +75,21 @@ export function BoardColumn({
   // a project the question doesn't even arise.
   const canCreate =
     projectId !== undefined && composer.creatableProjectIds.includes(projectId);
+  // In another grouping the column isn't a status — a new issue then starts
+  // in the workspace's first workflow status, same as the composer's default.
+  const initialStatus =
+    group.key === "status"
+      ? group.id
+      : (composer.statuses.find((s) => s.isColumn)?.id ??
+        composer.statuses[0]?.id ??
+        "");
 
   function showCreateIssueModal() {
     if (projectId === undefined) return;
     openModal(({ close }) => (
       <CreateIssueModal
         projectId={projectId}
-        initialStatus={status.id}
+        initialStatus={initialStatus}
         data={composer}
         close={close}
       />
@@ -93,8 +105,8 @@ export function BoardColumn({
       onDrop={onColumnDrop}
     >
       <div className={styles.colHeader}>
-        <StatusIcon status={status.id} size={16} color={status.color} />
-        <span className={styles.colTitle}>{status.name}</span>
+        <GroupIcon group={group} size={16} />
+        <span className={styles.colTitle}>{group.label}</span>
         <Badge mono>{issues.length}</Badge>
         {canCreate && (
           <Button
@@ -121,6 +133,7 @@ export function BoardColumn({
                 projectId={projectId}
                 showProject={showProject}
                 lookups={lookups}
+                hiddenCardFields={hiddenCardFields}
                 isDragging={dragging === issue.id}
                 isActive={isCardActive(issue)}
                 isFocused={isCardFocused(issue)}

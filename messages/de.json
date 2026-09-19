@@ -139,6 +139,7 @@
     "dueDate": "Fälligkeitsdatum",
     "estimateHours": "Zeitschätzung",
     "noEstimate": "Keine Schätzung",
+    "noStoryPoints": "Keine Story Points",
     "noDueDate": "Kein Datum",
     "estimateUnitHours": "Stunden",
     "estimateUnitDays": "Tage",
@@ -158,12 +159,24 @@
   },
   "sort": {
     "label": "Sortieren",
+    "manual": "Standard",
     "priority": "Priorität",
+    "type": "Typ",
     "status": "Status",
+    "storyPoints": "Story Points",
+    "dueDate": "Fälligkeitsdatum",
+    "estimate": "Zeitschätzung",
     "updated": "Zuletzt aktualisiert",
     "created": "Erstellt",
     "title": "Titel",
     "assignee": "Zuständig"
+  },
+  "display": {
+    "label": "Anzeige",
+    "grouping": "Gruppierung",
+    "ordering": "Sortierung",
+    "fieldsTitle": "Angezeigte Felder",
+    "reset": "Zurücksetzen"
   },
   "settings": {
     "title": "Einstellungen",

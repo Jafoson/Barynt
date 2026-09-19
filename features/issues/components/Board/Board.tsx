@@ -2,7 +2,13 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useRef, useState } from "react";
 import { BoardColumn } from "@/features/issues/components/BoardColumn/BoardColumn";
+import {
+  type GroupKey,
+  groupDefs,
+  visibleGroups,
+} from "@/features/issues/group";
 import { useIssueOpen } from "@/features/issues/issue-links";
+import type { SortKey } from "@/features/issues/sort";
 import type { IssueComposerData, IssueLookups } from "@/features/issues/types";
 import { useHasOpenModal } from "@/lib/context";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
@@ -23,9 +29,23 @@ interface BoardProps {
   statuses: Status[];
   /** Feeds the columns' composer — the card lookups are derived from it. */
   composer: IssueComposerData;
+  /** This person's hidden card fields for this board (BARY-33). */
+  hiddenCardFields: string[];
+  /** How each column orders its cards — "manual" is drag-and-drop (BARY-34). */
+  sortKey: SortKey;
+  /** What the columns are: statuses by default, or another field (BARY-35). */
+  groupKey: GroupKey;
 }
 
-export function Board({ issues, projectId, statuses, composer }: BoardProps) {
+export function Board({
+  issues,
+  projectId,
+  statuses,
+  composer,
+  hiddenCardFields,
+  sortKey,
+  groupKey,
+}: BoardProps) {
   const lookups: IssueLookups = {
     projects: composer.projects,
     members: composer.members,
@@ -33,11 +53,19 @@ export function Board({ issues, projectId, statuses, composer }: BoardProps) {
     issueTypes: composer.issueTypes,
   };
   const t = useTranslations();
-  const columnStatuses = statuses.filter((s) => s.isColumn);
   const issueOpen = useIssueOpen(composer.workspaceId);
   const hasOpenModal = useHasOpenModal();
 
-  const board = useBoardDnd(issues);
+  const board = useBoardDnd(
+    issues,
+    sortKey,
+    {
+      statuses,
+      issueTypes: composer.issueTypes,
+      members: composer.members,
+    },
+    groupKey,
+  );
   // Shift + wheel scrolls the columns horizontally, no matter where the pointer is.
   const scrollSetter = useShiftScroll();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -66,9 +94,29 @@ export function Board({ issues, projectId, statuses, composer }: BoardProps) {
   // memoized: the board is small enough (a handful of columns, a few dozen
   // cards) that this isn't worth guarding against re-renders for.
   const [focusedId, setFocusedId] = useState<string | null>(null);
-  const columns = columnStatuses.map((status) => ({
-    status,
-    issues: board.getColumnIssues(status.id),
+  const defs = groupDefs(
+    groupKey,
+    {
+      statuses,
+      priorities: composer.priorities,
+      issueTypes: composer.issueTypes,
+      members: composer.members,
+    },
+    {
+      unassigned: t("fields.unassigned"),
+      noStoryPoints: t("fields.noStoryPoints"),
+    },
+    issues,
+  );
+  // Statuses stay as before: only workflow columns, never a column per
+  // stray status. Every other grouping adds a column per value in use.
+  const groups =
+    groupKey === "status"
+      ? defs.filter((d) => d.alwaysShow)
+      : visibleGroups(defs, issues);
+  const columns = groups.map((group) => ({
+    group,
+    issues: board.getColumnIssues(group.id),
   }));
 
   const focus = (issue: IssueDetail) => {
@@ -186,13 +234,13 @@ export function Board({ issues, projectId, statuses, composer }: BoardProps) {
 
   return (
     <div ref={setContainer} className={styles.board}>
-      {columns.map(({ status, issues: columnIssues }) => {
+      {columns.map(({ group, issues: columnIssues }) => {
         const { isOver, onDragOver, onDragLeave, onDrop } =
-          board.columnHandlers(status.id);
+          board.columnHandlers(group.id);
         return (
           <BoardColumn
-            key={status.id}
-            status={status}
+            key={group.id}
+            group={group}
             issues={columnIssues}
             projectId={projectId}
             // Without a fixed project the cards come from various ones — so
@@ -200,6 +248,7 @@ export function Board({ issues, projectId, statuses, composer }: BoardProps) {
             showProject={projectId === undefined}
             lookups={lookups}
             composer={composer}
+            hiddenCardFields={hiddenCardFields}
             newIssueLabel={t("actions.newIssue")}
             isOver={isOver}
             dragging={board.dragging}

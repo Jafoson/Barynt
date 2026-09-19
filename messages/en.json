@@ -139,6 +139,7 @@
     "dueDate": "Due date",
     "estimateHours": "Time estimate",
     "noEstimate": "No estimate",
+    "noStoryPoints": "No story points",
     "noDueDate": "No due date",
     "estimateUnitHours": "Hours",
     "estimateUnitDays": "Days",
@@ -158,12 +159,24 @@
   },
   "sort": {
     "label": "Sort",
+    "manual": "Default",
     "priority": "Priority",
+    "type": "Type",
     "status": "Status",
+    "storyPoints": "Story points",
+    "dueDate": "Due date",
+    "estimate": "Time estimate",
     "updated": "Last updated",
     "created": "Created",
     "title": "Title",
     "assignee": "Assignee"
+  },
+  "display": {
+    "label": "Display",
+    "grouping": "Grouping",
+    "ordering": "Ordering",
+    "fieldsTitle": "Display properties",
+    "reset": "Reset"
   },
   "settings": {
     "title": "Settings",

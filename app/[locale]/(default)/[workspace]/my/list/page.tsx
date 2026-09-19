@@ -4,7 +4,12 @@ import { IssuePeek } from "@/features/issues/components/IssuePeek/IssuePeek";
 import { ListView } from "@/features/issues/components/ListView/ListView";
 import { Topbar } from "@/features/issues/components/Topbar/Topbar";
 import { getIssueComposerData } from "@/features/issues/editor-data";
-import { getMyIssues } from "@/features/issues/queries";
+import { groupKeyFromParam } from "@/features/issues/group";
+import {
+  getMyIssues,
+  getMyIssuesViewPreference,
+} from "@/features/issues/queries";
+import { sortKeyFromParam } from "@/features/issues/sort";
 import { setCurrentWorkspaceId } from "@/lib/current-workspace";
 import { getSession } from "@/lib/session";
 
@@ -25,19 +30,23 @@ export default async function MyListPage({
   const session = await getSession();
   if (!session) redirect(`/${locale}/login`);
 
-  const [issues, composer, t] = await Promise.all([
+  const [issues, composer, t, hiddenCardFields] = await Promise.all([
     getMyIssues(session.userId, workspace, filters),
     getIssueComposerData(),
     getTranslations(),
+    getMyIssuesViewPreference("list"),
   ]);
   if (!composer) notFound();
 
   return (
     <>
-      <Topbar count={issues.length} />
+      <Topbar count={issues.length} view="list" />
       <ListView
         issues={issues}
         composer={composer}
+        hiddenCardFields={hiddenCardFields}
+        sortKey={sortKeyFromParam(filters.sort)}
+        groupKey={groupKeyFromParam(filters.group)}
         emptyTitle={t("empty.noAssignedIssues")}
       />
       {/* Opens the clicked issue as a side panel (`?issue=` in the URL). */}

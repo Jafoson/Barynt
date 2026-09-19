@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { listAudit } from "@/lib/audit";
+import { getCurrentWorkspaceId } from "@/lib/current-workspace";
 import { db } from "@/lib/db";
 import { issueShareUrl } from "@/lib/issue-share";
 import {
@@ -1212,3 +1213,39 @@ export async function searchWorkspaceIssues(
       project: i.projectId,
     }));
 }
+
+// ── Board/list display preference (BARY-33) ────────────────────────────────
+//
+// Which card/row fields the current person has hidden for themselves, on
+// top of whatever the project already shows (`Project.hiddenDetailFields`,
+// BARY-31). Two variants for the same reason `DashboardPreference` and
+// `WorkspaceDashboardPreference` are two models: inside a project the
+// setting is keyed by project, but the cross-project "my issues" board/list
+// has no single project to key it by, only the workspace.
+
+/** A project's board or list, as this person has configured it. */
+export const getIssueViewPreference = cache(
+  async (projectId: string, view: "board" | "list"): Promise<string[]> => {
+    const userId = await currentUserId();
+    if (!userId) return [];
+    const pref = await db.issueViewPreference.findUnique({
+      where: { userId_projectId_view: { userId, projectId, view } },
+      select: { hiddenFields: true },
+    });
+    return pref?.hiddenFields ?? [];
+  },
+);
+
+/** The cross-project "my issues" board or list, as this person has configured it. */
+export const getMyIssuesViewPreference = cache(
+  async (view: "board" | "list"): Promise<string[]> => {
+    const userId = await currentUserId();
+    const workspaceId = getCurrentWorkspaceId();
+    if (!userId || !workspaceId) return [];
+    const pref = await db.myIssuesViewPreference.findUnique({
+      where: { userId_workspaceId_view: { userId, workspaceId, view } },
+      select: { hiddenFields: true },
+    });
+    return pref?.hiddenFields ?? [];
+  },
+);

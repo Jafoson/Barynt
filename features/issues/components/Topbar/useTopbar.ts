@@ -2,6 +2,8 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useTransition } from "react";
+import { type GroupKey, groupKeyFromParam } from "@/features/issues/group";
+import { type SortKey, sortKeyFromParam } from "@/features/issues/sort";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import {
   assigneeIdToSlug,
@@ -16,14 +18,6 @@ import {
   statusSlugToId,
 } from "@/lib/filter-slugs";
 import type { Label, Priority, Project, User } from "@/types";
-
-export type SortKey =
-  | "priority"
-  | "status"
-  | "updated"
-  | "created"
-  | "title"
-  | "assignee";
 
 export type FilterKey =
   | "status"
@@ -111,7 +105,6 @@ export function useTopbar({
       : null;
   const showFilters = area !== null;
   const view: View = pathname.endsWith("/list") ? "list" : "board";
-  const showSort = showFilters && view === "list";
 
   const slug =
     pathname.match(new RegExp(`^${base}/project/([^/]+)`))?.[1] ??
@@ -169,7 +162,13 @@ export function useTopbar({
     filters.storyPoints.length +
     filters.dueDate.length;
 
-  const sortKey = (searchParams.get("sort") ?? "priority") as SortKey;
+  const sortKey: SortKey = sortKeyFromParam(
+    searchParams.get("sort") ?? undefined,
+  );
+
+  const groupKey: GroupKey = groupKeyFromParam(
+    searchParams.get("group") ?? undefined,
+  );
 
   // internal id (as passed by the filter UI) → URL slug
   function toSlug(key: FilterKey, value: string | number): string {
@@ -239,6 +238,12 @@ export function useTopbar({
     });
   }
 
+  function setGroup(key: GroupKey) {
+    pushParams((p) =>
+      key === "status" ? p.delete("group") : p.set("group", key),
+    );
+  }
+
   function setSort(key: SortKey) {
     pushParams((p) => p.set("sort", key));
   }
@@ -265,18 +270,19 @@ export function useTopbar({
     isPending,
     area,
     showFilters,
-    showSort,
     project,
     filters,
     filterCount,
     searchValue: urlQuery,
     sortKey,
+    groupKey,
     view,
     toggleFilter,
     clearFilter,
     clearAll,
     search,
     setSort,
+    setGroup,
     setView,
   };
 }

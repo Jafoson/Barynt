@@ -1,6 +1,12 @@
 import { useOptimistic, useRef, useState, useTransition } from "react";
-import { reorderIssue } from "@/features/issues/actions";
-import { rankBetween, sortByRank } from "@/features/issues/rank";
+import { reorderIssue, updateIssue } from "@/features/issues/actions";
+import { type GroupKey, groupIdOf, groupPatch } from "@/features/issues/group";
+import { rankBetween } from "@/features/issues/rank";
+import {
+  type SortKey,
+  type SortLookups,
+  sortByKey,
+} from "@/features/issues/sort";
 import { markLocalMutation } from "@/lib/realtime/localMutation";
 import type { Issue } from "@/types";
 
@@ -8,8 +14,19 @@ import type { Issue } from "@/types";
  * Encapsulates board drag-and-drop: optimistic reordering across status
  * columns, rank calculation, and the transient hover/insert state needed
  * to render drop indicators.
+ *
+ * `sortKey` beyond "manual" (BARY-34) changes what `getColumnIssues` returns
+ * (sorted by that key rather than by drag-and-drop rank) — dragging a card
+ * still works and still changes its status/rank when dropped in another
+ * column, but its position no longer visibly reflects where it's released
+ * as long as a non-manual order is active.
  */
-export function useBoardDnd<T extends Issue>(issues: T[]) {
+export function useBoardDnd<T extends Issue>(
+  issues: T[],
+  sortKey: SortKey,
+  sortLookups: SortLookups,
+  groupKey: GroupKey,
+) {
   const [, startTransition] = useTransition();
 
   // State only for rendering the drop indicator
@@ -27,12 +44,16 @@ export function useBoardDnd<T extends Issue>(issues: T[]) {
     issues,
     (
       state,
-      { id, status, rank }: { id: string; status: string; rank: number },
-    ) => state.map((i) => (i.id === id ? { ...i, status, rank } : i)),
+      { id, patch, rank }: { id: string; patch: Partial<Issue>; rank: number },
+    ) => state.map((i) => (i.id === id ? { ...i, ...patch, rank } : i)),
   );
 
-  const getColumnIssues = (statusId: string) =>
-    sortByRank(optimisticIssues.filter((i) => i.status === statusId));
+  const getColumnIssues = (groupId: string) =>
+    sortByKey(
+      optimisticIssues.filter((i) => groupIdOf(i, groupKey) === groupId),
+      sortKey,
+      sortLookups,
+    );
 
   const clearDragState = () => {
     dragIssueRef.current = null;
@@ -59,8 +80,8 @@ export function useBoardDnd<T extends Issue>(issues: T[]) {
   };
 
   // Rank the dropped issue between its new neighbors (or at the column edge)
-  const dropRank = (statusId: string, draggedId: string) => {
-    const colIssues = getColumnIssues(statusId).filter(
+  const dropRank = (groupId: string, draggedId: string) => {
+    const colIssues = getColumnIssues(groupId).filter(
       (i) => i.id !== draggedId,
     );
     const overCardId = dragOverCardRef.current;
@@ -77,11 +98,11 @@ export function useBoardDnd<T extends Issue>(issues: T[]) {
     return rankBetween(card, colIssues[overIdx + 1] ?? null);
   };
 
-  const columnHandlers = (statusId: string) => ({
-    isOver: overCol === statusId,
+  const columnHandlers = (groupId: string) => ({
+    isOver: overCol === groupId,
     onDragOver: (e: React.DragEvent) => {
       e.preventDefault();
-      setOverCol(statusId);
+      setOverCol(groupId);
     },
     onDragLeave: (e: React.DragEvent) => {
       if (!e.currentTarget.contains(e.relatedTarget as Node)) {
@@ -95,7 +116,8 @@ export function useBoardDnd<T extends Issue>(issues: T[]) {
       const issue = dragIssueRef.current;
       if (!issue) return;
 
-      const rank = dropRank(statusId, issue.id);
+      const rank = dropRank(groupId, issue.id);
+      const patch = groupPatch(groupKey, groupId) as Partial<Issue>;
       clearDragState();
 
       // No `router.refresh()` after the `await` — `reorderIssue` already
@@ -107,7 +129,7 @@ export function useBoardDnd<T extends Issue>(issues: T[]) {
       // the reproducible trigger behind BARY-25's "Maximum update depth
       // exceeded" on every board drag.
       startTransition(async () => {
-        addOptimistic({ id: issue.id, status: statusId, rank });
+        addOptimistic({ id: issue.id, patch, rank });
         // After the await, not before: `recordProjectChange` timestamps
         // itself on the server, which only ever runs *after* this request
         // reaches it — a baseline taken before sending the request is
@@ -115,7 +137,11 @@ export function useBoardDnd<T extends Issue>(issues: T[]) {
         // never actually suppresses anything (BARY-26). Taken here, after
         // the response comes back, it's guaranteed to be at or after the
         // server's own recording of this same action.
-        await reorderIssue(issue.id, statusId, rank);
+        await reorderIssue(issue.id, patch.status ?? issue.status, rank);
+        // Any other grouping changes a different field than the status —
+        // `reorderIssue` only knows status and rank.
+        if (groupKey !== "status")
+          await updateIssue(issue.id, groupPatch(groupKey, groupId));
         markLocalMutation();
       });
     },

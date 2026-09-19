@@ -4,14 +4,14 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { CreateIssueModal } from "@/features/issues/components/CreateIssueModal/CreateIssueModal";
-import { StatusIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
+import { GroupIcon } from "@/features/issues/components/GroupIcon/GroupIcon";
+import type { GroupDef } from "@/features/issues/group";
 import type { IssueComposerData } from "@/features/issues/types";
 import { useModal } from "@/lib/context";
-import type { Status } from "@/types";
 import styles from "../listView.module.scss";
 
 interface ListGroupHeaderProps {
-  status: Status;
+  group: GroupDef;
   count: number;
   /** Without a project there is no "+" — see `ListView`. */
   projectId?: string;
@@ -25,7 +25,7 @@ interface ListGroupHeaderProps {
  * issue directly in this status. Same gesture as the column header on the board.
  */
 export function ListGroupHeader({
-  status,
+  group,
   count,
   projectId,
   composer,
@@ -40,13 +40,21 @@ export function ListGroupHeader({
   // (`creatableProjectIds`). Without a project the question doesn't arise.
   const canCreate =
     projectId !== undefined && composer.creatableProjectIds.includes(projectId);
+  // Same fallback as `BoardColumn`: outside a status grouping the group has
+  // no status to preset.
+  const initialStatus =
+    group.key === "status"
+      ? group.id
+      : (composer.statuses.find((s) => s.isColumn)?.id ??
+        composer.statuses[0]?.id ??
+        "");
 
   const createIssue = () => {
     if (projectId === undefined) return;
     openModal(({ close }) => (
       <CreateIssueModal
         projectId={projectId}
-        initialStatus={status.id}
+        initialStatus={initialStatus}
         data={composer}
         close={close}
       />
@@ -67,8 +75,8 @@ export function ListGroupHeader({
       >
         <Icon icon="lucide:chevron-down" width={13} />
       </button>
-      <StatusIcon status={status.id} size={15} color={status.color} />
-      <span className={styles.groupName}>{status.name}</span>
+      <GroupIcon group={group} size={15} />
+      <span className={styles.groupName}>{group.label}</span>
       <span className={styles.groupCount}>{count}</span>
       {canCreate && (
         <Button

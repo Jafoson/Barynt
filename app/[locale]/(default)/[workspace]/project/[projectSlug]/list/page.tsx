@@ -3,7 +3,12 @@ import { IssuePeek } from "@/features/issues/components/IssuePeek/IssuePeek";
 import { ListView } from "@/features/issues/components/ListView/ListView";
 import { Topbar } from "@/features/issues/components/Topbar/Topbar";
 import { getIssueComposerData } from "@/features/issues/editor-data";
-import { getIssuesByProject } from "@/features/issues/queries";
+import { groupKeyFromParam } from "@/features/issues/group";
+import {
+  getIssuesByProject,
+  getIssueViewPreference,
+} from "@/features/issues/queries";
+import { sortKeyFromParam } from "@/features/issues/sort";
 import { getWorkspaceProjects } from "@/features/workspaces/queries";
 import { setCurrentWorkspaceId } from "@/lib/current-workspace";
 
@@ -24,16 +29,24 @@ export default async function ListPage({
   const project = projects.find((p) => p.slug === projectSlug);
   if (!project) notFound();
 
-  const [issues, composer] = await Promise.all([
+  const [issues, composer, hiddenCardFields] = await Promise.all([
     getIssuesByProject(project.id, filters),
     getIssueComposerData(),
+    getIssueViewPreference(project.id, "list"),
   ]);
   if (!composer) notFound();
 
   return (
     <>
-      <Topbar count={issues.length} />
-      <ListView issues={issues} projectId={project.id} composer={composer} />
+      <Topbar count={issues.length} view="list" projectId={project.id} />
+      <ListView
+        issues={issues}
+        projectId={project.id}
+        composer={composer}
+        hiddenCardFields={hiddenCardFields}
+        sortKey={sortKeyFromParam(filters.sort)}
+        groupKey={groupKeyFromParam(filters.group)}
+      />
       {/* Opens the clicked issue as a side panel (`?issue=` in the URL). */}
       <IssuePeek data={composer} />
     </>

@@ -90,7 +90,12 @@ function composer(...creatableProjectIds: string[]): IssueComposerData {
 const column = (data: IssueComposerData) =>
   renderToStaticMarkup(
     <BoardColumn
-      status={STATUS}
+      group={{
+        key: "status",
+        id: STATUS.id,
+        label: STATUS.name,
+        alwaysShow: true,
+      }}
       issues={[]}
       projectId="p-1"
       lookups={{
@@ -100,6 +105,7 @@ const column = (data: IssueComposerData) =>
         issueTypes: data.issueTypes,
       }}
       composer={data}
+      hiddenCardFields={[]}
       newIssueLabel="Neue Aufgabe"
       isOver={false}
       dragging={null}
@@ -121,7 +127,12 @@ const column = (data: IssueComposerData) =>
 const groupHeader = (data: IssueComposerData) =>
   renderToStaticMarkup(
     <ListGroupHeader
-      status={STATUS}
+      group={{
+        key: "status",
+        id: STATUS.id,
+        label: STATUS.name,
+        alwaysShow: true,
+      }}
       count={0}
       projectId="p-1"
       composer={data}

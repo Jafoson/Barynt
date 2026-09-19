@@ -15,10 +15,22 @@ import {
   useTableDnd,
 } from "@/components/ui/layout/Table/useTableDnd";
 import { reorderIssue, updateIssue } from "@/features/issues/actions";
+import {
+  isCardFieldKey,
+  visibleCardFields,
+} from "@/features/issues/card-fields";
 import { AssigneePicker } from "@/features/issues/components/AssigneePicker/AssigneePicker";
 import { IssueTitleField } from "@/features/issues/components/IssueTitleField/IssueTitleField";
+import {
+  type GroupKey,
+  groupDefs,
+  groupIdOf,
+  groupPatch,
+  visibleGroups,
+} from "@/features/issues/group";
 import { useIssueOpen } from "@/features/issues/issue-links";
-import { rankBetween, sortByRank } from "@/features/issues/rank";
+import { rankBetween } from "@/features/issues/rank";
+import { type SortKey, sortByKey } from "@/features/issues/sort";
 import type { IssueComposerData } from "@/features/issues/types";
 import {
   type DetailFieldKey,
@@ -56,6 +68,12 @@ interface ListViewProps {
    * their composer from it. The same prop as on the board.
    */
   composer: IssueComposerData;
+  /** This person's hidden row fields for this list (BARY-33). */
+  hiddenCardFields: string[];
+  /** How each group orders its rows — "manual" is drag-and-drop (BARY-34). */
+  sortKey: SortKey;
+  /** What the groups are: statuses by default, or another field (BARY-35). */
+  groupKey: GroupKey;
   /** What's shown instead of the empty table. Default: "No tasks". */
   emptyTitle?: string;
 }
@@ -70,6 +88,9 @@ export function ListView({
   issues,
   projectId,
   composer,
+  hiddenCardFields,
+  sortKey,
+  groupKey,
   emptyTitle,
 }: ListViewProps) {
   const { projects, members, labels, statuses, priorities, issueTypes } =
@@ -114,11 +135,18 @@ export function ListView({
   const identifier = (issue: IssueDetail) =>
     `${projects.find((p) => p.id === issue.project)?.prefix ?? "?"}-${issue.key}`;
 
+  // This person's own choice (BARY-33) applies to every row the same way —
+  // computed once, unlike the project-level check below.
+  const userVisibleFields = visibleCardFields(hiddenCardFields);
+
   // Per row, not once for the whole table — a cross-project list ("my
   // issues") can mix projects with different field visibility.
   const isFieldVisible = (issue: IssueDetail, key: DetailFieldKey) => {
     const project = projects.find((p) => p.id === issue.project);
-    return visibleDetailFields(project?.hiddenDetailFields ?? []).has(key);
+    if (!visibleDetailFields(project?.hiddenDetailFields ?? []).has(key)) {
+      return false;
+    }
+    return isCardFieldKey(key) ? userVisibleFields.has(key) : true;
   };
 
   // The open issue is stored as an identifier in the URL — the detail view
@@ -126,32 +154,45 @@ export function ListView({
   // its own state.
   const openIssue = issueOpen.openIssue;
 
-  // Workflow statuses always get a group — even empty, so the "+" in the
-  // header stays reachable. All others only if issues are in them.
-  const groups: TableGroup<IssueDetail>[] = statuses
-    .map((status) => ({
-      status,
+  // Always-shown groups (workflow statuses, priorities, …) exist even when
+  // empty, so the "+" in the header stays reachable. All others only if
+  // issues are in them.
+  const defs = groupDefs(
+    groupKey,
+    { statuses, priorities, issueTypes, members },
+    {
+      unassigned: t("fields.unassigned"),
+      noStoryPoints: t("fields.noStoryPoints"),
+    },
+    shown,
+  );
+  const groups: TableGroup<IssueDetail>[] = visibleGroups(defs, shown).map(
+    (group) => {
       // By rank, not by creation date — otherwise the row would end up
       // somewhere other than where it was dropped after a drag.
-      rows: sortByRank(shown.filter((issue) => issue.status === status.id)),
-    }))
-    .filter(({ status, rows }) => status.isColumn || rows.length > 0)
-    .map(({ status, rows }) => ({
-      id: status.id,
-      label: status.name,
-      collapsed: collapsed.has(status.id),
-      header: (
-        <ListGroupHeader
-          status={status}
-          count={rows.length}
-          projectId={projectId}
-          composer={composer}
-          collapsed={collapsed.has(status.id)}
-          onToggle={() => toggleGroup(status.id)}
-        />
-      ),
-      rows,
-    }));
+      const rows = sortByKey(
+        shown.filter((issue) => groupIdOf(issue, groupKey) === group.id),
+        sortKey,
+        { statuses, issueTypes, members },
+      );
+      return {
+        id: group.id,
+        label: group.label,
+        collapsed: collapsed.has(group.id),
+        header: (
+          <ListGroupHeader
+            group={group}
+            count={rows.length}
+            projectId={projectId}
+            composer={composer}
+            collapsed={collapsed.has(group.id)}
+            onToggle={() => toggleGroup(group.id)}
+          />
+        ),
+        rows,
+      };
+    },
+  );
 
   // The keyboard cursor — which row j/k/arrows would move next, independent
   // of `openIssue` (the one actually shown in the panel). Flattened across
@@ -337,7 +378,7 @@ export function ListView({
     const name = `${identifier(row)} ${row.title}`;
     if (phase === "grabbed") return t("a11y.reorderGrabbed", { name });
     if (phase === "cancelled") return t("a11y.reorderCancelled", { name });
-    const group = statuses.find((status) => status.id === groupId)?.name ?? "";
+    const group = defs.find((d) => d.id === groupId)?.label ?? "";
     return phase === "moved"
       ? t("a11y.reorderMoved", { position, total, group })
       : t("a11y.reorderDropped", { name, position, total, group });
@@ -354,13 +395,17 @@ export function ListView({
     rowLabel: (issue) =>
       t("actions.reorder", { name: `${identifier(issue)} ${issue.title}` }),
     announce,
-    // The group is the status: a row that ends up in a different group
-    // changes it — the same action as dragging on the board.
+    // A row that ends up in a different group takes on that group's value
+    // (its status, priority, …) — the same action as dragging on the board.
     onDrop: ({ row, groupId, previous, next }) => {
       const rank = rankBetween(previous, next);
+      const patch = groupPatch(groupKey, groupId);
       startTransition(async () => {
-        applyPatch({ id: row.id, status: groupId, rank });
-        await reorderIssue(row.id, groupId, rank);
+        applyPatch({ id: row.id, ...patch, rank } as {
+          id: string;
+        } & Partial<IssueDetail>);
+        await reorderIssue(row.id, patch.status ?? row.status, rank);
+        if (groupKey !== "status") await updateIssue(row.id, patch);
         router.refresh();
       });
     },
