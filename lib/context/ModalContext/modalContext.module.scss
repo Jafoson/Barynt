@@ -57,11 +57,38 @@
   animation: slideIn .2s cubic-bezier(.22, .61, .36, 1);
 }
 
+/* ---------- Placement: bottom sheet ---------- */
+
+/* Sticks to the bottom edge; the content (`Modal variant="sheet"`) decides
+   its own width and rounds its top corners. */
+.overlay.bottom {
+  justify-content: center;
+  align-items: flex-end;
+  padding-top: 0;
+}
+
+.comp.bottom {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  animation: slideUp .22s cubic-bezier(.22, .61, .36, 1);
+
+  /* The box spans the whole width, but a sheet narrower than that (a
+     tablet) leaves gaps beside it. They must belong to the backdrop again —
+     a tap there closes — so only the sheet itself takes clicks. */
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+}
+
 /* fadeIn/pop mirror the global keyframes — animation names get hashed too
    inside a module, so a reference to the outside would resolve to nothing. */
 @keyframes fadeIn  { from { opacity: .35; } }
 @keyframes pop     { from { opacity: .2; transform: translateY(-4px) scale(.985); } }
 @keyframes slideIn { from { opacity: .4; transform: translateX(24px); } }
+@keyframes slideUp { from { opacity: .6; transform: translateY(100%); } }
 
 @media (prefers-reduced-motion: reduce) {
   .overlay, .comp { animation-duration: .01ms; }

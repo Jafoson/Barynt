@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { getProjectsForWorkspaces } from "@/features/workspaces/actions";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import type { Project } from "@/types";
+import { OPEN_TAB_EVENT, type OpenTabDetail } from "./tabEvents";
 import { type TabMeta, tabMeta, workspaceIdFromPath } from "./tabMeta";
 
 type StoredTab = { id: string; href: string };
@@ -161,16 +162,39 @@ export function useTabBar({
     router.push(tab.href);
   }
 
-  function openTab() {
+  // `href`: a page to open in it (a card's issue, say); without one, the
+  // area's default view. A page that already has a tab is switched to rather
+  // than duplicated.
+  function openTab(href: string = defaultHref) {
+    if (href !== defaultHref) {
+      const existing = rawTabs.find((t) => t.href === href);
+      if (existing) {
+        switchTab(existing.id);
+        return;
+      }
+    }
     const id = crypto.randomUUID();
-    const tab = { id, href: defaultHref };
+    const tab = { id, href };
     const next = [...rawTabs, tab];
     save(next);
     setRawTabs(next);
     justSwitchedRef.current = true;
     setActiveId(id);
-    router.push(defaultHref);
+    router.push(href);
   }
+
+  // Other parts of the app ask for a new tab by event (see `tabEvents.ts`).
+  // Re-attached on every render so it always sees the current tabs.
+  useEffect(() => {
+    if (!ready) return;
+    const onOpenTab = (event: Event) => {
+      const detail = (event as CustomEvent<OpenTabDetail>).detail;
+      detail.handled = true;
+      openTab(detail.href);
+    };
+    window.addEventListener(OPEN_TAB_EVENT, onOpenTab);
+    return () => window.removeEventListener(OPEN_TAB_EVENT, onOpenTab);
+  });
 
   function closeTab(id: string) {
     if (rawTabs.length <= 1) return;

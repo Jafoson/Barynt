@@ -1,7 +1,8 @@
 "use client";
 import { useTranslations } from "next-intl";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BoardColumn } from "@/features/issues/components/BoardColumn/BoardColumn";
+import { BoardColumnSwitcher } from "@/features/issues/components/BoardColumnSwitcher/BoardColumnSwitcher";
 import {
   type GroupKey,
   groupDefs,
@@ -12,10 +13,19 @@ import type { SortKey } from "@/features/issues/sort";
 import type { IssueComposerData, IssueLookups } from "@/features/issues/types";
 import { useHasOpenModal } from "@/lib/context";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
+import { useUI } from "@/lib/ui-store";
 import { useShiftScroll } from "@/lib/utils/useShiftScroll";
 import type { IssueDetail, Status } from "@/types";
 import styles from "./board.module.scss";
 import { useBoardDnd } from "./useBoardDnd";
+
+/** Left edge of a column inside the scroll container, minus its padding. */
+function columnStart(column: HTMLElement, container: HTMLElement) {
+  return (
+    column.offsetLeft -
+    (Number.parseFloat(getComputedStyle(container).paddingLeft) || 0)
+  );
+}
 
 interface BoardProps {
   issues: IssueDetail[];
@@ -53,6 +63,7 @@ export function Board({
     issueTypes: composer.issueTypes,
   };
   const t = useTranslations();
+  const { toast } = useUI();
   const issueOpen = useIssueOpen(composer.workspaceId);
   const hasOpenModal = useHasOpenModal();
 
@@ -118,6 +129,66 @@ export function Board({
     group,
     issues: board.getColumnIssues(group.id),
   }));
+
+  // ── Column switcher (narrow screens) ──
+  // Shown only when the columns don't all fit next to each other; CSS hides
+  // it on a desktop regardless. `activeId` is the column at the left edge —
+  // it follows the board's own scrolling (swiping, the switcher, keys).
+  const [overflowing, setOverflowing] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const scrollFrame = useRef(0);
+
+  const syncActive = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    setOverflowing(container.scrollWidth > container.clientWidth + 1);
+    let best: string | null = null;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const column of container.querySelectorAll<HTMLElement>(
+      "[data-group-id]",
+    )) {
+      const distance = Math.abs(
+        columnStart(column, container) - container.scrollLeft,
+      );
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = column.dataset.groupId ?? null;
+      }
+    }
+    setActiveId(best);
+  }, []);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: measure again when columns come or go
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    syncActive();
+    const observer = new ResizeObserver(syncActive);
+    observer.observe(container);
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(scrollFrame.current);
+    };
+  }, [syncActive, columns.length]);
+
+  const selectColumn = (groupId: string) => {
+    const container = containerRef.current;
+    const column = container?.querySelector<HTMLElement>(
+      `[data-group-id="${CSS.escape(groupId)}"]`,
+    );
+    if (!container || !column) return;
+    setActiveId(groupId);
+    container.scrollTo({
+      left: columnStart(column, container),
+      behavior: "smooth",
+    });
+  };
+
+  const moveCard = (issue: IssueDetail, groupId: string) => {
+    board.moveIssue(issue, groupId);
+    const target = groups.find((g) => g.id === groupId);
+    if (target) toast(t("issues.movedTo", { group: target.label }));
+  };
 
   const focus = (issue: IssueDetail) => {
     setFocusedId(issue.id);
@@ -233,42 +304,67 @@ export function Board({
   useShortcut("o", openFocused, { enabled: noPanelOpen && !!focusedId });
 
   return (
-    <div ref={setContainer} className={styles.board}>
-      {columns.map(({ group, issues: columnIssues }) => {
-        const { isOver, onDragOver, onDragLeave, onDrop } =
-          board.columnHandlers(group.id);
-        return (
-          <BoardColumn
-            key={group.id}
-            group={group}
-            issues={columnIssues}
-            projectId={projectId}
-            // Without a fixed project the cards come from various ones — so
-            // each one states which.
-            showProject={projectId === undefined}
-            lookups={lookups}
-            composer={composer}
-            hiddenCardFields={hiddenCardFields}
-            newIssueLabel={t("actions.newIssue")}
-            isOver={isOver}
-            dragging={board.dragging}
-            dragOverCard={board.dragOverCard}
-            insertAbove={board.insertAbove}
-            onColumnDragOver={onDragOver}
-            onColumnDragLeave={onDragLeave}
-            onColumnDrop={onDrop}
-            onCardDragStart={board.onDragStart}
-            onCardDragEnd={board.onDragEnd}
-            onCardDragOver={board.onCardDragOver}
-            isCardActive={(issue) => identifier(issue) === issueOpen.openIssue}
-            isCardFocused={(issue) => issue.id === focusedId}
-            onCardOpen={(issue) => issueOpen.openPanel(identifier(issue))}
-            onCardOpenInNewTab={(issue) =>
-              issueOpen.openPageInNewTab(identifier(issue))
-            }
-          />
-        );
-      })}
+    <div className={styles.wrap}>
+      {overflowing && columns.length > 1 && (
+        <BoardColumnSwitcher
+          columns={columns.map(({ group, issues: columnIssues }) => ({
+            group,
+            count: columnIssues.length,
+          }))}
+          activeId={activeId ?? columns[0]?.group.id ?? null}
+          onSelect={selectColumn}
+          label={t("issues.boardColumns")}
+        />
+      )}
+      <div
+        ref={setContainer}
+        className={styles.board}
+        onScroll={() => {
+          // Once per frame is plenty for a highlight.
+          cancelAnimationFrame(scrollFrame.current);
+          scrollFrame.current = requestAnimationFrame(syncActive);
+        }}
+      >
+        {columns.map(({ group, issues: columnIssues }) => {
+          const { isOver, onDragOver, onDragLeave, onDrop } =
+            board.columnHandlers(group.id);
+          return (
+            <BoardColumn
+              key={group.id}
+              group={group}
+              issues={columnIssues}
+              projectId={projectId}
+              // Without a fixed project the cards come from various ones — so
+              // each one states which.
+              showProject={projectId === undefined}
+              lookups={lookups}
+              composer={composer}
+              hiddenCardFields={hiddenCardFields}
+              newIssueLabel={t("actions.newIssue")}
+              isOver={isOver}
+              dragging={board.dragging}
+              dragOverCard={board.dragOverCard}
+              insertAbove={board.insertAbove}
+              onColumnDragOver={onDragOver}
+              onColumnDragLeave={onDragLeave}
+              onColumnDrop={onDrop}
+              onCardDragStart={board.onDragStart}
+              onCardDragEnd={board.onDragEnd}
+              onCardDragOver={board.onCardDragOver}
+              isCardActive={(issue) =>
+                identifier(issue) === issueOpen.openIssue
+              }
+              isCardFocused={(issue) => issue.id === focusedId}
+              onCardOpen={(issue) => issueOpen.openPanel(identifier(issue))}
+              onCardOpenInNewTab={(issue) =>
+                issueOpen.openPageInNewTab(identifier(issue))
+              }
+              moveTargets={groups}
+              onCardMoveTo={moveCard}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }

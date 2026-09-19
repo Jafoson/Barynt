@@ -666,6 +666,11 @@
     "footerReportAbuse": "Report abuse"
   },
   "filters": {
+    "back": "Back",
+    "noMatches": "No matches",
+    "choose": "Select…",
+    "label": "Filter",
+    "clearAll": "Clear all filters",
     "statuses": "{count, plural, one {# status} other {# statuses}}",
     "priorities": "{count, plural, one {# priority} other {# priorities}}",
     "people": "{count, plural, one {# person} other {# people}}",
@@ -684,6 +689,14 @@
     "copiedLink": "Link copied"
   },
   "issues": {
+    "quickActions": "Quick actions",
+    "quickOpen": "Open",
+    "quickOpenNewTab": "Open in new tab",
+    "quickAssign": "Assign to…",
+    "quickBack": "Back",
+    "moveTo": "Move to…",
+    "movedTo": "Moved to {group}",
+    "boardColumns": "Board columns",
     "toCreate": "to create"
   },
   "realtime": {

@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 /* Shared chrome for all modal content.
    Positioning, backdrop, and animation come from the ModalFrame
    (lib/context/ModalContext) — this file only holds the panel look. */
@@ -47,6 +49,38 @@
   border-left: 1px solid var(--outline-variant);
   border-radius: 0;
   box-shadow: var(--modal-shadow, var(--shadow-panel));
+}
+
+/* ---------- Variant: bottom sheet ---------- */
+
+/* Full width on a phone, a centered 36rem sheet on a wider screen; only the
+   top corners are rounded. The bottom padding keeps the last row clear of
+   the home indicator. A small pill on top marks it as a sheet. */
+.modal.sheet {
+  --modal-w: 36rem;
+  --modal-max-h: 85dvh;
+
+  width: min(var(--modal-w), 100%);
+  max-width: 100%;
+  border-bottom: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding-bottom: var(--safe-bottom);
+  background: var(--surface-container);
+
+  @include bp.phone {
+    --modal-w: 100%;
+  }
+
+  &::before {
+    content: "";
+    flex: none;
+    display: block;
+    width: 2.5rem;
+    height: 0.25rem;
+    margin: 0.5rem auto 0.25rem;
+    border-radius: var(--radius-pill);
+    background: var(--outline-variant);
+  }
 }
 
 /* ---------- Header ---------- */

@@ -113,6 +113,10 @@ export function tabTitle(
     return projectFromPath(path, projects)?.name ?? t("nav.board");
   }
 
+  // An issue's own page (`/<workspace>/issue/PREFIX-12`): its key says
+  // which one it is.
+  if (section === "issue") return decodeURIComponent(path.split("/")[3] ?? "");
+
   const entry = findBySection(WORKSPACE_SECTIONS, section);
   return entry ? t(`nav.${entry.labelKey}`) : "Barynt";
 }
@@ -151,6 +155,8 @@ export function tabIcon(path: string): string {
       "lucide:layout-dashboard"
     );
   }
+
+  if (section === "issue") return "lucide:circle-dot";
 
   // My Issues has two views like a project — the list carries its icon,
   // the board stays with the area's icon.

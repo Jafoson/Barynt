@@ -1,0 +1,89 @@
+.head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.5rem 0.25rem 1rem;
+  border-bottom: 1px solid var(--outline-variant);
+  /* A drag on the bar is the swipe-to-close, never a scroll. */
+  touch-action: none;
+
+  /* The back button sits flush at the left edge instead of indenting the
+     title further. */
+  &:has(> .iconButton:first-child) {
+    padding-left: 0.5rem;
+  }
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.caption {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--on-surface-variant);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--on-surface);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Back and close: 44px squares in the bar. */
+.iconButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+
+  &:active {
+    background: var(--surface-container-high);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--tertiary);
+  }
+}
+
+/* A text action in the bar ("Reset"). */
+.action {
+  flex: none;
+  min-height: var(--touch-min);
+  padding: 0 0.5rem;
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--tertiary);
+
+  &:active:not(:disabled) {
+    background: var(--surface-container-high);
+  }
+
+  &:disabled {
+    color: var(--on-surface-variant);
+    opacity: var(--opacity-disabled);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--tertiary);
+  }
+}

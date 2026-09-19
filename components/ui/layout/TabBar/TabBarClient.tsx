@@ -70,7 +70,7 @@ export function TabBarClient({
         className={styles.add}
         aria-label={t("actions.newTab")}
         icon={<Icon icon="lucide:plus" width={14} />}
-        onClick={openTab}
+        onClick={() => openTab()}
       />
 
       {/* Brand mark, pinned to the far end of the row. Two mono lockups

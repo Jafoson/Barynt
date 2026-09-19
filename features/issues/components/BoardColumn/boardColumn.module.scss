@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 .col {
   /* The cards fill the column completely — their width depends solely on
      this value, so tune it centrally here rather than in the card itself.
@@ -7,12 +9,21 @@
 
   width: min(var(--col-w), 84vw);
   flex: none;
+  scroll-snap-align: start;
   display: flex;
   flex-direction: column;
   min-height: 0;
   border-radius: var(--radius-lg);
   border: 0.125rem solid transparent;
   transition: background .15s, border-color .15s;
+}
+
+/* Phone: one column per screen (the switcher above the board moves between
+   them, and so does swiping — see `board.module.scss`). */
+.col {
+  @include bp.phone {
+    width: 100%;
+  }
 }
 
 .dragOver {
@@ -101,6 +112,13 @@
   .col:hover & {
     opacity: 1;
   }
+
+  /* No hover to reveal it on a touch screen — it'd never show. */
+  @include bp.no-hover {
+    opacity: 1;
+  }
+
+  @include bp.touch-target;
 
   &:hover {
     color: var(--on-surface);

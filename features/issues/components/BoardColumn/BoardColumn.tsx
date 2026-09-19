@@ -41,6 +41,9 @@ interface BoardColumnProps {
   onCardOpen: (issue: IssueDetail) => void;
   /** Ctrl/Cmd click and middle click on a card: full page in a new tab. */
   onCardOpenInNewTab: (issue: IssueDetail) => void;
+  /** All columns of the board, for each card's "Move to…". */
+  moveTargets?: GroupDef[];
+  onCardMoveTo?: (issue: IssueDetail, groupId: string) => void;
 }
 
 export function BoardColumn({
@@ -66,6 +69,8 @@ export function BoardColumn({
   isCardFocused,
   onCardOpen,
   onCardOpenInNewTab,
+  moveTargets,
+  onCardMoveTo,
 }: BoardColumnProps) {
   const { openModal } = useModal();
 
@@ -100,6 +105,9 @@ export function BoardColumn({
     // biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop drop zone — no native HTML element represents this
     <div
       className={`${styles.col}${isOver ? ` ${styles.dragOver}` : ""}`}
+      // Read by `Board` to tell which column the phone's switcher is on and
+      // to scroll to one.
+      data-group-id={group.id}
       onDragOver={onColumnDragOver}
       onDragLeave={onColumnDragLeave}
       onDrop={onColumnDrop}
@@ -142,6 +150,11 @@ export function BoardColumn({
                 onDragOver={onCardDragOver(issue.id)}
                 onOpen={() => onCardOpen(issue)}
                 onOpenInNewTab={() => onCardOpenInNewTab(issue)}
+                moveTargets={moveTargets}
+                currentGroupId={group.id}
+                onMoveTo={
+                  onCardMoveTo && ((groupId) => onCardMoveTo(issue, groupId))
+                }
               />
               {isCardOver && !insertAbove && (
                 <div className={styles.dropIndicator} />

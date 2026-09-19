@@ -98,6 +98,51 @@ export function useBoardDnd<T extends Issue>(
     return rankBetween(card, colIssues[overIdx + 1] ?? null);
   };
 
+  /**
+   * Puts `issue` into group `groupId` at `rank` — optimistically, then on the
+   * server. Shared by the drop and by "Move to…" (`moveIssue`), so both do
+   * exactly the same thing.
+   */
+  const commitMove = (issue: T, groupId: string, rank: number) => {
+    const patch = groupPatch(groupKey, groupId) as Partial<Issue>;
+
+    // No `router.refresh()` after the `await` — `reorderIssue` already
+    // revalidates server-side (`revalidate()` in actions.ts), and Next
+    // folds the freshly rendered RSC payload into the Server Action's own
+    // response (see "Choosing a cache update" in Next's server-actions
+    // guide). A second, explicit refresh on top of that raced the
+    // transition's own settling against this optimistic update's revert —
+    // the reproducible trigger behind BARY-25's "Maximum update depth
+    // exceeded" on every board drag.
+    startTransition(async () => {
+      addOptimistic({ id: issue.id, patch, rank });
+      // After the await, not before: `recordProjectChange` timestamps
+      // itself on the server, which only ever runs *after* this request
+      // reaches it — a baseline taken before sending the request is
+      // therefore always older than that timestamp, never later, and
+      // never actually suppresses anything (BARY-26). Taken here, after
+      // the response comes back, it's guaranteed to be at or after the
+      // server's own recording of this same action.
+      await reorderIssue(issue.id, patch.status ?? issue.status, rank);
+      // Any other grouping changes a different field than the status —
+      // `reorderIssue` only knows status and rank.
+      if (groupKey !== "status")
+        await updateIssue(issue.id, groupPatch(groupKey, groupId));
+      markLocalMutation();
+    });
+  };
+
+  /** "Move to…": the end of the target group, no dragging involved. */
+  const moveIssue = (issue: T, groupId: string) => {
+    if (groupIdOf(issue, groupKey) === groupId) return;
+    const colIssues = getColumnIssues(groupId).filter((i) => i.id !== issue.id);
+    commitMove(
+      issue,
+      groupId,
+      rankBetween(colIssues[colIssues.length - 1] ?? null, null),
+    );
+  };
+
   const columnHandlers = (groupId: string) => ({
     isOver: overCol === groupId,
     onDragOver: (e: React.DragEvent) => {
@@ -117,33 +162,8 @@ export function useBoardDnd<T extends Issue>(
       if (!issue) return;
 
       const rank = dropRank(groupId, issue.id);
-      const patch = groupPatch(groupKey, groupId) as Partial<Issue>;
       clearDragState();
-
-      // No `router.refresh()` after the `await` — `reorderIssue` already
-      // revalidates server-side (`revalidate()` in actions.ts), and Next
-      // folds the freshly rendered RSC payload into the Server Action's own
-      // response (see "Choosing a cache update" in Next's server-actions
-      // guide). A second, explicit refresh on top of that raced the
-      // transition's own settling against this optimistic update's revert —
-      // the reproducible trigger behind BARY-25's "Maximum update depth
-      // exceeded" on every board drag.
-      startTransition(async () => {
-        addOptimistic({ id: issue.id, patch, rank });
-        // After the await, not before: `recordProjectChange` timestamps
-        // itself on the server, which only ever runs *after* this request
-        // reaches it — a baseline taken before sending the request is
-        // therefore always older than that timestamp, never later, and
-        // never actually suppresses anything (BARY-26). Taken here, after
-        // the response comes back, it's guaranteed to be at or after the
-        // server's own recording of this same action.
-        await reorderIssue(issue.id, patch.status ?? issue.status, rank);
-        // Any other grouping changes a different field than the status —
-        // `reorderIssue` only knows status and rank.
-        if (groupKey !== "status")
-          await updateIssue(issue.id, groupPatch(groupKey, groupId));
-        markLocalMutation();
-      });
+      commitMove(issue, groupId, rank);
     },
   });
 
@@ -156,5 +176,6 @@ export function useBoardDnd<T extends Issue>(
     onDragEnd: clearDragState,
     onCardDragOver,
     columnHandlers,
+    moveIssue,
   };
 }

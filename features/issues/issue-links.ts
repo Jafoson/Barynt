@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
+import { openInBarayntTab } from "@/components/ui/layout/TabBar/tabEvents";
 import { getPathname, usePathname, useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 
@@ -91,14 +92,15 @@ export function useIssueOpen(workspaceId: string) {
   };
 
   /**
-   * Full page in a new tab. The path is localized here: `window.open`
-   * doesn't know next-intl's routing rules.
+   * The issue's full page in a new tab — one of Barynt's own (the tab bar),
+   * so it stays inside the app. Where there's no tab bar to open it (a page
+   * outside the shell) it falls back to a browser tab; the path is localized
+   * there because `window.open` doesn't know next-intl's routing rules.
    */
   const openPageInNewTab = (identifier: string) => {
-    const href = getPathname({
-      href: issuePath(workspaceId, identifier),
-      locale,
-    });
+    const path = issuePath(workspaceId, identifier);
+    if (openInBarayntTab(path)) return;
+    const href = getPathname({ href: path, locale });
     window.open(href, "_blank", "noopener,noreferrer");
   };
 

@@ -1,0 +1,59 @@
+@use "breakpoints" as bp;
+
+/* Only where the columns don't all fit side by side: tablet and phone. A
+   desktop scrolls its board sideways with the wheel, as it always did. */
+.strip {
+  display: none;
+
+  @include bp.tablet-down {
+    display: flex;
+    flex: none;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem 0.25rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    /* The strip scrolls sideways on its own; it mustn't hand that over to
+       the browser's back gesture. */
+    overscroll-behavior-x: contain;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
+.tab {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  min-height: var(--touch-min);
+  padding: 0 0.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--on-surface-variant);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+
+  &[aria-selected="true"] {
+    background: var(--surface-container-high);
+    border-color: var(--outline);
+    color: var(--on-surface);
+    font-weight: 600;
+  }
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--tertiary);
+  }
+}
+
+.name {
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

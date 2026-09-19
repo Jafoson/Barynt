@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 .header {
   display: flex;
   flex-direction: column;
@@ -56,6 +58,39 @@
 /* Navigation is in flight — dim the controls until the new URL lands. */
 .pending .filterRow {
   opacity: 0.6;
+}
+
+/* The filter chips sit in the filter row like before (`display: contents`
+   lets them wrap with it); at tablet width and below they give way to the
+   filter popup. */
+.filterChips {
+  display: contents;
+
+  @include bp.tablet-down {
+    display: none;
+  }
+}
+
+.filterPopup {
+  display: none;
+
+  @include bp.tablet-down {
+    display: block;
+  }
+}
+
+/* Tablet and phone: no search field in the bar. */
+.searchSlot {
+  @include bp.tablet-down {
+    display: none;
+  }
+}
+
+/* Phone: no board/list switch in the bar. */
+.viewSwitch {
+  @include bp.phone {
+    display: none;
+  }
 }
 
 .trailing {

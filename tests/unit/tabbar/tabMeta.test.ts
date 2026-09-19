@@ -368,3 +368,20 @@ describe("Projects with the same name but different slugs", () => {
     );
   });
 });
+
+describe("tabs for an issue's own page", () => {
+  const path = `${BASE}/issue/FUX-12`;
+
+  it("is titled with the issue's key", () => {
+    expect(tabTitle(path, projects, t)).toBe("FUX-12");
+  });
+
+  it("keeps a URL-encoded key readable", () => {
+    expect(tabTitle(`${BASE}/issue/FUX%2D12`, projects, t)).toBe("FUX-12");
+  });
+
+  it("has its own icon and no project colour", () => {
+    expect(tabIcon(path)).toBe("lucide:circle-dot");
+    expect(tabColor(path, projects)).toBeNull();
+  });
+});

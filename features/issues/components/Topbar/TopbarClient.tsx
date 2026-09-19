@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import type { Label, Priority, Project, Status, User } from "@/types";
+import { FilterPopup } from "./components/FilterPopup";
 import { IssueSearch } from "./components/IssueSearch";
 import { TopbarFilters } from "./components/TopbarFilters";
 import { ViewSettings } from "./components/ViewSettings";
@@ -91,29 +92,55 @@ export function TopbarClient({
         <Badge className={styles.count}>{count}</Badge>
 
         <div className={styles.trailing}>
-          <IssueSearch initialValue={searchValue} onChange={search} />
-          <ViewSwitch value={view} onChange={setView} />
+          {/* Not on a tablet or phone (CSS). */}
+          <div className={styles.searchSlot}>
+            <IssueSearch initialValue={searchValue} onChange={search} />
+          </div>
+          {/* Not on a phone (CSS). */}
+          <div className={styles.viewSwitch}>
+            <ViewSwitch value={view} onChange={setView} />
+          </div>
         </div>
       </div>
 
       <div className={styles.filterRow}>
-        <TopbarFilters
-          filters={filters}
-          filterCount={filterCount}
-          area={area}
-          projectId={project?.id ?? ""}
-          projectName={project?.name ?? ""}
-          hiddenDetailFields={project?.hiddenDetailFields ?? []}
-          workspaceId={workspaceId}
-          statuses={statuses}
-          priorities={priorities}
-          members={members}
-          labels={labels}
-          projects={projects}
-          onToggle={toggleFilter}
-          onClear={clearFilter}
-          onClearAll={clearAll}
-        />
+        {/* Desktop: one chip per filter. Tablet and phone: the same filters
+            in one popup (below). CSS shows one of the two. */}
+        <div className={styles.filterChips}>
+          <TopbarFilters
+            filters={filters}
+            filterCount={filterCount}
+            area={area}
+            projectId={project?.id ?? ""}
+            projectName={project?.name ?? ""}
+            hiddenDetailFields={project?.hiddenDetailFields ?? []}
+            workspaceId={workspaceId}
+            statuses={statuses}
+            priorities={priorities}
+            members={members}
+            labels={labels}
+            projects={projects}
+            onToggle={toggleFilter}
+            onClear={clearFilter}
+            onClearAll={clearAll}
+          />
+        </div>
+
+        <div className={styles.filterPopup}>
+          <FilterPopup
+            filters={filters}
+            filterCount={filterCount}
+            area={area}
+            hiddenDetailFields={project?.hiddenDetailFields ?? []}
+            statuses={statuses}
+            priorities={priorities}
+            members={members}
+            labels={labels}
+            projects={projects}
+            onToggle={toggleFilter}
+            onClearAll={clearAll}
+          />
+        </div>
 
         <div className={styles.trailing}>
           <ViewSettings

@@ -25,9 +25,10 @@ export interface ModalRenderProps {
 
 /**
  * Where the modal sits: `center` as a dialog over the page, `right` as a
- * side panel that sticks to the right edge and runs the full height.
+ * side panel that sticks to the right edge and runs the full height, `bottom`
+ * as a sheet that slides up from the bottom edge (for a phone).
  */
-export type ModalPlacement = "center" | "right";
+export type ModalPlacement = "center" | "right" | "bottom";
 
 export interface ModalOptions {
   /** Panel width, e.g. 600 or "80vw". Default: content's base width. */
@@ -253,6 +254,7 @@ function ModalFrame({
       className={cx(
         styles.overlay,
         placement === "right" && styles.right,
+        placement === "bottom" && styles.bottom,
         centered && styles.centered,
       )}
       style={{ zIndex: `calc(var(--z-overlay) + ${index})` }}
@@ -265,7 +267,11 @@ function ModalFrame({
       />
       <div
         ref={panelRef}
-        className={cx(styles.comp, placement === "right" && styles.right)}
+        className={cx(
+          styles.comp,
+          placement === "right" && styles.right,
+          placement === "bottom" && styles.bottom,
+        )}
         role="dialog"
         aria-modal="true"
         aria-label={modal.options.label}

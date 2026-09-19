@@ -14,6 +14,11 @@ interface AssigneePickerProps {
   members: User[];
   /** Avatar size — the clickable area grows with it. */
   size?: number;
+  /**
+   * Show the assignee without the dropdown, whatever the permissions — for a
+   * phone, where the board card offers its quick-action sheet instead.
+   */
+  readOnly?: boolean;
 }
 
 /**
@@ -32,6 +37,7 @@ export function AssigneePicker({
   issue,
   members,
   size = 22,
+  readOnly = false,
 }: AssigneePickerProps) {
   const t = useTranslations();
   const { patch } = useIssuePatch(issue.id);
@@ -39,7 +45,7 @@ export function AssigneePicker({
     ? (members.find((member) => member.id === issue.assignee) ?? null)
     : null;
 
-  if (!issue.access.canAssign) {
+  if (readOnly || !issue.access.canAssign) {
     return (
       <span
         className={styles.trigger}

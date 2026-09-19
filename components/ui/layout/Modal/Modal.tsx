@@ -3,9 +3,11 @@ import styles from "./modal.module.scss";
 /**
  * `dialog` floats centered over the page, `panel` sits as a side panel
  * against the edge: full height, no radius, wider. Belongs to
- * `openModal(…, { placement: "right" })`.
+ * `openModal(…, { placement: "right" })`. `sheet` is a bottom sheet — full
+ * width on a phone, rounded at the top, with a grab handle. Belongs to
+ * `openModal(…, { placement: "bottom" })`.
  */
-type ModalVariant = "dialog" | "panel";
+type ModalVariant = "dialog" | "panel" | "sheet";
 
 interface ModalProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Panel width. A number = px, otherwise any CSS value. Default: 620px. */
@@ -34,7 +36,12 @@ export function Modal({
 }: ModalProps) {
   return (
     <div
-      className={[styles.modal, variant === "panel" && styles.panel, className]
+      className={[
+        styles.modal,
+        variant === "panel" && styles.panel,
+        variant === "sheet" && styles.sheet,
+        className,
+      ]
         .filter(Boolean)
         .join(" ")}
       style={

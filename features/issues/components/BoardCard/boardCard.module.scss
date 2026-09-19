@@ -1,8 +1,16 @@
+@use "breakpoints" as bp;
+
 .card {
   /* Padding and vertical rhythm live in custom properties: two handles
      instead of the same number in half a dozen places. */
   --pad: 0.875rem;
   --gap: 0.5625rem;
+
+  /* Phone: a little tighter, so more of a column fits on the one screen. */
+  @include bp.phone {
+    --pad: 0.75rem;
+    --gap: 0.4375rem;
+  }
 
   display: flex;
   flex-direction: column;
@@ -13,6 +21,8 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   user-select: none;
+  /* A long press opens the quick-action sheet — not the browser's callout. */
+  -webkit-touch-callout: none;
   cursor: pointer;
   transition: border-color .12s, background .12s, transform .04s;
 
@@ -64,6 +74,13 @@
   > :last-child {
     margin-left: auto;
   }
+}
+
+/* Wraps the assignee avatar, right-aligned in the header row. */
+.headerActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 /* Where the task comes from — only on cross-project boards, otherwise every

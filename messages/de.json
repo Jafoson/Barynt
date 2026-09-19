@@ -666,6 +666,11 @@
     "footerReportAbuse": "Missbrauch melden"
   },
   "filters": {
+    "back": "Zurück",
+    "noMatches": "Keine Treffer",
+    "choose": "Auswählen…",
+    "label": "Filter",
+    "clearAll": "Alle Filter zurücksetzen",
     "statuses": "{count} Status",
     "priorities": "{count, plural, one {# Priorität} other {# Prioritäten}}",
     "people": "{count, plural, one {# Person} other {# Personen}}",
@@ -684,6 +689,14 @@
     "copiedLink": "Link kopiert"
   },
   "issues": {
+    "quickActions": "Schnellaktionen",
+    "quickOpen": "Öffnen",
+    "quickOpenNewTab": "In neuem Tab öffnen",
+    "quickAssign": "Zuständig ändern…",
+    "quickBack": "Zurück",
+    "moveTo": "Verschieben nach…",
+    "movedTo": "Verschoben nach {group}",
+    "boardColumns": "Board-Spalten",
     "toCreate": "zum Erstellen"
   },
   "realtime": {

@@ -1,4 +1,17 @@
+@use "breakpoints" as bp;
+
+/* The board and, on narrow screens, the column switcher above it. */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 .board {
+  /* Positioning context: `Board` measures where each column starts from
+     `offsetLeft`, which is relative to this element. */
+  position: relative;
   display: flex;
   gap: 0;
   /* Fills the remaining space below the topbar; the columns scroll, not the page. */
@@ -13,4 +26,14 @@
      card comes from `.cards` in BoardColumn. */
   padding: 1rem 1rem 0;
   align-items: stretch;
+}
+
+/* Phone: one column per screen; a swipe (or the switcher) moves to the next
+   and settles on it. */
+.board {
+  @include bp.phone {
+    gap: 0.75rem;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 1rem;
+  }
 }

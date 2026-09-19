@@ -16,14 +16,23 @@ import {
   TypeIcon,
 } from "@/features/issues/components/IssueIcons/IssueIcons";
 import { IssueTitleField } from "@/features/issues/components/IssueTitleField/IssueTitleField";
+import type { GroupDef } from "@/features/issues/group";
 import { isBrowserClick } from "@/features/issues/issue-links";
 import type { IssueLookups } from "@/features/issues/types";
 import { useIssuePatch } from "@/features/issues/useIssuePatch";
 import { visibleDetailFields } from "@/features/projects/detail-fields";
 import { onActivate } from "@/lib/a11y";
+import { useModal } from "@/lib/context";
+import { useLongPress } from "@/lib/utils/useLongPress";
+import {
+  COMPACT_QUERY,
+  PHONE_QUERY,
+  useMediaQuery,
+} from "@/lib/utils/useMediaQuery";
 import { useTimeAgo } from "@/lib/utils/useTimeAgo";
 import type { IssueDetail, Label as LabelType } from "@/types";
 import styles from "./boardCard.module.scss";
+import { CardQuickActions } from "./CardQuickActions";
 import { useRowFit } from "./useRowFit";
 import { useTextEnd } from "./useTextEnd";
 
@@ -66,6 +75,14 @@ interface BoardCardProps {
    * the key itself instead of leaving it to the browser.
    */
   onOpenInNewTab?: () => void;
+  /**
+   * "Move to…" in the long-press sheet (phone and tablet): the board's
+   * columns, the one this card is in, and what to do on a pick. Without them
+   * (or without `canEdit`) the sheet has no such section.
+   */
+  moveTargets?: GroupDef[];
+  currentGroupId?: string;
+  onMoveTo?: (groupId: string) => void;
 }
 
 export function BoardCard({
@@ -82,11 +99,23 @@ export function BoardCard({
   onDragOver,
   onOpen,
   onOpenInNewTab,
+  moveTargets,
+  currentGroupId,
+  onMoveTo,
 }: BoardCardProps) {
   const t = useTranslations();
   const timeAgo = useTimeAgo();
   const { patch } = useIssuePatch(issue.id);
   const [isEditing, setIsEditing] = useState(false);
+  const { openModal } = useModal();
+  // Phone and tablet (≤ 1024px): nothing on the card is edited in place — a
+  // long press opens the quick-action sheet instead. On a desktop it's the
+  // other way round: the pencil, the assignee dropdown, dragging, and no
+  // sheet.
+  const compact = useMediaQuery(COMPACT_QUERY);
+  // No dragging on a phone: it would fight with scrolling, and "Move to…" in
+  // the long-press sheet replaces it. A tablet drags again.
+  const isPhone = useMediaQuery(PHONE_QUERY);
 
   // The server only catches up after the write. Until then the card shows
   // what was just typed — otherwise the old title would briefly flash back
@@ -142,6 +171,28 @@ export function BoardCard({
   const shownLabels = fit === null ? issueLabels : issueLabels.slice(0, fit);
   const restLabels = issueLabels.length - shownLabels.length;
 
+  const openQuickActions = () =>
+    openModal(
+      ({ close }) => (
+        <CardQuickActions
+          issue={issue}
+          identifier={identifier}
+          title={title}
+          members={members}
+          moveTargets={moveTargets}
+          currentGroupId={currentGroupId}
+          onMoveTo={onMoveTo}
+          onOpen={() => onOpen?.()}
+          onOpenInNewTab={() => onOpenInNewTab?.()}
+          onEditTitle={() => setIsEditing(true)}
+          close={close}
+        />
+      ),
+      { placement: "bottom", label: t("issues.quickActions") },
+    );
+  const longPress = useLongPress(openQuickActions);
+  const longPressProps = compact ? longPress : {};
+
   return (
     // biome-ignore lint/a11y/useSemanticElements: card contains block-level content; a <button> would be invalid HTML
     <div
@@ -161,7 +212,7 @@ export function BoardCard({
       // text selection from the field. Not without issue.update.any/.own
       // either — dragging changes the status (`moveIssue`/`reorderIssue`),
       // which the server rejects without those permissions.
-      draggable={!isEditing && issue.access.canEdit}
+      draggable={!isEditing && issue.access.canEdit && !isPhone}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onDragOver={onDragOver}
@@ -184,6 +235,7 @@ export function BoardCard({
         onOpenInNewTab?.();
       }}
       onKeyDown={onActivate(() => onOpen?.())}
+      {...longPressProps}
     >
       {/* Where the task comes from is shown above everything else — its own
         line, before type and title say what it is. */}
@@ -207,7 +259,14 @@ export function BoardCard({
             {typeLabel}
           </Label>
         )}
-        <AssigneePicker issue={issue} members={members} size={30} />
+        <span className={styles.headerActions}>
+          <AssigneePicker
+            issue={issue}
+            members={members}
+            size={30}
+            readOnly={compact}
+          />
+        </span>
       </div>
 
       {isEditing && issue.access.canEdit ? (
@@ -232,7 +291,7 @@ export function BoardCard({
           <p className={styles.title} ref={titleRef}>
             {title}
           </p>
-          {issue.access.canEdit && (
+          {issue.access.canEdit && !compact && (
             <button
               type="button"
               className={styles.editTitle}
