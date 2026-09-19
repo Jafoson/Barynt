@@ -6,6 +6,7 @@ import { openInBarayntTab } from "@/components/ui/layout/TabBar/tabEvents";
 import { getPathname, usePathname, useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { COMPACT_QUERY } from "@/lib/utils/useMediaQuery";
+import { rememberIssueOrigin } from "./issue-origin";
 
 /** The URL parameter the side panel depends on: `?issue=PREFIX-123`. */
 export const ISSUE_PARAM = "issue";
@@ -86,6 +87,11 @@ export function useIssueOpen(workspaceId: string) {
     // A phone or tablet has no room beside the list: the issue opens as its
     // own page, which looks the same there as the panel does on a desktop.
     if (window.matchMedia(COMPACT_QUERY).matches) {
+      // Remember the view it came from — the page's back arrow returns there.
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete(ISSUE_PARAM);
+      const query = params.toString();
+      rememberIssueOrigin(identifier, `${pathname}${query ? `?${query}` : ""}`);
       router.push(issuePath(workspaceId, identifier));
       return;
     }

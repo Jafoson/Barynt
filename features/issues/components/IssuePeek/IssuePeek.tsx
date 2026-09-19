@@ -10,9 +10,10 @@ import {
   ISSUE_PARAM,
   issuePath,
 } from "@/features/issues/issue-links";
+import { rememberIssueOrigin } from "@/features/issues/issue-origin";
 import { recordIssueOpened } from "@/features/issues/recent-issues";
 import type { IssueComposerData } from "@/features/issues/types";
-import { useRouter } from "@/i18n/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { DockPanel, useDock } from "@/lib/context";
 import { COMPACT_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useSessionFlag } from "@/lib/utils/useSessionFlag";
@@ -57,6 +58,7 @@ export function IssuePeek({ data }: IssuePeekProps) {
   const issueRef = searchParams.get(ISSUE_PARAM);
 
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (issueRef) recordIssueOpened(issueRef);

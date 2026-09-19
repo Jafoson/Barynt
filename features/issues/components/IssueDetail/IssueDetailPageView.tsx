@@ -2,8 +2,10 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { issuePath } from "@/features/issues/issue-links";
+import { carryIssueOrigin, issueOrigin } from "@/features/issues/issue-origin";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
 import { visibleDetailFields } from "@/features/projects/detail-fields";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -64,13 +66,22 @@ export function IssueDetailPageView({
   // panel does on a desktop — one column, the attribute bar under the title.
   const isPhone = useMediaQuery(COMPACT_QUERY);
   const identifier = `${project?.prefix ?? "?"}-${issue.key}`;
+  // The view this issue was opened from (list or board, with its filters).
+  // Read after mount: it lives in the browser session, not on the server.
+  const [origin, setOrigin] = useState<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-read when the issue changes
+  useEffect(() => {
+    setOrigin(issueOrigin(identifier));
+  }, [identifier]);
   // Field visibility (BARY-31) is a per-project setting.
   const visibleFields = visibleDetailFields(project?.hiddenDetailFields ?? []);
   const showRelations = visibleFields.has("relations");
   const showAttachments = visibleFields.has("attachments");
-  const backLabel = project
-    ? t("nav.backToProject", { name: project.name })
-    : t("nav.backToWorkspace");
+  const backLabel = origin
+    ? t("issues.back")
+    : project
+      ? t("nav.backToProject", { name: project.name })
+      : t("nav.backToWorkspace");
 
   const hasOpenModal = useHasOpenModal();
   const { toast } = useUI();
@@ -93,9 +104,10 @@ export function IssueDetailPageView({
 
   const goToSibling = (sibling: (typeof siblings)[number] | null) => {
     if (!sibling) return;
-    router.push(
-      issuePath(data.workspaceId, `${project?.prefix ?? "?"}-${sibling.key}`),
-    );
+    const next = `${project?.prefix ?? "?"}-${sibling.key}`;
+    // Stepping on keeps the same way back.
+    carryIssueOrigin(identifier, next);
+    router.push(issuePath(data.workspaceId, next));
   };
 
   useShortcut("k", () => goToSibling(prevSibling), {
@@ -131,7 +143,7 @@ export function IssueDetailPageView({
     <article className={styles.page}>
       <header className={styles.pageHeader}>
         <Link
-          href={backHref}
+          href={origin ?? backHref}
           className={styles.back}
           aria-label={backLabel}
           title={backLabel}
