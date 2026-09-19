@@ -69,9 +69,14 @@ export function IssuePeek({ data }: IssuePeekProps) {
   // clicks already go straight to the page (`useIssueOpen`); `replace`
   // keeps this hop out of the back stack.
   useEffect(() => {
-    if (isPhone && issueRef)
-      router.replace(issuePath(data.workspaceId, issueRef));
-  }, [isPhone, issueRef, router, data.workspaceId]);
+    if (!isPhone || !issueRef) return;
+    // The view underneath, without the panel's parameter, is where back leads.
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete(ISSUE_PARAM);
+    const query = params.toString();
+    rememberIssueOrigin(issueRef, `${pathname}${query ? `?${query}` : ""}`);
+    router.replace(issuePath(data.workspaceId, issueRef));
+  }, [isPhone, issueRef, router, data.workspaceId, pathname, searchParams]);
 
   if (!issueRef || !node || isPhone) return null;
 

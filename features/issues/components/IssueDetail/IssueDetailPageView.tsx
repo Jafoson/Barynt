@@ -69,7 +69,6 @@ export function IssueDetailPageView({
   // The view this issue was opened from (list or board, with its filters).
   // Read after mount: it lives in the browser session, not on the server.
   const [origin, setOrigin] = useState<string | null>(null);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: re-read when the issue changes
   useEffect(() => {
     setOrigin(issueOrigin(identifier));
   }, [identifier]);
