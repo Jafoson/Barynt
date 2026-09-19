@@ -7,7 +7,6 @@ import { useState, useTransition } from "react";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { CopyField } from "@/components/ui/atoms/CopyField/CopyField";
-import { Input } from "@/components/ui/atoms/Input/Input";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import { PageHeader } from "@/components/ui/layout/PageHeader/PageHeader";
@@ -23,7 +22,10 @@ import {
   setWebhookEnabled,
 } from "@/features/webhooks/actions";
 import type { WebhooksView } from "@/features/webhooks/types";
-import { WEBHOOK_EVENTS, type WebhookEvent } from "@/lib/webhooks/events";
+import { useModal } from "@/lib/context";
+import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
+import type { WebhookEvent } from "@/lib/webhooks/events";
+import { type NewWebhookInput, NewWebhookModal } from "./NewWebhookModal";
 import styles from "./workspaceWebhooks.module.scss";
 
 interface Props extends WebhooksView {
@@ -50,9 +52,8 @@ export function WorkspaceWebhooks({ workspaceId, webhooks }: Props) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
-  const [formOpen, setFormOpen] = useState(false);
-  const [url, setUrl] = useState("");
-  const [events, setEvents] = useState<Set<WebhookEvent>>(new Set());
+  const { openModal } = useModal();
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const [createdSecret, setCreatedSecret] = useState<string | null>(null);
 
   const eventLabel: Record<WebhookEvent, string> = {
@@ -60,20 +61,6 @@ export function WorkspaceWebhooks({ workspaceId, webhooks }: Props) {
     "issue.updated": t("webhooks.eventIssueUpdated"),
     "issue.deleted": t("webhooks.eventIssueDeleted"),
     "comment.created": t("webhooks.eventCommentCreated"),
-  };
-
-  const toggleEvent = (event: WebhookEvent, checked: boolean) => {
-    setEvents((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(event);
-      else next.delete(event);
-      return next;
-    });
-  };
-
-  const resetForm = () => {
-    setUrl("");
-    setEvents(new Set());
   };
 
   const run = (action: () => Promise<unknown>, failure: string) =>
@@ -87,25 +74,31 @@ export function WorkspaceWebhooks({ workspaceId, webhooks }: Props) {
       }
     });
 
-  const create = () => {
-    const trimmed = url.trim();
-    if (!trimmed || events.size === 0 || isPending) return;
-    startTransition(async () => {
-      const result = await createWebhook(workspaceId, {
-        url: trimmed,
-        events: [...events],
-      });
-      if ("error" in result) {
-        setError(result.error);
-        return;
-      }
-      setError("");
-      setCreatedSecret(result.secret);
-      setFormOpen(false);
-      resetForm();
-      router.refresh();
-    });
+  const createHook = async ({ url, events }: NewWebhookInput) => {
+    const result = await createWebhook(workspaceId, { url, events });
+    if ("error" in result) return result.error;
+    setError("");
+    setCreatedSecret(result.secret);
+    router.refresh();
+    return null;
   };
+
+  // A dialog from a tablet up, a bottom sheet on a phone.
+  const openNewWebhook = () =>
+    openModal(
+      ({ close }) => (
+        <NewWebhookModal
+          close={close}
+          sheet={isPhone}
+          eventLabel={eventLabel}
+          onCreate={createHook}
+        />
+      ),
+      {
+        ...(isPhone ? { placement: "bottom" as const } : {}),
+        label: t("webhooks.newWebhook"),
+      },
+    );
 
   const remove = async (id: string, hookUrl: string) => {
     const ok = await confirm({
@@ -197,12 +190,11 @@ export function WorkspaceWebhooks({ workspaceId, webhooks }: Props) {
         title={t("webhooks.title")}
         description={t("webhooks.desc")}
         actions={
-          !formOpen &&
           !createdSecret && (
             <Button
               variant="primary"
               icon={<Icon icon="lucide:plus" width={15} />}
-              onClick={() => setFormOpen(true)}
+              onClick={openNewWebhook}
             >
               {t("webhooks.newWebhook")}
             </Button>
@@ -235,62 +227,6 @@ export function WorkspaceWebhooks({ workspaceId, webhooks }: Props) {
           </div>
         )}
 
-        {!createdSecret && formOpen && (
-          <div className={styles.form}>
-            <Input
-              label={t("webhooks.urlLabel")}
-              placeholder={t("webhooks.urlPlaceholder")}
-              value={url}
-              disabled={isPending}
-              onChange={(e) => setUrl(e.target.value)}
-            />
-
-            <div className={styles.eventSection}>
-              <span className={styles.fieldLabel}>
-                {t("webhooks.eventsLabel")}
-              </span>
-              <div className={styles.eventCards}>
-                {WEBHOOK_EVENTS.map((event) => (
-                  <label
-                    key={event}
-                    className={styles.eventCard}
-                    data-checked={events.has(event) || undefined}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={events.has(event)}
-                      disabled={isPending}
-                      onChange={(e) => toggleEvent(event, e.target.checked)}
-                    />
-                    <code>{event}</code>
-                    <span>{eventLabel[event]}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.actions}>
-              <Button
-                variant="text"
-                disabled={isPending}
-                onClick={() => {
-                  setFormOpen(false);
-                  resetForm();
-                }}
-              >
-                {t("actions.cancel")}
-              </Button>
-              <Button
-                variant="primary"
-                disabled={!url.trim() || events.size === 0 || isPending}
-                onClick={create}
-              >
-                {t("webhooks.create")}
-              </Button>
-            </div>
-          </div>
-        )}
-
         {rows.length > 0 ? (
           <SettingsList
             rows={rows}
@@ -298,7 +234,7 @@ export function WorkspaceWebhooks({ workspaceId, webhooks }: Props) {
             label={t("webhooks.title")}
           />
         ) : (
-          !formOpen && <p className={styles.empty}>{t("webhooks.empty")}</p>
+          <p className={styles.empty}>{t("webhooks.empty")}</p>
         )}
       </SettingsBody>
     </>

@@ -4,9 +4,8 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { IssueComposerData } from "@/features/issues/types";
-import { CreateProjectModal } from "@/features/projects/components/CreateProjectModal/CreateProjectModal";
+import { useOpenCreateProject } from "@/features/projects/useOpenCreateProject";
 import { usePathname } from "@/i18n/navigation";
-import { useModal } from "@/lib/context";
 import styles from "./newIssueFab.module.scss";
 import { useNewIssueOpener } from "./useNewIssueOpener";
 
@@ -43,7 +42,7 @@ export function NewIssueFabClient({
 }: NewIssueFabClientProps) {
   const t = useTranslations();
   const pathname = usePathname();
-  const { openModal } = useModal();
+  const openCreateProject = useOpenCreateProject();
   const openIssue = useNewIssueOpener(data);
   const [open, setOpen] = useState(false);
 
@@ -74,10 +73,7 @@ export function NewIssueFabClient({
       id: "project",
       label: t("actions.newProject"),
       icon: "lucide:folder-plus",
-      onPick: () =>
-        openModal(({ close }) => (
-          <CreateProjectModal workspaceId={workspaceId} close={close} />
-        )),
+      onPick: () => openCreateProject(workspaceId),
     });
   }
   if (choices.length === 0) return null;

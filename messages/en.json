@@ -949,7 +949,7 @@
     "addPasskey": "Add passkey",
     "addPasskeyDesc": "Sign in without a password — using fingerprint, face recognition, or a device PIN.",
     "passkeyAddFailed": "Could not add passkey.",
-    "passkeyNudge": "Set up a passkey — faster and more secure than a password.",
+    "passkeyNudge": "Set up a passkey",
     "emailLoginDesc": "Your sign-in name.",
     "addEmail": "Add",
     "addEmailDesc": "Optional — unlocks magic link, invitations, and email notifications, and acts as a recovery method if you lose access to your passkey.",

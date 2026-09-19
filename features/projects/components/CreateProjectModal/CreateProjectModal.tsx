@@ -13,11 +13,13 @@ import {
   ModalShortcut,
 } from "@/components/ui/layout/Modal/components/ModalFooter";
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
+import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
 import { createProject } from "@/features/projects/actions";
 import type { ProjectVisibility } from "@/features/projects/types";
 import { PALETTE } from "@/lib/utils";
 import { useSubmitShortcut } from "@/lib/utils/useSubmitShortcut";
+import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
 import styles from "./createProjectModal.module.scss";
 
 /** The prefix is the issue identifier (WEB-123) — max. 4 alphanumeric characters. */
@@ -31,15 +33,19 @@ function suggestPrefix(name: string) {
 interface CreateProjectModalProps {
   workspaceId: string;
   close: () => void;
+  /** A bottom sheet (phone) instead of a dialog. */
+  sheet?: boolean;
 }
 
 export function CreateProjectModal({
   workspaceId,
   close,
+  sheet,
 }: CreateProjectModalProps) {
   const t = useTranslations();
   const router = useRouter();
   const bodyRef = useRef<HTMLDivElement>(null);
+  const swipe = useSwipeToClose(close, bodyRef);
   const [isPending, startTransition] = useTransition();
 
   const [name, setName] = useState("");
@@ -131,23 +137,35 @@ export function CreateProjectModal({
   }, [moveFocus]);
 
   return (
-    <Modal>
-      <ModalHeader
-        leading={
-          <Icon
-            icon="lucide:columns-2"
-            width={16}
-            className={styles.headerIcon}
-          />
-        }
-        title={t("projects.modalTitle")}
-        onClose={close}
-        closeLabel={t("actions.close")}
-      />
+    <Modal
+      variant={sheet ? "sheet" : "dialog"}
+      style={sheet ? swipe.style : undefined}
+      {...(sheet ? swipe.handlers : {})}
+    >
+      {sheet ? (
+        <SheetHeader
+          title={t("projects.modalTitle")}
+          onClose={close}
+          closeLabel={t("actions.close")}
+        />
+      ) : (
+        <ModalHeader
+          leading={
+            <Icon
+              icon="lucide:columns-2"
+              width={16}
+              className={styles.headerIcon}
+            />
+          }
+          title={t("projects.modalTitle")}
+          onClose={close}
+          closeLabel={t("actions.close")}
+        />
+      )}
 
       <ModalBody className={styles.body} ref={bodyRef}>
         <Input
-          autoFocus
+          autoFocus={!sheet}
           label={t("placeholders.projectName")}
           placeholder="Web App"
           value={name}
@@ -228,9 +246,11 @@ export function CreateProjectModal({
           </ModalShortcut>
         }
       >
-        <Button variant="ghost" onClick={close}>
-          {t("actions.cancel")}
-        </Button>
+        {!sheet && (
+          <Button variant="ghost" onClick={close}>
+            {t("actions.cancel")}
+          </Button>
+        )}
         <Button
           variant="primary"
           disabled={!name.trim() || isPending}

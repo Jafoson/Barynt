@@ -1,3 +1,6 @@
+@use "breakpoints" as bp;
+@use "card-rows";
+
 /* Same layout as under Labels: the page scrolls, the cards inside it don't —
    and both take the full width. The list's appearance comes from
    `components/ui/layout/Table` (the `card` variant); this file only defines
@@ -24,6 +27,8 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+
+  @include card-rows.setting-rows;
 }
 
 /* Heading and explanation belong to the card below, not the one before it. */

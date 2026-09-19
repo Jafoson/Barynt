@@ -1,3 +1,6 @@
+@use "breakpoints" as bp;
+@use "card-rows";
+
 /* Not the page that scrolls, but the table itself (`fill`) — the rest stays
    put (header, filters). */
 .content {
@@ -6,6 +9,8 @@
   padding: 0.75rem 1.5rem 2rem;
   display: flex;
   flex-direction: column;
+
+  @include card-rows.card-rows($upTo: tablet);
 }
 
 .filterSelect {
@@ -177,4 +182,15 @@ a.projectRef:hover {
   font-size: var(--text-sm);
   color: var(--on-surface-variant);
   white-space: nowrap;
+}
+
+/* Phone and tablet rows: what happened on top, who did it and when under
+   it, the reason (break-glass access only) last. */
+.content {
+  @include bp.tablet-down {
+    td[data-col="action"] { order: 1; flex: 1 1 100%; }
+    td[data-col="actor"] { order: 2; flex: 1 1 0; }
+    td[data-col="when"] { order: 3; margin-inline-start: auto; }
+    td[data-col="reason"] { order: 4; flex: 1 1 100%; }
+  }
 }

@@ -21,6 +21,7 @@ import type {
 } from "@/features/workspaces/types";
 import { useModal } from "@/lib/context";
 import { fullName } from "@/lib/utils/string";
+import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { TeamModal } from "./components/TeamModal";
 import styles from "./workspaceTeams.module.scss";
 
@@ -58,6 +59,7 @@ export function WorkspaceTeams({
   const router = useRouter();
   const confirm = useConfirm();
   const { openModal } = useModal();
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
@@ -70,22 +72,27 @@ export function WorkspaceTeams({
   // Creating and editing go through the same dialog: they're the same
   // fields, and a second dialog would be a second place to maintain.
   const openEditor = (team?: WorkspaceTeamRow) =>
-    openModal(({ close }) => (
-      <TeamModal
-        workspaceId={workspaceId}
-        team={team}
-        candidates={candidates}
-        projects={projects}
-        assignableProjectRoles={assignableProjectRoles}
-        canManageMembers={canManageMembers}
-        canManageProjects={canManageProjects}
-        onDone={() => {
-          setError("");
-          router.refresh();
-        }}
-        close={close}
-      />
-    ));
+    openModal(
+      ({ close }) => (
+        <TeamModal
+          workspaceId={workspaceId}
+          team={team}
+          candidates={candidates}
+          projects={projects}
+          assignableProjectRoles={assignableProjectRoles}
+          canManageMembers={canManageMembers}
+          canManageProjects={canManageProjects}
+          onDone={() => {
+            setError("");
+            router.refresh();
+          }}
+          close={close}
+          sheet={isPhone}
+        />
+      ),
+      // A bottom sheet on a phone, a dialog from a tablet up.
+      isPhone ? { placement: "bottom" } : undefined,
+    );
 
   const remove = async (row: WorkspaceTeamRow) => {
     const ok = await confirm({

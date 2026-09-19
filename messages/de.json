@@ -949,7 +949,7 @@
     "addPasskey": "Passkey hinzufügen",
     "addPasskeyDesc": "Anmelden ohne Passwort — mit Fingerabdruck, Gesichtserkennung oder Gerätecode.",
     "passkeyAddFailed": "Passkey konnte nicht hinzugefügt werden.",
-    "passkeyNudge": "Richte einen Passkey ein — schneller und sicherer als ein Passwort.",
+    "passkeyNudge": "Richte einen Passkey ein",
     "emailLoginDesc": "Dein Anmeldename.",
     "addEmail": "Hinzufügen",
     "addEmailDesc": "Optional — schaltet Magic Link, Einladungen und Benachrichtigungen per Mail frei und dient als Recovery-Weg, falls du den Zugriff auf deinen Passkey verlierst.",

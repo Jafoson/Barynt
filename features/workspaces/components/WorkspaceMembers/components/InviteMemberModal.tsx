@@ -3,7 +3,7 @@
 import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { CopyField } from "@/components/ui/atoms/CopyField/CopyField";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
@@ -14,11 +14,13 @@ import {
   ModalShortcut,
 } from "@/components/ui/layout/Modal/components/ModalFooter";
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
+import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
 import { inviteWorkspaceMembers } from "@/features/workspaces/actions";
 import { roleColor } from "@/lib/rbac";
 import { parseEmailList } from "@/lib/utils/parse-emails";
 import { useSubmitShortcut } from "@/lib/utils/useSubmitShortcut";
+import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
 import type { Role } from "@/types";
 import styles from "./inviteMemberModal.module.scss";
 
@@ -27,6 +29,8 @@ interface Props {
   /** Roles the current user is allowed to assign — filtered by the server. */
   roles: Role[];
   close: () => void;
+  /** A bottom sheet (phone) instead of a dialog. */
+  sheet?: boolean;
 }
 
 type BulkResult = Awaited<ReturnType<typeof inviteWorkspaceMembers>>;
@@ -42,8 +46,9 @@ type BulkRow = Extract<BulkResult, { rows: unknown }>["rows"][number];
  * the dialog, in case mail isn't sent or delivery falters. An invalid or
  * already-taken address doesn't block the remaining rows.
  */
-export function InviteMemberModal({ workspaceId, roles, close }: Props) {
+export function InviteMemberModal({ workspaceId, roles, close, sheet }: Props) {
   const t = useTranslations();
+  const bodyRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -88,24 +93,41 @@ export function InviteMemberModal({ workspaceId, roles, close }: Props) {
 
   useSubmitShortcut(submit);
 
-  return (
-    <Modal width={520}>
-      <ModalHeader
-        leading={
-          <Icon
-            icon={done ? "lucide:mail-check" : "lucide:user-plus"}
-            width={16}
-            className={styles.headerIcon}
-          />
-        }
-        title={
-          done ? t("members.inviteResultsTitle") : t("members.inviteTitle")
-        }
-        onClose={finish}
-        closeLabel={t("actions.close")}
-      />
+  const swipe = useSwipeToClose(finish, bodyRef);
 
-      <ModalBody className={styles.body}>
+  return (
+    <Modal
+      width={520}
+      variant={sheet ? "sheet" : "dialog"}
+      style={sheet ? swipe.style : undefined}
+      {...(sheet ? swipe.handlers : {})}
+    >
+      {sheet ? (
+        <SheetHeader
+          title={
+            done ? t("members.inviteResultsTitle") : t("members.inviteTitle")
+          }
+          onClose={finish}
+          closeLabel={t("actions.close")}
+        />
+      ) : (
+        <ModalHeader
+          leading={
+            <Icon
+              icon={done ? "lucide:mail-check" : "lucide:user-plus"}
+              width={16}
+              className={styles.headerIcon}
+            />
+          }
+          title={
+            done ? t("members.inviteResultsTitle") : t("members.inviteTitle")
+          }
+          onClose={finish}
+          closeLabel={t("actions.close")}
+        />
+      )}
+
+      <ModalBody className={styles.body} ref={bodyRef}>
         {done ? (
           <ul className={styles.resultList}>
             {rows.map((row) => (
@@ -231,9 +253,11 @@ export function InviteMemberModal({ workspaceId, roles, close }: Props) {
           </Button>
         ) : (
           <>
-            <Button variant="ghost" onClick={close}>
-              {t("actions.cancel")}
-            </Button>
+            {!sheet && (
+              <Button variant="ghost" onClick={close}>
+                {t("actions.cancel")}
+              </Button>
+            )}
             <Button
               variant="primary"
               disabled={emails.length === 0 || !role || isPending}

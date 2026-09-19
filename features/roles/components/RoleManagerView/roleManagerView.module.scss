@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 /* The page doesn't scroll, the matrix does. Header and role cards stay
    fixed, below that the table fills the rest — the same layout as on the
    members page, except there the card scrolls with the page.
@@ -89,27 +91,42 @@
   font-size: var(--text-sm);
 }
 
-/* Name and description side by side, not stacked: these are two lines of
-   text, not a form. The description gets double the share — it's a
-   sentence, the name is a word. Below the base width, the row wraps
-   instead of squeezing both fields into unreadability.
 
-   The field's wrapper is targeted by its position in the row: `Input`
-   passes its `className` down to the `<input>`, where setting the width
-   would have no effect. */
-.createRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+/* ---------- Phone and tablet ---------- */
 
-  > :nth-child(1) {
-    flex: 1 1 11.25rem;
-    max-width: 16.25rem;
+@include bp.tablet-down {
+  /* No explaining sentence, like every other page header. */
+  .subtitle {
+    display: none;
   }
 
-  > :nth-child(2) {
-    flex: 2 1 16.25rem;
-    max-width: 32.5rem;
+  /* The title level with the button, the text left-aligned. */
+  .pageHeader {
+    align-items: center;
+    /* Even above and below: the extra room under the title was for the
+       sentence that's gone here. */
+    padding: 0.75rem 1rem;
+  }
+
+  .pageHeader.underSwitcher {
+    padding-top: 0.75rem;
+  }
+
+  .pageTitle {
+    line-height: var(--leading-tight);
+  }
+
+  /* The body scrolls (cards, editor and matrix as one page) instead of the
+     matrix alone. */
+  .body {
+    overflow-y: auto;
+    padding-inline: 1rem;
+
+    /* Nothing shrinks to fit: a child that scrolls sideways itself (the role
+       cards) has no minimum height in a column, and would be squeezed down to
+       its scrollbar. The body scrolls instead. */
+    & > * {
+      flex: none;
+    }
   }
 }

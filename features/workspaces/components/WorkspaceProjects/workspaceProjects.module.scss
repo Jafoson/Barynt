@@ -14,6 +14,7 @@
   gap: 1.25rem;
 
   @include card-rows.card-rows;
+  @include card-rows.page-scroll-lists;
 
 }
 
@@ -122,5 +123,16 @@
     td[data-col="members"] { order: 3; }
     td[data-col="issues"] { order: 4; }
     td[data-col="actions"] { order: 5; margin-inline-start: auto; }
+  }
+}
+
+/* A bare number needs its word on a phone, where the column header is gone. */
+.countLabel {
+  display: none;
+
+  @include bp.phone {
+    display: inline;
+    margin-inline-start: 0.25rem;
+    font-size: var(--text-sm);
   }
 }

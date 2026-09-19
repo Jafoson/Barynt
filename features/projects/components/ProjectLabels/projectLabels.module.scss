@@ -1,3 +1,6 @@
+@use "breakpoints" as bp;
+@use "card-rows";
+
 /* It's not the page that scrolls, but each table on its own (`fill`) — both
    sections split the available height evenly. */
 .content {
@@ -7,6 +10,9 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+
+  @include card-rows.card-rows;
+  @include card-rows.page-scroll-lists;
 }
 
 .usage {
@@ -39,22 +45,16 @@
   gap: 0.125rem;
 }
 
+.scopeSwitch {
+  flex: none;
+}
+
 .inherited {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-}
-
-/* As in "General": group heading above the card, not inside it — and in the
-   same size and text color, otherwise the structure would shift visually
-   when switching between sections. */
-.groupTitle {
-  margin: 0.5rem 0 0;
-  font-size: var(--text-md);
-  font-weight: 600;
-  color: var(--on-surface);
 }
 
 .groupDesc {
@@ -75,4 +75,17 @@
   background: var(--error-container);
   color: var(--on-error-container);
   font-size: var(--text-sm);
+}
+
+/* Phone rows: the label on top with the actions at its end (its basis leaves
+   room for exactly them, so the use wraps onto the next line). */
+.content {
+  @include bp.phone {
+    td[data-col="label"] { order: 1; flex: 1 1 calc(100% - 6.5rem); }
+    td[data-col="actions"] { order: 2; }
+    td[data-col="usage"] { order: 3; flex: 1 1 100%; }
+
+    /* The inherited table has no actions: the label takes the whole line. */
+    tr:not(:has(td[data-col="actions"])) td[data-col="label"] { flex-basis: 100%; }
+  }
 }

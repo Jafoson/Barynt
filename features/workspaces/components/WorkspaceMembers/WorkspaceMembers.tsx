@@ -24,6 +24,7 @@ import type {
 import { useModal } from "@/lib/context";
 import { roleColor } from "@/lib/rbac";
 import { fullName } from "@/lib/utils/string";
+import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { InviteMemberModal } from "./components/InviteMemberModal";
 import styles from "./workspaceMembers.module.scss";
 
@@ -58,6 +59,7 @@ export function WorkspaceMembers({
   const router = useRouter();
   const confirm = useConfirm();
   const { openModal } = useModal();
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
@@ -81,14 +83,19 @@ export function WorkspaceMembers({
       }
     });
 
+  // A bottom sheet on a phone, a dialog from a tablet up.
   const openInvite = () =>
-    openModal(({ close }) => (
-      <InviteMemberModal
-        workspaceId={workspaceId}
-        roles={assignableRoles}
-        close={close}
-      />
-    ));
+    openModal(
+      ({ close }) => (
+        <InviteMemberModal
+          workspaceId={workspaceId}
+          roles={assignableRoles}
+          close={close}
+          sheet={isPhone}
+        />
+      ),
+      isPhone ? { placement: "bottom" } : undefined,
+    );
 
   const remove = async (row: WorkspaceMemberRow) => {
     // Removing someone from the workspace also removes them from all of

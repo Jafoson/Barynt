@@ -1,12 +1,16 @@
-.form {
+@use "breakpoints" as bp;
+
+/* The body of the "new webhook" window: the address, then the events. */
+.modalBody {
   display: flex;
   flex-direction: column;
   gap: 1.125rem;
-  width: 100%;
-  padding: 1.125rem 1.25rem;
-  border: 1px solid var(--outline-variant);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
+  padding: 1rem 1.25rem;
+  overscroll-behavior: contain;
+
+  @include bp.phone {
+    padding: 0.5rem 1rem 1rem;
+  }
 }
 
 .fieldLabel {
@@ -32,6 +36,10 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
+
+  @include bp.phone {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .eventCard {

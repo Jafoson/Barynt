@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 /* Panel, header, and footer come from components/ui/layout/Modal —
    only the fields and the two selection lists live here. */
 
@@ -10,6 +12,12 @@
   flex-direction: column;
   gap: 1rem;
   padding: 1.125rem var(--modal-pad-x);
+
+  /* Phone: in the sheet — less air around, and the lists below get taller
+     rows a fingertip can hit. */
+  @include bp.phone {
+    padding: 0.5rem 1rem 1rem;
+  }
 }
 
 /* Name and short code belong together and therefore sit in one row: the
@@ -70,6 +78,10 @@
   padding: 0.375rem 0.5rem;
   border-radius: var(--radius-sm);
   transition: background 0.1s;
+
+  @include bp.phone {
+    min-height: var(--touch-min);
+  }
 
   &:hover {
     background: var(--surface-container-high);

@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { EmptyState } from "@/components/ui/atoms/EmptyState/EmptyState";
 import { Label } from "@/components/ui/atoms/Label/Label";
+import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import { PageHeader } from "@/components/ui/layout/PageHeader/PageHeader";
 import { LoadMoreSentinel } from "@/components/ui/layout/Table/LoadMoreSentinel/LoadMoreSentinel";
@@ -14,13 +15,12 @@ import { Table, type TableColumn } from "@/components/ui/layout/Table/Table";
 import { useInfiniteScroll } from "@/components/ui/layout/Table/useInfiniteScroll";
 import { useTableSort } from "@/components/ui/layout/Table/useTableSort";
 import { deleteLabel } from "@/features/issues/actions";
-import { LabelModal } from "@/features/issues/components/LabelModal/LabelModal";
+import { useOpenLabelModal } from "@/features/issues/useOpenLabelModal";
 import type {
   WorkspaceLabelRow,
   WorkspaceLabelsView,
 } from "@/features/workspaces/types";
 import { Link } from "@/i18n/navigation";
-import { useModal } from "@/lib/context";
 import { projectSettingsPath } from "@/lib/nav";
 import styles from "./workspaceLabels.module.scss";
 
@@ -64,7 +64,7 @@ export function WorkspaceLabels({
   const t = useTranslations();
   const router = useRouter();
   const confirm = useConfirm();
-  const { openModal } = useModal();
+  const openLabelModal = useOpenLabelModal();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
@@ -80,18 +80,14 @@ export function WorkspaceLabels({
   });
 
   const openEditor = (label?: WorkspaceLabelRow) =>
-    openModal(({ close }) => (
-      <LabelModal
-        workspaceId={workspaceId}
-        label={label}
-        onDone={() => {
-          setError("");
-          router.refresh();
-        }}
-        close={close}
-      />
-    ));
-
+    openLabelModal({
+      workspaceId,
+      label,
+      onDone: () => {
+        setError("");
+        router.refresh();
+      },
+    });
   const remove = async (row: WorkspaceLabelRow) => {
     // A workspace label is attached to tasks across multiple projects. The
     // number in the confirmation dialog is the total across all of them —
@@ -240,6 +236,11 @@ export function WorkspaceLabels({
   const ownSort = useTableSort(ownColumns);
   const projectSort = useTableSort(projectColumns);
 
+  // Which labels the list shows: the workspace's own, or those of its projects.
+  const [scope, setScope] = useState<"workspace" | "projects">("workspace");
+  const hasProjectLabels = fromProjectsScroll.items.length > 0;
+  const showProjects = hasProjectLabels && scope === "projects";
+
   return (
     <>
       <PageHeader
@@ -258,37 +259,58 @@ export function WorkspaceLabels({
           </p>
         )}
 
-        <Table
-          fill
-          variant="card"
-          label={t("nav.labels")}
-          columns={ownColumns}
-          rows={ownSort.sortRows(ownScroll.items)}
-          sort={ownSort.sort}
-          getRowKey={(row) => row.id}
-          empty={
-            <EmptyState
-              icon={<Icon icon="lucide:tag" width={32} />}
-              title={t("workspaceLabels.emptyTitle")}
-              description={t("workspaceLabels.emptyDesc")}
-              action={newButton}
+        {hasProjectLabels && (
+          <div className={styles.scopeSwitch}>
+            <SegmentedControl
+              variant="surface"
+              value={scope}
+              onChange={(value) => setScope(value as "workspace" | "projects")}
+              items={[
+                {
+                  value: "workspace",
+                  label: t("settings.scopeWorkspace"),
+                  icon: <Icon icon="lucide:tag" width={15} />,
+                },
+                {
+                  value: "projects",
+                  label: t("nav.projects"),
+                  icon: <Icon icon="lucide:folders" width={15} />,
+                },
+              ]}
             />
-          }
-          footer={
-            ownScroll.cursor && (
-              <LoadMoreSentinel
-                ref={ownScroll.sentinelRef}
-                loading={ownScroll.loading}
-              />
-            )
-          }
-        />
+          </div>
+        )}
 
-        {fromProjectsScroll.items.length > 0 && (
+        {!showProjects && (
+          <Table
+            fill
+            variant="card"
+            label={t("nav.labels")}
+            columns={ownColumns}
+            rows={ownSort.sortRows(ownScroll.items)}
+            sort={ownSort.sort}
+            getRowKey={(row) => row.id}
+            empty={
+              <EmptyState
+                icon={<Icon icon="lucide:tag" width={32} />}
+                title={t("workspaceLabels.emptyTitle")}
+                description={t("workspaceLabels.emptyDesc")}
+                action={newButton}
+              />
+            }
+            footer={
+              ownScroll.cursor && (
+                <LoadMoreSentinel
+                  ref={ownScroll.sentinelRef}
+                  loading={ownScroll.loading}
+                />
+              )
+            }
+          />
+        )}
+
+        {showProjects && (
           <section className={styles.group}>
-            <h2 className={styles.groupTitle}>
-              {t("workspaceLabels.fromProjectsTitle")}
-            </h2>
             <p className={styles.groupDesc}>
               {t("workspaceLabels.fromProjectsDesc")}
             </p>

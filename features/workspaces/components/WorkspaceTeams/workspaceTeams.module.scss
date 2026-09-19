@@ -16,6 +16,7 @@
   gap: 0.75rem;
 
   @include card-rows.card-rows;
+  @include card-rows.page-scroll-lists;
 
 }
 
@@ -64,6 +65,10 @@
   align-items: center;
   gap: 0.25rem;
   flex-wrap: nowrap;
+
+  @include bp.phone {
+    flex-wrap: wrap;
+  }
 }
 
 /* From the third project on, just the number: the column shouldn't stretch
@@ -101,18 +106,17 @@
   font-size: var(--text-sm);
 }
 
-/* Phone rows: the team on top, then lead, members and projects, and the
-   open link and actions at the end. */
+/* Phone rows: the team on top with the actions at its end (its basis leaves
+   room for exactly them), then the lead, the members and the open count, and
+   the projects on a line of their own, wrapping if there are several. */
 .content {
   @include bp.phone {
-    td[data-col="team"] { order: 1; flex: 1 1 100%; }
-    td[data-col="lead"] { order: 2; }
-    td[data-col="members"] { order: 3; }
-    /* Projects, the open count and the actions share a line — the projects
-       take what's left and are clipped. */
-    td[data-col="projects"] { order: 4; flex: 1 1 0; overflow: hidden; }
-    td[data-col="open"] { order: 5; }
-    td[data-col="actions"] { order: 6; }
+    td[data-col="team"] { order: 1; flex: 1 1 calc(100% - 6.5rem); }
+    td[data-col="actions"] { order: 2; }
+    td[data-col="lead"] { order: 3; }
+    td[data-col="members"] { order: 4; }
+    td[data-col="open"] { order: 5; margin-inline-start: auto; }
+    td[data-col="projects"] { order: 6; flex: 1 1 100%; }
   }
 }
 

@@ -4,8 +4,8 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { Tooltip } from "@/components/ui/atoms/Tooltip/Tooltip";
-import { CreateProjectModal } from "@/features/projects/components/CreateProjectModal/CreateProjectModal";
-import { useHasOpenModal, useModal } from "@/lib/context";
+import { useOpenCreateProject } from "@/features/projects/useOpenCreateProject";
+import { useHasOpenModal } from "@/lib/context";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
 
 interface NewProjectButtonProps {
@@ -34,13 +34,10 @@ export function NewProjectButton({
   shortcut = false,
 }: NewProjectButtonProps) {
   const t = useTranslations();
-  const { openModal } = useModal();
+  const openCreateProject = useOpenCreateProject();
   const hasOpenModal = useHasOpenModal();
 
-  const open = () =>
-    openModal(({ close }) => (
-      <CreateProjectModal workspaceId={workspaceId} close={close} />
-    ));
+  const open = () => openCreateProject(workspaceId);
 
   // "n" (no modifier), same convention as "c" for a new issue
   // (`NewIssueButton.tsx`) — bare because it only fires outside text

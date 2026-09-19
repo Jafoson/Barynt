@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { EmptyState } from "@/components/ui/atoms/EmptyState/EmptyState";
 import { Label } from "@/components/ui/atoms/Label/Label";
+import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import { PageHeader } from "@/components/ui/layout/PageHeader/PageHeader";
 import { LoadMoreSentinel } from "@/components/ui/layout/Table/LoadMoreSentinel/LoadMoreSentinel";
@@ -14,12 +15,11 @@ import { Table, type TableColumn } from "@/components/ui/layout/Table/Table";
 import { useInfiniteScroll } from "@/components/ui/layout/Table/useInfiniteScroll";
 import { useTableSort } from "@/components/ui/layout/Table/useTableSort";
 import { deleteLabel, setLabelHidden } from "@/features/issues/actions";
-import { LabelModal } from "@/features/issues/components/LabelModal/LabelModal";
+import { useOpenLabelModal } from "@/features/issues/useOpenLabelModal";
 import type {
   ProjectLabelRow,
   ProjectLabelsView,
 } from "@/features/projects/types";
-import { useModal } from "@/lib/context";
 import styles from "./projectLabels.module.scss";
 
 type LoadMoreLabels = (
@@ -63,7 +63,7 @@ export function ProjectLabels({
   const t = useTranslations();
   const router = useRouter();
   const confirm = useConfirm();
-  const { openModal } = useModal();
+  const openLabelModal = useOpenLabelModal();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
@@ -79,19 +79,15 @@ export function ProjectLabels({
   });
 
   const openEditor = (label?: ProjectLabelRow) =>
-    openModal(({ close }) => (
-      <LabelModal
-        workspaceId={workspaceId}
-        projectId={projectId}
-        label={label}
-        onDone={() => {
-          setError("");
-          router.refresh();
-        }}
-        close={close}
-      />
-    ));
-
+    openLabelModal({
+      workspaceId,
+      projectId,
+      label,
+      onDone: () => {
+        setError("");
+        router.refresh();
+      },
+    });
   const remove = async (row: ProjectLabelRow) => {
     // Deleting a label also removes it from the issues it's attached to.
     // That's why the count appears in the confirmation dialog: it's the
@@ -252,6 +248,12 @@ export function ProjectLabels({
   const ownSort = useTableSort(ownColumns);
   const inheritedSort = useTableSort(inheritedColumns);
 
+  // Which labels the list shows: the project's own, or those it inherits from
+  // the workspace.
+  const [scope, setScope] = useState<"project" | "workspace">("project");
+  const hasInherited = inheritedScroll.items.length > 0;
+  const showInherited = hasInherited && scope === "workspace";
+
   return (
     <>
       <PageHeader
@@ -270,38 +272,58 @@ export function ProjectLabels({
           </p>
         )}
 
-        <Table
-          fill
-          variant="card"
-          label={t("nav.labels")}
-          columns={ownColumns}
-          rows={ownSort.sortRows(ownScroll.items)}
-          sort={ownSort.sort}
-          getRowKey={(row) => row.id}
-          empty={
-            <EmptyState
-              icon={<Icon icon="lucide:tag" width={32} />}
-              title={t("projectLabels.emptyTitle")}
-              description={t("projectLabels.emptyDesc")}
-              action={newButton}
+        {hasInherited && (
+          <div className={styles.scopeSwitch}>
+            <SegmentedControl
+              variant="surface"
+              value={scope}
+              onChange={(value) => setScope(value as "project" | "workspace")}
+              items={[
+                {
+                  value: "project",
+                  label: t("settings.scopeProject"),
+                  icon: <Icon icon="lucide:folders" width={15} />,
+                },
+                {
+                  value: "workspace",
+                  label: t("settings.scopeWorkspace"),
+                  icon: <Icon icon="lucide:building-2" width={15} />,
+                },
+              ]}
             />
-          }
-          footer={
-            ownScroll.cursor && (
-              <LoadMoreSentinel
-                ref={ownScroll.sentinelRef}
-                loading={ownScroll.loading}
+          </div>
+        )}
+
+        {!showInherited && (
+          <Table
+            fill
+            variant="card"
+            label={t("nav.labels")}
+            columns={ownColumns}
+            rows={ownSort.sortRows(ownScroll.items)}
+            sort={ownSort.sort}
+            getRowKey={(row) => row.id}
+            empty={
+              <EmptyState
+                icon={<Icon icon="lucide:tag" width={32} />}
+                title={t("projectLabels.emptyTitle")}
+                description={t("projectLabels.emptyDesc")}
+                action={newButton}
               />
-            )
-          }
-        />
+            }
+            footer={
+              ownScroll.cursor && (
+                <LoadMoreSentinel
+                  ref={ownScroll.sentinelRef}
+                  loading={ownScroll.loading}
+                />
+              )
+            }
+          />
+        )}
 
-        {inheritedScroll.items.length > 0 && (
+        {showInherited && (
           <section className={styles.inherited}>
-            <h2 className={styles.groupTitle}>
-              {t("projectLabels.inheritedTitle")}
-            </h2>
-
             <Table
               fill
               variant="card"

@@ -1,3 +1,6 @@
+@use "breakpoints" as bp;
+@use "card-rows";
+
 /* It's not the page that scrolls, but each table on its own (`fill`) — both
    sections split the available height evenly (two `flex: 1` children in the
    same column), regardless of how many rows each currently shows. */
@@ -8,6 +11,13 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+
+  @include card-rows.card-rows;
+  @include card-rows.page-scroll-lists;
+}
+
+.scopeSwitch {
+  flex: none;
 }
 
 .usage {
@@ -53,6 +63,11 @@
 
 .groupDesc {
   margin: 0 0 0.5rem;
+
+  /* Phone: no explaining sentence, like every other page header. */
+  @include bp.phone {
+    display: none;
+  }
   font-size: var(--text-sm);
   line-height: var(--leading-normal);
   color: var(--on-surface-variant);
@@ -68,4 +83,21 @@
   background: var(--error-container);
   color: var(--on-error-container);
   font-size: var(--text-sm);
+}
+
+/* Phone rows: the label on top with the actions at its end (its basis leaves
+   room for exactly them, so the rest wraps onto the next line), its numbers
+   under it. The second table (labels from projects) has no actions: the
+   label takes the whole line, the project and the use follow. */
+.content {
+  @include bp.phone {
+    td[data-col="label"] { order: 1; flex: 1 1 calc(100% - 6.5rem); }
+    td[data-col="actions"] { order: 2; }
+    td[data-col="project"] { order: 3; }
+    td[data-col="usage"] { order: 4; }
+    td[data-col="hidden"] { order: 5; margin-inline-start: auto; }
+
+    tr:has(td[data-col="project"]) td[data-col="label"] { flex-basis: 100%; }
+    tr:has(td[data-col="project"]) td[data-col="usage"] { margin-inline-start: auto; }
+  }
 }

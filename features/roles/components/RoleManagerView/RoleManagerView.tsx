@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { EmptyState } from "@/components/ui/atoms/EmptyState/EmptyState";
-import { Input } from "@/components/ui/atoms/Input/Input";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import {
   createRole,
@@ -14,6 +13,7 @@ import {
   setRoleGrants,
   updateRole,
 } from "@/features/roles/actions";
+import { NewRoleModal } from "@/features/roles/components/NewRoleModal/NewRoleModal";
 import {
   cellId,
   PermissionMatrix,
@@ -25,6 +25,8 @@ import type {
   RoleView,
   RoleManagerView as View,
 } from "@/features/roles/types";
+import { useModal } from "@/lib/context";
+import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useUnsavedChanges } from "@/lib/utils/useUnsavedChanges";
 import styles from "./roleManagerView.module.scss";
 
@@ -64,11 +66,10 @@ export function RoleManagerView({
   const t = useTranslations();
   const router = useRouter();
   const confirm = useConfirm();
+  const { openModal } = useModal();
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const [pending, startTransition] = useTransition();
 
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newDesc, setNewDesc] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -146,32 +147,30 @@ export function RoleManagerView({
     }),
   );
 
-  const submitNew = () => {
-    const name = newName.trim();
-    if (!name) return;
-    run(async () => {
-      const result = await createRole(view.target, {
-        name,
-        desc: newDesc.trim(),
-      });
-      if (!("error" in result)) {
-        setNewName("");
-        setNewDesc("");
-        setCreating(false);
-      }
-      return result;
-    });
-  };
+  // A dialog from a tablet up, a bottom sheet on a phone.
+  const openNewRole = () =>
+    openModal(
+      ({ close }) => (
+        <NewRoleModal
+          close={close}
+          sheet={isPhone}
+          onCreate={async (name, desc) => {
+            const result = await createRole(view.target, { name, desc });
+            if ("error" in result) return result.error;
+            router.refresh();
+            return null;
+          }}
+        />
+      ),
+      {
+        ...(isPhone ? { placement: "bottom" as const } : {}),
+        label: t("roles.newRole"),
+      },
+    );
 
   const editing = editingId
     ? (roles.find((role) => role.id === editingId) ?? null)
     : null;
-
-  // Both fields share the same keyboard behavior: Enter creates, Escape cancels.
-  const onCreateKey = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter") submitNew();
-    if (event.key === "Escape") setCreating(false);
-  };
 
   // The carrier count on the cards counts the pool you're currently in.
   // Only this layer knows which one that is — the workspace's project
@@ -220,7 +219,7 @@ export function RoleManagerView({
             <Button
               variant="primary"
               icon={<Icon icon="lucide:plus" width={15} />}
-              onClick={() => setCreating((v) => !v)}
+              onClick={openNewRole}
             >
               {t("roles.newRole")}
             </Button>
@@ -234,35 +233,6 @@ export function RoleManagerView({
             <Icon icon="lucide:circle-alert" width={14} />
             {error}
           </p>
-        )}
-
-        {creating && (
-          <div className={styles.createRow}>
-            {/* The description right away: it later shows on the card and
-                is the only thing that explains what a role is meant for.
-                Whoever adds it later in the editor mostly leaves it empty. */}
-            <Input
-              autoFocus
-              size="sm"
-              placeholder={t("roles.newRolePlaceholder")}
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={onCreateKey}
-            />
-            <Input
-              size="sm"
-              placeholder={t("roles.newRoleDescPlaceholder")}
-              value={newDesc}
-              onChange={(e) => setNewDesc(e.target.value)}
-              onKeyDown={onCreateKey}
-            />
-            <Button variant="primary" onClick={submitNew} disabled={pending}>
-              {t("actions.create")}
-            </Button>
-            <Button variant="text" onClick={() => setCreating(false)}>
-              {t("actions.cancel")}
-            </Button>
-          </div>
         )}
 
         {roles.length === 0 ? (

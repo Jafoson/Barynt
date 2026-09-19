@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/atoms/Button/Button";
 import { Input } from "@/components/ui/atoms/Input/Input";
 import type { GrantChange, RoleView } from "@/features/roles/types";
 import { roleColor } from "@/lib/rbac";
+import { COMPACT_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import styles from "./permissionMatrix.module.scss";
 
 /** A cell's address — the caller uses the same construction for `changed`. */
@@ -67,6 +68,12 @@ export function PermissionMatrix({
 }: Props) {
   const t = useTranslations();
   const [query, setQuery] = useState("");
+  // A phone or tablet shows one role's column at a time, picked from the chips above
+  // the table — six columns of a matrix don't fit next to the permission.
+  const isPhone = useMediaQuery(COMPACT_QUERY);
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const focused = roles.find((role) => role.id === focusId) ?? roles[0];
+  const columns = isPhone && focused ? [focused] : roles;
 
   const canGrant = new Set(grantable);
   const needle = query.trim().toLowerCase();
@@ -118,6 +125,30 @@ export function PermissionMatrix({
         </ul>
       </div>
 
+      {isPhone && roles.length > 1 && (
+        <div className={styles.rolePicker} role="tablist">
+          {roles.map((role) => (
+            <button
+              key={role.id}
+              type="button"
+              role="tab"
+              aria-selected={role.id === focused?.id}
+              className={styles.roleChip}
+              onClick={() => setFocusId(role.id)}
+            >
+              <span
+                className={styles.roleDot}
+                style={{ background: roleColor(role.rank) }}
+              />
+              {role.name}
+              {!role.manageable && (
+                <Icon icon="lucide:lock" width={11} className={styles.lock} />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className={styles.card}>
         {roles.length === 0 ? (
           <p className={styles.noMatch}>{t("roles.allHidden")}</p>
@@ -127,11 +158,11 @@ export function PermissionMatrix({
           <div className={styles.scroller}>
             <table
               className={styles.table}
-              style={{ "--role-cols": roles.length } as React.CSSProperties}
+              style={{ "--role-cols": columns.length } as React.CSSProperties}
             >
               <colgroup>
                 <col className={styles.colPerm} />
-                {roles.map((role) => (
+                {columns.map((role) => (
                   <col key={role.id} className={styles.colRole} />
                 ))}
               </colgroup>
@@ -141,7 +172,7 @@ export function PermissionMatrix({
                   <th scope="col" className={styles.corner}>
                     {t("roles.permission")}
                   </th>
-                  {roles.map((role) => (
+                  {columns.map((role) => (
                     <th
                       key={role.id}
                       scope="col"
@@ -178,7 +209,7 @@ export function PermissionMatrix({
                     <tr>
                       <th
                         scope="colgroup"
-                        colSpan={roles.length + 1}
+                        colSpan={columns.length + 1}
                         className={styles.groupHead}
                       >
                         <span className={styles.groupHeadText}>
@@ -200,7 +231,7 @@ export function PermissionMatrix({
                           </code>
                         </th>
 
-                        {roles.map((role) => (
+                        {columns.map((role) => (
                           <Cell
                             key={role.id}
                             role={role}

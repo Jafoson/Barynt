@@ -13,9 +13,8 @@ import type {
   DashboardStats,
   ProjectProfile,
 } from "@/features/dashboard/types";
-import { LabelModal } from "@/features/issues/components/LabelModal/LabelModal";
+import { useOpenLabelModal } from "@/features/issues/useOpenLabelModal";
 import { Link, useRouter } from "@/i18n/navigation";
-import { useModal } from "@/lib/context";
 import { roleColor } from "@/lib/rbac";
 import { fullName } from "@/lib/utils/string";
 import styles from "./projectProfileView.module.scss";
@@ -170,18 +169,14 @@ export function ProjectProfileView({
   const t = useTranslations();
   const format = useFormatter();
   const router = useRouter();
-  const { openModal } = useModal();
+  const openLabelModal = useOpenLabelModal();
 
   const openNewLabel = () =>
-    openModal(({ close }) => (
-      <LabelModal
-        workspaceId={workspaceId}
-        projectId={project.id}
-        onDone={() => router.refresh()}
-        close={close}
-      />
-    ));
-
+    openLabelModal({
+      workspaceId,
+      projectId: project.id,
+      onDone: () => router.refresh(),
+    });
   const created = format.dateTime(new Date(profile.createdAt), {
     day: "numeric",
     month: "long",

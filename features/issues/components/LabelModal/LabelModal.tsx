@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { ColorPicker } from "@/components/ui/atoms/ColorPicker/ColorPicker";
 import { Input } from "@/components/ui/atoms/Input/Input";
@@ -11,9 +11,11 @@ import {
   ModalShortcut,
 } from "@/components/ui/layout/Modal/components/ModalFooter";
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
+import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
 import { createLabel, updateLabel } from "@/features/issues/actions";
 import { PALETTE } from "@/lib/utils";
+import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
 import styles from "./labelModal.module.scss";
 
 /** What the dialog needs from an existing label — project as well as workspace. */
@@ -23,7 +25,7 @@ interface EditableLabel {
   color: string;
 }
 
-interface Props {
+export interface LabelModalProps {
   workspaceId: string;
   /**
    * The project the new label should belong to. Without it, a
@@ -36,6 +38,8 @@ interface Props {
   label?: EditableLabel;
   onDone: () => void;
   close: () => void;
+  /** A bottom sheet (phone) instead of a dialog. */
+  sheet?: boolean;
 }
 
 /**
@@ -52,9 +56,12 @@ export function LabelModal({
   label,
   onDone,
   close,
-}: Props) {
+  sheet,
+}: LabelModalProps) {
   const t = useTranslations();
   const [isPending, startTransition] = useTransition();
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const swipe = useSwipeToClose(close, bodyRef);
 
   const [name, setName] = useState(label?.name ?? "");
   const [color, setColor] = useState(label?.color ?? PALETTE[0]);
@@ -94,16 +101,31 @@ export function LabelModal({
   };
 
   return (
-    <Modal width={440}>
-      <ModalHeader
-        title={
-          label ? t("projectLabels.editTitle") : t("projectLabels.newTitle")
-        }
-        onClose={close}
-        closeLabel={t("actions.cancel")}
-      />
+    <Modal
+      width={440}
+      variant={sheet ? "sheet" : "dialog"}
+      style={sheet ? swipe.style : undefined}
+      {...(sheet ? swipe.handlers : {})}
+    >
+      {sheet ? (
+        <SheetHeader
+          title={
+            label ? t("projectLabels.editTitle") : t("projectLabels.newTitle")
+          }
+          onClose={close}
+          closeLabel={t("actions.cancel")}
+        />
+      ) : (
+        <ModalHeader
+          title={
+            label ? t("projectLabels.editTitle") : t("projectLabels.newTitle")
+          }
+          onClose={close}
+          closeLabel={t("actions.cancel")}
+        />
+      )}
 
-      <ModalBody>
+      <ModalBody ref={bodyRef}>
         <form
           className={styles.form}
           onSubmit={(e) => {
@@ -114,7 +136,7 @@ export function LabelModal({
           <Input
             label={t("fields.name")}
             value={name}
-            autoFocus
+            autoFocus={!sheet}
             maxLength={40}
             error={error || undefined}
             placeholder={t("projectLabels.namePlaceholder")}
@@ -148,9 +170,11 @@ export function LabelModal({
       </ModalBody>
 
       <ModalFooter hint={<ModalShortcut keys="enter" />}>
-        <Button variant="ghost" disabled={isPending} onClick={close}>
-          {t("actions.cancel")}
-        </Button>
+        {!sheet && (
+          <Button variant="ghost" disabled={isPending} onClick={close}>
+            {t("actions.cancel")}
+          </Button>
+        )}
         <Button
           variant="primary"
           disabled={!trimmed || isPending}

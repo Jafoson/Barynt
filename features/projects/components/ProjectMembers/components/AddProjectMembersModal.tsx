@@ -3,7 +3,7 @@
 import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { CopyField } from "@/components/ui/atoms/CopyField/CopyField";
@@ -19,6 +19,7 @@ import {
   ModalShortcut,
 } from "@/components/ui/layout/Modal/components/ModalFooter";
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
+import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
 import {
   addProjectMembers,
@@ -27,6 +28,7 @@ import {
 import { parseEmailList } from "@/lib/utils/parse-emails";
 import { fullName } from "@/lib/utils/string";
 import { useSubmitShortcut } from "@/lib/utils/useSubmitShortcut";
+import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
 import type { Role, User } from "@/types";
 import styles from "./addProjectMembersModal.module.scss";
 
@@ -46,6 +48,8 @@ interface AddProjectMembersModalProps {
   /** Without this permission the email path is missing — new accounts are taboo. */
   canInvite: boolean;
   close: () => void;
+  /** A bottom sheet (phone) instead of a dialog. */
+  sheet?: boolean;
 }
 
 /**
@@ -61,8 +65,10 @@ export function AddProjectMembersModal({
   defaultRole,
   canInvite,
   close,
+  sheet,
 }: AddProjectMembersModalProps) {
   const t = useTranslations();
+  const bodyRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -143,27 +149,46 @@ export function AddProjectMembersModal({
 
   useSubmitShortcut(done ? finish : submit);
 
+  const swipe = useSwipeToClose(finish, bodyRef);
+
   return (
-    <Modal width={520}>
-      <ModalHeader
-        leading={
-          <Icon
-            icon={done ? "lucide:mail-check" : "lucide:user-plus"}
-            width={16}
-            className={styles.headerIcon}
-          />
-        }
-        title={
-          done
-            ? t("members.inviteResultsTitle")
-            : t("projectMembers.addTitle", { project: projectName })
-        }
-        onClose={finish}
-        closeLabel={t("actions.close")}
-      />
+    <Modal
+      width={520}
+      variant={sheet ? "sheet" : "dialog"}
+      style={sheet ? swipe.style : undefined}
+      {...(sheet ? swipe.handlers : {})}
+    >
+      {sheet ? (
+        <SheetHeader
+          title={
+            done
+              ? t("members.inviteResultsTitle")
+              : t("projectMembers.addTitle", { project: projectName })
+          }
+          onClose={finish}
+          closeLabel={t("actions.close")}
+        />
+      ) : (
+        <ModalHeader
+          leading={
+            <Icon
+              icon={done ? "lucide:mail-check" : "lucide:user-plus"}
+              width={16}
+              className={styles.headerIcon}
+            />
+          }
+          title={
+            done
+              ? t("members.inviteResultsTitle")
+              : t("projectMembers.addTitle", { project: projectName })
+          }
+          onClose={finish}
+          closeLabel={t("actions.close")}
+        />
+      )}
 
       {done ? (
-        <ModalBody className={styles.body}>
+        <ModalBody className={styles.body} ref={bodyRef}>
           <ul className={styles.resultList}>
             {rows.map((row) => (
               <li key={row.email} className={styles.resultRow}>
@@ -212,7 +237,7 @@ export function AddProjectMembersModal({
           </ul>
         </ModalBody>
       ) : (
-        <ModalBody className={styles.body}>
+        <ModalBody className={styles.body} ref={bodyRef}>
           {canInvite && (
             <SegmentedControl
               items={[
@@ -242,7 +267,7 @@ export function AddProjectMembersModal({
             ) : (
               <>
                 <Input
-                  autoFocus
+                  autoFocus={!sheet}
                   variant="search"
                   size="sm"
                   placeholder={t("projectMembers.searchPlaceholder")}
@@ -355,9 +380,11 @@ export function AddProjectMembersModal({
           </Button>
         ) : (
           <>
-            <Button variant="ghost" onClick={close}>
-              {t("actions.cancel")}
-            </Button>
+            {!sheet && (
+              <Button variant="ghost" onClick={close}>
+                {t("actions.cancel")}
+              </Button>
+            )}
             <Button variant="primary" disabled={!canSubmit} onClick={submit}>
               {mode === "workspace"
                 ? t("projectMembers.addSelected", { count: selected.size })

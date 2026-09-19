@@ -2,7 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { ColorPicker } from "@/components/ui/atoms/ColorPicker/ColorPicker";
@@ -15,12 +15,14 @@ import {
   ModalShortcut,
 } from "@/components/ui/layout/Modal/components/ModalFooter";
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
+import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
 import { createTeam, updateTeam } from "@/features/workspaces/actions";
 import type { WorkspaceTeamRow } from "@/features/workspaces/types";
 import { PALETTE } from "@/lib/utils";
 import { fullName } from "@/lib/utils/string";
 import { useSubmitShortcut } from "@/lib/utils/useSubmitShortcut";
+import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
 import type { User } from "@/types";
 import styles from "./teamModal.module.scss";
 
@@ -37,6 +39,8 @@ interface Props {
   canManageProjects: boolean;
   onDone: () => void;
   close: () => void;
+  /** A bottom sheet (phone) instead of a dialog. */
+  sheet?: boolean;
 }
 
 /** Short code like for a project: up to four characters, letters and digits. */
@@ -80,9 +84,12 @@ export function TeamModal({
   canManageProjects,
   onDone,
   close,
+  sheet,
 }: Props) {
   const t = useTranslations();
   const [isPending, startTransition] = useTransition();
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const swipe = useSwipeToClose(close, bodyRef);
 
   const [name, setName] = useState(team?.name ?? "");
   const [key, setKey] = useState(team?.key ?? "");
@@ -155,26 +162,41 @@ export function TeamModal({
   useSubmitShortcut(submit);
 
   return (
-    <Modal width={560}>
-      <ModalHeader
-        leading={
-          <Icon
-            icon="lucide:users-round"
-            width={16}
-            className={styles.headerIcon}
-          />
-        }
-        title={
-          team ? t("workspaceTeams.editTitle") : t("workspaceTeams.newTitle")
-        }
-        onClose={close}
-        closeLabel={t("actions.cancel")}
-      />
+    <Modal
+      width={560}
+      variant={sheet ? "sheet" : "dialog"}
+      style={sheet ? swipe.style : undefined}
+      {...(sheet ? swipe.handlers : {})}
+    >
+      {sheet ? (
+        <SheetHeader
+          title={
+            team ? t("workspaceTeams.editTitle") : t("workspaceTeams.newTitle")
+          }
+          onClose={close}
+          closeLabel={t("actions.cancel")}
+        />
+      ) : (
+        <ModalHeader
+          leading={
+            <Icon
+              icon="lucide:users-round"
+              width={16}
+              className={styles.headerIcon}
+            />
+          }
+          title={
+            team ? t("workspaceTeams.editTitle") : t("workspaceTeams.newTitle")
+          }
+          onClose={close}
+          closeLabel={t("actions.cancel")}
+        />
+      )}
 
-      <ModalBody className={styles.body}>
+      <ModalBody className={styles.body} ref={bodyRef}>
         <div className={styles.row}>
           <Input
-            autoFocus
+            autoFocus={!sheet}
             className={styles.grow}
             label={t("fields.name")}
             placeholder={t("workspaceTeams.namePlaceholder")}
@@ -430,9 +452,11 @@ export function TeamModal({
       </ModalBody>
 
       <ModalFooter hint={<ModalShortcut keys="mod+enter" />}>
-        <Button variant="ghost" disabled={isPending} onClick={close}>
-          {t("actions.cancel")}
-        </Button>
+        {!sheet && (
+          <Button variant="ghost" disabled={isPending} onClick={close}>
+            {t("actions.cancel")}
+          </Button>
+        )}
         <Button
           variant="primary"
           disabled={!trimmed || !leadId || isPending}

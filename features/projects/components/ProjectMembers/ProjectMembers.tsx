@@ -27,6 +27,7 @@ import type {
 import { useModal } from "@/lib/context";
 import { roleColor } from "@/lib/rbac";
 import { fullName } from "@/lib/utils/string";
+import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { AddProjectMembersModal } from "./components/AddProjectMembersModal";
 import styles from "./projectMembers.module.scss";
 
@@ -63,6 +64,7 @@ export function ProjectMembers({
   const t = useTranslations();
   const router = useRouter();
   const { openModal } = useModal();
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
@@ -83,18 +85,23 @@ export function ProjectMembers({
       router.refresh();
     });
 
+  // A bottom sheet on a phone, a dialog from a tablet up.
   const openAdd = () =>
-    openModal(({ close }) => (
-      <AddProjectMembersModal
-        projectId={projectId}
-        projectName={projectName}
-        candidates={candidates}
-        roles={assignableRoles}
-        defaultRole={defaultRole}
-        canInvite={canInvite}
-        close={close}
-      />
-    ));
+    openModal(
+      ({ close }) => (
+        <AddProjectMembersModal
+          projectId={projectId}
+          projectName={projectName}
+          candidates={candidates}
+          roles={assignableRoles}
+          defaultRole={defaultRole}
+          canInvite={canInvite}
+          close={close}
+          sheet={isPhone}
+        />
+      ),
+      isPhone ? { placement: "bottom" } : undefined,
+    );
 
   const addButton = canAdd && (
     <Button

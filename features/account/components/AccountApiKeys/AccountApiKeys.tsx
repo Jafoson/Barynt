@@ -7,9 +7,6 @@ import { useState, useTransition } from "react";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { CopyField } from "@/components/ui/atoms/CopyField/CopyField";
-import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
-import { Input } from "@/components/ui/atoms/Input/Input";
-import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import { CopyButton } from "@/components/ui/layout/CopyButton/CopyButton";
 import { PageHeader } from "@/components/ui/layout/PageHeader/PageHeader";
@@ -21,13 +18,14 @@ import {
 } from "@/components/ui/layout/SettingsList/SettingsList";
 import { createApiKey, revokeApiKey } from "@/features/account/actions";
 import type { ApiKeysView } from "@/features/account/types";
-import { API_SCOPES, type ApiScope } from "@/lib/api/scopes";
+import type { ApiScope } from "@/lib/api/scopes";
 import { appUrl } from "@/lib/app-url";
+import { useModal } from "@/lib/context";
+import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useTimeAgo } from "@/lib/utils/useTimeAgo";
 import { ApiDocs } from "./ApiDocs";
 import styles from "./accountApiKeys.module.scss";
-
-type ExpiryChoice = "never" | "30" | "60" | "90";
+import { type NewApiKeyInput, NewApiKeyModal } from "./NewApiKeyModal";
 
 /**
  * Personal access tokens for the public REST API (`app/api/v1`).
@@ -54,10 +52,8 @@ export function AccountApiKeys({ keys }: ApiKeysView) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
-  const [formOpen, setFormOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [scopes, setScopes] = useState<Set<ApiScope>>(new Set());
-  const [expiry, setExpiry] = useState<ExpiryChoice>("90");
+  const { openModal } = useModal();
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
 
   // next-intl's `t()` needs a literal key — it can't resolve one built from
@@ -80,46 +76,31 @@ export function AccountApiKeys({ keys }: ApiKeysView) {
   const activeCount = keys.filter((key) => !key.revokedAt).length;
   const revokedCount = keys.length - activeCount;
 
-  const toggleScope = (scope: ApiScope, checked: boolean) => {
-    setScopes((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(scope);
-      else next.delete(scope);
-      return next;
-    });
+  const createKey = async ({ name, scopes, expiresAt }: NewApiKeyInput) => {
+    const result = await createApiKey({ name, scopes, expiresAt });
+    if ("error" in result) return result.error;
+    setError("");
+    setCreatedToken(result.token);
+    router.refresh();
+    return null;
   };
 
-  const resetForm = () => {
-    setName("");
-    setScopes(new Set());
-    setExpiry("90");
-  };
-
-  const create = () => {
-    const trimmed = name.trim();
-    if (!trimmed || scopes.size === 0 || isPending) return;
-    startTransition(async () => {
-      const expiresAt =
-        expiry === "never"
-          ? undefined
-          : new Date(Date.now() + Number(expiry) * 24 * 60 * 60 * 1000);
-
-      const result = await createApiKey({
-        name: trimmed,
-        scopes: [...scopes],
-        expiresAt,
-      });
-      if ("error" in result) {
-        setError(result.error);
-        return;
-      }
-      setError("");
-      setCreatedToken(result.token);
-      setFormOpen(false);
-      resetForm();
-      router.refresh();
-    });
-  };
+  // A dialog from a tablet up, a bottom sheet on a phone.
+  const openNewKey = () =>
+    openModal(
+      ({ close }) => (
+        <NewApiKeyModal
+          close={close}
+          sheet={isPhone}
+          scopeDesc={scopeDesc}
+          onCreate={createKey}
+        />
+      ),
+      {
+        ...(isPhone ? { placement: "bottom" as const } : {}),
+        label: t("apiKeys.newKey"),
+      },
+    );
 
   const revoke = async (id: string, keyName: string) => {
     const ok = await confirm({
@@ -245,12 +226,11 @@ export function AccountApiKeys({ keys }: ApiKeysView) {
           revoked: revokedCount,
         })}
         actions={
-          !formOpen &&
           !createdToken && (
             <Button
               variant="primary"
               icon={<Icon icon="lucide:plus" width={15} />}
-              onClick={() => setFormOpen(true)}
+              onClick={openNewKey}
             >
               {t("apiKeys.newKey")}
             </Button>
@@ -283,109 +263,6 @@ export function AccountApiKeys({ keys }: ApiKeysView) {
           </div>
         )}
 
-        {!createdToken && formOpen && (
-          <div className={styles.form}>
-            <div className={styles.formTop}>
-              <Input
-                label={t("fields.name")}
-                placeholder={t("apiKeys.namePlaceholder")}
-                value={name}
-                disabled={isPending}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>
-                  {t("apiKeys.expiryFieldLabel")}
-                </span>
-                <InlinePicker
-                  trigger={
-                    <button type="button" className={styles.expiryTrigger}>
-                      {expiry === "never"
-                        ? t("apiKeys.expiryNever")
-                        : t("apiKeys.expiresInDays", { count: Number(expiry) })}
-                      <Icon icon="lucide:chevron-down" width={14} />
-                    </button>
-                  }
-                  width={200}
-                  stop
-                >
-                  {(close) => (
-                    <SelectMenu
-                      items={[
-                        { value: "never", label: t("apiKeys.expiryNever") },
-                        {
-                          value: "30",
-                          label: t("apiKeys.expiresInDays", { count: 30 }),
-                        },
-                        {
-                          value: "60",
-                          label: t("apiKeys.expiresInDays", { count: 60 }),
-                        },
-                        {
-                          value: "90",
-                          label: t("apiKeys.expiresInDays", { count: 90 }),
-                        },
-                      ]}
-                      value={expiry}
-                      onPick={(value) => {
-                        setExpiry(value as ExpiryChoice);
-                        close();
-                      }}
-                      onClose={close}
-                    />
-                  )}
-                </InlinePicker>
-              </div>
-            </div>
-
-            <div className={styles.scopeSection}>
-              <span className={styles.fieldLabel}>
-                {t("apiKeys.scopesLabel")}
-              </span>
-              <div className={styles.scopeCards}>
-                {API_SCOPES.map((scope) => (
-                  <label
-                    key={scope}
-                    className={styles.scopeCard}
-                    data-checked={scopes.has(scope) || undefined}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={scopes.has(scope)}
-                      disabled={isPending}
-                      onChange={(e) => toggleScope(scope, e.target.checked)}
-                    />
-                    <span className={styles.scopeCardText}>
-                      <code>{scope}</code>
-                      <span>{scopeDesc[scope]}</span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.actions}>
-              <Button
-                variant="text"
-                disabled={isPending}
-                onClick={() => {
-                  setFormOpen(false);
-                  resetForm();
-                }}
-              >
-                {t("actions.cancel")}
-              </Button>
-              <Button
-                variant="primary"
-                disabled={!name.trim() || scopes.size === 0 || isPending}
-                onClick={create}
-              >
-                {t("apiKeys.create")}
-              </Button>
-            </div>
-          </div>
-        )}
-
         {rows.length > 0 ? (
           <SettingsList
             rows={rows}
@@ -393,7 +270,7 @@ export function AccountApiKeys({ keys }: ApiKeysView) {
             label={t("apiKeys.title")}
           />
         ) : (
-          !formOpen && <p className={styles.empty}>{t("apiKeys.empty")}</p>
+          <p className={styles.empty}>{t("apiKeys.empty")}</p>
         )}
 
         <SettingsList title={t("apiKeys.accessTitle")} rows={accessRows} />

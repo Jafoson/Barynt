@@ -15,7 +15,7 @@ import { Table, type TableColumn } from "@/components/ui/layout/Table/Table";
 import { useInfiniteScroll } from "@/components/ui/layout/Table/useInfiniteScroll";
 import { useTableSort } from "@/components/ui/layout/Table/useTableSort";
 import { deleteProject } from "@/features/projects/actions";
-import { CreateProjectModal } from "@/features/projects/components/CreateProjectModal/CreateProjectModal";
+import { useOpenCreateProject } from "@/features/projects/useOpenCreateProject";
 import type {
   WorkspaceProjectRow,
   WorkspaceProjectsView,
@@ -84,6 +84,7 @@ export function WorkspaceProjects({
   const router = useRouter();
   const confirm = useConfirm();
   const { openModal } = useModal();
+  const openCreateProject = useOpenCreateProject();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
@@ -111,10 +112,7 @@ export function WorkspaceProjects({
     router.refresh();
   };
 
-  const openCreate = () =>
-    openModal(({ close }) => (
-      <CreateProjectModal workspaceId={workspaceId} close={close} />
-    ));
+  const openCreate = () => openCreateProject(workspaceId);
 
   const openEdit = (row: WorkspaceProjectRow) =>
     openModal(({ close }) => (
@@ -224,7 +222,12 @@ export function WorkspaceProjects({
       width: "minmax(90px, max-content)",
       align: "end",
       sortValue: (row) => row.issueCount,
-      cell: (row) => <span className={styles.count}>{row.issueCount}</span>,
+      cell: (row) => (
+        <span className={styles.count}>
+          {row.issueCount}
+          <span className={styles.countLabel}>{t("nav.issues")}</span>
+        </span>
+      ),
     },
     {
       id: "actions",

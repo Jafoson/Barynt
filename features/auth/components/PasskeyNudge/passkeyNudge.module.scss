@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 .banner {
   display: flex;
   align-items: center;
@@ -7,6 +9,19 @@
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--secondary-container) 30%, var(--surface));
   margin-inline: 1rem;
+
+  /* Phone: air between the top bar and the banner. */
+  @include bp.phone {
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
+    margin-inline: 0.75rem;
+  }
+
+  /* Touch: a bit slimmer than the mouse version, on a phone or a tablet. */
+  @include bp.coarse {
+    gap: 0.5rem;
+    padding: 0.375rem 0.5rem 0.375rem 0.75rem;
+  }
 }
 
 .icon {
@@ -27,6 +42,16 @@
   align-items: center;
   gap: 0.25rem;
   flex: none;
+}
+
+/* Touch: the close button doesn't set the banner's height (it would be
+   44px). The doubled class beats the button's own touch-size rules. */
+.actions.actions > button {
+  @include bp.coarse {
+    min-height: 0;
+    height: 2.25rem;
+    min-width: 2.25rem;
+  }
 }
 
 .link {
