@@ -609,6 +609,20 @@ tbody.group {
   }
 }
 
+/* Phone: no bar in the card. A classic scrollbar takes a strip of the list's
+   width and sits right beside the group headers' buttons; a phone scrolls by
+   touch, and its own floating indicator shows where you are anyway. */
+.fill,
+.card.fill {
+  @include bp.phone {
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
 .cardFrame > :is(.card, .empty) {
   flex: 1;
   min-height: 0;
