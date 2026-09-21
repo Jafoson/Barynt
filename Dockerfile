@@ -139,7 +139,13 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD bun -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000),{redirect:'manual'}).then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
 
-CMD ["bun", "server.js"]
+# `--no-install` turns off Bun's auto-install. Without it, a bare import that
+# finds no node_modules on its way up the directory tree makes Bun download the
+# package from npm at request time. The app never needs that (its node_modules
+# is complete), but plugin code loaded from a directory outside /app would: the
+# BARY-50 experiment fetched zod@4.6.5 this way while the app ships 4.6.0. See
+# docs/plugins/adr-0001-runtime-loading.md.
+CMD ["bun", "--no-install", "server.js"]
 
 # ---------------------------------------------------------------------------
 # migrate-deps: isolated install for the one-shot migration image — its own
