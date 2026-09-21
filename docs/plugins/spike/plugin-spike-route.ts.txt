@@ -1,0 +1,56 @@
+// SPIKE (BARY-50), throwaway: proves or disproves that a route handler in the
+// built Next.js standalone image can load plugin code from a directory at
+// runtime. Not part of the product; the copy in docs/plugins/spike/ is the
+// record, and this file is removed once the experiment is written up.
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(request: Request) {
+  const params = new URL(request.url).searchParams;
+  const dir = process.env.PLUGINS_DIR ?? "/app/plugins";
+  const path = join(/* turbopackIgnore: true */ dir, params.get("id") ?? "hello", params.get("file") ?? "server.js");
+  if (!existsSync(/* turbopackIgnore: true */ path)) {
+    return NextResponse.json({ ok: false, error: "missing file", path }, { status: 404 });
+  }
+
+  // `mode=path` imports the absolute path, `mode=url` (default) a file:// URL.
+  // `bust=<x>` appends a query so a changed file is evaluated again.
+  const bust = params.get("bust");
+  const specifier =
+    params.get("mode") === "path"
+      ? bust
+        ? `${path}?v=${bust}`
+        : path
+      : bust
+        ? `${pathToFileURL(path).href}?v=${bust}`
+        : pathToFileURL(path).href;
+
+  const started = performance.now();
+  try {
+    // The variable specifier is what Turbopack cannot analyse; the comment
+    // tells it to leave the expression alone (guides/lazy-loading.md).
+    const mod = await import(/* turbopackIgnore: true */ specifier);
+    const result =
+      typeof mod.default === "function" ? await mod.default({ host: "barynt-spike" }) : mod.default;
+    return NextResponse.json({
+      ok: true,
+      runtime: { bun: process.versions.bun ?? null, node: process.versions.node },
+      ms: Math.round(performance.now() - started),
+      exports: Object.keys(mod),
+      result,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack?.split("\n").slice(0, 3) : undefined,
+      },
+      { status: 500 },
+    );
+  }
+}

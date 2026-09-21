@@ -1,0 +1,111 @@
+# Output of docs/plugins/spike/run.sh, 2026-09-22
+# Image: barynt-spike:annotated (runner target, Bun 1.4.2), local Docker 29.7.2
+
+
+=== plugins mounted at /app/plugins (image: barynt-spike:annotated) ===
+--- hello.js (plain ESM)
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["default","version"],"result":{"plugin":"hello","host":"barynt-spike","loadedAt":"<time>"}}
+--- hello-ts (TypeScript from disk)
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["default"],"result":{"plugin":"hello-ts","host":"barynt-spike"}}
+--- needs-zod (bare import of a host package)
+{"ok":false,"error":"Cannot find package 'zod' imported from /app/plugins/needs-zod/server.js","stack":["ResolveMessage: Cannot find package 'zod' imported from /app/plugins/needs-zod/server.js"]}
+--- needs-react (bare import of react)
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":1,"exports":["default"],"result":{"plugin":"needs-react","element":"function"}}
+--- bundled-dep (dependency bundled in)
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":21,"exports":["default"],"result":{"plugin":"bundled-dep","parsed":{"a":2}}}
+--- imports-host (@/lib/db from a plugin)
+{"ok":false,"error":"Cannot find package '@/lib' imported from /app/plugins/imports-host/server.js","stack":["ResolveMessage: Cannot find package '@/lib' imported from /app/plugins/imports-host/server.js"]}
+--- throws (error while loading)
+{"ok":false,"error":"plugin failed while loading","stack":["Error: plugin failed while loading","    at /app/plugins/throws/server.js:1:11","    at processTicksAndRejections (native)"]}
+--- hello via absolute path instead of URL
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["default","version"],"result":{"plugin":"hello","host":"barynt-spike","loadedAt":"<time>"}}
+--- counter, first load
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["STAMP","default"],"result":{"plugin":"counter","stamp":"A"}}
+--- counter after edit, plain re-import
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["STAMP","default"],"result":{"plugin":"counter","stamp":"A"}}
+--- counter after edit, with cache-bust
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["STAMP","default"],"result":{"plugin":"counter","stamp":"A"}}
+--- late (added while the server runs)
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["default","version"],"result":{"plugin":"hello","host":"barynt-spike","loadedAt":"<time>"}}
+--- user / write access inside the container
+1000
+PLUGINS_DIR=/app/plugins
+
+=== plugins mounted at /plugins (image: barynt-spike:annotated) ===
+--- hello.js (plain ESM)
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["default","version"],"result":{"plugin":"hello","host":"barynt-spike","loadedAt":"<time>"}}
+--- hello-ts (TypeScript from disk)
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["default"],"result":{"plugin":"hello-ts","host":"barynt-spike"}}
+--- needs-zod (bare import of a host package)
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":319,"exports":["default"],"result":{"plugin":"needs-zod","parsed":{"a":1}}}
+--- needs-react (bare import of react)
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":156,"exports":["default"],"result":{"plugin":"needs-react","element":"function"}}
+--- bundled-dep (dependency bundled in)
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":23,"exports":["default"],"result":{"plugin":"bundled-dep","parsed":{"a":2}}}
+--- imports-host (@/lib/db from a plugin)
+{"ok":false,"error":"Cannot find package '@/lib' imported from /plugins/imports-host/server.js","stack":["ResolveMessage: Cannot find package '@/lib' imported from /plugins/imports-host/server.js"]}
+--- throws (error while loading)
+{"ok":false,"error":"plugin failed while loading","stack":["Error: plugin failed while loading","    at /plugins/throws/server.js:1:11","    at processTicksAndRejections (native)"]}
+--- hello via absolute path instead of URL
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["default","version"],"result":{"plugin":"hello","host":"barynt-spike","loadedAt":"<time>"}}
+--- counter, first load
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":1,"exports":["STAMP","default"],"result":{"plugin":"counter","stamp":"A"}}
+--- counter after edit, plain re-import
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["STAMP","default"],"result":{"plugin":"counter","stamp":"A"}}
+--- counter after edit, with cache-bust
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["STAMP","default"],"result":{"plugin":"counter","stamp":"A"}}
+--- late (added while the server runs)
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["default","version"],"result":{"plugin":"hello","host":"barynt-spike","loadedAt":"<time>"}}
+--- user / write access inside the container
+1000
+PLUGINS_DIR=/plugins
+
+=== plugins mounted at /plugins (bun --no-install) (image: barynt-spike:annotated) ===
+--- hello.js (plain ESM)
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["default","version"],"result":{"plugin":"hello","host":"barynt-spike","loadedAt":"<time>"}}
+--- hello-ts (TypeScript from disk)
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["default"],"result":{"plugin":"hello-ts","host":"barynt-spike"}}
+--- needs-zod (bare import of a host package)
+{"ok":false,"error":"Cannot find package 'zod' imported from /plugins/needs-zod/server.js","stack":["ResolveMessage: Cannot find package 'zod' imported from /plugins/needs-zod/server.js"]}
+--- needs-react (bare import of react)
+{"ok":false,"error":"Cannot find package 'react' imported from /plugins/needs-react/server.js","stack":["ResolveMessage: Cannot find package 'react' imported from /plugins/needs-react/server.js"]}
+--- bundled-dep (dependency bundled in)
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":20,"exports":["default"],"result":{"plugin":"bundled-dep","parsed":{"a":2}}}
+--- imports-host (@/lib/db from a plugin)
+{"ok":false,"error":"Cannot find package '@/lib' imported from /plugins/imports-host/server.js","stack":["ResolveMessage: Cannot find package '@/lib' imported from /plugins/imports-host/server.js"]}
+--- throws (error while loading)
+{"ok":false,"error":"plugin failed while loading","stack":["Error: plugin failed while loading","    at /plugins/throws/server.js:1:11","    at processTicksAndRejections (native)"]}
+--- hello via absolute path instead of URL
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["default","version"],"result":{"plugin":"hello","host":"barynt-spike","loadedAt":"<time>"}}
+--- counter, first load
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":1,"exports":["STAMP","default"],"result":{"plugin":"counter","stamp":"A"}}
+--- counter after edit, plain re-import
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["STAMP","default"],"result":{"plugin":"counter","stamp":"A"}}
+--- counter after edit, with cache-bust
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["STAMP","default"],"result":{"plugin":"counter","stamp":"A"}}
+--- late (added while the server runs)
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":0,"exports":["default","version"],"result":{"plugin":"hello","host":"barynt-spike","loadedAt":"<time>"}}
+--- user / write access inside the container
+1000
+PLUGINS_DIR=/plugins
+
+=== reloading a changed plugin (plugins at /plugins, writable mount) ===
+1 first load:                 {"plugin":"counter","stamp":"A"}
+2 same import again:          {"plugin":"counter","stamp":"A"}
+3 file:// URL with ?v=1:      {"plugin":"counter","stamp":"A"}
+4 absolute path with ?v=3:    {"plugin":"counter","stamp":"B"}
+5 copy in a new directory:    {"plugin":"counter","stamp":"B"}
+
+=== Bun auto-install: what happens to a bare import when no node_modules is found? ===
+before: 
+{"ok":true,"runtime":{"bun":"1.4.2","node":"26.3.0"},"ms":278,"exports":["default"],"result":{"plugin":"needs-zod","parsed":{"a":1}}}
+after:  c17f4447ebe3362d.npm zod zod@4.6.5@@@1 
+host ships zod 4.6.0
+
+=== compiled route: is the dynamic import() left in place? ===
+files: /app/.next/server/app/api/plugin-spike/route.js
+/app/.next/server/app/api/plugin-spike/route_client-reference-manifest.js
+/app/.next/server/chunks/_next-internal_server_app_api_plugin-spike_route_actions_0box5ua.js
+--- traced size of standalone server dir:
+20M	/app/.next/server
+133M	/app/node_modules

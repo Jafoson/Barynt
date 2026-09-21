@@ -1,0 +1,8 @@
+/* Uses the host's design tokens; no build step, shipped next to client.js. */
+.hello-client {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--primary, hotpink);
+  color: var(--on-surface, #000);
+}
