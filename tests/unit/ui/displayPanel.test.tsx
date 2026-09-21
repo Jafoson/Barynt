@@ -28,6 +28,19 @@ const state: DisplayState = {
   sortKey: "manual",
   hidden: new Set(["labels"]),
   projectHiddenFields: [],
+  groupLookups: {
+    statuses: [
+      { id: "todo", name: "Todo", color: "#111", isColumn: true },
+      { id: "done", name: "Done", color: "#222", isColumn: true },
+      { id: "canceled", name: "Canceled", color: "#333", isColumn: false },
+    ] as never,
+    priorities: [],
+    issueTypes: [],
+    members: [],
+  },
+  view: "list",
+  hiddenGroups: ["status:done", "priority:3"],
+  hideEmptyGroups: false,
 };
 
 function render(
@@ -39,6 +52,8 @@ function render(
       onGroup={() => {}}
       onSort={() => {}}
       onToggleField={() => {}}
+      onToggleGroup={() => {}}
+      onToggleHideEmpty={() => {}}
       onReset={() => {}}
       facet={null}
       onFacetChange={() => {}}
@@ -63,6 +78,30 @@ describe("DisplayPanel", () => {
     const html = render();
     expect(html).toContain("display.fieldsTitle");
     expect(html).toContain("fields.labels");
+  });
+
+  it("shows the groups as a row with how many are shown (BARY-47)", () => {
+    const html = render();
+    expect(html).toContain("display.groupsTitle");
+    // Canceled counts too; only "done" is hidden here.
+    expect(html).toContain("2/3");
+  });
+
+  it("has a switch for hiding empty groups automatically (BARY-47)", () => {
+    expect(render()).toContain("display.hideEmptyGroups");
+    expect(render()).toContain('aria-checked="false"');
+    expect(render({ state: { ...state, hideEmptyGroups: true } })).toContain(
+      "checked",
+    );
+  });
+
+  it("opens the groups as a multi-select list, hidden ones not selected", () => {
+    const html = render({ facet: "groups" });
+    expect(html).toContain('aria-multiselectable="true"');
+    expect(html).toContain("Todo");
+    expect(html).toContain("Done");
+    expect(html).toContain("Canceled");
+    expect(html.match(/aria-selected="true"/g)).toHaveLength(2);
   });
 
   it("has a reset button below unless the sheet holds it in its bar", () => {

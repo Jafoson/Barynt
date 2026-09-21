@@ -1249,3 +1249,44 @@ export const getMyIssuesViewPreference = cache(
     return pref?.hiddenFields ?? [];
   },
 );
+
+/** How a view shows its groups: which ones are hidden, and whether empty ones hide themselves (BARY-47). */
+export interface ViewGroupPreference {
+  hiddenGroups: string[];
+  hideEmptyGroups: boolean;
+}
+
+const NO_GROUP_PREFERENCE: ViewGroupPreference = {
+  hiddenGroups: [],
+  hideEmptyGroups: false,
+};
+
+/** A project's board or list, as this person has set up its groups. */
+export const getIssueViewGroups = cache(
+  async (
+    projectId: string,
+    view: "board" | "list",
+  ): Promise<ViewGroupPreference> => {
+    const userId = await currentUserId();
+    if (!userId) return NO_GROUP_PREFERENCE;
+    const pref = await db.issueViewPreference.findUnique({
+      where: { userId_projectId_view: { userId, projectId, view } },
+      select: { hiddenGroups: true, hideEmptyGroups: true },
+    });
+    return pref ?? NO_GROUP_PREFERENCE;
+  },
+);
+
+/** Same for the cross-project "my issues" board or list. */
+export const getMyIssuesViewGroups = cache(
+  async (view: "board" | "list"): Promise<ViewGroupPreference> => {
+    const userId = await currentUserId();
+    const workspaceId = getCurrentWorkspaceId();
+    if (!userId || !workspaceId) return NO_GROUP_PREFERENCE;
+    const pref = await db.myIssuesViewPreference.findUnique({
+      where: { userId_workspaceId_view: { userId, workspaceId, view } },
+      select: { hiddenGroups: true, hideEmptyGroups: true },
+    });
+    return pref ?? NO_GROUP_PREFERENCE;
+  },
+);

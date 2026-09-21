@@ -6,6 +6,7 @@ import { getIssueComposerData } from "@/features/issues/editor-data";
 import { groupKeyFromParam } from "@/features/issues/group";
 import {
   getIssuesByProject,
+  getIssueViewGroups,
   getIssueViewPreference,
 } from "@/features/issues/queries";
 import { sortKeyFromParam } from "@/features/issues/sort";
@@ -29,10 +30,11 @@ export default async function ListPage({
   const project = projects.find((p) => p.slug === projectSlug);
   if (!project) notFound();
 
-  const [issues, composer, hiddenCardFields] = await Promise.all([
+  const [issues, composer, hiddenCardFields, groups] = await Promise.all([
     getIssuesByProject(project.id, filters),
     getIssueComposerData(),
     getIssueViewPreference(project.id, "list"),
+    getIssueViewGroups(project.id, "list"),
   ]);
   if (!composer) notFound();
 
@@ -44,6 +46,8 @@ export default async function ListPage({
         projectId={project.id}
         composer={composer}
         hiddenCardFields={hiddenCardFields}
+        hiddenGroups={groups.hiddenGroups}
+        hideEmptyGroups={groups.hideEmptyGroups}
         sortKey={sortKeyFromParam(filters.sort)}
         groupKey={groupKeyFromParam(filters.group)}
       />

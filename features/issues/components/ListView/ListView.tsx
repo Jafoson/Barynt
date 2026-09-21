@@ -28,6 +28,7 @@ import {
   groupPatch,
   visibleGroups,
 } from "@/features/issues/group";
+import { isGroupHidden } from "@/features/issues/hidden-groups";
 import { useIssueOpen } from "@/features/issues/issue-links";
 import { rankBetween } from "@/features/issues/rank";
 import { type SortKey, sortByKey } from "@/features/issues/sort";
@@ -77,6 +78,10 @@ interface ListViewProps {
   sortKey: SortKey;
   /** What the groups are: statuses by default, or another field (BARY-35). */
   groupKey: GroupKey;
+  /** Groups this person hid, as `hidden-groups.ts` entries (BARY-47). */
+  hiddenGroups: string[];
+  /** Groups without an issue hide themselves (BARY-47). */
+  hideEmptyGroups: boolean;
   /** What's shown instead of the empty table. Default: "No tasks". */
   emptyTitle?: string;
 }
@@ -94,6 +99,8 @@ export function ListView({
   hiddenCardFields,
   sortKey,
   groupKey,
+  hiddenGroups,
+  hideEmptyGroups,
   emptyTitle,
 }: ListViewProps) {
   const { projects, members, labels, statuses, priorities, issueTypes } =
@@ -169,33 +176,43 @@ export function ListView({
     },
     shown,
   );
-  const groups: TableGroup<IssueDetail>[] = visibleGroups(defs, shown).map(
-    (group) => {
-      // By rank, not by creation date — otherwise the row would end up
-      // somewhere other than where it was dropped after a drag.
-      const rows = sortByKey(
-        shown.filter((issue) => groupIdOf(issue, groupKey) === group.id),
-        sortKey,
-        { statuses, issueTypes, members },
-      );
-      return {
-        id: group.id,
-        label: group.label,
-        collapsed: collapsed.has(group.id),
-        header: (
-          <ListGroupHeader
-            group={group}
-            count={rows.length}
-            projectId={projectId}
-            composer={composer}
-            collapsed={collapsed.has(group.id)}
-            onToggle={() => toggleGroup(group.id)}
-          />
-        ),
-        rows,
-      };
-    },
+  const allGroups = visibleGroups(defs, shown);
+  // Groups hidden in the display settings — one by one, or every empty one
+  // (BARY-47) — leave the table altogether: no rows, no drop
+  // target, no "Move to…" entry — the issues in them stay as they are.
+  const shownDefs = allGroups.filter(
+    (g) =>
+      !isGroupHidden(hiddenGroups, g, "list") &&
+      !(
+        hideEmptyGroups &&
+        !shown.some((issue) => groupIdOf(issue, groupKey) === g.id)
+      ),
   );
+  const groups: TableGroup<IssueDetail>[] = shownDefs.map((group) => {
+    // By rank, not by creation date — otherwise the row would end up
+    // somewhere other than where it was dropped after a drag.
+    const rows = sortByKey(
+      shown.filter((issue) => groupIdOf(issue, groupKey) === group.id),
+      sortKey,
+      { statuses, issueTypes, members },
+    );
+    return {
+      id: group.id,
+      label: group.label,
+      collapsed: collapsed.has(group.id),
+      header: (
+        <ListGroupHeader
+          group={group}
+          count={rows.length}
+          projectId={projectId}
+          composer={composer}
+          collapsed={collapsed.has(group.id)}
+          onToggle={() => toggleGroup(group.id)}
+        />
+      ),
+      rows,
+    };
+  });
 
   // The keyboard cursor — which row j/k/arrows would move next, independent
   // of `openIssue` (the one actually shown in the panel). Flattened across
@@ -471,7 +488,7 @@ export function ListView({
             linkProps={issueOpen.linkProps(identifier(issue))}
             compact={isCompact}
             members={members}
-            moveTargets={visibleGroups(defs, shown)}
+            moveTargets={shownDefs}
             currentGroupId={groupIdOf(issue, groupKey)}
             onMoveTo={(groupId) => moveRow(issue, groupId)}
             onOpen={() => issueOpen.openPanel(identifier(issue))}

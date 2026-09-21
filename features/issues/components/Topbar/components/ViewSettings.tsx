@@ -6,14 +6,28 @@ import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { Chip } from "@/components/ui/atoms/Chip/Chip";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
+import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
+import type { ViewGroupsPatch } from "@/features/issues/actions";
 import {
   CARD_FIELD_KEYS,
   type CardFieldKey,
   isCardFieldKey,
 } from "@/features/issues/card-fields";
-import { GROUP_KEYS, type GroupKey } from "@/features/issues/group";
+import { GroupIcon } from "@/features/issues/components/GroupIcon/GroupIcon";
+import {
+  GROUP_KEYS,
+  type GroupDef,
+  type GroupKey,
+  type GroupLookups,
+  groupDefs,
+} from "@/features/issues/group";
+import {
+  type GroupView,
+  isGroupHidden,
+  toggleGroupHidden,
+} from "@/features/issues/hidden-groups";
 import { SORT_KEYS, type SortKey } from "@/features/issues/sort";
 import {
   type DetailFieldKey,
@@ -101,6 +115,17 @@ interface ViewSettingsProps {
   onDisplayChange: (
     hidden: string[],
   ) => Promise<{ ok: true } | { error: string }>;
+  /** Lookups for the groups of the active grouping, to list them (BARY-47). */
+  groupLookups: GroupLookups;
+  /** Board or list — the defaults for which groups show differ. */
+  view: GroupView;
+  /** Groups this person hid in this view, as `hidden-groups.ts` entries. */
+  hiddenGroups: string[];
+  /** Empty groups hide themselves (BARY-47). */
+  hideEmptyGroups: boolean;
+  onGroupsChange: (
+    patch: ViewGroupsPatch,
+  ) => Promise<{ ok: true } | { error: string }>;
 }
 
 /**
@@ -119,6 +144,11 @@ export function ViewSettings({
   onSortChange,
   hiddenFields,
   onDisplayChange,
+  groupLookups,
+  view,
+  hiddenGroups,
+  hideEmptyGroups,
+  onGroupsChange,
 }: ViewSettingsProps) {
   const t = useTranslations();
   const router = useRouter();
@@ -144,6 +174,28 @@ export function ViewSettings({
     });
   };
 
+  const [hiddenGroupList, setHiddenGroupList] = useState(hiddenGroups);
+
+  const [hideEmpty, setHideEmpty] = useState(hideEmptyGroups);
+
+  const saveGroups = (patch: ViewGroupsPatch) => {
+    if (patch.hiddenGroups) setHiddenGroupList(patch.hiddenGroups);
+    if (patch.hideEmptyGroups !== undefined)
+      setHideEmpty(patch.hideEmptyGroups);
+    startTransition(async () => {
+      await onGroupsChange(patch);
+      router.refresh();
+    });
+  };
+
+  /** Shows or hides one group of the active grouping (BARY-47). */
+  const toggleGroup = (group: GroupDef) =>
+    saveGroups({
+      hiddenGroups: toggleGroupHidden(hiddenGroupList, group, view),
+    });
+
+  const toggleHideEmpty = () => saveGroups({ hideEmptyGroups: !hideEmpty });
+
   const toggleField = (key: CardFieldKey) => {
     const next = new Set(hidden);
     if (next.has(key)) next.delete(key);
@@ -158,6 +210,8 @@ export function ViewSettings({
     onSortChange("manual");
     onGroupChange("status");
     save(new Set());
+    if (hiddenGroupList.length > 0 || hideEmpty)
+      saveGroups({ hiddenGroups: [], hideEmptyGroups: false });
   };
 
   const { openModal } = useModal();
@@ -172,6 +226,12 @@ export function ViewSettings({
     sortKey: activeSortKey,
     hidden,
     projectHiddenFields,
+    groupLookups,
+    view,
+    hiddenGroups: hiddenGroupList,
+    hideEmptyGroups: hideEmpty,
+    toggleGroup,
+    toggleHideEmpty,
     setGroup: onGroupChange,
     setSort: onSortChange,
     toggleField,
@@ -182,6 +242,12 @@ export function ViewSettings({
     sortKey: activeSortKey,
     hidden,
     projectHiddenFields,
+    groupLookups,
+    view,
+    hiddenGroups: hiddenGroupList,
+    hideEmptyGroups: hideEmpty,
+    toggleGroup,
+    toggleHideEmpty,
     setGroup: onGroupChange,
     setSort: onSortChange,
     toggleField,
@@ -228,10 +294,16 @@ export function ViewSettings({
               sortKey: activeSortKey,
               hidden,
               projectHiddenFields,
+              groupLookups,
+              view,
+              hiddenGroups: hiddenGroupList,
+              hideEmptyGroups: hideEmpty,
             }}
             onGroup={onGroupChange}
             onSort={onSortChange}
             onToggleField={toggleField}
+            onToggleGroup={toggleGroup}
+            onToggleHideEmpty={toggleHideEmpty}
             onReset={reset}
             facet={facet}
             onFacetChange={setFacet}
@@ -249,19 +321,29 @@ interface SheetSource {
   sortKey: SortKey;
   hidden: Set<CardFieldKey>;
   projectHiddenFields: string[];
+  groupLookups: GroupLookups;
+  view: GroupView;
+  hiddenGroups: string[];
+  hideEmptyGroups: boolean;
+  toggleGroup: (group: GroupDef) => void;
+  toggleHideEmpty: () => void;
   setGroup: (key: GroupKey) => void;
   setSort: (key: SortKey) => void;
   toggleField: (key: CardFieldKey) => void;
   reset: () => void;
 }
 
-type DisplayFacet = "group" | "sort";
+type DisplayFacet = "group" | "sort" | "groups";
 
 export interface DisplayState {
   groupKey: GroupKey;
   sortKey: SortKey;
   hidden: Set<CardFieldKey>;
   projectHiddenFields: string[];
+  groupLookups: GroupLookups;
+  view: GroupView;
+  hiddenGroups: string[];
+  hideEmptyGroups: boolean;
 }
 
 /**
@@ -280,6 +362,8 @@ function ViewSheet({
   const [groupKey, setGroupKey] = useState(latest.current.groupKey);
   const [sortKey, setSortKey] = useState(latest.current.sortKey);
   const [hidden, setHidden] = useState(latest.current.hidden);
+  const [hiddenGroups, setHiddenGroups] = useState(latest.current.hiddenGroups);
+  const [hideEmpty, setHideEmpty] = useState(latest.current.hideEmptyGroups);
   const [facet, setFacet] = useState<DisplayFacet | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const swipe = useSwipeToClose(close, bodyRef);
@@ -289,17 +373,25 @@ function ViewSheet({
     sortKey,
     hidden,
     projectHiddenFields: latest.current.projectHiddenFields,
+    groupLookups: latest.current.groupLookups,
+    view: latest.current.view,
+    hiddenGroups,
+    hideEmptyGroups: hideEmpty,
   };
   const facetTitle =
     facet === "group"
       ? t("display.grouping")
       : facet === "sort"
         ? t("display.ordering")
-        : null;
+        : facet === "groups"
+          ? t("display.groupsTitle")
+          : null;
   const resetToDefaults = () => {
     setGroupKey("status");
     setSortKey("manual");
     setHidden(new Set());
+    setHiddenGroups([]);
+    setHideEmpty(false);
     latest.current.reset();
   };
 
@@ -340,6 +432,16 @@ function ViewSheet({
               setHidden(next);
               latest.current.toggleField(key);
             }}
+            onToggleGroup={(group) => {
+              setHiddenGroups((prev) =>
+                toggleGroupHidden(prev, group, latest.current.view),
+              );
+              latest.current.toggleGroup(group);
+            }}
+            onToggleHideEmpty={() => {
+              setHideEmpty((prev) => !prev);
+              latest.current.toggleHideEmpty();
+            }}
             onReset={resetToDefaults}
             facet={facet}
             onFacetChange={setFacet}
@@ -358,6 +460,8 @@ interface DisplayPanelProps {
   onGroup: (key: GroupKey) => void;
   onSort: (key: SortKey) => void;
   onToggleField: (key: CardFieldKey) => void;
+  onToggleGroup: (group: GroupDef) => void;
+  onToggleHideEmpty: () => void;
   onReset: () => void;
   /** The list that's open, or `null` for the rows. */
   facet: DisplayFacet | null;
@@ -380,6 +484,8 @@ export function DisplayPanel({
   onGroup,
   onSort,
   onToggleField,
+  onToggleGroup,
+  onToggleHideEmpty,
   onReset,
   facet,
   onFacetChange,
@@ -392,6 +498,57 @@ export function DisplayPanel({
     state.projectHiddenFields,
     state.hidden,
   );
+
+  // The groups of the active grouping (BARY-47) — for statuses all of them,
+  // Canceled included.
+  const groups: GroupDef[] = groupDefs(
+    state.groupKey,
+    state.groupLookups,
+    {
+      unassigned: t("fields.unassigned"),
+      noStoryPoints: t("fields.noStoryPoints"),
+    },
+    [],
+  );
+  const isHidden = (group: GroupDef) =>
+    isGroupHidden(state.hiddenGroups, group, state.view);
+
+  const visibleGroups = groups.filter((g) => !isHidden(g));
+
+  if (facet === "groups") {
+    const title = t("display.groupsTitle");
+    return (
+      <>
+        {showBack && (
+          <button
+            type="button"
+            className={styles.backRow}
+            onClick={() => onFacetChange(null)}
+          >
+            <Icon icon="lucide:chevron-left" width={18} />
+            {title}
+          </button>
+        )}
+        <FilterOptions
+          alwaysSearch={alwaysSearch}
+          facet={{
+            title,
+            options: groups.map((group) => ({
+              value: group.id,
+              label: group.label,
+              icon: <GroupIcon group={group} size={16} />,
+            })),
+            selected: visibleGroups.map((g) => g.id),
+          }}
+          // Several at a time: a tap toggles one and the list stays open.
+          onToggle={(value) => {
+            const group = groups.find((g) => g.id === String(value));
+            if (group) onToggleGroup(group);
+          }}
+        />
+      </>
+    );
+  }
 
   if (facet) {
     const isGroup = facet === "group";
@@ -447,6 +604,28 @@ export function DisplayPanel({
         value={t(SORT_LABEL_KEY[state.sortKey])}
         onOpen={() => onFacetChange("sort")}
       />
+
+      {groups.length > 0 && (
+        <ChoiceRow
+          title={t("display.groupsTitle")}
+          value={
+            visibleGroups.length === groups.length
+              ? t("display.groupsAll")
+              : `${visibleGroups.length}/${groups.length}`
+          }
+          onOpen={() => onFacetChange("groups")}
+        />
+      )}
+
+      <div className={`${styles.row} ${styles.switchRow}`}>
+        <span className={styles.rowLabel}>{t("display.hideEmptyGroups")}</span>
+        <Switch
+          checked={state.hideEmptyGroups}
+          onChange={onToggleHideEmpty}
+          label={t("display.hideEmptyGroups")}
+          labelHidden
+        />
+      </div>
 
       <div className={styles.section}>
         <span className={styles.sectionTitle}>{t("display.fieldsTitle")}</span>

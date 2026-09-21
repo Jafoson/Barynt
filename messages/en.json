@@ -179,6 +179,9 @@
     "grouping": "Grouping",
     "ordering": "Ordering",
     "fieldsTitle": "Display properties",
+    "groupsTitle": "Shown groups",
+    "groupsAll": "All",
+    "hideEmptyGroups": "Hide empty groups automatically",
     "reset": "Reset"
   },
   "settings": {

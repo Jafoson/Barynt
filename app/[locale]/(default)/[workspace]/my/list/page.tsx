@@ -7,6 +7,7 @@ import { getIssueComposerData } from "@/features/issues/editor-data";
 import { groupKeyFromParam } from "@/features/issues/group";
 import {
   getMyIssues,
+  getMyIssuesViewGroups,
   getMyIssuesViewPreference,
 } from "@/features/issues/queries";
 import { sortKeyFromParam } from "@/features/issues/sort";
@@ -30,11 +31,12 @@ export default async function MyListPage({
   const session = await getSession();
   if (!session) redirect(`/${locale}/login`);
 
-  const [issues, composer, t, hiddenCardFields] = await Promise.all([
+  const [issues, composer, t, hiddenCardFields, groups] = await Promise.all([
     getMyIssues(session.userId, workspace, filters),
     getIssueComposerData(),
     getTranslations(),
     getMyIssuesViewPreference("list"),
+    getMyIssuesViewGroups("list"),
   ]);
   if (!composer) notFound();
 
@@ -45,6 +47,8 @@ export default async function MyListPage({
         issues={issues}
         composer={composer}
         hiddenCardFields={hiddenCardFields}
+        hiddenGroups={groups.hiddenGroups}
+        hideEmptyGroups={groups.hideEmptyGroups}
         sortKey={sortKeyFromParam(filters.sort)}
         groupKey={groupKeyFromParam(filters.group)}
         emptyTitle={t("empty.noAssignedIssues")}

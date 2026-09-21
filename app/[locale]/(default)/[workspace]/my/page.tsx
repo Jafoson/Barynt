@@ -7,6 +7,7 @@ import { getIssueComposerData } from "@/features/issues/editor-data";
 import { groupKeyFromParam } from "@/features/issues/group";
 import {
   getMyIssues,
+  getMyIssuesViewGroups,
   getMyIssuesViewPreference,
 } from "@/features/issues/queries";
 import { sortKeyFromParam } from "@/features/issues/sort";
@@ -35,12 +36,14 @@ export default async function MyPage({
   const session = await getSession();
   if (!session) redirect(`/${locale}/login`);
 
-  const [issues, statuses, composer, hiddenCardFields] = await Promise.all([
-    getMyIssues(session.userId, workspace, filters),
-    getWorkspaceStatuses(),
-    getIssueComposerData(),
-    getMyIssuesViewPreference("board"),
-  ]);
+  const [issues, statuses, composer, hiddenCardFields, groups] =
+    await Promise.all([
+      getMyIssues(session.userId, workspace, filters),
+      getWorkspaceStatuses(),
+      getIssueComposerData(),
+      getMyIssuesViewPreference("board"),
+      getMyIssuesViewGroups("board"),
+    ]);
   if (!composer) notFound();
 
   return (
@@ -52,6 +55,8 @@ export default async function MyPage({
           statuses={statuses}
           composer={composer}
           hiddenCardFields={hiddenCardFields}
+          hiddenGroups={groups.hiddenGroups}
+          hideEmptyGroups={groups.hideEmptyGroups}
           sortKey={sortKeyFromParam(filters.sort)}
           groupKey={groupKeyFromParam(filters.group)}
         />

@@ -2,7 +2,15 @@
 
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
-import type { Label, Priority, Project, Status, User } from "@/types";
+import type { ViewGroupsPatch } from "@/features/issues/actions";
+import type {
+  IssueType,
+  Label,
+  Priority,
+  Project,
+  Status,
+  User,
+} from "@/types";
 import { FilterPopup } from "./components/FilterPopup";
 import { IssueSearch } from "./components/IssueSearch";
 import { TopbarFilters } from "./components/TopbarFilters";
@@ -20,10 +28,17 @@ interface TopbarClientProps {
   priorities: Priority[];
   members: User[];
   labels: Label[];
+  issueTypes: IssueType[];
+  /** Groups this person hid in this view, as `hidden-groups.ts` entries (BARY-47). */
+  hiddenGroups: string[];
+  hideEmptyGroups: boolean;
   /** This person's hidden board-card/list-row fields for this view (BARY-33). */
   hiddenCardFields: string[];
   onDisplayChange: (
     hidden: string[],
+  ) => Promise<{ ok: true } | { error: string }>;
+  onGroupsChange: (
+    patch: ViewGroupsPatch,
   ) => Promise<{ ok: true } | { error: string }>;
 }
 
@@ -35,8 +50,12 @@ export function TopbarClient({
   priorities,
   members,
   labels,
+  issueTypes,
+  hiddenGroups,
+  hideEmptyGroups,
   hiddenCardFields,
   onDisplayChange,
+  onGroupsChange,
 }: TopbarClientProps) {
   const t = useTranslations();
   const {
@@ -151,6 +170,11 @@ export function TopbarClient({
             onGroupChange={setGroup}
             hiddenFields={hiddenCardFields}
             onDisplayChange={onDisplayChange}
+            groupLookups={{ statuses, priorities, issueTypes, members }}
+            view={view}
+            hiddenGroups={hiddenGroups}
+            hideEmptyGroups={hideEmptyGroups}
+            onGroupsChange={onGroupsChange}
           />
         </div>
       </div>

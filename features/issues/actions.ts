@@ -19,6 +19,7 @@ import {
   ESTIMATE_UNIT_ABBR,
   hoursToEstimate,
 } from "@/features/issues/estimate";
+import { sanitizeHiddenGroups } from "@/features/issues/hidden-groups";
 import { searchWorkspaceIssues } from "@/features/issues/queries";
 import type { IssuePatch } from "@/features/issues/types";
 import { recordAudit } from "@/lib/audit";
@@ -1842,6 +1843,70 @@ export async function setMyIssuesViewFieldVisibility(
       hiddenFields: hidden.filter(isCardFieldKey),
     },
     update: { hiddenFields: hidden.filter(isCardFieldKey) },
+  });
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+// ── Hidden board columns / list groups (BARY-47) ───────────────────────────
+
+/** What can be changed about a view's groups — only what's given is written. */
+export interface ViewGroupsPatch {
+  hiddenGroups?: string[];
+  hideEmptyGroups?: boolean;
+}
+
+function groupsData(patch: ViewGroupsPatch) {
+  return {
+    ...(patch.hiddenGroups !== undefined && {
+      hiddenGroups: sanitizeHiddenGroups(patch.hiddenGroups),
+    }),
+    ...(patch.hideEmptyGroups !== undefined && {
+      hideEmptyGroups: patch.hideEmptyGroups === true,
+    }),
+  };
+}
+
+/**
+ * The groups the acting user hides for themselves in one project's board or
+ * list — chosen one by one, or every empty one automatically. Personal, like
+ * the card fields above — no permission beyond being signed in. Hiding
+ * changes nothing about the issues themselves.
+ */
+export async function setIssueViewGroups(
+  projectId: string,
+  view: "board" | "list",
+  patch: ViewGroupsPatch,
+): Promise<{ ok: true } | { error: string }> {
+  const userId = await currentUserId();
+  if (!userId) return { error: "Not signed in." };
+
+  const data = groupsData(patch);
+  await db.issueViewPreference.upsert({
+    where: { userId_projectId_view: { userId, projectId, view } },
+    create: { userId, projectId, view, ...data },
+    update: data,
+  });
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Same as `setIssueViewGroups`, for the cross-project "my issues" board/list. */
+export async function setMyIssuesViewGroups(
+  view: "board" | "list",
+  patch: ViewGroupsPatch,
+): Promise<{ ok: true } | { error: string }> {
+  const userId = await currentUserId();
+  const workspaceId = getCurrentWorkspaceId();
+  if (!userId || !workspaceId) return { error: "Not signed in." };
+
+  const data = groupsData(patch);
+  await db.myIssuesViewPreference.upsert({
+    where: { userId_workspaceId_view: { userId, workspaceId, view } },
+    create: { userId, workspaceId, view, ...data },
+    update: data,
   });
 
   revalidatePath("/", "layout");

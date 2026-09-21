@@ -7,6 +7,7 @@ import { getIssueComposerData } from "@/features/issues/editor-data";
 import { groupKeyFromParam } from "@/features/issues/group";
 import {
   getIssuesByProject,
+  getIssueViewGroups,
   getIssueViewPreference,
 } from "@/features/issues/queries";
 import { sortKeyFromParam } from "@/features/issues/sort";
@@ -33,12 +34,14 @@ export default async function BoardPage({
   const project = projects.find((p) => p.slug === projectSlug);
   if (!project) notFound();
 
-  const [issues, statuses, composer, hiddenCardFields] = await Promise.all([
-    getIssuesByProject(project.id, filters),
-    getWorkspaceStatuses(),
-    getIssueComposerData(),
-    getIssueViewPreference(project.id, "board"),
-  ]);
+  const [issues, statuses, composer, hiddenCardFields, groups] =
+    await Promise.all([
+      getIssuesByProject(project.id, filters),
+      getWorkspaceStatuses(),
+      getIssueComposerData(),
+      getIssueViewPreference(project.id, "board"),
+      getIssueViewGroups(project.id, "board"),
+    ]);
   if (!composer) notFound();
 
   return (
@@ -51,6 +54,8 @@ export default async function BoardPage({
           statuses={statuses}
           composer={composer}
           hiddenCardFields={hiddenCardFields}
+          hiddenGroups={groups.hiddenGroups}
+          hideEmptyGroups={groups.hideEmptyGroups}
           sortKey={sortKeyFromParam(filters.sort)}
           groupKey={groupKeyFromParam(filters.group)}
         />

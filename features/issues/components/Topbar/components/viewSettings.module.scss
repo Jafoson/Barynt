@@ -214,3 +214,18 @@
   font-size: var(--text-sm);
   color: var(--on-surface-variant);
 }
+
+/* A row with a switch instead of a value: the row itself isn't a button. */
+.switchRow {
+  cursor: default;
+  min-height: 2.25rem;
+
+  @include bp.phone {
+    min-height: 3rem;
+    padding: 0 0.625rem;
+
+    .rowLabel {
+      font-size: var(--text-md);
+    }
+  }
+}

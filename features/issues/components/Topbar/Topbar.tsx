@@ -1,14 +1,19 @@
 import { Suspense } from "react";
 import {
   setIssueViewFieldVisibility,
+  setIssueViewGroups,
   setMyIssuesViewFieldVisibility,
+  setMyIssuesViewGroups,
 } from "@/features/issues/actions";
 import {
+  getIssueViewGroups,
   getIssueViewPreference,
+  getMyIssuesViewGroups,
   getMyIssuesViewPreference,
 } from "@/features/issues/queries";
 import {
   getCurrentWorkspace,
+  getWorkspaceIssueTypes,
   getWorkspaceLabels,
   getWorkspaceMembers,
   getWorkspacePriorities,
@@ -36,6 +41,8 @@ export async function Topbar({ count, view, projectId }: TopbarProps) {
     members,
     labels,
     hiddenCardFields,
+    groups,
+    issueTypes,
   ] = await Promise.all([
     getCurrentWorkspace(),
     getWorkspaceProjects(),
@@ -46,6 +53,10 @@ export async function Topbar({ count, view, projectId }: TopbarProps) {
     projectId
       ? getIssueViewPreference(projectId, view)
       : getMyIssuesViewPreference(view),
+    projectId
+      ? getIssueViewGroups(projectId, view)
+      : getMyIssuesViewGroups(view),
+    getWorkspaceIssueTypes(),
   ]);
 
   if (!workspace) return null;
@@ -59,6 +70,10 @@ export async function Topbar({ count, view, projectId }: TopbarProps) {
     ? setIssueViewFieldVisibility.bind(null, projectId, view)
     : setMyIssuesViewFieldVisibility.bind(null, view);
 
+  const onGroupsChange = projectId
+    ? setIssueViewGroups.bind(null, projectId, view)
+    : setMyIssuesViewGroups.bind(null, view);
+
   return (
     <Suspense>
       <TopbarClient
@@ -70,7 +85,11 @@ export async function Topbar({ count, view, projectId }: TopbarProps) {
         members={members}
         labels={labels}
         hiddenCardFields={hiddenCardFields}
+        issueTypes={issueTypes}
+        hiddenGroups={groups.hiddenGroups}
+        hideEmptyGroups={groups.hideEmptyGroups}
         onDisplayChange={onDisplayChange}
+        onGroupsChange={onGroupsChange}
       />
     </Suspense>
   );

@@ -179,6 +179,9 @@
     "grouping": "Gruppierung",
     "ordering": "Sortierung",
     "fieldsTitle": "Angezeigte Felder",
+    "groupsTitle": "Angezeigte Gruppen",
+    "groupsAll": "Alle",
+    "hideEmptyGroups": "Leere Gruppen automatisch ausblenden",
     "reset": "Zurücksetzen"
   },
   "settings": {

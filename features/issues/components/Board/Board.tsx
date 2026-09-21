@@ -8,6 +8,7 @@ import {
   groupDefs,
   visibleGroups,
 } from "@/features/issues/group";
+import { isGroupHidden } from "@/features/issues/hidden-groups";
 import { useIssueOpen } from "@/features/issues/issue-links";
 import type { SortKey } from "@/features/issues/sort";
 import type { IssueComposerData, IssueLookups } from "@/features/issues/types";
@@ -45,6 +46,10 @@ interface BoardProps {
   sortKey: SortKey;
   /** What the columns are: statuses by default, or another field (BARY-35). */
   groupKey: GroupKey;
+  /** Columns this person hid, as `hidden-groups.ts` entries (BARY-47). */
+  hiddenGroups: string[];
+  /** Groups without an issue hide themselves (BARY-47). */
+  hideEmptyGroups: boolean;
 }
 
 export function Board({
@@ -55,6 +60,8 @@ export function Board({
   hiddenCardFields,
   sortKey,
   groupKey,
+  hiddenGroups,
+  hideEmptyGroups,
 }: BoardProps) {
   const lookups: IssueLookups = {
     projects: composer.projects,
@@ -119,12 +126,19 @@ export function Board({
     },
     issues,
   );
-  // Statuses stay as before: only workflow columns, never a column per
-  // stray status. Every other grouping adds a column per value in use.
-  const groups =
-    groupKey === "status"
-      ? defs.filter((d) => d.alwaysShow)
-      : visibleGroups(defs, issues);
+  // Every grouping adds a column per value in use; statuses list all of them,
+  // but a status that isn't a workflow column (Canceled) is hidden here until
+  // someone turns it on in the display settings (`isGroupHidden`).
+  const allGroups = groupKey === "status" ? defs : visibleGroups(defs, issues);
+  // Columns hidden in the display settings — one by one, or every empty one
+  // (BARY-47) — are gone for everything below: drop targets, "Move to…", the
+  // keyboard cursor. So nothing can land in one; the issues in them stay
+  // exactly as they are.
+  const groups = allGroups.filter(
+    (g) =>
+      !isGroupHidden(hiddenGroups, g, "board") &&
+      !(hideEmptyGroups && board.getColumnIssues(g.id).length === 0),
+  );
   const columns = groups.map((group) => ({
     group,
     issues: board.getColumnIssues(group.id),
