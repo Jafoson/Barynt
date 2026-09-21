@@ -12,6 +12,8 @@
     "format": "biome format --write",
     "icons:build": "bun run scripts/build-icons.ts",
     "icons:check": "bun run scripts/build-icons.ts --check",
+    "plugin-schema:build": "bun run scripts/build-plugin-schema.ts",
+    "plugin-schema:check": "bun run scripts/build-plugin-schema.ts --check",
     "db:up": "docker compose up -d --wait && bun prisma generate && bun prisma migrate deploy && bun prisma/bootstrap.ts",
     "db:dev": "docker compose up -d --wait && bun prisma generate && bun prisma migrate deploy && bun prisma db seed",
     "db:seed": "bun prisma db seed",
@@ -64,6 +66,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "sass": "^1.101.0",
+    "semver": "^7.8.5",
     "zod": "^4"
   },
   "devDependencies": {
@@ -78,6 +81,7 @@
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/semver": "^7.8.0",
     "typescript": "^5"
   },
   "ignoreScripts": [

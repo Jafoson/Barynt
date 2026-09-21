@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Jafoson/Barynt/main/public/schemas/barynt-plugin.schema.json",
+  "manifestVersion": 1,
+  "id": "customer-tracking",
+  "name": { "en": "Customer tracking", "de": "Kundenverfolgung" },
+  "version": "1.0.0",
+  "description": {
+    "en": "Adds a customer number to every issue.",
+    "de": "Fügt jedem Issue eine Kundennummer hinzu."
+  },
+  "author": "Jane Doe",
+  "license": "MIT",
+  "barynt": ">=1.0.0 <2.0.0",
+  "capabilities": ["issues:read"],
+  "contributes": {
+    "customFields": [{ "id": "customer-number" }],
+    "navigation": [{ "id": "customers" }]
+  }
+}
