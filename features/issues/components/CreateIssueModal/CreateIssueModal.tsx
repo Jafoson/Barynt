@@ -41,6 +41,7 @@ import { remapAttachmentIds } from "@/lib/richtext/attachments";
 import { emptyDoc } from "@/lib/richtext/doc";
 import type { PMDoc } from "@/lib/richtext/types";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
+import { randomId } from "@/lib/utils/id";
 import { fullName } from "@/lib/utils/string";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useSubmitShortcut } from "@/lib/utils/useSubmitShortcut";
@@ -296,7 +297,7 @@ export function CreateIssueModal({
   useSubmitShortcut(submit);
 
   const onUploadAttachment = async (file: File) => {
-    const id = crypto.randomUUID();
+    const id = randomId();
     const url = URL.createObjectURL(file);
     pendingFiles.current.set(id, { file, url });
     return {
@@ -317,7 +318,7 @@ export function CreateIssueModal({
     name?: string;
     mimeType?: string | null;
   }) => {
-    const id = crypto.randomUUID();
+    const id = randomId();
     pendingLinks.current.set(id, { url, name, mimeType: mimeType ?? null });
     return {
       id,
@@ -446,6 +447,9 @@ export function CreateIssueModal({
           onCommit={setDescription}
           data={data}
           actions={false}
+          expandOnCompact
+          saveLabel={t("actions.save")}
+          cancelLabel={t("actions.cancel")}
           label={t("fields.description")}
           placeholder={t("placeholders.addDescription")}
           onUploadAttachment={onUploadAttachment}

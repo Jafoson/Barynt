@@ -264,9 +264,19 @@
       order: 5;
     }
 
+    td[data-col="comments"] {
+      order: 6;
+      margin-inline-start: auto;
+    }
+
     td[data-col="assignee"] {
       order: 6;
       margin-inline-start: auto;
+    }
+
+    /* Next to the assignee, not in the middle of the free space. */
+    td[data-col="comments"]:not(:empty) + td[data-col="assignee"] {
+      margin-inline-start: 0.5rem;
     }
 
     /* The first cell carries the row's link over everything (the priority
@@ -295,4 +305,12 @@
     -webkit-box-orient: vertical;
     overflow-wrap: anywhere;
   }
+}
+
+.comments {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--text-sm);
+  color: var(--outline);
 }

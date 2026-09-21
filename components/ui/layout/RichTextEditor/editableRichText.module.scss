@@ -90,3 +90,8 @@
   gap: 0.375rem;
   margin-top: 0.5rem;
 }
+
+/* Full screen: the commands button sits at the left end of the button row. */
+.commands {
+  margin-inline-end: auto;
+}

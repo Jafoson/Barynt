@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@iconify/react";
 import { useFormatter, useTranslations } from "next-intl";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import { Input } from "@/components/ui/atoms/Input/Input";
@@ -350,6 +351,25 @@ export function UpdatedCell({ issue }: { issue: Issue }) {
       })}
     >
       {format.dateTime(issue.updated, { month: "short", day: "numeric" })}
+    </span>
+  );
+}
+
+/** How many comments were written — nothing at all while there are none. */
+export function CommentsCell({ issue }: { issue: Issue }) {
+  const t = useTranslations();
+  const count = issue.comments.length;
+  if (count === 0) return null;
+
+  return (
+    <span
+      className={styles.comments}
+      title={t("comments.count", { count })}
+      role="img"
+      aria-label={t("comments.count", { count })}
+    >
+      <Icon icon="lucide:message-square" width={13} aria-hidden="true" />
+      {count}
     </span>
   );
 }

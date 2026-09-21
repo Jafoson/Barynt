@@ -40,6 +40,24 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--on-surface-variant);
+
+  /* Phone rows have the full width to themselves: up to three lines. */
+  @include bp.phone {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    white-space: normal;
+  }
+}
+
+/* Replaced by the floating plus wherever that one is shown. */
+.newButton {
+  display: contents;
+
+  @include bp.tablet-down {
+    display: none;
+  }
 }
 
 /* Additional leads besides the one shown. */

@@ -24,6 +24,21 @@
     border-color: var(--tertiary);  }
 }
 
+/* Full-screen editing: the box takes the whole height, the surface scrolls
+   under the toolbar, and there is no handle to drag. */
+.editor[data-fill] {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+
+  .content {
+    flex: 1 1 auto;
+    max-height: none;
+    resize: none;
+  }
+}
+
 .attachmentError {
   margin: 0;
   padding: 0.25rem 0.75rem;

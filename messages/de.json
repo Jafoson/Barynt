@@ -452,6 +452,7 @@
     "platformAdmin": "Plattform-Admin"
   },
   "comments": {
+    "count": "{count, plural, one {# Kommentar} other {# Kommentare}}",
     "title": "Kommentare",
     "commentedOn": "hat kommentiert auf",
     "empty": "Noch keine Kommentare. Starte die Diskussion.",
@@ -783,6 +784,7 @@
     "numberedList": "Nummerierte Liste",
     "placeholderWithHint": "{placeholder}  ·  {hint}",
     "quote": "Zitat",
+    "commands": "Befehle",
     "slashHint": "„/“ für Befehle",
     "strikethrough": "Durchgestrichen",
     "table": "Tabelle",

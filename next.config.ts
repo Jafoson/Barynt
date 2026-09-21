@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
   // Lets modules `@use "breakpoints"` (styles/breakpoints.scss) without
   // relative-path chains.
   sassOptions: { loadPaths: [path.join(process.cwd(), "styles")] },
+  // Dev only: Next blocks its client chunks (and HMR) for any origin other
+  // than localhost. Opened from an emulator/phone via the LAN IP, React then
+  // never hydrates — inputs render but state never updates, so a button that
+  // is `disabled` until an email is typed stays disabled forever.
+  allowedDevOrigins: ["192.168.0.*"],
   images: {
     remotePatterns: [{ hostname: "www.gravatar.com" }],
   },

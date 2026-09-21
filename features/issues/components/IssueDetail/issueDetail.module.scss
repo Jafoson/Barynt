@@ -1239,12 +1239,55 @@
   border-radius: var(--radius-lg);
 }
 
+.composerCommands {
+  margin-inline-end: auto;
+}
+
 .composerFoot {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
   margin-top: 0.5rem;
+}
+
+/* Phone and tablet: the composer rests as one line (a messenger's) — a
+   field-looking button that opens the full-screen editor, plus "comment". */
+.composerCompact {
+  display: flex;
+  flex: 1;
+  gap: 0.5rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.composerFake {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--touch-min, 2.75rem);
+  padding: 0 0.875rem;
+  overflow: hidden;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-low);
+  color: var(--on-surface);
+  font-size: var(--text-base);
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &[data-empty] {
+    color: var(--outline);
+  }
+}
+
+/* The full-screen editor: the editor grows, the buttons sit below. */
+.composerFull {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
 }
 
 /* ---------- Loading and empty state ---------- */
@@ -1473,6 +1516,13 @@
   /* Pinned, it no longer follows the comments with a gap. */
   .composer {
     margin-top: 0;
+  }
+
+  /* No avatar on a phone: the line needs the width. */
+  .composer > :first-child:not(.composerBox) {
+    @include bp.phone {
+      display: none;
+    }
   }
 
   /* No keyboard shortcut hint on a phone. */

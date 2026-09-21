@@ -59,6 +59,7 @@ export function IssueDescription({
         saveLabel={t("actions.save")}
         cancelLabel={t("actions.cancel")}
         readOnly={readOnly}
+        expandOnCompact
         onCommit={(value) => onPatch({ description: value })}
         onUploadAttachment={
           readOnly

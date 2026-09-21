@@ -17,6 +17,12 @@ import { useNewIssueOpener } from "./useNewIssueOpener";
 export const ISSUE_VIEW_PATH =
   /^\/[^/]+\/(project\/[^/]+(\/list)?|my(\/list)?)\/?$/;
 
+/** The overview pages where the same menu is on offer: the workspace's
+ *  overview (its root), dashboard, projects, members and teams, and a project's overview and
+ *  members. */
+export const OVERVIEW_PATH =
+  /^\/(?!admin(?:\/|$))[^/]+(\/(dashboard|projects|members|teams|project\/[^/]+\/(overview|members)))?\/?$/;
+
 interface NewIssueFabClientProps {
   data: IssueComposerData | null;
   workspaceId: string | null;
@@ -57,7 +63,9 @@ export function NewIssueFabClient({
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  if (!ISSUE_VIEW_PATH.test(pathname)) return null;
+  if (!ISSUE_VIEW_PATH.test(pathname) && !OVERVIEW_PATH.test(pathname)) {
+    return null;
+  }
 
   const choices: Choice[] = [];
   if (openIssue) {

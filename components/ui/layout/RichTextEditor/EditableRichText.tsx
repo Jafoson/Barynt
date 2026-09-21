@@ -10,10 +10,14 @@ import {
 import { onActivate } from "@/lib/a11y";
 import { isEmptyDoc, toDoc } from "@/lib/richtext/doc";
 import type { PMDoc } from "@/lib/richtext/types";
+import { COMPACT_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
+import { FullscreenEdit } from "../FullscreenEdit/FullscreenEdit";
+import { CommandsButton } from "./components/CommandsButton";
 import styles from "./editableRichText.module.scss";
 import type {
   IssueSource,
   MentionSource,
+  RichTextEditorHandle,
   UploadedAttachment,
 } from "./RichTextEditor";
 
@@ -90,6 +94,12 @@ interface EditableRichTextProps {
    */
   editing?: boolean;
   onEditingChange?: (editing: boolean) => void;
+  /**
+   * On a phone or tablet, editing takes over the whole screen — only this
+   * field, above the keyboard — instead of squeezing between whatever else
+   * is on the page. A desktop keeps the inline editor.
+   */
+  expandOnCompact?: boolean;
 }
 
 export function EditableRichText({
@@ -111,7 +121,14 @@ export function EditableRichText({
   readOnly = false,
   editing: editingProp,
   onEditingChange,
+  expandOnCompact = false,
 }: EditableRichTextProps) {
+  const isCompact = useMediaQuery(COMPACT_QUERY);
+  const expanded = expandOnCompact && isCompact;
+  // Full screen has nothing outside it to click, so it always brings its own
+  // buttons — even where a dialog otherwise carries them.
+  const showActions = actions || expanded;
+  const editorHandle = useRef<RichTextEditorHandle>(null);
   const [draft, setDraft] = useState<PMDoc>(() => toDoc(value));
   const [source, setSource] = useState(value);
   const [internalEditing, setInternalEditing] = useState(false);
@@ -256,7 +273,7 @@ export function EditableRichText({
     );
   }
 
-  return (
+  const editor = (
     <div className={className}>
       {/* Toolbar and writing surface belong together, hence a `fieldset`.
           With its own buttons (`actions`), plain blur has no meaning — see
@@ -272,7 +289,7 @@ export function EditableRichText({
           // Jira). Without buttons (`actions={false}`, e.g. in the
           // create-issue window with its own "Done"), this path doesn't
           // exist, and leaving the field still takes over there.
-          actions
+          showActions
             ? undefined
             : (e) => {
                 if (e.currentTarget.contains(e.relatedTarget)) return;
@@ -299,6 +316,7 @@ export function EditableRichText({
         }
       >
         <RichTextEditor
+          ref={editorHandle}
           value={draft}
           onChange={(doc) => {
             setDraft(doc);
@@ -308,6 +326,7 @@ export function EditableRichText({
           label={label}
           placeholder={placeholder}
           autoFocus
+          fill={expanded}
           members={members}
           issues={issues}
           onUploadAttachment={onUploadAttachment}
@@ -319,8 +338,14 @@ export function EditableRichText({
         />
       </fieldset>
 
-      {actions && (
+      {showActions && (
         <div className={styles.actions}>
+          {expanded && (
+            <CommandsButton
+              className={styles.commands}
+              onClick={() => editorHandle.current?.openCommands()}
+            />
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -343,4 +368,6 @@ export function EditableRichText({
       )}
     </div>
   );
+
+  return expanded ? <FullscreenEdit>{editor}</FullscreenEdit> : editor;
 }

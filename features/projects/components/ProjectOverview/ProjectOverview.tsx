@@ -58,7 +58,13 @@ export function ProjectOverview({
     loadMore,
   });
 
-  const newButton = canCreate && <NewProjectButton workspaceId={workspaceId} />;
+  // On a phone or tablet the floating plus (`NewIssueFab`) creates projects
+  // here, so the button itself is hidden by CSS.
+  const newButton = canCreate && (
+    <span className={styles.newButton}>
+      <NewProjectButton workspaceId={workspaceId} />
+    </span>
+  );
 
   const columns: TableColumn<ProjectOverviewRow>[] = [
     {

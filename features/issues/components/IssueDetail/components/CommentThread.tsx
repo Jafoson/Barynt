@@ -272,6 +272,7 @@ export function CommentThread({
           cancelLabel={t("actions.cancel")}
           editing={isEditing}
           onEditingChange={setIsEditing}
+          expandOnCompact
           onCommit={(value) => onEdit(comment.id, value)}
           {...attachmentHandlers}
         />

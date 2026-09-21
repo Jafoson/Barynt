@@ -1,13 +1,17 @@
 .boxes {
   display: flex;
-  gap: 0.5rem;
+  gap: clamp(0.25rem, 1.5vw, 0.5rem);
   justify-content: center;
   margin-bottom: 0.25rem;
 }
 
 .box {
-  width: 2.5rem;
+  // Shrink with the card instead of overflowing it on narrow phones.
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 2.5rem;
   height: 3.25rem;
+  padding: 0;
   border: 1px solid var(--outline-variant);
   border-radius: 0.5rem;
   background: var(--surface);

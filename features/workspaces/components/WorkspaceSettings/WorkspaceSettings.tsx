@@ -24,6 +24,7 @@ import {
 import type { WorkspaceSettingsView } from "@/features/workspaces/types";
 import { useRouter } from "@/i18n/navigation";
 import { useModal } from "@/lib/context";
+import { randomId } from "@/lib/utils/id";
 import { AddLinkDialog } from "./components/AddLinkDialog";
 import styles from "./workspaceSettings.module.scss";
 
@@ -164,7 +165,7 @@ export function WorkspaceSettings({
   const touch = () => setSaved(false);
 
   const addLink = (link: { label: string; url: string }) => {
-    setLinks((current) => [...current, { key: crypto.randomUUID(), ...link }]);
+    setLinks((current) => [...current, { key: randomId(), ...link }]);
     touch();
   };
 

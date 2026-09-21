@@ -155,6 +155,12 @@ export interface RichTextEditorProps {
   onFilePickerOpen?: () => void;
   className?: string;
   /**
+   * Fills the height of its parent instead of growing with the text: the
+   * toolbar stays on top, the writing surface scrolls. For a full-screen
+   * editing view (`EditableRichText`'s `expandOnCompact`).
+   */
+  fill?: boolean;
+  /**
    * Imperative escape hatch for the one thing a controlled `value`/`onChange`
    * pair can't do: move focus into the editor from outside on demand (e.g. a
    * keyboard shortcut). React 19 passes `ref` through as an ordinary prop —
@@ -166,6 +172,11 @@ export interface RichTextEditorProps {
 
 export interface RichTextEditorHandle {
   focus: () => void;
+  /**
+   * Types a `/` at the cursor, which opens the command menu — for a touch
+   * keyboard with no easy slash key (`CommandsButton`).
+   */
+  openCommands: () => void;
 }
 
 export function RichTextEditor({
@@ -182,6 +193,7 @@ export function RichTextEditor({
   onAddLinkAttachment,
   onFilePickerOpen,
   className,
+  fill,
   ref,
 }: RichTextEditorProps) {
   const t = useTranslations("editor");
@@ -192,6 +204,21 @@ export function RichTextEditor({
   const editorRef = useRef<Editor | null>(null);
   useImperativeHandle(ref, () => ({
     focus: () => editorRef.current?.commands.focus(),
+    openCommands: () => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      // The menu only opens after whitespace or at the start of a line.
+      const { $from } = editor.state.selection;
+      const before = $from.parent.textBetween(
+        Math.max(0, $from.parentOffset - 1),
+        $from.parentOffset,
+      );
+      editor
+        .chain()
+        .focus()
+        .insertContent(before && !/\s/.test(before) ? " /" : "/")
+        .run();
+    },
   }));
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
@@ -823,7 +850,10 @@ export function RichTextEditor({
   );
 
   return (
-    <div className={[styles.editor, className].filter(Boolean).join(" ")}>
+    <div
+      className={[styles.editor, className].filter(Boolean).join(" ")}
+      data-fill={fill || undefined}
+    >
       <EditorToolbar
         editor={editor}
         onLink={openLink}

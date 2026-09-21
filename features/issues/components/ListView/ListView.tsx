@@ -42,6 +42,7 @@ import { useUI } from "@/lib/ui-store";
 import { COMPACT_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import type { IssueDetail } from "@/types";
 import {
+  CommentsCell,
   DueDateCell,
   LabelsCell,
   PriorityCell,
@@ -362,6 +363,18 @@ export function ListView({
           <LabelsCell issue={issue} labels={labels} />
         ) : null,
     },
+    // Only in the card rows of a phone/tablet — on a desktop the table has no
+    // column for it.
+    ...(isCompact
+      ? [
+          {
+            id: "comments",
+            width: "max-content",
+            align: "end" as const,
+            cell: (issue: IssueDetail) => <CommentsCell issue={issue} />,
+          },
+        ]
+      : []),
     {
       id: "assignee",
       align: "end",

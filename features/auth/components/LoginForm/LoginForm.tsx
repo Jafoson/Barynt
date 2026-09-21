@@ -11,6 +11,7 @@ import { sendMagicLink } from "@/features/auth/actions";
 import { AuthCard } from "@/features/auth/components/AuthCard/AuthCard";
 import { PasskeyLoginButton } from "@/features/auth/components/PasskeyLoginButton/PasskeyLoginButton";
 import { useRouter } from "@/i18n/navigation";
+import { randomId } from "@/lib/utils/id";
 import styles from "./loginForm.module.scss";
 
 interface LoginFormProps {
@@ -107,7 +108,7 @@ export function LoginForm({
     startPasskeyTransition(async () => {
       try {
         await signIn("webauthn", {
-          email: `${crypto.randomUUID()}@no-email.invalid`,
+          email: `${randomId()}@no-email.invalid`,
           redirectTo: callbackUrl || "/",
         });
       } catch {

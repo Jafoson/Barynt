@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { getProjectsForWorkspaces } from "@/features/workspaces/actions";
 import { usePathname, useRouter } from "@/i18n/navigation";
+import { randomId } from "@/lib/utils/id";
 import type { Project } from "@/types";
 import { OPEN_TAB_EVENT, type OpenTabDetail } from "./tabEvents";
 import { type TabMeta, tabMeta, workspaceIdFromPath } from "./tabMeta";
@@ -32,7 +33,7 @@ function load(fallback: string): { tabs: StoredTab[]; activeId: string } {
       }
     }
   } catch {}
-  const id = crypto.randomUUID();
+  const id = randomId();
   return { tabs: [{ id, href: fallback }], activeId: id };
 }
 
@@ -173,7 +174,7 @@ export function useTabBar({
         return;
       }
     }
-    const id = crypto.randomUUID();
+    const id = randomId();
     const tab = { id, href };
     const next = [...rawTabs, tab];
     save(next);
