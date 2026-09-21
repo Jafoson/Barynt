@@ -151,6 +151,27 @@ leaves every icon empty (BARY-45).
 - A new icon *set* (a prefix other than lucide/logos/material-symbols/mdi)
   needs its `@iconify-json/<prefix>` as a devDependency.
 
+## Plugins (`lib/plugins`)
+
+The plugin system is built step by step; `docs/plugins/` records what is decided
+and measured (start at `docs/plugins/README.md`).
+
+- `lib/plugins/manifest.ts` is the single source of truth for the plugin manifest
+  (`barynt-plugin.json`): a zod schema with no database, `server-only` or React,
+  so the host, tests and tooling all read the same one. `lib/plugins/validate.ts`
+  turns it into `validateManifest()` / `parseManifest()`, which report one issue
+  per problem and **never throw**: a manifest is untrusted input.
+- Change the manifest schema → **`bun run plugin-schema:build`** and commit
+  `public/schemas/barynt-plugin.schema.json`. `tests/unit/plugins` (and
+  `bun run plugin-schema:check`) fail while it is out of date.
+- Plugin code is loaded at runtime, so the loader rules in
+  `docs/plugins/adr-0001-runtime-loading.md` and `adr-0002-client-bundles.md`
+  apply to anything that imports plugin code (absolute path outside `/app`,
+  `/* turbopackIgnore: true */` on dynamic fs/path calls, one directory per
+  version, built JavaScript only).
+- `docs/` is excluded from `tsconfig.json`: fixtures and examples there may import
+  packages that only exist at runtime.
+
 ## Email (`lib/mail`)
 
 SMTP, configured exclusively through the environment (`SMTP_HOST`, `SMTP_PORT`,
@@ -435,6 +456,9 @@ tests/
       richText.test.tsx           ← PM-JSON renderer (components/ui/atoms/RichText)
       fromMarkdown.test.ts        ← Markdown → PM-JSON (migration + seed)
       text.test.ts                ← toPlainText / toPreview / isEmptyDoc
+    plugins/
+      manifest.test.ts            ← plugin manifest schema and validator (lib/plugins)
+      manifestSchemaFile.test.ts  ← generated JSON Schema is current, docs examples are valid
     notifications/
       notify.test.ts              ← lib/notify (also mocks `@/lib/mail`, own process)
       queries.test.ts             ← inbox query
