@@ -125,9 +125,11 @@ Deliberately left open, because the ticket that builds the feature decides it:
 - **Which capability names exist.** Only the shape (`resource:action[:qualifier]`)
   is checked (BARY-95).
 - **The grammar of `when`** (BARY-65).
-- **Compatibility and dependency resolution**: whether `barynt` matches the running
-  version, and whether the dependencies are installed (BARY-57). The manifest only
-  checks that the ranges are valid.
+- **Compatibility and dependency resolution** are not part of the manifest: it only
+  checks that the ranges are valid. Whether `barynt` matches the running version and
+  whether the dependencies are installed is decided in
+  [`lib/plugins/resolve.ts`](../../lib/plugins/resolve.ts), see
+  [Compatibility](compatibility.md).
 
 ## Regenerating the JSON Schema
 
