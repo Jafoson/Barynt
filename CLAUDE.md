@@ -171,6 +171,11 @@ and measured (start at `docs/plugins/README.md`).
   from the host, because a plugin bundles it. Change its version in `SDK_VERSION`
   **and** `package.json` (a test compares them). A plugin's server module is read
   with `parsePluginModule()` (`lib/plugins/definition.ts`), which never throws.
+- `lib/plugins/resolve.ts` decides which installed plugins can load and in what
+  order (`barynt` range against `BARYNT_VERSION` from `lib/version.ts`, i.e.
+  `package.json`; dependencies, cycles). A plugin that cannot load comes back with
+  reasons as codes, which the admin UI turns into text. The registry asks it on
+  start, install/update (`previewInstall`) and uninstall (`previewUninstall`).
 - Plugin code is loaded at runtime, so the loader rules in
   `docs/plugins/adr-0001-runtime-loading.md` and `adr-0002-client-bundles.md`
   apply to anything that imports plugin code (absolute path outside `/app`,
@@ -475,6 +480,7 @@ tests/
       manifestSchemaFile.test.ts  ← generated JSON Schema is current, docs examples are valid
       sdk.test.ts                 ← packages/plugin-sdk: definePlugin, version, contexts vs manifest points
       definition.test.ts          ← parsePluginModule: reads a plugin's server module, never throws
+      resolve.test.ts             ← lib/plugins/resolve: host range, dependencies, cycles, load order
     notifications/
       notify.test.ts              ← lib/notify (also mocks `@/lib/mail`, own process)
       queries.test.ts             ← inbox query
