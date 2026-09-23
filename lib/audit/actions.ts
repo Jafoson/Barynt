@@ -46,6 +46,10 @@ export const AUDIT_ACTIONS = {
   "mail.template.updated": "Mail template edited",
   "mail.template.reset": "Mail template reset to default",
   "system.settings.updated": "System settings changed",
+  "plugin.store.added": "Plugin store connected",
+  "plugin.store.enabled": "Plugin store switched on",
+  "plugin.store.disabled": "Plugin store switched off",
+  "plugin.store.removed": "Plugin store removed",
 
   // ── Everyday events in project and workspace ───────────────────────────────
   //
@@ -121,6 +125,7 @@ export type AuditTargetType =
   | "role"
   | "mailTemplate"
   | "systemSettings"
+  | "pluginStore"
   | "issue"
   | "label";
 

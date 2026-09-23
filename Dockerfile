@@ -185,6 +185,8 @@ COPY prisma.config.ts tsconfig.json ./
 COPY prisma ./prisma
 COPY lib/rbac-provision.ts lib/workspace-defaults.ts ./lib/
 COPY lib/rbac ./lib/rbac
+# The official plugin store the bootstrap seeds; no imports of its own.
+COPY lib/plugins/storeUrl.ts ./lib/plugins/storeUrl.ts
 
 # Same build-time-only placeholder as the `builder` stage above — `prisma
 # generate` reads the schema, not a live database.
