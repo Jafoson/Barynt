@@ -52,6 +52,7 @@ A plugin with server and client code, styles, translations and a dependency:
 | `homepage`, `repository` | no | `https://` links. |
 | `icon` | no | A `.svg` or `.png` shipped in the plugin, so showing it needs no request to an icon service. |
 | `barynt` | yes | The Barynt versions the plugin works with, a SemVer range such as `^1.2.0`. `*` is rejected: a compatibility claim has to claim something. |
+| `scope` | no | `workspace` (the default) or `platform`, see [Scope](#scope). |
 | `dependencies` | no | Other plugins by id and version range, at most 20. A plugin cannot depend on itself. |
 | `server` | no | The server module, `.js` or `.mjs`. |
 | `client` | no | The client bundle, `.js` or `.mjs`. |
@@ -78,6 +79,25 @@ A manifest without `server` and `client` is a **declarative** plugin (tier A):
 nothing of the plugin runs. With either entry point the plugin runs code in the
 app (tier B). Tier C, the sandbox, is a different way of running code, not a
 property of the manifest.
+
+### Scope
+
+`scope` says where a plugin applies. The platform installs every plugin
+(`plugin.manage`); what differs is who switches it on.
+
+| `scope` | Switched on | Configured by |
+| --- | --- | --- |
+| `workspace` (default) | per workspace, by its admins (`plugin.enable`) | the workspace |
+| `platform` | for the whole instance, as soon as it is installed and on | the platform (`plugin.manage`) only |
+
+Think of a sign-in provider, branding, an audit export or an addition to the admin
+area as `platform`, a calendar view or a custom field as `workspace`. A workspace
+cannot switch a platform plugin off for itself; that would make it a workspace plugin
+that happens to be on by default.
+
+> **Not built yet.** The manifest only declares the scope. The database column, the
+> rule that a platform plugin may only depend on platform plugins, and the admin
+> screens follow with BARY-116 once the data model and the dependency check are merged.
 
 ### Contributions
 
