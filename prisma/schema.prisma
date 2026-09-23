@@ -1598,8 +1598,8 @@ model PluginWorkspace {
 /// gibt selbst nichts frei; jedes Plugin mit Code braucht weiter seine eigene
 /// Freigabe (BARY-122).
 ///
-/// Zugangsdaten für private Repositories, Zweig und Sync-Stand kommen mit dem
-/// Store-Client (BARY-105, BARY-111), nicht hierher.
+/// Zweig und Sync-Stand kommen mit dem Store-Client (BARY-105, BARY-111), nicht
+/// hierher.
 model PluginStore {
   id String @id @default(cuid())
 
@@ -1621,6 +1621,18 @@ model PluginStore {
   /// Eingeschaltet: Plugins daraus dürfen freigegeben werden und laufen. Aus: der
   /// Store steht nicht in der Liste, die die Richtlinie bekommt.
   enabled Boolean @default(true)
+
+  /// Das Zugangs-Token für ein privates Repository, versiegelt
+  /// (`lib/secrets.ts`, AES-256-GCM) und an die Adresse `key` gebunden: ein Wert,
+  /// der in eine andere Zeile kopiert wird, lässt sich dort nicht öffnen. Nie im
+  /// Klartext, nie in einer Antwort an den Browser, nie in einem Log und nicht im
+  /// Audit-Eintrag. Null: das Repository ist öffentlich. Wird nur über
+  /// `features/plugin-stores/actions.ts` geschrieben.
+  credential String?
+
+  /// Der Benutzername dazu, falls der Hoster einen verlangt (Bitbucket, Azure
+  /// DevOps). Kein Geheimnis. Nur sinnvoll, wenn `credential` gesetzt ist.
+  credentialUser String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

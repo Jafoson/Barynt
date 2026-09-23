@@ -17,7 +17,9 @@ import {
 } from "@/components/ui/layout/SettingsList/SettingsList";
 import {
   addPluginStore,
+  clearPluginStoreCredential,
   removePluginStore,
+  setPluginStoreCredential,
   setPluginStoreEnabled,
 } from "@/features/plugin-stores/actions";
 import type { PluginStoreRow } from "@/features/plugin-stores/queries";
@@ -28,6 +30,7 @@ import {
   NewPluginStoreModal,
 } from "./NewPluginStoreModal";
 import styles from "./pluginStores.module.scss";
+import { StoreAccessModal } from "./StoreAccessModal";
 import { SwitchOnStoreModal } from "./SwitchOnStoreModal";
 
 interface Props {
@@ -62,13 +65,16 @@ export function PluginStores({ stores }: Props) {
     label,
   });
 
-  const connect = async (input: NewPluginStoreInput) => {
-    const result = await addPluginStore(input);
+  // What a dialog gets back from an action: `null` = done, otherwise the error text.
+  const settle = (result: { ok: true } | { error: string }): string | null => {
     if ("error" in result) return result.error;
     setError("");
     router.refresh();
     return null;
   };
+
+  const connect = async (input: NewPluginStoreInput) =>
+    settle(await addPluginStore(input));
 
   const openConnect = () =>
     openModal(
@@ -93,18 +99,36 @@ export function PluginStores({ stores }: Props) {
           close={close}
           sheet={isPhone}
           storeName={store.name}
-          onSwitchOn={async () => {
-            const result = await setPluginStoreEnabled(store.id, true, true);
-            if ("error" in result) return result.error;
-            setError("");
-            router.refresh();
-            return null;
-          }}
+          onSwitchOn={async () =>
+            settle(await setPluginStoreEnabled(store.id, true, true))
+          }
         />
       ),
       modalOptions(t("pluginStores.switchOnTitle", { name: store.name })),
     );
   };
+
+  // The token is never sent to the page: the dialog can set, replace or remove it,
+  // not read it.
+  const openAccess = (store: PluginStoreRow) =>
+    openModal(
+      ({ close }) => (
+        <StoreAccessModal
+          close={close}
+          sheet={isPhone}
+          storeName={store.name}
+          hasCredential={store.hasCredential}
+          initialUsername={store.credentialUser ?? ""}
+          onSave={async (input) =>
+            settle(await setPluginStoreCredential(store.id, input))
+          }
+          onRemove={async () =>
+            settle(await clearPluginStoreCredential(store.id))
+          }
+        />
+      ),
+      modalOptions(t("pluginStores.accessTitle", { name: store.name })),
+    );
 
   const switchOff = async (store: PluginStoreRow) => {
     const ok = await confirm({
@@ -130,7 +154,7 @@ export function PluginStores({ stores }: Props) {
 
   const columns: SettingsColumn[] = [
     { id: "enabled", header: t("pluginStores.colOn"), width: "70px" },
-    { id: "actions", header: "", width: "40px" },
+    { id: "actions", header: "", width: "84px" },
   ];
 
   const rows: SettingsRow[] = stores.map((store) => ({
@@ -143,6 +167,12 @@ export function PluginStores({ stores }: Props) {
           <Badge size="sm" mono={false} active>
             {t("pluginStores.official")}
           </Badge>
+        )}
+        {store.hasCredential && (
+          <span className={styles.accessMark}>
+            <Icon icon="lucide:lock" width={12} />
+            {t("pluginStores.accessBadge")}
+          </span>
         )}
       </span>
     ),
@@ -159,16 +189,33 @@ export function PluginStores({ stores }: Props) {
           }
         />
       ),
-      // The main store can be switched off but not removed.
-      actions: store.official ? null : (
-        <Button
-          variant="text"
-          size="sm"
-          icon={<Icon icon="lucide:trash-2" width={14} />}
-          aria-label={t("actions.remove")}
-          disabled={isPending}
-          onClick={() => remove(store)}
-        />
+      actions: (
+        <span className={styles.rowActions}>
+          <Button
+            variant="text"
+            size="sm"
+            icon={<Icon icon="lucide:key-round" width={14} />}
+            aria-label={
+              store.hasCredential
+                ? t("pluginStores.accessChange")
+                : t("pluginStores.accessAdd")
+            }
+            disabled={isPending}
+            onClick={() => openAccess(store)}
+          />
+          {/* The main store can be switched off but not removed. Its slot stays,
+              unseen, so the key is in the same place in every row. */}
+          <span className={store.official ? styles.slotHidden : undefined}>
+            <Button
+              variant="text"
+              size="sm"
+              icon={<Icon icon="lucide:trash-2" width={14} />}
+              aria-label={t("actions.remove")}
+              disabled={isPending || store.official}
+              onClick={() => remove(store)}
+            />
+          </span>
+        </span>
       ),
     },
   }));
