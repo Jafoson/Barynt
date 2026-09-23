@@ -213,7 +213,13 @@ and measured (start at `docs/plugins/README.md`).
   has no imports on purpose: the migrate image copies only the files the bootstrap needs (see the Dockerfile).
   A `"use server"` file may only export async functions, so limits live in `features/plugin-stores/constants.ts`.
   The admin page is `app/[locale]/(default)/admin/plugin-stores` (`features/plugin-stores/components/PluginStores`);
-  it only calls the three actions, so the trust check stays on the server, not in the dialog.
+  it only calls the actions, so the trust check stays on the server, not in the dialog.
+- Access to a private store is a token in `PluginStore.credential`, **sealed** by `lib/secrets.ts` (AES-256-GCM, key from
+  `SECRETS_KEY` else `AUTH_SECRET`, bound to the store's address by `lib/plugins/storeCredentials.ts`). **Never pass the
+  column to a page or an audit entry, never log it, never return it from an action**: the list query maps it to
+  `hasCredential`, and `tests/unit/plugin-stores/credentials.test.ts` pins the exact fields. A value that does not open is
+  `null`, "no token", never a fallback. Secrets that have to be read back later use `sealSecret`/`openSecret`; passwords
+  are hashed, not sealed.
 
 ## Email (`lib/mail`)
 
