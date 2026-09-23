@@ -1,0 +1,221 @@
+"use client";
+
+import { Icon } from "@iconify/react";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useState, useTransition } from "react";
+import { Badge } from "@/components/ui/atoms/Badge/Badge";
+import { Button } from "@/components/ui/atoms/Button/Button";
+import { Switch } from "@/components/ui/atoms/Switch/Switch";
+import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
+import { PageHeader } from "@/components/ui/layout/PageHeader/PageHeader";
+import {
+  SettingsBody,
+  type SettingsColumn,
+  SettingsList,
+  type SettingsRow,
+} from "@/components/ui/layout/SettingsList/SettingsList";
+import {
+  addPluginStore,
+  removePluginStore,
+  setPluginStoreEnabled,
+} from "@/features/plugin-stores/actions";
+import type { PluginStoreRow } from "@/features/plugin-stores/queries";
+import { useModal } from "@/lib/context";
+import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
+import {
+  type NewPluginStoreInput,
+  NewPluginStoreModal,
+} from "./NewPluginStoreModal";
+import styles from "./pluginStores.module.scss";
+import { SwitchOnStoreModal } from "./SwitchOnStoreModal";
+
+interface Props {
+  stores: PluginStoreRow[];
+}
+
+/**
+ * Which plugin stores are on: the project's main store (on by default), and any
+ * the admin connected. Switching a store on or connecting one asks whether the
+ * admin trusts it; the server checks the answer too. Nothing here approves a
+ * plugin: each plugin with code needs its own approval.
+ */
+export function PluginStores({ stores }: Props) {
+  const t = useTranslations();
+  const router = useRouter();
+  const confirm = useConfirm();
+  const { openModal } = useModal();
+  const isPhone = useMediaQuery(PHONE_QUERY);
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState("");
+
+  const run = (action: () => Promise<{ ok: true } | { error: string }>): void =>
+    startTransition(async () => {
+      const result = await action();
+      setError("error" in result ? result.error : "");
+      router.refresh();
+    });
+
+  // A dialog from a tablet up, a bottom sheet on a phone.
+  const modalOptions = (label: string) => ({
+    ...(isPhone ? { placement: "bottom" as const } : {}),
+    label,
+  });
+
+  const connect = async (input: NewPluginStoreInput) => {
+    const result = await addPluginStore(input);
+    if ("error" in result) return result.error;
+    setError("");
+    router.refresh();
+    return null;
+  };
+
+  const openConnect = () =>
+    openModal(
+      ({ close }) => (
+        <NewPluginStoreModal
+          close={close}
+          sheet={isPhone}
+          onConnect={connect}
+        />
+      ),
+      modalOptions(t("pluginStores.connectTitle")),
+    );
+
+  const switchOn = (store: PluginStoreRow) => {
+    if (store.official) {
+      run(() => setPluginStoreEnabled(store.id, true));
+      return;
+    }
+    openModal(
+      ({ close }) => (
+        <SwitchOnStoreModal
+          close={close}
+          sheet={isPhone}
+          storeName={store.name}
+          onSwitchOn={async () => {
+            const result = await setPluginStoreEnabled(store.id, true, true);
+            if ("error" in result) return result.error;
+            setError("");
+            router.refresh();
+            return null;
+          }}
+        />
+      ),
+      modalOptions(t("pluginStores.switchOnTitle", { name: store.name })),
+    );
+  };
+
+  const switchOff = async (store: PluginStoreRow) => {
+    const ok = await confirm({
+      title: t("pluginStores.switchOffTitle", { name: store.name }),
+      description: t("pluginStores.switchOffDesc"),
+      confirmLabel: t("pluginStores.switchOff"),
+      cancelLabel: t("actions.cancel"),
+      danger: true,
+    });
+    if (ok) run(() => setPluginStoreEnabled(store.id, false));
+  };
+
+  const remove = async (store: PluginStoreRow) => {
+    const ok = await confirm({
+      title: t("pluginStores.removeTitle", { name: store.name }),
+      description: t("pluginStores.removeDesc"),
+      confirmLabel: t("actions.remove"),
+      cancelLabel: t("actions.cancel"),
+      danger: true,
+    });
+    if (ok) run(() => removePluginStore(store.id));
+  };
+
+  const columns: SettingsColumn[] = [
+    { id: "enabled", header: t("pluginStores.colOn"), width: "70px" },
+    { id: "actions", header: "", width: "40px" },
+  ];
+
+  const rows: SettingsRow[] = stores.map((store) => ({
+    id: store.id,
+    label: store.name,
+    desc: (
+      <span className={styles.storeDesc}>
+        <code className={styles.storeUrl}>{store.url}</code>
+        {store.official && (
+          <Badge size="sm" mono={false} active>
+            {t("pluginStores.official")}
+          </Badge>
+        )}
+      </span>
+    ),
+    cells: {
+      enabled: (
+        <Switch
+          id={`plugin-store-enabled-${store.id}`}
+          label={t("pluginStores.colOn")}
+          labelHidden
+          checked={store.enabled}
+          disabled={isPending}
+          onChange={(checked) =>
+            checked ? switchOn(store) : void switchOff(store)
+          }
+        />
+      ),
+      // The main store can be switched off but not removed.
+      actions: store.official ? null : (
+        <Button
+          variant="text"
+          size="sm"
+          icon={<Icon icon="lucide:trash-2" width={14} />}
+          aria-label={t("actions.remove")}
+          disabled={isPending}
+          onClick={() => remove(store)}
+        />
+      ),
+    },
+  }));
+
+  return (
+    <>
+      <PageHeader
+        divider={false}
+        title={t("pluginStores.title")}
+        actions={
+          <Button
+            variant="primary"
+            icon={<Icon icon="lucide:plus" width={15} />}
+            onClick={openConnect}
+          >
+            {t("pluginStores.connect")}
+          </Button>
+        }
+      />
+
+      <SettingsBody>
+        {error && (
+          <p className={styles.error} role="alert">
+            <Icon icon="lucide:circle-alert" width={14} />
+            {error}
+          </p>
+        )}
+
+        {stores.length > 0 && stores.every((store) => !store.enabled) && (
+          <output className={styles.notice}>
+            <Icon icon="lucide:info" width={14} />
+            {t("pluginStores.noneOn")}
+          </output>
+        )}
+
+        {rows.length > 0 ? (
+          <SettingsList
+            rows={rows}
+            columns={columns}
+            label={t("pluginStores.title")}
+          />
+        ) : (
+          <p className={styles.empty}>{t("pluginStores.empty")}</p>
+        )}
+
+        <p className={styles.footnote}>{t("pluginStores.footnote")}</p>
+      </SettingsBody>
+    </>
+  );
+}
