@@ -67,20 +67,23 @@ plugins found on disk into plugins that ran. It takes them **already in load ord
 first (what `resolvePlugins()` returns, see [Compatibility](compatibility.md)), and runs two phases
 ([SDK](sdk.md#two-phases)):
 
-1. **Import and register**, for every plugin in order: find the `server` file, import it, check
+1. **Check, import and register**, for every plugin in order: check its files against the approved
+   hash, find the `server` file, import it, check
    that it exports a plugin (`parsePluginModule()`), run `register(ctx)` and record what the
    plugin registered.
 2. **Boot**, once every plugin has registered: run `boot(ctx)`. So no plugin's `boot` runs
    before another's `register`.
 
 A plugin without server code (declarative, or client only) counts as loaded with no
-registrations, so it can be depended on.
+registrations, so it can be depended on. It is still checked against its hash: its manifest and
+client bundle are files the host serves.
 
 ### What it checks
 
 | Check | Failure phase |
 | --- | --- |
-| the `server` file exists, is a file, and is not a symlink that leads **out of the plugin directory** (the manifest validator keeps `..` out of the path, this is the other way to leave) | `entry` |
+| the plugin's files on disk **are the ones that were approved** (the hash from install), and contain no symlink or other odd file; checked first, for every plugin, before anything of it is read or run ([Security](security.md#the-integrity-check)) | `integrity` |
+| the `server` file exists, is a file, and is not a symlink that leads **out of the plugin directory** (second line of defence, the hash check refuses symlinks already) (the manifest validator keeps `..` out of the path, this is the other way to leave) | `entry` |
 | importing throws or takes longer than 10 s (`importTimeoutMs`) | `import` |
 | the module exports no plugin: no default export, a bare function, an unknown hook, neither `register` nor `boot` | `module` |
 | `register` throws, returns a promise, or registers an id the manifest does not list under `contributes`, one under the wrong point, one twice, or a definition that is not an object | `register` |
@@ -105,7 +108,8 @@ The result is `{ loaded, failed }`: `loaded` in load order with each plugin's re
 ### What it cannot do
 
 Plugin code runs **in the app's process with the app's privileges** (trust tier B, ADR 0001), so
-none of this is isolation. A timeout only stops *waiting*: code that never returns, such as
+none of this is isolation, and the hash check only makes sure the code is the code that was approved,
+not that it is safe. Read [Security](security.md) for what that means. A timeout only stops *waiting*: code that never returns, such as
 `while (true) {}` at the top of a module, still blocks the process, and JavaScript cannot stop it.
 That is why plugins come from a reviewed store with a pinned hash, and why unsigned ones are
 blocked by default.

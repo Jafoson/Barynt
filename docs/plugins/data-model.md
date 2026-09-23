@@ -17,7 +17,7 @@ tables, one row per installation and one per plugin and workspace.
 | `status` | `ENABLED` or `DISABLED`, the platform's switch for the whole plugin. `DISABLED` stops it loading without uninstalling it; the workspaces' settings stay |
 | `source` | `STORE`, `UPLOAD` or `DIRECTORY`. `STORE` means it came from a plugin store and its hash is pinned in the store entry; the other two have no store entry and load only if the platform allows unsigned plugins (BARY-110) |
 | `origin` | for `STORE` the address of the store (the official one or a custom one), otherwise empty |
-| `integrity` | SHA-512 of the release archive as `sha512-<base64>`: the value pinned in the store entry for `STORE`, otherwise the one computed at install. What lies on disk later has to match it |
+| `integrity` | the hash of the plugin **directory** as `sha512-<base64>`, computed at install by `hashPluginDirectory()` and approved by the admin. It is checked before every load, and a plugin whose files differ does not load ([Security](security.md#the-integrity-check)). The archive hash pinned in a store entry is verified by the installer before it extracts; the directory hash is what is stored |
 | `installedAt`, `updatedAt` | `updatedAt` changes on every update and every switch of `status` |
 
 Whether a plugin **loads** is not stored. That is decided at start by
