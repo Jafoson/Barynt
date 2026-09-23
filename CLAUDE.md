@@ -164,6 +164,13 @@ and measured (start at `docs/plugins/README.md`).
 - Change the manifest schema → **`bun run plugin-schema:build`** and commit
   `public/schemas/barynt-plugin.schema.json`. `tests/unit/plugins` (and
   `bun run plugin-schema:check`) fail while it is out of date.
+- `packages/plugin-sdk` (`@barynt/plugin-sdk`) is what plugin authors and the host
+  both import: `definePlugin`, `RegistrationContext`, `BootContext`, `SDK_VERSION`.
+  It is **not** a Bun workspace: `tsconfig.json` maps the name to its `src/index.ts`,
+  which keeps `bun.lock` and the Docker build untouched. It must import nothing
+  from the host, because a plugin bundles it. Change its version in `SDK_VERSION`
+  **and** `package.json` (a test compares them). A plugin's server module is read
+  with `parsePluginModule()` (`lib/plugins/definition.ts`), which never throws.
 - Plugin code is loaded at runtime, so the loader rules in
   `docs/plugins/adr-0001-runtime-loading.md` and `adr-0002-client-bundles.md`
   apply to anything that imports plugin code (absolute path outside `/app`,
@@ -459,6 +466,8 @@ tests/
     plugins/
       manifest.test.ts            ← plugin manifest schema and validator (lib/plugins)
       manifestSchemaFile.test.ts  ← generated JSON Schema is current, docs examples are valid
+      sdk.test.ts                 ← packages/plugin-sdk: definePlugin, version, contexts vs manifest points
+      definition.test.ts          ← parsePluginModule: reads a plugin's server module, never throws
     notifications/
       notify.test.ts              ← lib/notify (also mocks `@/lib/mail`, own process)
       queries.test.ts             ← inbox query
