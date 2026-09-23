@@ -206,6 +206,12 @@ and measured (start at `docs/plugins/README.md`).
   store the platform switched on (the official one by default) that the platform approved for its
   exact hash; everything else with `server` or `client` is blocked, and any doubt, a missing or empty
   store list included, means blocked.** The loader is only ever given plugins that policy lets through.
+- Which stores are on is the `PluginStore` table (`docs/plugins/stores.md`): the official store is put in by
+  `prisma/bootstrap.ts` (which never touches `enabled`), only `plugin.manage` changes the list, connecting or
+  switching on a store needs an explicit "I trust it" that the **server** checks, and every change is audited.
+  `lib/plugins/stores.ts#getActiveStoreUrls()` gives the policy its list and fails closed. `lib/plugins/storeUrl.ts`
+  has no imports on purpose: the migrate image copies only the files the bootstrap needs (see the Dockerfile).
+  A `"use server"` file may only export async functions, so limits live in `features/plugin-stores/constants.ts`.
 
 ## Email (`lib/mail`)
 

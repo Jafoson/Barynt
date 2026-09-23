@@ -377,7 +377,7 @@ permissions at different levels (the plugin system is described in
 
 | Key | Scope | Holders | What it allows |
 |---|---|---|---|
-| `plugin.manage` | PLATFORM | `platform_admin` | use the plugin store; install, update and uninstall plugins; allow plugins that come from no store |
+| `plugin.manage` | PLATFORM | `platform_admin` | use the plugin store and choose which stores are on; install, update and uninstall plugins; allow plugins that come from no store |
 | `plugin.enable` | WORKSPACE | `owner`, `admin` | enable, disable and configure the installed plugins in the workspace |
 
 - **Installing is a platform matter.** Plugin code runs with full trust inside the
