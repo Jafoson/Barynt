@@ -3,10 +3,16 @@ import type { PluginManifest } from "./manifest";
 
 // Who may run plugin code in the app's process. Plugin code that runs there has
 // the power of the whole app (docs/plugins/security.md), so the rule is strict
-// and closed: **code runs in-process only for a plugin from the official store
-// that the platform has approved, for the exact files it has now.** Everything
-// else with code is blocked, whatever else is true of it. A plugin without code
-// runs, because nothing of it does.
+// and closed: **code runs in-process only for a plugin from a store the platform
+// has switched on that the platform has also approved, for the exact files it has
+// now.** Everything else with code is blocked, whatever else is true of it. A
+// plugin without code runs, because nothing of it does.
+//
+// Which stores are on is the platform admin's choice: the official store is on by
+// default, and the admin can add stores, or switch the official one off and use
+// only their own. Connecting a store means trusting what its authors publish, but
+// it never runs anything by itself: every plugin with code still needs its own
+// approval for its exact hash.
 //
 // Pure logic on plain values, no database and no `server-only`: the registry
 // asks it for every installed plugin and hands the loader only those it lets
@@ -14,12 +20,16 @@ import type { PluginManifest } from "./manifest";
 // "blocked", never "allowed".
 
 /**
- * The official store. Only this address counts as official. It is a constant on
- * purpose and not a setting: what may run with the full power of the app should
- * not depend on an environment variable. If the store moves, this changes in code.
+ * The official store, managed by the project. It is the one store that is on by
+ * default. Whether it stays on is the platform admin's choice, so this is the
+ * *default entry* of the list of active stores, not a rule of its own. If the
+ * store moves, this changes in code.
  */
 export const OFFICIAL_STORE_URL =
   "https://github.com/Jafoson/barynt-plugin-store";
+
+/** The stores that are on until a platform admin changes them. */
+export const DEFAULT_ACTIVE_STORES: readonly string[] = [OFFICIAL_STORE_URL];
 
 /**
  * A store address in one form for comparing: `host/path`, lowercase, without
@@ -49,18 +59,31 @@ export function normalizeStoreUrl(url: unknown): string | null {
   return path ? `${parsed.hostname}${path}`.toLowerCase() : null;
 }
 
-/** Is this the official store? Anything that is not clearly so is not. */
-export function isOfficialStore(origin: unknown): boolean {
-  const official = normalizeStoreUrl(OFFICIAL_STORE_URL);
+/**
+ * Is `origin` one of the active stores? Both sides are compared in normalised
+ * form, and an entry that does not normalise (garbage in the list) matches
+ * nothing. A list that is missing, not a list, or empty matches nothing, so no
+ * configuration means no code.
+ */
+export function isActiveStore(
+  origin: unknown,
+  activeStores: readonly unknown[],
+): boolean {
   const given = normalizeStoreUrl(origin);
-  return official !== null && given !== null && given === official;
+  if (given === null || !Array.isArray(activeStores)) return false;
+  return activeStores.some((store) => normalizeStoreUrl(store) === given);
+}
+
+/** Is this the official store? For marking it as such, not for deciding what runs. */
+export function isOfficialStore(origin: unknown): boolean {
+  return isActiveStore(origin, [OFFICIAL_STORE_URL]);
 }
 
 export type BlockedReason =
   /** The input is missing or malformed, so it cannot be known whether the plugin has code. */
   | "invalid"
-  /** It has code, and code only runs for plugins from the official store. */
-  | "not-official-store"
+  /** It has code, and it is not from a store that is switched on (or not from a store at all). */
+  | "store-not-active"
   /** It has code, and the platform has not approved running it (or there is no valid hash to approve). */
   | "not-approved"
   /** The approval is for other files than the ones installed now, for example after an update. */
@@ -93,24 +116,30 @@ export interface ExecutionInput {
  *    plugin has code is not the same as it having none.
  * 1. no `server` and no `client`: declarative, it runs. A value that is there
  *    counts as code, even an empty one.
- * 2. not from the official store (source is not `STORE`, or the store is not the
- *    official one): blocked.
+ * 2. not from an active store (source is not `STORE`, or its store is not among
+ *    `activeStores`): blocked.
  * 3. no valid hash on record, or no approval: blocked, not approved.
  * 4. the approval is for another hash than the installed one: blocked, outdated.
  * 5. otherwise in-process.
  *
  * It never throws.
  */
-export function decideExecution(input: ExecutionInput): ExecutionDecision {
+export function decideExecution(
+  input: ExecutionInput,
+  activeStores: readonly string[],
+): ExecutionDecision {
   try {
-    return decide(input);
+    return decide(input, activeStores);
   } catch {
     // A getter that throws, or anything else nobody expected: not allowed.
     return { mode: "blocked", reason: "invalid" };
   }
 }
 
-function decide(input: ExecutionInput): ExecutionDecision {
+function decide(
+  input: ExecutionInput,
+  activeStores: readonly string[],
+): ExecutionDecision {
   const manifest = (input as ExecutionInput | null | undefined)?.manifest;
   if (
     typeof input !== "object" ||
@@ -124,8 +153,8 @@ function decide(input: ExecutionInput): ExecutionDecision {
     return { mode: "declarative" };
   }
 
-  if (input.source !== "STORE" || !isOfficialStore(input.origin)) {
-    return { mode: "blocked", reason: "not-official-store" };
+  if (input.source !== "STORE" || !isActiveStore(input.origin, activeStores)) {
+    return { mode: "blocked", reason: "store-not-active" };
   }
   if (!isIntegrityHash(input.integrity) || !input.codeApprovalHash) {
     return { mode: "blocked", reason: "not-approved" };
@@ -146,8 +175,8 @@ export function describeDecision(decision: ExecutionDecision): string {
   switch (decision.reason) {
     case "invalid":
       return "could not be checked, so it is blocked";
-    case "not-official-store":
-      return "has code, and code only runs for plugins from the official store";
+    case "store-not-active":
+      return "has code, and code only runs for plugins from a store that is switched on";
     case "not-approved":
       return "has code, and the platform has not approved running it";
     case "approval-outdated":
