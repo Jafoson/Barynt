@@ -164,6 +164,13 @@ and measured (start at `docs/plugins/README.md`).
 - Change the manifest schema → **`bun run plugin-schema:build`** and commit
   `public/schemas/barynt-plugin.schema.json`. `tests/unit/plugins` (and
   `bun run plugin-schema:check`) fail while it is out of date.
+- `packages/plugin-sdk` (`@barynt/plugin-sdk`) is what plugin authors and the host
+  both import: `definePlugin`, `RegistrationContext`, `BootContext`, `SDK_VERSION`.
+  It is **not** a Bun workspace: `tsconfig.json` maps the name to its `src/index.ts`,
+  which keeps `bun.lock` and the Docker build untouched. It must import nothing
+  from the host, because a plugin bundles it. Change its version in `SDK_VERSION`
+  **and** `package.json` (a test compares them). A plugin's server module is read
+  with `parsePluginModule()` (`lib/plugins/definition.ts`), which never throws.
 - `lib/plugins/resolve.ts` decides which installed plugins can load and in what
   order (`barynt` range against `BARYNT_VERSION` from `lib/version.ts`, i.e.
   `package.json`; dependencies, cycles). A plugin that cannot load comes back with
@@ -176,6 +183,13 @@ and measured (start at `docs/plugins/README.md`).
   version, built JavaScript only).
 - `docs/` is excluded from `tsconfig.json`: fixtures and examples there may import
   packages that only exist at runtime.
+- Two permissions govern plugins (`docs/rbac.md`): **`plugin.manage`** (PLATFORM,
+  `platform_admin`: store, install, update, uninstall, allow unsigned plugins) and
+  **`plugin.enable`** (WORKSPACE, `owner` and `admin`: enable, disable, configure).
+  Installing is a platform matter, so neither key is grantable at the other level.
+  Production and Helm provision new permissions on every deploy (`prisma/bootstrap.ts`);
+  on an existing dev database run the `provisionSystemRbac` snippet from "New
+  permission" below.
 
 ## Email (`lib/mail`)
 
@@ -464,6 +478,8 @@ tests/
     plugins/
       manifest.test.ts            ← plugin manifest schema and validator (lib/plugins)
       manifestSchemaFile.test.ts  ← generated JSON Schema is current, docs examples are valid
+      sdk.test.ts                 ← packages/plugin-sdk: definePlugin, version, contexts vs manifest points
+      definition.test.ts          ← parsePluginModule: reads a plugin's server module, never throws
       resolve.test.ts             ← lib/plugins/resolve: host range, dependencies, cycles, load order
     notifications/
       notify.test.ts              ← lib/notify (also mocks `@/lib/mail`, own process)

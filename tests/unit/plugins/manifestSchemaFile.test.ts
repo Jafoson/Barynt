@@ -32,6 +32,7 @@ describe("generated JSON Schema", () => {
         "description",
         "author",
         "license",
+        "categories",
         "barynt",
       ]),
     );
@@ -45,6 +46,7 @@ describe("generated JSON Schema", () => {
         "capabilities",
         "contributes",
         "dependencies",
+        "scope",
       ]),
     );
   });
