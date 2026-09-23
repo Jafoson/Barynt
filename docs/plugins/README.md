@@ -41,6 +41,7 @@ start, and an install / enable / disable / uninstall lifecycle.
 | [Manifest](manifest.md) | The `barynt-plugin.json` format: every field, the rules, how to validate it, what is still open. Examples in [examples/](examples). |
 | [SDK](sdk.md) | `@barynt/plugin-sdk`: how a plugin's server module is written (`definePlugin`), the two phases `register` and `boot`, what each context offers, how the host reads a module, what is still open. |
 | [Compatibility](compatibility.md) | Which installed plugins can load and in what order: the `barynt` range against the host, dependencies, cycles, and the reasons a plugin is left out. |
+| [Data model](data-model.md) | The two tables (`Plugin`, `PluginWorkspace`): what each column means, what happens on delete, what is deliberately left out. |
 | [ADR 0001](adr-0001-runtime-loading.md) | Can plugin server code load at runtime in the built image? Yes, with rules for the loader. |
 | [ADR 0002](adr-0002-client-bundles.md) | How plugin UI loads in the browser with one shared React: import map, shims, and where the map has to live. |
 | [spike/](spike/README.md) | The server-side experiment behind ADR 0001, reproducible with one script. |

@@ -67,6 +67,8 @@ model Workspace {
   // Zeigt hierher, wenn dieser Workspace als globaler Default eingetragen ist
   // (SystemSettings.defaultWorkspaceId) — siehe dort.
   defaultForSystemSettings SystemSettings[]
+  // Welche der installierten Plugins hier eingeschaltet sind, samt Einstellungen.
+  plugins       PluginWorkspace[]
 }
 
 /// Eine E-Mail-Domain, über die neue Konten automatisch in diesen Workspace
@@ -1468,4 +1470,93 @@ model SystemSettings {
   updatedAt DateTime @updatedAt
 
   @@index([defaultWorkspaceId])
+}
+
+// ─── Plugins ────────────────────────────────────────────────────────────────
+//
+// Die Plattform installiert (`plugin.manage`), ein Workspace schaltet ein
+// (`plugin.enable`). Deshalb zwei Tabellen: `Plugin` gibt es einmal je
+// Installation, `PluginWorkspace` einmal je Plugin und Workspace, in dem es
+// schon einmal eingeschaltet war. Der Code selbst liegt nicht in der Datenbank,
+// sondern im Plugin-Verzeichnis (`<id>/<version>/`, docs/plugins/adr-0001).
+//
+// Bewusst nicht Teil von v1: eigene Tabellen je Plugin (Plugin-Daten laufen über
+// den generischen Storage, BARY-85) und ein Opt-out je Projekt (kommt mit dem
+// Slot-Framework, BARY-65, das es als Erstes braucht).
+
+/// Woher ein installiertes Plugin stammt. `STORE`: aus einem Plugin-Store, der
+/// gepinnte Hash steht im Store-Eintrag. `UPLOAD` und `DIRECTORY`: ohne
+/// Store-Eintrag; solche Plugins laden nur, wenn die Plattform unsignierte
+/// Plugins erlaubt (BARY-110).
+enum PluginSource {
+  STORE
+  UPLOAD
+  DIRECTORY
+}
+
+/// Schalter der Plattform für das ganze Plugin, unabhängig von den Workspaces.
+/// `DISABLED` lädt es nicht mehr, ohne es zu deinstallieren; die Einstellungen
+/// der Workspaces bleiben dabei erhalten.
+enum PluginStatus {
+  ENABLED
+  DISABLED
+}
+
+/// Ein auf der Plattform installiertes Plugin.
+///
+/// Ob es *lädt*, steht hier nicht: das entscheidet beim Start die Prüfung in
+/// `lib/plugins/resolve.ts` (passende Barynt-Version, Abhängigkeiten) und wird
+/// nicht gespeichert, damit ein Host-Upgrade nichts nachziehen muss.
+model Plugin {
+  /// Die `id` aus dem Manifest, zugleich Verzeichnisname. Der Primärschlüssel
+  /// ist die Id selbst: zwei Plugins mit derselben Id kann es nicht geben, und
+  /// Pfade, Berechtigungen und Routen leiten sich von ihr ab.
+  id      String @id
+  /// Die installierte Version (SemVer, ohne Build-Metadaten). Es liegt immer nur
+  /// eine Version installiert; ein Update ersetzt sie.
+  version String
+
+  status PluginStatus @default(ENABLED)
+  source PluginSource
+
+  /// Bei `STORE` die Adresse des Stores (der offizielle oder ein eigener), aus
+  /// dem es kam. Sonst leer.
+  origin String?
+
+  /// SHA-512 des Release-Archivs im Format `sha512-<base64>`, bei `STORE` der
+  /// im Store-Eintrag gepinnte Wert, sonst der bei der Installation berechnete.
+  /// Was später auf der Platte liegt, muss dazu passen.
+  integrity String
+
+  installedAt DateTime @default(now())
+  /// Ändert sich bei jedem Update und jedem Umschalten von `status`.
+  updatedAt   DateTime @updatedAt
+
+  workspaces PluginWorkspace[]
+}
+
+/// Ein Plugin in einem Workspace: ob es dort eingeschaltet ist und wie es dort
+/// eingestellt ist. Die Zeile entsteht beim ersten Einschalten und bleibt beim
+/// Ausschalten bestehen, damit die Einstellungen nicht verloren gehen.
+model PluginWorkspace {
+  pluginId    String
+  workspaceId String
+
+  enabled Boolean @default(true)
+
+  /// Die Einstellungen des Plugins in diesem Workspace. Ihre Form legt das
+  /// Plugin selbst fest (BARY-66); leer, solange nichts eingestellt wurde.
+  config Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Mit dem Deinstallieren des Plugins fallen auch seine Einstellungen weg.
+  plugin    Plugin    @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@id([pluginId, workspaceId])
+  /// Für "welche Plugins sind in diesem Workspace eingeschaltet", die häufigste
+  /// Frage (jede Seite, die Slots rendert).
+  @@index([workspaceId])
 }
