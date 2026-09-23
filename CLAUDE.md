@@ -194,7 +194,10 @@ and measured (start at `docs/plugins/README.md`).
   directory; without it plugins are off): `<dir>/<id>/<version>/barynt-plugin.json`. `lib/plugins/discovery.ts` lists
   and checks them and **never throws**: the directory is outside the host's control
   (symlinks are not followed, names and manifests are validated). Every fs call with a
-  variable path needs `/* turbopackIgnore: true */` (ADR 0001).
+  variable path needs `/* turbopackIgnore: true */` (ADR 0001). `lib/plugins/loader.ts`
+  imports the server modules and runs `register` for all plugins, then `boot`; a failing
+  plugin is recorded with its phase and dropped, never thrown, and its dependents do not
+  load. It is not isolation: plugin code runs in the process.
 
 ## Email (`lib/mail`)
 
