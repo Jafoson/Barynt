@@ -3,8 +3,8 @@
 How the host gets from a directory on disk to running plugins. Built in three steps
 (BARY-59): **discovery** (this page), the **loader** and the **registry**.
 
-> **Status: early.** Only discovery is built. The loader (importing the modules, running
-> `register` and `boot`, isolating errors) and the registry (what is active where) follow.
+> **Status: early.** Discovery and the loader are built. The registry (what is active where)
+> follows, and nothing in the app calls the loader yet.
 
 ## Where plugins live
 
@@ -60,12 +60,65 @@ are no plugin at all.
 Every filesystem call with a variable path carries `/* turbopackIgnore: true */`; without it
 Turbopack traces the whole project into the standalone output (ADR 0001, decision 2).
 
+## The loader
+
+[`lib/plugins/loader.ts`](../../lib/plugins/loader.ts): `loadPlugins(candidates, options)` turns
+plugins found on disk into plugins that ran. It takes them **already in load order**, dependencies
+first (what `resolvePlugins()` returns, see [Compatibility](compatibility.md)), and runs two phases
+([SDK](sdk.md#two-phases)):
+
+1. **Check, import and register**, for every plugin in order: check its files against the approved
+   hash, find the `server` file, import it, check
+   that it exports a plugin (`parsePluginModule()`), run `register(ctx)` and record what the
+   plugin registered.
+2. **Boot**, once every plugin has registered: run `boot(ctx)`. So no plugin's `boot` runs
+   before another's `register`.
+
+A plugin without server code (declarative, or client only) counts as loaded with no
+registrations, so it can be depended on. It is still checked against its hash: its manifest and
+client bundle are files the host serves.
+
+### What it checks
+
+| Check | Failure phase |
+| --- | --- |
+| the plugin's files on disk **are the ones that were approved** (the hash from install), and contain no symlink or other odd file; checked first, for every plugin, before anything of it is read or run ([Security](security.md#the-integrity-check)) | `integrity` |
+| the `server` file exists, is a file, and is not a symlink that leads **out of the plugin directory** (second line of defence, the hash check refuses symlinks already) (the manifest validator keeps `..` out of the path, this is the other way to leave) | `entry` |
+| importing throws or takes longer than 10 s (`importTimeoutMs`) | `import` |
+| the module exports no plugin: no default export, a bare function, an unknown hook, neither `register` nor `boot` | `module` |
+| `register` throws, returns a promise, or registers an id the manifest does not list under `contributes`, one under the wrong point, one twice, or a definition that is not an object | `register` |
+| `boot` throws or takes longer than 30 s (`bootTimeoutMs`) | `boot` |
+| a plugin it depends on did not load | `dependency` |
+
+A violation in `register` is recorded **and** thrown, so a plugin that catches the error to carry
+on is still refused afterwards. The contexts a plugin receives are frozen, and the boot context
+holds exactly the five services the host passes, nothing else the factory may have returned.
+
+### What a failure does
+
+Every failure is caught and recorded **per plugin** with its phase and a short message (one line,
+at most 300 characters, never a stack trace). Whatever the plugin had registered is thrown away.
+The others carry on. A plugin whose dependency failed does not load either, however deep, and its
+code is not even imported. That includes a dependency that failed in `boot`: a plugin that had
+already registered is pulled back and its `boot` never runs.
+
+The result is `{ loaded, failed }`: `loaded` in load order with each plugin's registrations
+(`{ point, id, definition }`), `failed` a map from plugin id to `{ phase, message }`. It never throws.
+
+### What it cannot do
+
+Plugin code runs **in the app's process with the app's privileges** (trust tier B, ADR 0001), so
+none of this is isolation, and the hash check only makes sure the code is the code that was approved,
+not that it is safe. Read [Security](security.md) for what that means. A timeout only stops *waiting*: code that never returns, such as
+`while (true) {}` at the top of a module, still blocks the process, and JavaScript cannot stop it.
+That is why plugins come from a reviewed store with a pinned hash, and why unsigned ones are
+blocked by default.
+
 ## Not built yet
 
-- **The loader**: importing `server.js` by absolute path, `parsePluginModule()`, running
-  `register` then `boot` with the contexts from the [SDK](sdk.md), and recording an error
-  per plugin instead of failing the app.
 - **The registry**: a process-wide singleton bridged through `global` (like
-  `lib/realtime/store.ts`), and `getActivePlugins(workspaceId)` for server components.
+  `lib/realtime/store.ts`), the real services behind `jobs`, `user` and `workspace`, and
+  `getActivePlugins(workspaceId)` for server components. It is what calls the loader, and
+  building it includes checking that a production build handles the dynamic import.
 - **Reload** after enable and disable without a restart, as far as the module cache allows.
 - **The volume** in Docker Compose and Helm (BARY-117).

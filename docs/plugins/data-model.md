@@ -19,7 +19,7 @@ tables, one row per installation and one per plugin and workspace.
 | `scope` | `WORKSPACE` or `PLATFORM`, taken from the manifest's `scope` at install and at every update. `WORKSPACE`: switched on per workspace (`PluginWorkspace`). `PLATFORM`: applies to the whole instance as soon as it is installed and `ENABLED`, with no switch per workspace. Stored so that "which plugins apply in this workspace" is one query and not a walk over the manifests on disk |
 | `config` | the platform's settings for a `PLATFORM` plugin, `{}` until something is set. Unused for `WORKSPACE` plugins, whose settings are per workspace in `PluginWorkspace.config` |
 | `origin` | for `STORE` the address of the store (the official one or a custom one), otherwise empty |
-| `integrity` | SHA-512 of the release archive as `sha512-<base64>`: the value pinned in the store entry for `STORE`, otherwise the one computed at install. What lies on disk later has to match it |
+| `integrity` | the hash of the plugin **directory** as `sha512-<base64>`, computed at install by `hashPluginDirectory()` and approved by the admin. It is checked before every load, and a plugin whose files differ does not load ([Security](security.md#the-integrity-check)). The archive hash pinned in a store entry is verified by the installer before it extracts; the directory hash is what is stored |
 | `installedAt`, `updatedAt` | `updatedAt` changes on every update, every switch of `status` and every change of `config` |
 
 Whether a plugin **loads** is not stored. That is decided at start by

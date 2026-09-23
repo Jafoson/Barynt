@@ -115,7 +115,7 @@ async function subdirectories(
 }
 
 /** `ENOENT`, `EACCES` and so on, never the message: it can contain the path twice. */
-function errorCode(error: unknown): string {
+export function errorCode(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
   return typeof code === "string" ? code : "unknown error";
 }

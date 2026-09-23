@@ -194,7 +194,14 @@ and measured (start at `docs/plugins/README.md`).
   directory; without it plugins are off): `<dir>/<id>/<version>/barynt-plugin.json`. `lib/plugins/discovery.ts` lists
   and checks them and **never throws**: the directory is outside the host's control
   (symlinks are not followed, names and manifests are validated). Every fs call with a
-  variable path needs `/* turbopackIgnore: true */` (ADR 0001).
+  variable path needs `/* turbopackIgnore: true */` (ADR 0001). `lib/plugins/loader.ts`
+  imports the server modules and runs `register` for all plugins, then `boot`; a failing
+  plugin is recorded with its phase and dropped, never thrown, and its dependents do not
+  load. It is not isolation: plugin code runs in the process. Before anything of a plugin
+  is read or run, `lib/plugins/integrity.ts` checks its directory against the hash approved at
+  install (`Plugin.integrity`): no hash, no load; a symlink or odd file inside is refused.
+  Read `docs/plugins/security.md` before touching any of this: tier B code has the power of the
+  app, and capabilities are not a fence for it.
 
 ## Email (`lib/mail`)
 
