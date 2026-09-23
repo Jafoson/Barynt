@@ -13,7 +13,8 @@
       "!.next",
       "!dist",
       "!build",
-      "!lib/icons/bundle.generated.ts"
+      "!lib/icons/bundle.generated.ts",
+      "!public/schemas/barynt-plugin.schema.json"
     ]
   },
   "formatter": {

@@ -45,6 +45,7 @@ const SEGMENTS: string[][] = [
     "tests/unit/api-keys/cursor.test.ts",
     "tests/unit/api-keys/rateLimit.test.ts",
     "tests/unit/webhooks",
+    "tests/unit/plugins",
   ],
   ["tests/unit/permissions/resolver.test.ts"],
   // Own invocation: sharing segment 0 with tests/unit/projects made
