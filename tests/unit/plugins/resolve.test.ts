@@ -23,9 +23,10 @@ function plugin(
     version = "1.0.0",
     barynt = ">=1.0.0 <2.0.0",
     dependencies = {},
+    scope,
   }: Partial<PluginCandidate> = {},
 ): PluginCandidate {
-  return { id, version, barynt, dependencies };
+  return { id, version, barynt, dependencies, scope };
 }
 
 function codes(problems: Map<string, Problem[]>, id: string): string[] {
@@ -267,6 +268,132 @@ describe("cycles", () => {
   });
 });
 
+describe("scope", () => {
+  // A platform plugin runs everywhere. A workspace plugin only runs where a
+  // workspace switched it on, so a platform plugin cannot lean on one.
+  const platform = (id: string, more: Partial<PluginCandidate> = {}) =>
+    plugin(id, { scope: "platform", ...more });
+  const needs = (id: string) => ({ dependencies: { [id]: "^1.0.0" } });
+
+  it("lets a platform plugin depend on a platform plugin", () => {
+    const { order, problems } = resolvePlugins(
+      [platform("audit", needs("sso")), platform("sso")],
+      HOST,
+    );
+    expect(order).toEqual(["sso", "audit"]);
+    expect(problems.size).toBe(0);
+  });
+
+  it("lets a workspace plugin depend on either kind", () => {
+    const { order, problems } = resolvePlugins(
+      [
+        plugin("calendar", {
+          scope: "workspace",
+          dependencies: { sso: "^1.0.0", tracking: "^1.0.0" },
+        }),
+        platform("sso"),
+        plugin("tracking", { scope: "workspace" }),
+      ],
+      HOST,
+    );
+    expect(order).toEqual(["sso", "tracking", "calendar"]);
+    expect(problems.size).toBe(0);
+  });
+
+  it("leaves out a platform plugin that needs a workspace plugin, and says which", () => {
+    const { order, problems } = resolvePlugins(
+      [platform("audit", needs("tracking")), plugin("tracking")],
+      HOST,
+    );
+    // The workspace plugin itself is fine and loads.
+    expect(order).toEqual(["tracking"]);
+    expect(problems.get("audit")).toEqual([
+      { code: "dependency-scope", dependency: "tracking" },
+    ]);
+  });
+
+  it("blames the scope only, not also that the workspace plugin cannot load", () => {
+    // tracking is not compatible with the host. audit still gets one reason: it
+    // may not lean on a workspace plugin at all, so what tracking does is beside the point.
+    const { problems } = resolvePlugins(
+      [
+        platform("audit", needs("tracking")),
+        plugin("tracking", { barynt: "^2.0.0" }),
+      ],
+      HOST,
+    );
+    expect(problems.get("audit")).toEqual([
+      { code: "dependency-scope", dependency: "tracking" },
+    ]);
+  });
+
+  it("counts a plugin without a scope as a workspace plugin", () => {
+    const withoutScope: PluginCandidate = {
+      id: "tracking",
+      version: "1.0.0",
+      barynt: ">=1.0.0 <2.0.0",
+      dependencies: {},
+    };
+    const { problems } = resolvePlugins(
+      [platform("audit", needs("tracking")), withoutScope],
+      HOST,
+    );
+    expect(codes(problems, "audit")).toEqual(["dependency-scope"]);
+  });
+
+  it("reports the scope and the version problem together", () => {
+    const { problems } = resolvePlugins(
+      [
+        platform("audit", { dependencies: { tracking: "^2.0.0" } }),
+        plugin("tracking", { version: "1.2.0" }),
+      ],
+      HOST,
+    );
+    expect(codes(problems, "audit")).toEqual([
+      "dependency-version",
+      "dependency-scope",
+    ]);
+  });
+
+  it("passes it on to whatever needs the platform plugin that was left out", () => {
+    const { order, problems } = resolvePlugins(
+      [
+        plugin("report", needs("audit")),
+        platform("audit", needs("tracking")),
+        plugin("tracking"),
+      ],
+      HOST,
+    );
+    expect(order).toEqual(["tracking"]);
+    expect(problems.get("report")).toEqual([
+      { code: "dependency-unavailable", dependency: "audit" },
+    ]);
+  });
+
+  it("still finds a cycle between a platform and a workspace plugin", () => {
+    const { order, problems } = resolvePlugins(
+      [
+        platform("audit", needs("tracking")),
+        plugin("tracking", needs("audit")),
+      ],
+      HOST,
+    );
+    expect(order).toEqual([]);
+    expect(codes(problems, "audit")).toEqual([
+      "dependency-scope",
+      "dependency-cycle",
+    ]);
+    expect(codes(problems, "tracking")).toEqual(["dependency-cycle"]);
+  });
+
+  it("finds that an update turning a plugin into a workspace plugin breaks a platform plugin", () => {
+    const installed = [platform("audit", needs("sso")), platform("sso")];
+    const preview = previewInstall(installed, plugin("sso"), HOST);
+    expect(preview.problems).toEqual([]);
+    expect(preview.breaks).toEqual(["audit"]);
+  });
+});
+
 describe("load order", () => {
   it("puts dependencies before dependents", () => {
     const { order } = resolvePlugins(
@@ -418,6 +545,7 @@ describe("the English text of a problem", () => {
       range: "^2.0.0",
       installed: "1.2.0",
     },
+    { code: "dependency-scope", dependency: "tracking" },
     { code: "dependency-unavailable", dependency: "tracking" },
     { code: "dependency-cycle", members: ["a", "b"] },
   ];
