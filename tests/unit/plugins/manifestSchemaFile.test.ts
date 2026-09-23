@@ -46,6 +46,7 @@ describe("generated JSON Schema", () => {
         "capabilities",
         "contributes",
         "dependencies",
+        "scope",
       ]),
     );
   });

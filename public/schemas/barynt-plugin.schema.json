@@ -148,6 +148,14 @@
       "minLength": 1,
       "maxLength": 100
     },
+    "scope": {
+      "default": "workspace",
+      "type": "string",
+      "enum": [
+        "workspace",
+        "platform"
+      ]
+    },
     "dependencies": {
       "default": {},
       "type": "object",

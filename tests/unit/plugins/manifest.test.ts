@@ -478,6 +478,31 @@ describe("capabilities", () => {
   });
 });
 
+describe("scope", () => {
+  it("defaults to workspace, as a plugin was always meant to work", () => {
+    const result = validateManifest(manifest());
+    expect(result.ok && result.manifest.scope).toBe("workspace");
+  });
+
+  it.each(["workspace", "platform"])("accepts %s", (scope) => {
+    const result = validateManifest(manifest({ scope }));
+    expect(result.ok && result.manifest.scope).toBe(scope);
+  });
+
+  it.each(["Platform", "global", "instance", "", 1, null])(
+    "rejects %j and names the two that exist",
+    (scope) => {
+      expect(
+        hasIssue(
+          issues({ scope }),
+          "scope",
+          'must be "workspace" or "platform"',
+        ),
+      ).toBe(true);
+    },
+  );
+});
+
 describe("dependencies", () => {
   it("takes plugin ids with version ranges", () => {
     expect(
