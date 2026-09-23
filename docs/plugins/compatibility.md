@@ -70,9 +70,9 @@ becomes `1.0`. Until then plugins name `0.x` ranges. In SemVer `^0.1.0` means on
 plugin re-declares its range per minor. That is the intended message: nothing is
 promised yet.
 
-The examples in these docs show `>=1.0.0 <2.0.0`, the range a plugin for a stable 1.x
-would have. On an alpha host such a plugin is left out as `host-incompatible`; the
-examples are switched to `0.x` once the manifest changes in review are merged.
+The examples in these docs use `0.x` ranges for that reason (`>=0.1.0 <0.2.0`, `^0.1.0`).
+A plugin written for a stable release will say `>=1.0.0 <2.0.0` or `^1.2.0` instead; on
+an alpha host it is left out as `host-incompatible`.
 
 ## React and the SDK follow the `barynt` range
 

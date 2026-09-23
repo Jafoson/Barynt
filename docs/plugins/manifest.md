@@ -32,7 +32,7 @@ A declarative plugin, no code at all. The host renders everything
   "license": "MIT",
   "categories": ["customization"],
   "keywords": ["customer", "custom-field"],
-  "barynt": ">=1.0.0 <2.0.0",
+  "barynt": ">=0.1.0 <0.2.0",
   "capabilities": ["issues:read"],
   "contributes": { "customFields": [{ "id": "customer-number" }] }
 }
@@ -55,7 +55,7 @@ A plugin with server and client code, styles, translations and a dependency:
 | `icon` | no | A `.svg` or `.png` shipped in the plugin, so showing it needs no request to an icon service. |
 | `categories` | yes | What the plugin is for: one to three of the ids below. The store builds its filter from them. |
 | `keywords` | no | Up to 10 free tags for search and filtering, see [Categories and keywords](#categories-and-keywords). |
-| `barynt` | yes | The Barynt versions the plugin works with, a SemVer range such as `^1.2.0`. `*` is rejected: a compatibility claim has to claim something. |
+| `barynt` | yes | The Barynt versions the plugin works with, a SemVer range such as `^0.1.0`. Barynt is in alpha, so ranges are `0.x` for now, see [Compatibility](compatibility.md#barynt-is-in-alpha). `*` is rejected: a compatibility claim has to claim something. |
 | `scope` | no | `workspace` (the default) or `platform`, see [Scope](#scope). |
 | `dependencies` | no | Other plugins by id and version range, at most 20. A plugin cannot depend on itself. |
 | `server` | no | The server module, `.js` or `.mjs`. |
