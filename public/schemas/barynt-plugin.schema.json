@@ -112,6 +112,37 @@
       "minLength": 1,
       "maxLength": 200
     },
+    "categories": {
+      "minItems": 1,
+      "maxItems": 3,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "planning",
+          "reporting",
+          "automation",
+          "integration",
+          "communication",
+          "customization",
+          "import-export",
+          "security",
+          "developer-tools",
+          "other"
+        ]
+      }
+    },
+    "keywords": {
+      "default": [],
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 30,
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      }
+    },
     "barynt": {
       "type": "string",
       "minLength": 1,
@@ -518,6 +549,7 @@
     "description",
     "author",
     "license",
+    "categories",
     "barynt"
   ],
   "additionalProperties": false,

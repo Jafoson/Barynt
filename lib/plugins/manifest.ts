@@ -153,6 +153,55 @@ function pluginPath(extensions?: readonly string[]) {
 }
 
 /**
+ * What a plugin is for, as the store sorts and filters it. A closed list on
+ * purpose: the store builds its filter bar from it, so a typo must not become a
+ * category of its own. Only the ids live here; their display names (de/en) come
+ * with the store page. A new category is added here, and a plugin that uses it
+ * asks for that Barynt version in `barynt`.
+ */
+export const PLUGIN_CATEGORIES = [
+  "planning",
+  "reporting",
+  "automation",
+  "integration",
+  "communication",
+  "customization",
+  "import-export",
+  "security",
+  "developer-tools",
+  "other",
+] as const;
+
+export type PluginCategory = (typeof PLUGIN_CATEGORIES)[number];
+
+/** Between one and three, so a plugin cannot list itself under everything to be found. */
+export const categoriesSchema = z
+  .array(
+    z.enum(PLUGIN_CATEGORIES, {
+      error: `unknown category, use one of: ${PLUGIN_CATEGORIES.join(", ")}`,
+    }),
+  )
+  .min(1, "needs at least one category")
+  .max(3, "at most 3 categories")
+  .refine(
+    (categories) => new Set(categories).size === categories.length,
+    "each category may only be listed once",
+  );
+
+/**
+ * Free search and filter tags. Lowercase ASCII like a plugin id, so
+ * "Kalender", "kalender" and "kalender " do not become three tags in the store.
+ */
+export const keywordSchema = z
+  .string()
+  .min(2)
+  .max(30)
+  .regex(
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    "use lowercase letters, digits and single dashes",
+  );
+
+/**
  * `resource:action`, optionally followed by qualifiers, for example
  * `issues:read` or `network:egress:api.github.com`. Only the shape is checked
  * here; which names exist is decided with the capability model (BARY-95).
@@ -273,6 +322,17 @@ export const manifestSchema = z
     repository: httpsUrl.optional(),
     /** A file shipped in the plugin, so showing it needs no request to an icon service. */
     icon: pluginPath([".svg", ".png"]).optional(),
+
+    // Store listing: what the store filters and searches by.
+    categories: categoriesSchema,
+    keywords: z
+      .array(keywordSchema)
+      .max(10)
+      .refine(
+        (keywords) => new Set(keywords).size === keywords.length,
+        "each keyword may only be listed once",
+      )
+      .default([]),
 
     // Compatibility
     /** The Barynt versions the plugin works with. */

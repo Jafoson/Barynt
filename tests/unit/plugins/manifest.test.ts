@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   CONTRIBUTION_POINTS,
+  PLUGIN_CATEGORIES,
   pluginTier,
   RESERVED_PLUGIN_IDS,
 } from "@/lib/plugins/manifest";
@@ -25,6 +26,7 @@ function manifest(overrides: Record<string, unknown> = {}) {
     description: "A demo plugin",
     author: "Someone",
     license: "MIT",
+    categories: ["other"],
     barynt: ">=1.0.0 <2.0.0",
     ...overrides,
   };
@@ -49,6 +51,7 @@ describe("a valid manifest", () => {
     const result = validateManifest(manifest());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
+    expect(result.manifest.keywords).toEqual([]);
     expect(result.manifest.dependencies).toEqual({});
     expect(result.manifest.capabilities).toEqual([]);
     expect(result.manifest.contributes).toEqual({});
@@ -330,6 +333,108 @@ describe("tier", () => {
   });
 });
 
+describe("categories", () => {
+  it.each([...PLUGIN_CATEGORIES])("accepts %s", (category) => {
+    expect(validateManifest(manifest({ categories: [category] })).ok).toBe(
+      true,
+    );
+  });
+
+  it("takes up to three", () => {
+    const categories = ["planning", "reporting", "integration"];
+    expect(validateManifest(manifest({ categories })).ok).toBe(true);
+  });
+
+  it("refuses an unknown category and names the ones that exist", () => {
+    // A typo must not turn into a filter of its own in the store.
+    const list = issues({ categories: ["planing"] });
+    expect(hasIssue(list, "categories[0]", "unknown category")).toBe(true);
+    for (const category of PLUGIN_CATEGORIES) {
+      expect(hasIssue(list, "categories[0]", category)).toBe(true);
+    }
+  });
+
+  it("needs at least one", () => {
+    expect(
+      hasIssue(issues({ categories: [] }), "categories", "at least one"),
+    ).toBe(true);
+  });
+
+  it("allows at most three, so a plugin cannot list itself under everything", () => {
+    const categories = ["planning", "reporting", "security", "other"];
+    expect(hasIssue(issues({ categories }), "categories", "at most 3")).toBe(
+      true,
+    );
+  });
+
+  it("does not list a category twice", () => {
+    expect(
+      hasIssue(
+        issues({ categories: ["planning", "planning"] }),
+        "categories",
+        "only be listed once",
+      ),
+    ).toBe(true);
+  });
+
+  it("wants a list, not a single text", () => {
+    expect(hasIssue(issues({ categories: "planning" }), "categories")).toBe(
+      true,
+    );
+  });
+
+  it("is spelled the way the store filters: lowercase ids", () => {
+    expect(
+      hasIssue(issues({ categories: ["Planning"] }), "categories[0]"),
+    ).toBe(true);
+  });
+});
+
+describe("keywords", () => {
+  it("are optional and default to none", () => {
+    const result = validateManifest(manifest());
+    expect(result.ok && result.manifest.keywords).toEqual([]);
+  });
+
+  it("accepts lowercase words, digits and single dashes", () => {
+    const keywords = ["calendar", "due-date", "2fa", "gantt-chart", "ab"];
+    const result = validateManifest(manifest({ keywords }));
+    expect(result.ok && result.manifest.keywords).toEqual(keywords);
+  });
+
+  it.each([
+    ["Kalender", "uppercase"],
+    ["a", "too short"],
+    ["x".repeat(31), "too long"],
+    ["due date", "space"],
+    ["due--date", "double dash"],
+    ["due-", "trailing dash"],
+    ["-due", "leading dash"],
+    ["äpfel", "non-ascii"],
+    ["due_date", "underscore"],
+  ])("rejects %s (%s)", (keyword) => {
+    expect(hasIssue(issues({ keywords: [keyword] }), "keywords[0]")).toBe(true);
+  });
+
+  it("allows at most ten", () => {
+    const keywords = Array.from({ length: 11 }, (_, i) => `tag-${i}`);
+    expect(hasIssue(issues({ keywords }), "keywords")).toBe(true);
+    expect(
+      validateManifest(manifest({ keywords: keywords.slice(0, 10) })).ok,
+    ).toBe(true);
+  });
+
+  it("does not list a keyword twice", () => {
+    expect(
+      hasIssue(
+        issues({ keywords: ["calendar", "calendar"] }),
+        "keywords",
+        "only be listed once",
+      ),
+    ).toBe(true);
+  });
+});
+
 describe("capabilities", () => {
   it("accepts resource:action, with qualifiers and wildcard hosts", () => {
     const capabilities = [
@@ -522,6 +627,7 @@ describe("what is missing or unknown", () => {
     "description",
     "author",
     "license",
+    "categories",
     "barynt",
   ])("says that %s is required", (field) => {
     const input: Record<string, unknown> = manifest();

@@ -30,6 +30,8 @@ A declarative plugin, no code at all. The host renders everything
   "description": { "en": "Adds a customer number to every issue.", "de": "Fügt jedem Issue eine Kundennummer hinzu." },
   "author": "Jane Doe",
   "license": "MIT",
+  "categories": ["customization"],
+  "keywords": ["customer", "custom-field"],
   "barynt": ">=1.0.0 <2.0.0",
   "capabilities": ["issues:read"],
   "contributes": { "customFields": [{ "id": "customer-number" }] }
@@ -51,6 +53,8 @@ A plugin with server and client code, styles, translations and a dependency:
 | `license` | yes | An SPDX expression such as `MIT` or `Apache-2.0 OR MIT`. The list of licence ids is not checked. |
 | `homepage`, `repository` | no | `https://` links. |
 | `icon` | no | A `.svg` or `.png` shipped in the plugin, so showing it needs no request to an icon service. |
+| `categories` | yes | What the plugin is for: one to three of the ids below. The store builds its filter from them. |
+| `keywords` | no | Up to 10 free tags for search and filtering, see [Categories and keywords](#categories-and-keywords). |
 | `barynt` | yes | The Barynt versions the plugin works with, a SemVer range such as `^1.2.0`. `*` is rejected: a compatibility claim has to claim something. |
 | `dependencies` | no | Other plugins by id and version range, at most 20. A plugin cannot depend on itself. |
 | `server` | no | The server module, `.js` or `.mjs`. |
@@ -71,6 +75,35 @@ directory**: relative, with forward slashes, without `..`, empty or hidden
 segments (`./a.js`, `a//b.js` and `.secret/a.js` are refused), at most 200
 characters. Plugins ship built **JavaScript**; `.ts` is refused
 ([ADR 0001](adr-0001-runtime-loading.md) explains why).
+
+### Categories and keywords
+
+The store filters and searches by these two fields, and builds its filter bar from
+the manifests themselves, so nobody maintains a list by hand.
+
+**`categories`** is a closed list, one to three of:
+
+| Id | For plugins that … |
+| --- | --- |
+| `planning` | plan work and time: calendar, timeline, roadmap, time tracking |
+| `reporting` | report and analyse |
+| `automation` | automate: rules, workflows, recurring work |
+| `integration` | connect other services |
+| `communication` | notify and help people work together |
+| `customization` | change how Barynt looks or what an issue holds: fields, themes |
+| `import-export` | bring data in or take it out |
+| `security` | sign-in, audit, access |
+| `developer-tools` | are for people who build on Barynt |
+| `other` | fit none of the above |
+
+An unknown id is an error, so a typo cannot become a category of its own. Only the
+ids live in the manifest; the display names (de/en) come with the store page.
+Adding a category later is a change to this list. A plugin that uses the new id
+asks for that Barynt version in `barynt`, because an older Barynt rejects the id.
+
+**`keywords`** are free tags: 2 to 30 characters of lowercase ASCII letters, digits
+and single dashes (`due-date`, `gantt-chart`), no duplicates, at most 10. They are
+lowercase ASCII on purpose, so `Calendar` and `calendar` are one tag in the store.
 
 ### Tiers
 
@@ -153,5 +186,5 @@ differ in both directions:
 - A manifest with one text per language (`name`, `description`) passes here and is
   refused by the store, whose copy only knows a single text.
 - A manifest the store accepts can fail here, because the store does not check what
-  this schema added: `manifestVersion`, unknown fields, the shape of paths,
-  capabilities and versions.
+  this schema added: `manifestVersion`, `categories` (required here), unknown
+  fields, the shape of paths, capabilities and versions.
