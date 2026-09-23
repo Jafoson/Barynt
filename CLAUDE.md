@@ -171,6 +171,13 @@ and measured (start at `docs/plugins/README.md`).
   version, built JavaScript only).
 - `docs/` is excluded from `tsconfig.json`: fixtures and examples there may import
   packages that only exist at runtime.
+- Two permissions govern plugins (`docs/rbac.md`): **`plugin.manage`** (PLATFORM,
+  `platform_admin`: store, install, update, uninstall, allow unsigned plugins) and
+  **`plugin.enable`** (WORKSPACE, `owner` and `admin`: enable, disable, configure).
+  Installing is a platform matter, so neither key is grantable at the other level.
+  Production and Helm provision new permissions on every deploy (`prisma/bootstrap.ts`);
+  on an existing dev database run the `provisionSystemRbac` snippet from "New
+  permission" below.
 
 ## Email (`lib/mail`)
 
