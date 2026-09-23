@@ -1494,6 +1494,16 @@ enum PluginSource {
   DIRECTORY
 }
 
+/// Wo ein Plugin gilt (das `scope` aus dem Manifest). `WORKSPACE`: die Plattform
+/// installiert, ein Workspace schaltet es ein (`plugin.enable`), gespeichert in
+/// `PluginWorkspace`. `PLATFORM`: gilt für die ganze Instanz, sobald es
+/// installiert und `ENABLED` ist; es gibt keinen Schalter je Workspace, und nur
+/// die Plattform (`plugin.manage`) stellt es ein (`Plugin.config`).
+enum PluginScope {
+  WORKSPACE
+  PLATFORM
+}
+
 /// Schalter der Plattform für das ganze Plugin, unabhängig von den Workspaces.
 /// `DISABLED` lädt es nicht mehr, ohne es zu deinstallieren; die Einstellungen
 /// der Workspaces bleiben dabei erhalten.
@@ -1519,6 +1529,16 @@ model Plugin {
   status PluginStatus @default(ENABLED)
   source PluginSource
 
+  /// Aus dem Manifest beim Installieren und bei jedem Update übernommen, damit
+  /// "welche Plugins gelten in diesem Workspace" eine Abfrage ist und kein
+  /// Durchgang über die Manifeste auf der Platte.
+  scope PluginScope @default(WORKSPACE)
+
+  /// Die Einstellungen der Plattform für ein `PLATFORM`-Plugin; leer, solange
+  /// nichts eingestellt wurde, und bei `WORKSPACE`-Plugins ungenutzt (deren
+  /// Einstellungen stehen je Workspace in `PluginWorkspace.config`).
+  config Json @default("{}")
+
   /// Bei `STORE` die Adresse des Stores (der offizielle oder ein eigener), aus
   /// dem es kam. Sonst leer.
   origin String?
@@ -1532,7 +1552,8 @@ model Plugin {
   integrity String
 
   installedAt DateTime @default(now())
-  /// Ändert sich bei jedem Update und jedem Umschalten von `status`.
+  /// Ändert sich bei jedem Update, jedem Umschalten von `status` und jeder
+  /// Änderung von `config`.
   updatedAt   DateTime @updatedAt
 
   workspaces PluginWorkspace[]
@@ -1540,7 +1561,9 @@ model Plugin {
 
 /// Ein Plugin in einem Workspace: ob es dort eingeschaltet ist und wie es dort
 /// eingestellt ist. Die Zeile entsteht beim ersten Einschalten und bleibt beim
-/// Ausschalten bestehen, damit die Einstellungen nicht verloren gehen.
+/// Ausschalten bestehen, damit die Einstellungen nicht verloren gehen. Nur für
+/// Plugins mit `scope = WORKSPACE`: ein Plattform-Plugin gilt überall und hat
+/// hier keine Zeilen.
 model PluginWorkspace {
   pluginId    String
   workspaceId String

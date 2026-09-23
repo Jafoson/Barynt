@@ -16,17 +16,21 @@ tables, one row per installation and one per plugin and workspace.
 | `version` | the installed version. Only one version is installed at a time; an update replaces it |
 | `status` | `ENABLED` or `DISABLED`, the platform's switch for the whole plugin. `DISABLED` stops it loading without uninstalling it; the workspaces' settings stay |
 | `source` | `STORE`, `UPLOAD` or `DIRECTORY`. `STORE` means it came from a plugin store and its hash is pinned in the store entry; the other two have no store entry and load only if the platform allows unsigned plugins (BARY-110) |
+| `scope` | `WORKSPACE` or `PLATFORM`, taken from the manifest's `scope` at install and at every update. `WORKSPACE`: switched on per workspace (`PluginWorkspace`). `PLATFORM`: applies to the whole instance as soon as it is installed and `ENABLED`, with no switch per workspace. Stored so that "which plugins apply in this workspace" is one query and not a walk over the manifests on disk |
+| `config` | the platform's settings for a `PLATFORM` plugin, `{}` until something is set. Unused for `WORKSPACE` plugins, whose settings are per workspace in `PluginWorkspace.config` |
 | `origin` | for `STORE` the address of the store (the official one or a custom one), otherwise empty |
 | `integrity` | the hash of the plugin **directory** as `sha512-<base64>`, computed at install by `hashPluginDirectory()` and approved by the admin. It is checked before every load, and a plugin whose files differ does not load ([Security](security.md#the-integrity-check)). The archive hash pinned in a store entry is verified by the installer before it extracts; the directory hash is what is stored |
-| `installedAt`, `updatedAt` | `updatedAt` changes on every update and every switch of `status` |
+| `installedAt`, `updatedAt` | `updatedAt` changes on every update, every switch of `status` and every change of `config` |
 
 Whether a plugin **loads** is not stored. That is decided at start by
 [`lib/plugins/resolve.ts`](../../lib/plugins/resolve.ts) (matching Barynt version,
 dependencies), so a host upgrade has nothing to bring up to date.
 
-## `PluginWorkspace`: a plugin in one workspace
+## `PluginWorkspace`: a workspace plugin in one workspace
 
-Primary key `(pluginId, workspaceId)`.
+Primary key `(pluginId, workspaceId)`. Only for plugins with `scope = WORKSPACE`: a platform
+plugin applies everywhere and has no rows here. The database does not enforce that (a
+constraint would need a trigger); the registry never creates such a row.
 
 | Column | Meaning |
 | --- | --- |

@@ -173,7 +173,7 @@ and measured (start at `docs/plugins/README.md`).
   with `parsePluginModule()` (`lib/plugins/definition.ts`), which never throws.
 - `lib/plugins/resolve.ts` decides which installed plugins can load and in what
   order (`barynt` range against `BARYNT_VERSION` from `lib/version.ts`, i.e.
-  `package.json`; dependencies, cycles). A plugin that cannot load comes back with
+  `package.json`; dependencies, their scope, cycles). A plugin that cannot load comes back with
   reasons as codes, which the admin UI turns into text. The registry asks it on
   start, install/update (`previewInstall`) and uninstall (`previewUninstall`).
 - Plugin code is loaded at runtime, so the loader rules in

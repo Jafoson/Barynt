@@ -16,7 +16,7 @@
   "icon": "icon.svg",
   "categories": ["planning"],
   "keywords": ["calendar", "due-date"],
-  "barynt": "^1.2.0",
+  "barynt": "^0.1.0",
   "dependencies": { "customer-tracking": "^1.0.0" },
   "server": "server.js",
   "client": "client.js",

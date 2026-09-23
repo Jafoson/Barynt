@@ -1,5 +1,5 @@
 import { parse, satisfies } from "semver";
-import type { PluginManifest } from "./manifest";
+import type { PluginManifest, PluginScope } from "./manifest";
 
 // Which installed plugins can load, and in what order.
 //
@@ -15,11 +15,14 @@ import type { PluginManifest } from "./manifest";
 // their values; the admin UI turns them into texts in the user's language,
 // `describeProblem()` is the English text for logs.
 
-/** The four manifest fields that decide. */
+/**
+ * The manifest fields that decide. `scope` may be left out, it then counts as
+ * `workspace`, as it does in a manifest.
+ */
 export type PluginCandidate = Pick<
   PluginManifest,
   "id" | "version" | "barynt" | "dependencies"
->;
+> & { scope?: PluginScope };
 
 export type Problem =
   /** Barynt is not a version the plugin says it works with. */
@@ -33,6 +36,11 @@ export type Problem =
       range: string;
       installed: string;
     }
+  /**
+   * A platform plugin needs a workspace plugin. A platform plugin applies
+   * everywhere, a workspace plugin only where a workspace switched it on.
+   */
+  | { code: "dependency-scope"; dependency: string }
   /** A plugin it needs is installed in a fitting version but cannot load itself. */
   | { code: "dependency-unavailable"; dependency: string }
   /** It depends on itself through other plugins; `members` are all of them. */
@@ -110,6 +118,7 @@ export function resolvePlugins(
         continue;
       }
       presentDeps.push(dependency);
+      let fits = true;
       if (!satisfies(target.version, range)) {
         add(id, {
           code: "dependency-version",
@@ -117,9 +126,18 @@ export function resolvePlugins(
           range,
           installed: target.version,
         });
-        continue;
+        fits = false;
       }
-      usableDeps.push(dependency);
+      // A platform plugin runs everywhere, so it may only lean on plugins that
+      // are on everywhere too. A workspace plugin may lean on either kind.
+      if (
+        plugin.scope === "platform" &&
+        (target.scope ?? "workspace") !== "platform"
+      ) {
+        add(id, { code: "dependency-scope", dependency });
+        fits = false;
+      }
+      if (fits) usableDeps.push(dependency);
     }
     present.set(id, presentDeps);
     usable.set(id, usableDeps);
@@ -306,6 +324,8 @@ export function describeProblem(problem: Problem): string {
       return `needs the plugin ${problem.dependency} (${problem.range}), which is not installed`;
     case "dependency-version":
       return `needs ${problem.dependency} ${problem.range}, but ${problem.installed} is installed`;
+    case "dependency-scope":
+      return `applies to the whole platform but needs ${problem.dependency}, which is switched on per workspace`;
     case "dependency-unavailable":
       return `needs ${problem.dependency}, which cannot load`;
     case "dependency-cycle":

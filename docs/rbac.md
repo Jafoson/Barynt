@@ -389,6 +389,9 @@ permissions at different levels (the plugin system is described in
   with the workspace's data, which is the leadership's call rather than
   configuration. A workspace can still give the permission to a custom role
   (`role.manage`).
+- **A platform plugin** (manifest `scope: platform`) applies to the whole instance, so
+  `plugin.enable` does not apply to it: only `plugin.manage` switches it on and
+  configures it, and a workspace cannot turn it off for itself.
 - Nothing in the app checks either key yet: the actions that install and enable come
   with BARY-60.
 
