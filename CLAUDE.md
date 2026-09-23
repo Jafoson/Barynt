@@ -201,7 +201,11 @@ and measured (start at `docs/plugins/README.md`).
   is read or run, `lib/plugins/integrity.ts` checks its directory against the hash approved at
   install (`Plugin.integrity`): no hash, no load; a symlink or odd file inside is refused.
   Read `docs/plugins/security.md` before touching any of this: tier B code has the power of the
-  app, and capabilities are not a fence for it.
+  app, and capabilities are not a fence for it. **Who may run code in-process is decided by
+  `lib/plugins/policy.ts` (`decideExecution(input, activeStores)`): only a plugin with code from a
+  store the platform switched on (the official one by default) that the platform approved for its
+  exact hash; everything else with `server` or `client` is blocked, and any doubt, a missing or empty
+  store list included, means blocked.** The loader is only ever given plugins that policy lets through.
 
 ## Email (`lib/mail`)
 

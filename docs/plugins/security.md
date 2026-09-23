@@ -2,9 +2,9 @@
 
 What can go wrong when a plugin runs, what stops it, and what cannot be stopped.
 
-> **Status: early.** The integrity check (below) is built. The rest is planned in the
-> tickets named, or an open decision. Nothing here has been reviewed by anyone outside
-> the project.
+> **Status: early.** The integrity check and the rule for who may run code in-process are built.
+> The approval, the sandbox and the service mode are planned in the tickets named. Nothing here
+> has been reviewed by anyone outside the project.
 
 ## The one thing to know
 
@@ -36,6 +36,7 @@ plugins that use the context.
 
 | Threat | Control | Status |
 | --- | --- | --- |
+| **A plugin with code that is not from an active store, or not approved** | **It does not run in the app's process: `decideExecution()` blocks it, fail closed** | **built (the rule); the approval is planned (BARY-122)** |
 | Someone uploads or drops in a plugin | Blocked unless the platform allows plugins from no store; the setting is off by default (BARY-110) | planned |
 | A store's plugin was changed after review | The store entry pins a hash of the release archive; the installer verifies it before it extracts anything | store repository built; installer planned (BARY-60, BARY-105) |
 | **Files on disk changed after install** | **The hash of the plugin directory is checked before every load; a plugin whose files differ, or that contains a symlink or another odd file, does not load** | **built** |
@@ -77,26 +78,56 @@ total, so a hostile directory cannot make the host hash for minutes.
 - A file that changes *while* it is being hashed is caught by comparing the bytes read with
   the size, but that race is not covered by a test.
 
-## Open decision: how strict, and where
+## Decided: who may run code, and where
 
-The requirement from the review of 23.09.2026: make it hard to get code in that could endanger the
-whole software or its users. The integrity check is the part that needs no decision. How far to go
-beyond it does:
+Decided in review on 23.09.2026 (BARY-120): **unreviewed plugins get no server code in the app's
+process; a plugin with server logic runs as a service of its own; in-process code exists only for
+plugins from a store the platform has switched on, that the platform has also approved explicitly,
+for the exact files.**
 
-**A. Stay in-process, control who may run.** Tier B only for plugins from the official store,
-each version approved by hash, everything else blocked. Cheapest, and already mostly planned.
-It does not stop a malicious reviewed plugin.
+There are four **execution modes**. They are named so they do not get mixed up with the trust tiers
+A, B and C in the [overview](README.md#trust-tiers):
 
-**B. Run server code outside the app.** Each such plugin in its own container or service, with no
-database credentials and no secrets, talking to Barynt only through its REST and MCP APIs with a
-token of narrow scopes (BARY-98, BARY-18, BARY-21). A **real boundary**, and the only one for server
-code. Costs: more latency, no server components, no direct database access, one more service to
-deploy per plugin (Compose and Helm work).
+| Mode | What runs where | Who may use it | Status |
+| --- | --- | --- | --- |
+| `declarative` | Nothing of the plugin runs; the host renders what the manifest declares | any plugin from a store | built |
+| `sandbox` | The plugin's UI in an iframe without same-origin, on its own origin, talking through a message bridge; no server code | the default for an unreviewed plugin that shows UI | planned (BARY-123) |
+| `service` | The plugin's server logic as a service of its own, with no secrets and no database access, calling Barynt only through its REST and MCP APIs with a token of narrow scopes | a plugin that needs server logic | planned (BARY-124) |
+| `in-process` | A server module in the app's process, a client bundle in the page, with the full power of the app | **only** a plugin from a store that is **switched on**, that the platform has **approved**, for the **exact hash** | the rule is built (below), the approval is planned (BARY-122) |
 
-**C. No plugin server code at all for anything not fully trusted.** Such a plugin can only declare
-things (fields, views, settings) and show UI in a sandboxed iframe on its own origin, talking through
-a message bridge (BARY-98). The strictest mode, and it limits what a plugin can be.
+**The rule today.** `sandbox` and `service` do not exist yet, so a plugin with `server` or `client`
+code counts as `in-process`, and is therefore **blocked** unless it is from an active store and
+approved. A plugin without code runs. This is what
+[`lib/plugins/policy.ts`](../../lib/plugins/policy.ts) decides, for every installed plugin, before the
+loader sees it:
 
-They combine. A sensible order is **C as the default for anything unreviewed, B for plugins that need
-server logic, A only for plugins the platform explicitly approves from the official store.** Which of
-these to build first is the open question; BARY-98 is the ticket for B and C and is still in the backlog.
+1. Input that is missing or malformed: blocked (`invalid`). Not knowing whether a plugin has code is
+   not the same as it having none.
+2. No `server` and no `client` (a value that is there counts, even an empty one): `declarative`, it runs.
+3. Not from an active store, that is `source` is not `STORE`, or its store is not in the list of
+   active stores it is given: blocked (`store-not-active`). Addresses are compared in one normalised
+   form; anything that is not a plain `https://host/path` (another scheme, credentials, a port, a
+   query, the `git@host:` form, a look-alike host or repository, a sub-path) matches no store, and an
+   entry in the list that is no address matches nothing. A missing, non-list or empty list means no
+   store is on, so no code.
+4. No valid hash on record, or no approval: blocked (`not-approved`).
+5. The approval is for another hash than the installed one, as after an update:
+   blocked (`approval-outdated`). A new version needs a new approval.
+6. Otherwise `in-process`.
+
+### Stores
+
+The **official store** is the Git repository the project owner manages (the store repository). It is
+**on by default**. The platform admin can change that: connect **another store** (another Git repository,
+also a private one), or switch the official one off and use **only their own**. Which stores are on is meant
+to be a setting that only the platform can change (`plugin.manage`), with an audit entry; that is not built,
+it is BARY-112. Until then the
+registry passes the default list, the official store alone (`DEFAULT_ACTIVE_STORES`).
+
+Connecting a store means trusting what its authors publish, and the dialog has to say so. But it runs
+**nothing by itself**: every plugin with code from any store, the official one included, still needs its own
+approval for its exact hash (BARY-122). A store that is switched off keeps nothing running: its plugins with
+code stop being allowed in-process, and the ones already running are blocked at the next start.
+
+The policy itself has no store of its own and no default: it is given the list, so a missing or empty list
+blocks everything with code. The official store's address is a constant only as the default entry of that list.

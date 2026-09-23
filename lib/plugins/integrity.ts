@@ -4,6 +4,7 @@ import { createReadStream } from "node:fs";
 import { lstat, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { errorCode } from "./discovery";
+import { INTEGRITY_PREFIX, isIntegrityHash } from "./hashFormat";
 
 // The hash of a plugin's files as they lie on disk. It is computed when a plugin
 // is installed and approved, stored in `Plugin.integrity`, and checked again
@@ -20,10 +21,7 @@ import { errorCode } from "./discovery";
 // file could be swapped between this check and the import; anyone who can write
 // to the plugin directory while the app runs can try that.
 
-export const INTEGRITY_PREFIX = "sha512-";
-
-/** SHA-512 is 64 bytes, 88 characters of base64 with padding. */
-const INTEGRITY_FORMAT = /^sha512-[A-Za-z0-9+/]{86}==$/;
+export { INTEGRITY_PREFIX };
 
 export interface IntegrityLimits {
   maxFiles: number;
@@ -152,7 +150,7 @@ export async function verifyPluginIntegrity(
   expected: string,
   limits: IntegrityLimits = INTEGRITY_LIMITS,
 ): Promise<string | null> {
-  if (typeof expected !== "string" || !INTEGRITY_FORMAT.test(expected)) {
+  if (!isIntegrityHash(expected)) {
     return "no valid integrity hash is recorded for this plugin";
   }
   const result = await hashPluginDirectory(dir, limits);

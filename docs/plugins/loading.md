@@ -102,6 +102,9 @@ The others carry on. A plugin whose dependency failed does not load either, howe
 code is not even imported. That includes a dependency that failed in `boot`: a plugin that had
 already registered is pulled back and its `boot` never runs.
 
+The loader does not decide who may run. The registry asks [`decideExecution()`](security.md#decided-who-may-run-code-and-where)
+for each installed plugin and hands the loader only those it lets through as `in-process`.
+
 The result is `{ loaded, failed }`: `loaded` in load order with each plugin's registrations
 (`{ point, id, definition }`), `failed` a map from plugin id to `{ phase, message }`. It never throws.
 
