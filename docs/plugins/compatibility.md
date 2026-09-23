@@ -74,12 +74,15 @@ The examples in these docs show `>=1.0.0 <2.0.0`, the range a plugin for a stabl
 would have. On an alpha host such a plugin is left out as `host-incompatible`; the
 examples are switched to `0.x` once the manifest changes in review are merged.
 
-## Not decided yet
+## React and the SDK follow the `barynt` range
 
-- **React and the SDK contract have no range of their own.** A plugin built for
-  another React major does not load ([ADR 0002](adr-0002-client-bundles.md)), and the
-  SDK contract has its own version ([SDK](sdk.md)). Both are covered by the `barynt`
-  range on the condition that a React major or a breaking SDK change only ships with
-  a Barynt major. During the alpha that condition is loose (any minor may break); it
-  starts to bind at 1.0. If a React major has to change inside a stable major, the
-  manifest needs a field for it.
+Decided: a plugin declares **one** compatibility range, `barynt`. The React major its
+UI runs on and the SDK contract ([SDK](sdk.md)) have no range of their own. A plugin
+built for another React major does not load ([ADR 0002](adr-0002-client-bundles.md)),
+and a plugin built for an incompatible SDK does not work either; both are covered by
+`barynt` on one condition: **a React major or a breaking SDK change only ships with a
+Barynt major.**
+
+During the alpha that condition is loose, since any minor may break. It binds from 1.0
+on. If a React major ever has to change inside a stable Barynt major, the manifest gets
+optional fields for it then; nothing has to be prepared now.
