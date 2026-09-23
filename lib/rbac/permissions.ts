@@ -119,6 +119,24 @@ export const PERMISSIONS = {
     scopes: PLATFORM_ONLY,
   },
 
+  // ── Plugins ─────────────────────────────────────────────────────────────────
+  //
+  // Two keys because two different acts. *Installing* changes what runs in the
+  // whole app: plugin code has full trust in the process (see
+  // docs/plugins/adr-0001-runtime-loading.md), so it is a platform matter.
+  // *Enabling* only decides in which workspace an installed plugin applies.
+  // A workspace admin can switch on what the platform has installed, but can
+  // never bring new code in: `plugin.enable` is not grantable on the platform
+  // and `plugin.manage` is not grantable in a workspace.
+  "plugin.manage": {
+    desc: "Use the plugin store and install, update, and uninstall plugins; allow plugins that come from no store",
+    scopes: PLATFORM_ONLY,
+  },
+  "plugin.enable": {
+    desc: "Enable, disable, and configure the installed plugins in the workspace",
+    scopes: WORKSPACE_ONLY,
+  },
+
   // ── Workspace ────────────────────────────────────────────────────────────────
   "workspace.update": {
     desc: "Change the workspace's name, color, and slug",

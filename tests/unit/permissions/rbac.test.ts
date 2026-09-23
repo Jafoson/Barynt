@@ -140,6 +140,19 @@ describe("Permission registry (lib/rbac/permissions.ts)", () => {
     }
   });
 
+  // Installing plugin code changes what runs in the whole app; enabling it only
+  // decides where it applies. The two must not be grantable at the other level.
+  it("keeps installing plugins on the platform and enabling them in the workspace", () => {
+    expect(PERMISSIONS["plugin.manage"].scopes).toEqual(["PLATFORM"]);
+    expect(PERMISSIONS["plugin.enable"].scopes).toEqual(["WORKSPACE"]);
+    for (const scope of ["WORKSPACE", "PROJECT"] as const) {
+      expect(isPermissionAllowedIn("plugin.manage", scope)).toBe(false);
+    }
+    for (const scope of ["PLATFORM", "PROJECT"] as const) {
+      expect(isPermissionAllowedIn("plugin.enable", scope)).toBe(false);
+    }
+  });
+
   it("safely narrows arbitrary strings", () => {
     expect(toPermission("issue.create")).toBe("issue.create");
     expect(toPermission("project.issue.create")).toBeNull();
@@ -226,6 +239,13 @@ describe("System roles (lib/rbac/roles.ts)", () => {
       const member = role("platform_member");
       expect(member.allow).toEqual([]);
     });
+
+    it("lets only the platform admin install plugins", () => {
+      const holders = systemRolesIn("PLATFORM")
+        .filter((r) => r.allow.includes("plugin.manage"))
+        .map((r) => r.key);
+      expect(holders).toEqual(["platform_admin"]);
+    });
   });
 
   describe("Scope WORKSPACE", () => {
@@ -246,6 +266,16 @@ describe("System roles (lib/rbac/roles.ts)", () => {
       expect(manager.allow).not.toContain("role.manage");
       expect(manager.allow).not.toContain("project.view.all");
       expect(manager.allow).toContain("member.invite");
+    });
+
+    it("lets only the owner and the admin enable plugins", () => {
+      // Switching a plugin on lets its code work with the workspace's data. The
+      // manager configures the workspace but is deliberately left out.
+      const holders = systemRolesIn("WORKSPACE")
+        .filter((r) => r.allow.includes("plugin.enable"))
+        .map((r) => r.key);
+      expect(holders).toEqual(["owner", "admin"]);
+      expect(role("manager").allow).toContain("webhook.manage");
     });
 
     it("grants the master key only to the workspace's leadership", () => {

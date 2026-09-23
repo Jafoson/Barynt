@@ -318,6 +318,38 @@ describe("Plattform-Scope und tenant.access", () => {
     ).toBe(true);
   });
 
+  it("lässt jemanden, der nur plugin.enable hat, keine Plugins installieren", async () => {
+    // Der Workspace-Admin schaltet Plugins ein, die die Plattform installiert
+    // hat. Installiert wird auf der Plattform: dort zählt allein die
+    // Plattform-Rolle, die Workspace-Rolle kommt nicht mit.
+    setup({
+      platform: role("platform_member", 0, []),
+      workspace: role("admin", 5, allow("plugin.enable")),
+    });
+
+    expect(
+      (await accessFor("u1", { workspaceId: "ws1" })).has("plugin.enable"),
+    ).toBe(true);
+    expect(
+      (await accessFor("u1", { scope: "platform" })).has("plugin.manage"),
+    ).toBe(false);
+    expect(
+      (await accessFor("u1", { workspaceId: "ws1" })).has("plugin.manage"),
+    ).toBe(false);
+  });
+
+  it("gibt dem Plattform-Admin plugin.manage nur im Plattform-Kontext", async () => {
+    setup({ platform: role("platform_admin", 2, allow("plugin.manage")) });
+
+    expect(
+      (await accessFor("u1", { scope: "platform" })).has("plugin.manage"),
+    ).toBe(true);
+    // Mit plugin.manage allein aktiviert er in keinem Workspace etwas.
+    expect(
+      (await accessFor("u1", { workspaceId: "ws1" })).has("plugin.enable"),
+    ).toBe(false);
+  });
+
   it("stört die Rechte des Benutzers nicht", async () => {
     setup({
       platform: role("platform_member", 0, []),
