@@ -12,7 +12,7 @@
   "license": "MIT",
   "categories": ["customization"],
   "keywords": ["customer", "custom-field"],
-  "barynt": ">=1.0.0 <2.0.0",
+  "barynt": ">=0.1.0 <0.2.0",
   "capabilities": ["issues:read"],
   "contributes": {
     "customFields": [{ "id": "customer-number" }],
