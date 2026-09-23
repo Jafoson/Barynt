@@ -26,6 +26,17 @@ export const MANIFEST_FILE = "barynt-plugin.json";
 export const MANIFEST_VERSION = 1;
 
 /**
+ * Where a plugin applies. A **workspace** plugin is installed by the platform
+ * and switched on per workspace (`plugin.enable`). A **platform** plugin applies
+ * to the whole instance as soon as it is installed and on: there is no switch
+ * per workspace, and only the platform (`plugin.manage`) configures it. Think of
+ * a sign-in provider, branding or an audit export.
+ */
+export const PLUGIN_SCOPES = ["workspace", "platform"] as const;
+
+export type PluginScope = (typeof PLUGIN_SCOPES)[number];
+
+/**
  * Ids the platform keeps for itself. A plugin id ends up in URLs
  * (`/api/plugins/<id>`), in permission keys (`plugin.<id>.<name>`) and in
  * directory names, so a plugin must not be able to pose as one of these.
@@ -277,6 +288,10 @@ export const manifestSchema = z
     // Compatibility
     /** The Barynt versions the plugin works with. */
     barynt: versionRangeSchema,
+    /** Where the plugin applies: per workspace (the default) or for the whole instance. */
+    scope: z
+      .enum(PLUGIN_SCOPES, { error: 'must be "workspace" or "platform"' })
+      .default("workspace"),
     /** Other plugins that must be installed first, by id and version range. */
     dependencies: z
       .record(pluginIdSchema, versionRangeSchema)
