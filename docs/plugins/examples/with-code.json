@@ -14,6 +14,8 @@
   "homepage": "https://example.com/calendar-view",
   "repository": "https://github.com/jane-doe/calendar-view",
   "icon": "icon.svg",
+  "categories": ["planning"],
+  "keywords": ["calendar", "due-date"],
   "barynt": "^1.2.0",
   "dependencies": { "customer-tracking": "^1.0.0" },
   "server": "server.js",

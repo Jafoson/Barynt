@@ -32,6 +32,7 @@ describe("generated JSON Schema", () => {
         "description",
         "author",
         "license",
+        "categories",
         "barynt",
       ]),
     );

@@ -10,6 +10,8 @@
   },
   "author": "Jane Doe",
   "license": "MIT",
+  "categories": ["customization"],
+  "keywords": ["customer", "custom-field"],
   "barynt": ">=1.0.0 <2.0.0",
   "capabilities": ["issues:read"],
   "contributes": {
