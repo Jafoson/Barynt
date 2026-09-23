@@ -36,7 +36,7 @@ plugins that use the context.
 
 | Threat | Control | Status |
 | --- | --- | --- |
-| **A plugin with code that is not from the official store, or not approved** | **It does not run in the app's process: `decideExecution()` blocks it, fail closed** | **built (the rule); the approval is planned (BARY-122)** |
+| **A plugin with code that is not from an active store, or not approved** | **It does not run in the app's process: `decideExecution()` blocks it, fail closed** | **built (the rule); the approval is planned (BARY-122)** |
 | Someone uploads or drops in a plugin | Blocked unless the platform allows plugins from no store; the setting is off by default (BARY-110) | planned |
 | A store's plugin was changed after review | The store entry pins a hash of the release archive; the installer verifies it before it extracts anything | store repository built; installer planned (BARY-60, BARY-105) |
 | **Files on disk changed after install** | **The hash of the plugin directory is checked before every load; a plugin whose files differ, or that contains a symlink or another odd file, does not load** | **built** |
@@ -82,7 +82,8 @@ total, so a hostile directory cannot make the host hash for minutes.
 
 Decided in review on 23.09.2026 (BARY-120): **unreviewed plugins get no server code in the app's
 process; a plugin with server logic runs as a service of its own; in-process code exists only for
-plugins from the official store that the platform has approved explicitly, for the exact files.**
+plugins from a store the platform has switched on, that the platform has also approved explicitly,
+for the exact files.**
 
 There are four **execution modes**. They are named so they do not get mixed up with the trust tiers
 A, B and C in the [overview](README.md#trust-tiers):
@@ -92,10 +93,10 @@ A, B and C in the [overview](README.md#trust-tiers):
 | `declarative` | Nothing of the plugin runs; the host renders what the manifest declares | any plugin from a store | built |
 | `sandbox` | The plugin's UI in an iframe without same-origin, on its own origin, talking through a message bridge; no server code | the default for an unreviewed plugin that shows UI | planned (BARY-123) |
 | `service` | The plugin's server logic as a service of its own, with no secrets and no database access, calling Barynt only through its REST and MCP APIs with a token of narrow scopes | a plugin that needs server logic | planned (BARY-124) |
-| `in-process` | A server module in the app's process, a client bundle in the page, with the full power of the app | **only** a plugin from the **official store** that the platform has **approved**, for the **exact hash** | the rule is built (below), the approval is planned (BARY-122) |
+| `in-process` | A server module in the app's process, a client bundle in the page, with the full power of the app | **only** a plugin from a store that is **switched on**, that the platform has **approved**, for the **exact hash** | the rule is built (below), the approval is planned (BARY-122) |
 
 **The rule today.** `sandbox` and `service` do not exist yet, so a plugin with `server` or `client`
-code counts as `in-process`, and is therefore **blocked** unless it is from the official store and
+code counts as `in-process`, and is therefore **blocked** unless it is from an active store and
 approved. A plugin without code runs. This is what
 [`lib/plugins/policy.ts`](../../lib/plugins/policy.ts) decides, for every installed plugin, before the
 loader sees it:
@@ -103,18 +104,30 @@ loader sees it:
 1. Input that is missing or malformed: blocked (`invalid`). Not knowing whether a plugin has code is
    not the same as it having none.
 2. No `server` and no `client` (a value that is there counts, even an empty one): `declarative`, it runs.
-3. Not from the official store, that is `source` is not `STORE`, or the store is not the official one:
-   blocked (`not-official-store`). The address is compared in one normalised form; anything that is
-   not a plain `https://host/path` (another scheme, credentials, a port, a query, the `git@host:`
-   form, a look-alike host or repository, a sub-path) is not the official store.
+3. Not from an active store, that is `source` is not `STORE`, or its store is not in the list of
+   active stores it is given: blocked (`store-not-active`). Addresses are compared in one normalised
+   form; anything that is not a plain `https://host/path` (another scheme, credentials, a port, a
+   query, the `git@host:` form, a look-alike host or repository, a sub-path) matches no store, and an
+   entry in the list that is no address matches nothing. A missing, non-list or empty list means no
+   store is on, so no code.
 4. No valid hash on record, or no approval: blocked (`not-approved`).
 5. The approval is for another hash than the installed one, as after an update:
    blocked (`approval-outdated`). A new version needs a new approval.
 6. Otherwise `in-process`.
 
-The official store's address is a constant in code, not a setting, because what may run with the full
-power of the app should not depend on an environment variable.
+### Stores
 
-**Open:** a plugin from a custom or private store with code is not in-process by default. Whether a
-company may run its own plugins in-process, and how (approving each one, or trusting the store), is
-decided with the approval mechanism (BARY-122). The proposal is: one at a time, never a store as a whole.
+The **official store** is the Git repository the project owner manages (the store repository). It is
+**on by default**. The platform admin can change that: connect **another store** (another Git repository,
+also a private one), or switch the official one off and use **only their own**. Which stores are on is meant
+to be a setting that only the platform can change (`plugin.manage`), with an audit entry; that is not built,
+it is BARY-112. Until then the
+registry passes the default list, the official store alone (`DEFAULT_ACTIVE_STORES`).
+
+Connecting a store means trusting what its authors publish, and the dialog has to say so. But it runs
+**nothing by itself**: every plugin with code from any store, the official one included, still needs its own
+approval for its exact hash (BARY-122). A store that is switched off keeps nothing running: its plugins with
+code stop being allowed in-process, and the ones already running are blocked at the next start.
+
+The policy itself has no store of its own and no default: it is given the list, so a missing or empty list
+blocks everything with code. The official store's address is a constant only as the default entry of that list.

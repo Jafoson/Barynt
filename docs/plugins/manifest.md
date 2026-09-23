@@ -110,8 +110,8 @@ lowercase ASCII on purpose, so `Calendar` and `calendar` are one tag in the stor
 
 A manifest without `server` and `client` is a **declarative** plugin (tier A):
 nothing of the plugin runs. With either entry point the plugin runs code in the
-app (tier B), and **that code only runs if the plugin is from the official store and the
-platform approved it**; otherwise it is blocked ([Security](security.md#decided-who-may-run-code-and-where)). Tier C, the sandbox, is a different way of running code, not a
+app (tier B), and **that code only runs if the plugin is from a store the platform switched on and
+the platform approved it**; otherwise it is blocked ([Security](security.md#decided-who-may-run-code-and-where)). Tier C, the sandbox, is a different way of running code, not a
 property of the manifest.
 
 ### Scope
