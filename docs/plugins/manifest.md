@@ -30,6 +30,8 @@ A declarative plugin, no code at all. The host renders everything
   "description": { "en": "Adds a customer number to every issue.", "de": "Fügt jedem Issue eine Kundennummer hinzu." },
   "author": "Jane Doe",
   "license": "MIT",
+  "categories": ["customization"],
+  "keywords": ["customer", "custom-field"],
   "barynt": ">=1.0.0 <2.0.0",
   "capabilities": ["issues:read"],
   "contributes": { "customFields": [{ "id": "customer-number" }] }
@@ -51,7 +53,10 @@ A plugin with server and client code, styles, translations and a dependency:
 | `license` | yes | An SPDX expression such as `MIT` or `Apache-2.0 OR MIT`. The list of licence ids is not checked. |
 | `homepage`, `repository` | no | `https://` links. |
 | `icon` | no | A `.svg` or `.png` shipped in the plugin, so showing it needs no request to an icon service. |
+| `categories` | yes | What the plugin is for: one to three of the ids below. The store builds its filter from them. |
+| `keywords` | no | Up to 10 free tags for search and filtering, see [Categories and keywords](#categories-and-keywords). |
 | `barynt` | yes | The Barynt versions the plugin works with, a SemVer range such as `^1.2.0`. `*` is rejected: a compatibility claim has to claim something. |
+| `scope` | no | `workspace` (the default) or `platform`, see [Scope](#scope). |
 | `dependencies` | no | Other plugins by id and version range, at most 20. A plugin cannot depend on itself. |
 | `server` | no | The server module, `.js` or `.mjs`. |
 | `client` | no | The client bundle, `.js` or `.mjs`. |
@@ -72,12 +77,60 @@ segments (`./a.js`, `a//b.js` and `.secret/a.js` are refused), at most 200
 characters. Plugins ship built **JavaScript**; `.ts` is refused
 ([ADR 0001](adr-0001-runtime-loading.md) explains why).
 
+### Categories and keywords
+
+The store filters and searches by these two fields, and builds its filter bar from
+the manifests themselves, so nobody maintains a list by hand.
+
+**`categories`** is a closed list, one to three of:
+
+| Id | For plugins that … |
+| --- | --- |
+| `planning` | plan work and time: calendar, timeline, roadmap, time tracking |
+| `reporting` | report and analyse |
+| `automation` | automate: rules, workflows, recurring work |
+| `integration` | connect other services |
+| `communication` | notify and help people work together |
+| `customization` | change how Barynt looks or what an issue holds: fields, themes |
+| `import-export` | bring data in or take it out |
+| `security` | sign-in, audit, access |
+| `developer-tools` | are for people who build on Barynt |
+| `other` | fit none of the above |
+
+An unknown id is an error, so a typo cannot become a category of its own. Only the
+ids live in the manifest; the display names (de/en) come with the store page.
+Adding a category later is a change to this list. A plugin that uses the new id
+asks for that Barynt version in `barynt`, because an older Barynt rejects the id.
+
+**`keywords`** are free tags: 2 to 30 characters of lowercase ASCII letters, digits
+and single dashes (`due-date`, `gantt-chart`), no duplicates, at most 10. They are
+lowercase ASCII on purpose, so `Calendar` and `calendar` are one tag in the store.
+
 ### Tiers
 
 A manifest without `server` and `client` is a **declarative** plugin (tier A):
 nothing of the plugin runs. With either entry point the plugin runs code in the
 app (tier B). Tier C, the sandbox, is a different way of running code, not a
 property of the manifest.
+
+### Scope
+
+`scope` says where a plugin applies. The platform installs every plugin
+(`plugin.manage`); what differs is who switches it on.
+
+| `scope` | Switched on | Configured by |
+| --- | --- | --- |
+| `workspace` (default) | per workspace, by its admins (`plugin.enable`) | the workspace |
+| `platform` | for the whole instance, as soon as it is installed and on | the platform (`plugin.manage`) only |
+
+Think of a sign-in provider, branding, an audit export or an addition to the admin
+area as `platform`, a calendar view or a custom field as `workspace`. A workspace
+cannot switch a platform plugin off for itself; that would make it a workspace plugin
+that happens to be on by default.
+
+> **Not built yet.** The manifest only declares the scope. The database column, the
+> rule that a platform plugin may only depend on platform plugins, and the admin
+> screens follow with BARY-116 once the data model and the dependency check are merged.
 
 ### Contributions
 
@@ -125,9 +178,11 @@ Deliberately left open, because the ticket that builds the feature decides it:
 - **Which capability names exist.** Only the shape (`resource:action[:qualifier]`)
   is checked (BARY-95).
 - **The grammar of `when`** (BARY-65).
-- **Compatibility and dependency resolution**: whether `barynt` matches the running
-  version, and whether the dependencies are installed (BARY-57). The manifest only
-  checks that the ranges are valid.
+- **Compatibility and dependency resolution** are not part of the manifest: it only
+  checks that the ranges are valid. Whether `barynt` matches the running version and
+  whether the dependencies are installed is decided in
+  [`lib/plugins/resolve.ts`](../../lib/plugins/resolve.ts), see
+  [Compatibility](compatibility.md).
 
 ## Regenerating the JSON Schema
 
@@ -153,5 +208,5 @@ differ in both directions:
 - A manifest with one text per language (`name`, `description`) passes here and is
   refused by the store, whose copy only knows a single text.
 - A manifest the store accepts can fail here, because the store does not check what
-  this schema added: `manifestVersion`, unknown fields, the shape of paths,
-  capabilities and versions.
+  this schema added: `manifestVersion`, `categories` (required here), unknown
+  fields, the shape of paths, capabilities and versions.
