@@ -11,6 +11,7 @@ import type {
 } from "@barynt/plugin-sdk";
 import { parsePluginModule } from "./definition";
 import { errorCode } from "./discovery";
+import { verifyPluginIntegrity } from "./integrity";
 import type { PluginManifest } from "./manifest";
 
 // Turns plugins found on disk into plugins that ran: imports each server module,
@@ -29,6 +30,12 @@ import type { PluginManifest } from "./manifest";
 // every dynamic path, from a directory outside the app (ADR 0001).
 
 export type FailurePhase =
+  /**
+   * The files on disk are not what was approved at install: changed, added,
+   * removed, or something in the directory that is not allowed (a symlink).
+   * Nothing of the plugin is run, not even imported.
+   */
+  | "integrity"
   /** The `server` file is missing, unreadable, or leads out of the plugin directory. */
   | "entry"
   /** Importing the module threw or took too long. */
@@ -77,6 +84,12 @@ export interface LoadCandidate {
   /** Absolute path of `<plugins>/<id>/<version>`. */
   dir: string;
   manifest: PluginManifest;
+  /**
+   * The hash of the plugin's files that was approved at install
+   * (`hashPluginDirectory()`, `Plugin.integrity`). Without a valid one the
+   * plugin does not load.
+   */
+  integrity: string;
 }
 
 /** The host's services for one plugin, so `jobs.enqueue` can be bound to its id. */
@@ -92,6 +105,11 @@ export interface LoadOptions {
   importTimeoutMs?: number;
   /** How long `boot` may take. Default 30 seconds. */
   bootTimeoutMs?: number;
+  /**
+   * Returns why a plugin's files are not acceptable, or `null`. The default
+   * compares them with `candidate.integrity`. Only tests replace it.
+   */
+  verify?: (candidate: LoadCandidate) => Promise<string | null>;
 }
 
 const MAX_MESSAGE = 300;
@@ -241,6 +259,10 @@ export async function loadPlugins(
 ): Promise<LoadReport> {
   const importTimeout = options.importTimeoutMs ?? 10_000;
   const bootTimeout = options.bootTimeoutMs ?? 30_000;
+  const verify =
+    options.verify ??
+    ((candidate: LoadCandidate) =>
+      verifyPluginIntegrity(candidate.dir, candidate.integrity));
   const failed = new Map<string, PluginFailure>();
   const pending = new Map<string, Pending>();
   const alive = new Set<string>();
@@ -261,8 +283,12 @@ export async function loadPlugins(
       continue;
     }
 
-    let phase: FailurePhase = "entry";
+    // Before anything of the plugin is read or run.
+    let phase: FailurePhase = "integrity";
     try {
+      const refusal = await verify(candidate);
+      if (refusal) throw new Error(refusal);
+      phase = "entry";
       const registrations: Registration[] = [];
       let definition: PluginDefinition | null = null;
       if (manifest.server) {

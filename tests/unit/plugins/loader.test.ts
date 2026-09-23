@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { hashPluginDirectory } from "@/lib/plugins/integrity";
 import {
   type LoadCandidate,
   type LoadOptions,
@@ -70,7 +71,17 @@ async function plugin(
   if (spec.code !== undefined) {
     await writeFile(join(dir, "server.js"), spec.code);
   }
-  return { id, version, dir, manifest: result.manifest };
+  // What the admin approved at install: the hash of the directory as written here.
+  const hashed = await hashPluginDirectory(dir);
+  if (!hashed.ok)
+    throw new Error(`cannot hash the test plugin: ${hashed.issue}`);
+  return {
+    id,
+    version,
+    dir,
+    manifest: result.manifest,
+    integrity: hashed.digest,
+  };
 }
 
 const HOST = { barynt: "0.1.0", sdk: "0.1.0" };
@@ -94,6 +105,13 @@ function options(more: Partial<LoadOptions> = {}): LoadOptions {
     ...more,
   };
 }
+
+/**
+ * The loader's own checks for the tests that change a plugin's files after
+ * "install" on purpose: with the hash check on, those are refused before the
+ * check being tested is reached.
+ */
+const withoutIntegrity = () => options({ verify: async () => null });
 
 function ids(report: LoadReport): string[] {
   return report.loaded.map((p) => p.id);
@@ -356,26 +374,30 @@ export default { register(ctx) {
 });
 
 describe("the server file", () => {
-  it("is reported when it does not exist", async () => {
+  it("is reported when it does not exist (hash check off)", async () => {
     const a = await plugin("calendar", { code: "export default {};" });
     await rm(join(a.dir, "server.js"));
-    expect(why(await loadPlugins([a], options()), "calendar")).toEqual({
-      phase: "entry",
-      message: "server.js does not exist",
-    });
+    expect(why(await loadPlugins([a], withoutIntegrity()), "calendar")).toEqual(
+      {
+        phase: "entry",
+        message: "server.js does not exist",
+      },
+    );
   });
 
-  it("is reported when it is a directory", async () => {
+  it("is reported when it is a directory (hash check off)", async () => {
     const a = await plugin("calendar", { code: "export default {};" });
     await rm(join(a.dir, "server.js"));
     await mkdir(join(a.dir, "server.js"));
-    expect(why(await loadPlugins([a], options()), "calendar")).toEqual({
-      phase: "entry",
-      message: "server.js is not a file",
-    });
+    expect(why(await loadPlugins([a], withoutIntegrity()), "calendar")).toEqual(
+      {
+        phase: "entry",
+        message: "server.js is not a file",
+      },
+    );
   });
 
-  it("is refused when a symlink leads out of the plugin directory", async () => {
+  it("is refused when a symlink leads out of the plugin directory (hash check off, second line of defence)", async () => {
     const elsewhere = await mkdtemp(join(tmpdir(), "barynt-elsewhere-"));
     try {
       await writeFile(
@@ -385,7 +407,7 @@ describe("the server file", () => {
       const a = await plugin("calendar", { code: "export default {};" });
       await rm(join(a.dir, "server.js"));
       await symlink(join(elsewhere, "evil.js"), join(a.dir, "server.js"));
-      const report = await loadPlugins([a], options());
+      const report = await loadPlugins([a], withoutIntegrity());
       expect(why(report, "calendar")).toEqual({
         phase: "entry",
         message: "server.js leads out of the plugin directory",
@@ -396,7 +418,7 @@ describe("the server file", () => {
     }
   });
 
-  it("may be a symlink that stays inside the plugin directory", async () => {
+  it("may be a symlink that stays inside the plugin directory, when the hash check is off", async () => {
     const a = await plugin("calendar", { code: "export default {};" });
     await rm(join(a.dir, "server.js"));
     await writeFile(
@@ -404,7 +426,118 @@ describe("the server file", () => {
       "export default { register() {} };",
     );
     await symlink(join(a.dir, "real.js"), join(a.dir, "server.js"));
-    expect(ids(await loadPlugins([a], options()))).toEqual(["calendar"]);
+    expect(ids(await loadPlugins([a], withoutIntegrity()))).toEqual([
+      "calendar",
+    ]);
+  });
+});
+
+describe("the files must be the ones that were approved", () => {
+  const mismatch = {
+    phase: "integrity" as const,
+    message: "the files on disk do not match the hash recorded at install",
+  };
+
+  it("refuses a plugin whose server file was changed after install, and never imports it", async () => {
+    const a = await plugin("calendar", { code: tracing("calendar") });
+    await writeFile(
+      join(a.dir, "server.js"),
+      tracing("calendar", "/* changed */"),
+    );
+    const report = await loadPlugins([a], options());
+    expect(ids(report)).toEqual([]);
+    expect(why(report, "calendar")).toEqual(mismatch);
+    expect(trace()).toEqual([]);
+  });
+
+  it("refuses a file that was added, hidden ones too", async () => {
+    const a = await plugin("calendar", { code: tracing("calendar") });
+    await writeFile(join(a.dir, ".hidden.js"), "export {};");
+    const report = await loadPlugins([a], options());
+    expect(why(report, "calendar")).toEqual(mismatch);
+    expect(trace()).toEqual([]);
+  });
+
+  it("refuses a file that was removed", async () => {
+    const a = await plugin("calendar", { code: tracing("calendar") });
+    await rm(join(a.dir, "server.js"));
+    expect(why(await loadPlugins([a], options()), "calendar")).toEqual(
+      mismatch,
+    );
+  });
+
+  it("checks a plugin without server code too, its client bundle and manifest are code and data the host serves", async () => {
+    const a = await plugin("declarative");
+    await writeFile(join(a.dir, "barynt-plugin.json"), "{}");
+    expect(why(await loadPlugins([a], options()), "declarative")).toEqual(
+      mismatch,
+    );
+  });
+
+  it("refuses a symlink anywhere in the directory, even one that stays inside", async () => {
+    const a = await plugin("calendar", { code: "export default {};" });
+    await writeFile(
+      join(a.dir, "real.js"),
+      "export default { register() {} };",
+    );
+    await rm(join(a.dir, "server.js"));
+    await symlink(join(a.dir, "real.js"), join(a.dir, "server.js"));
+    // The hash was taken before the symlink, and the symlink alone is refused.
+    const report = await loadPlugins([a], options());
+    expect(why(report, "calendar")?.phase).toBe("integrity");
+    expect(trace()).toEqual([]);
+  });
+
+  it("refuses to load with no hash recorded, or one that is not a hash: no hash, no load", async () => {
+    const a = await plugin("calendar", { code: tracing("calendar") });
+    for (const integrity of ["", "trust me", "sha512-abc"]) {
+      const report = await loadPlugins([{ ...a, integrity }], options());
+      expect(why(report, "calendar")).toEqual({
+        phase: "integrity",
+        message: "no valid integrity hash is recorded for this plugin",
+      });
+    }
+    expect(trace()).toEqual([]);
+  });
+
+  it("does not put the recorded hash into the message", async () => {
+    const a = await plugin("calendar", { code: tracing("calendar") });
+    await writeFile(join(a.dir, "server.js"), "export default {};");
+    const message = why(await loadPlugins([a], options()), "calendar")?.message;
+    expect(message).not.toContain("sha512-");
+  });
+
+  it("keeps a plugin that needs one that failed the check from loading, and never imports it", async () => {
+    const base = await plugin("base", { code: tracing("base") });
+    const user = await plugin("calendar", {
+      dependencies: { base: "^1.0.0" },
+      code: tracing("calendar"),
+    });
+    await writeFile(join(base.dir, "server.js"), "export default {};");
+    const report = await loadPlugins([base, user], options());
+    expect(why(report, "base")?.phase).toBe("integrity");
+    expect(why(report, "calendar")?.phase).toBe("dependency");
+    expect(trace()).toEqual([]);
+  });
+
+  it("checks before it reads or runs anything of the plugin", async () => {
+    const a = await plugin("calendar", { code: tracing("calendar") });
+    const seen: string[] = [];
+    const report = await loadPlugins(
+      [a],
+      options({
+        verify: async (candidate) => {
+          seen.push(`verify:${candidate.id}:${trace().length}`);
+          return "refused for the test";
+        },
+      }),
+    );
+    expect(seen).toEqual(["verify:calendar:0"]);
+    expect(why(report, "calendar")).toEqual({
+      phase: "integrity",
+      message: "refused for the test",
+    });
+    expect(trace()).toEqual([]);
   });
 });
 

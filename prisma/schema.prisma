@@ -1523,9 +1523,12 @@ model Plugin {
   /// dem es kam. Sonst leer.
   origin String?
 
-  /// SHA-512 des Release-Archivs im Format `sha512-<base64>`, bei `STORE` der
-  /// im Store-Eintrag gepinnte Wert, sonst der bei der Installation berechnete.
-  /// Was später auf der Platte liegt, muss dazu passen.
+  /// Hash des Plugin-*Verzeichnisses* im Format `sha512-<base64>`, bei der
+  /// Installation von `hashPluginDirectory()` berechnet und vom Admin freigegeben.
+  /// Vor jedem Laden geprüft (`lib/plugins/integrity.ts`): passen die Dateien
+  /// nicht dazu, lädt das Plugin nicht. Den im Store-Eintrag gepinnten Hash des
+  /// Release-Archivs prüft der Installer vor dem Entpacken; gespeichert wird der
+  /// Verzeichnis-Hash.
   integrity String
 
   installedAt DateTime @default(now())
