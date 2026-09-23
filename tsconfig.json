@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@barynt/plugin-sdk": ["./packages/plugin-sdk/src/index.ts"]
     }
   },
   "include": [
