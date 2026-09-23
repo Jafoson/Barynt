@@ -62,15 +62,24 @@ per workspace: a plugin loads once per process, a workspace only enables it
 `resolvePlugins()` throws only when the host version is not SemVer, which is a build
 defect. It never throws for a plugin.
 
+## Barynt is in alpha
+
+Decided: Barynt is versioned `0.x` while it is in alpha, and the first stable release
+becomes `1.0`. Until then plugins name `0.x` ranges. In SemVer `^0.1.0` means only
+`>=0.1.0 <0.2.0`, so during the alpha every minor version may break plugins and a
+plugin re-declares its range per minor. That is the intended message: nothing is
+promised yet.
+
+The examples in these docs show `>=1.0.0 <2.0.0`, the range a plugin for a stable 1.x
+would have. On an alpha host such a plugin is left out as `host-incompatible`; the
+examples are switched to `0.x` once the manifest changes in review are merged.
+
 ## Not decided yet
 
-- **Barynt has no release version yet.** `package.json` says `0.1.0`, and the
-  examples in these docs claim `>=1.0.0 <2.0.0`. On 0.1.0 such a plugin is left out
-  as `host-incompatible`. Until Barynt has a 1.0, plugins have to name 0.x ranges,
-  and in SemVer `^0.1.0` means only `>=0.1.0 <0.2.0`.
 - **React and the SDK contract have no range of their own.** A plugin built for
   another React major does not load ([ADR 0002](adr-0002-client-bundles.md)), and the
   SDK contract has its own version ([SDK](sdk.md)). Both are covered by the `barynt`
   range on the condition that a React major or a breaking SDK change only ships with
-  a Barynt major. If that ever has to happen inside a major, the manifest needs a
-  field for it.
+  a Barynt major. During the alpha that condition is loose (any minor may break); it
+  starts to bind at 1.0. If a React major has to change inside a stable major, the
+  manifest needs a field for it.
