@@ -190,6 +190,11 @@ and measured (start at `docs/plugins/README.md`).
   Production and Helm provision new permissions on every deploy (`prisma/bootstrap.ts`);
   on an existing dev database run the `provisionSystemRbac` snippet from "New
   permission" below.
+- Plugins are read from `BARYNT_PLUGINS_DIR` (absolute path, ideally outside the app
+  directory; without it plugins are off): `<dir>/<id>/<version>/barynt-plugin.json`. `lib/plugins/discovery.ts` lists
+  and checks them and **never throws**: the directory is outside the host's control
+  (symlinks are not followed, names and manifests are validated). Every fs call with a
+  variable path needs `/* turbopackIgnore: true */` (ADR 0001).
 
 ## Email (`lib/mail`)
 
