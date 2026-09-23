@@ -128,9 +128,9 @@ area as `platform`, a calendar view or a custom field as `workspace`. A workspac
 cannot switch a platform plugin off for itself; that would make it a workspace plugin
 that happens to be on by default.
 
-> **Not built yet.** The manifest only declares the scope. The database column, the
-> rule that a platform plugin may only depend on platform plugins, and the admin
-> screens follow with BARY-116 once the data model and the dependency check are merged.
+> **Built so far.** The manifest declares the scope, and the dependency check enforces
+> that a platform plugin only depends on platform plugins
+> ([Compatibility](compatibility.md)). The admin screens follow with BARY-63.
 
 ### Contributions
 
