@@ -29,8 +29,25 @@ the main store off and use **only their own**.
 | `PluginStore` (table) | `url` as entered, `key` (the address normalised, unique: the same store is there once, with or without `.git`), `name`, `official`, `enabled`. See [Data model](data-model.md) |
 | `prisma/bootstrap.ts` | Puts the main store in on every deploy. It never touches `enabled`: a store an admin switched off stays off |
 | [`features/plugin-stores/actions.ts`](../../features/plugin-stores/actions.ts) | `addPluginStore`, `setPluginStoreEnabled`, `removePluginStore`: permission, validation, audit |
+| [`features/plugin-stores/components/`](../../features/plugin-stores/components) | The page's list and its dialogs (`PluginStores`, `NewPluginStoreModal`, `SwitchOnStoreModal`, `TrustNotice`) |
+| `app/[locale]/(default)/admin/plugin-stores/page.tsx` | The page, `/admin/plugin-stores`, in the platform admin's navigation. Reading the list needs `plugin.manage` as well |
 | [`lib/plugins/stores.ts`](../../lib/plugins/stores.ts) | `getActiveStoreUrls()`: the list the policy is given. **Fails closed:** if the stores cannot be read, none is on, and it never falls back to the main store |
 | [`lib/plugins/storeUrl.ts`](../../lib/plugins/storeUrl.ts) | The main store's address and how addresses are compared |
+
+### The page
+
+**Admin, Plugin stores.** One row per store: name, address, a badge on the main store and a switch.
+
+- **Switching a store off** asks first and says what it means: its plugins stay installed, their code does not run.
+- **Switching a store on** is direct for the main store. For any other it opens the same trust notice as connecting
+  and needs the tick; the server checks it again.
+- **Connect store** takes a name and an address and shows the trust notice. The button stays off until both are filled
+  in and the box is ticked. On a phone the dialog is a sheet.
+- **Remove** is there for every store but the main one, and asks first.
+- **No store on** shows a notice above the list: no plugin with code can run.
+
+The page does not decide anything itself. Every change goes through the three actions above, so what a button shows
+and what the server allows cannot drift apart.
 
 ### What an address may look like
 
@@ -45,8 +62,8 @@ Limits: a name of 1 to 80 characters, an address of at most 300, at most 20 stor
 
 ## Not built yet
 
-- **The page** in the admin area with the list, the switch, the removal and the trust dialog.
 - **Private repositories**: credentials (a token or an SSH key), stored encrypted and never sent to the
   client or logged. That needs the secrets storage (BARY-85) and the Git transport (BARY-111).
 - **Branch, last sync, last error, head commit** of a store, which come with the store client (BARY-105).
-- **The same plugin id in two stores** is shown, not resolved silently (BARY-112).
+- **The same plugin id in two stores** is shown, not resolved silently. That belongs to the plugin
+  browser, which needs the store client first (BARY-105).

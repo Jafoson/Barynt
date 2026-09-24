@@ -120,9 +120,8 @@ loader sees it:
 The **official store** is the Git repository the project owner manages (the store repository). It is
 **on by default**. The platform admin can change that: connect **another store** (another Git repository,
 also a private one), or switch the official one off and use **only their own**. Which stores are on is a setting that only
-the platform can change (`plugin.manage`), with an audit entry ([Plugin stores](stores.md)); the settings page
-is still to come (BARY-112). Until the registry reads the list, it passes the default, the official store alone
-(`DEFAULT_ACTIVE_STORES`).
+the platform can change (`plugin.manage`), with an audit entry, on an admin page ([Plugin stores](stores.md)). Until
+the registry reads the list, it passes the default, the official store alone (`DEFAULT_ACTIVE_STORES`).
 
 Connecting a store means trusting what its authors publish, and the dialog has to say so. But it runs
 **nothing by itself**: every plugin with code from any store, the official one included, still needs its own

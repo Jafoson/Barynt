@@ -212,6 +212,8 @@ and measured (start at `docs/plugins/README.md`).
   `lib/plugins/stores.ts#getActiveStoreUrls()` gives the policy its list and fails closed. `lib/plugins/storeUrl.ts`
   has no imports on purpose: the migrate image copies only the files the bootstrap needs (see the Dockerfile).
   A `"use server"` file may only export async functions, so limits live in `features/plugin-stores/constants.ts`.
+  The admin page is `app/[locale]/(default)/admin/plugin-stores` (`features/plugin-stores/components/PluginStores`);
+  it only calls the three actions, so the trust check stays on the server, not in the dialog.
 
 ## Email (`lib/mail`)
 
