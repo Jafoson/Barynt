@@ -14,6 +14,7 @@
     "icons:check": "bun run scripts/build-icons.ts --check",
     "plugin-schema:build": "bun run scripts/build-plugin-schema.ts",
     "plugin-schema:check": "bun run scripts/build-plugin-schema.ts --check",
+    "plugins:dev-store": "bun run scripts/dev-store.ts",
     "db:up": "docker compose up -d --wait && bun prisma generate && bun prisma migrate deploy && bun prisma/bootstrap.ts",
     "db:dev": "docker compose up -d --wait && bun prisma generate && bun prisma migrate deploy && bun prisma db seed",
     "db:seed": "bun prisma db seed",

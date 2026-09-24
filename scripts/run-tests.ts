@@ -49,6 +49,7 @@ const SEGMENTS: string[][] = [
     "tests/unit/plugin-stores",
     "tests/unit/plugin-approval",
     "tests/unit/store-catalog",
+    "tests/unit/store-settings",
     "tests/unit/secrets",
   ],
   ["tests/unit/permissions/resolver.test.ts"],
@@ -101,6 +102,12 @@ const SEGMENTS: string[][] = [
   // Mocks the plugin actions and the registry for the plugins page (`features/plugins/queries`,
   // `PluginsAdmin`); `tests/unit/plugin-approval` and `plugin-lifecycle` test the real ones.
   ["tests/unit/plugin-admin"],
+  // Mocks the actions the store page calls, the registry-free store query and its dialogs;
+  // `tests/unit/store-settings` and `plugin-lifecycle` test the real ones.
+  ["tests/unit/plugin-store-page"],
+  // The parts of the store page (card, featured shelf, dialogs) for real, with stand-ins only for
+  // the buttons and the switch; `plugin-store-page` replaces the card and the shelf.
+  ["tests/unit/plugin-store-parts"],
   // Replaces `hashPluginDirectory` (`@/lib/plugins/integrity`) to make the hash of a
   // plugin's files differ between two reads; `tests/unit/plugins/integrity.test.ts`
   // tests the real one.

@@ -227,6 +227,10 @@ and measured (start at `docs/plugins/README.md`).
   with the schemas in `format.ts`, follows no symlink (`O_NOFOLLOW`), limits every file and the number of entries, and checks id, manifest and
   versions against each other; `buildCatalog` (pure) makes one entry per store and plugin, offers the highest version that is not revoked, and an
   update only from the store the plugin came from. The clone lives in `<plugins>/.stores/<name>` (`storeCloneDir`), where discovery does not look.
+- **The plugin store page** (`/admin/plugins/store`): `buildCatalog` output plus `features/plugins/storeView.ts` (search, categories, featured, avatars: pure) in
+  `features/plugins/components/PluginStore/`. **Who gets the store** is `SystemSettings.pluginStoreInWorkspaces/InProjects/CuratedOnly` (open by default;
+  `getStoreVisibility()` fails **closed**) plus `PluginStoreCurated` (a plugin of a store the admin released). Adding a plugin never changes who approves its
+  code (`plugin.manage`). `installStorePlugin` is a placeholder until BARY-107. `bun run plugins:dev-store` writes a sample store clone for development.
 - **The plugins page** (`/admin/plugins`, `docs/plugins/admin.md`): `features/plugins/overview.ts` is a pure function that puts the
   page together from the rows, the plugin directory and the registry (states and approval as codes; the words are in
   `PluginsAdmin/runtimeText.ts`, so they are translated). `getPluginsOverview` asks for `plugin.manage` itself. Its dialogs use the shared
@@ -556,6 +560,9 @@ tests/
       stage.test.ts               ← features/plugins/disk (own process: it replaces the directory hash)
     store-catalog/
       format.test.ts / reader.test.ts / catalog.test.ts / paths.test.ts  ← what a store contains and how a clone is read (real hostile directories)
+    store-settings/
+      visibility.test.ts / installAction.test.ts  ← who gets the store, releasing a plugin, the install action's checks
+    plugin-store-page/ · plugin-store-parts/ · plugin-store-support/  ← the store page (own processes: they stand in for parts of it)
     plugin-admin/
       queries.test.ts             ← what the plugins page reads (own process: it mocks the registry)
       pluginsAdmin.test.tsx       ← the page: what is offered where, which action a dialog runs with which arguments

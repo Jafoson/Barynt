@@ -1477,6 +1477,20 @@ model SystemSettings {
   /// (`lib/plugins/unsigned.ts`).
   allowUnsignedPlugins Boolean @default(false)
 
+  /// Ob der Plugin-Store auch in den Workspaces angezeigt wird, nicht nur in der
+  /// Plattform-Verwaltung (BARY-106). Standardmäßig ja: Der Admin muss nichts
+  /// vorgeben, damit ein Workspace-Admin aus dem Store einschalten kann. Was
+  /// dort läuft, entscheidet weiter die Freigabe des Codes durch die Plattform.
+  pluginStoreInWorkspaces Boolean @default(true)
+
+  /// Dasselbe für die Projekte.
+  pluginStoreInProjects Boolean @default(true)
+
+  /// Ob in Workspaces und Projekten nur Plugins erscheinen, die der Admin dafür
+  /// freigegeben hat (`PluginStoreCurated`). Standardmäßig nein: alles aus den
+  /// Stores, die an sind. Wirkt nur, wo der Store sichtbar ist.
+  pluginStoreCuratedOnly Boolean @default(false)
+
   updatedAt DateTime @updatedAt
 
   @@index([defaultWorkspaceId])
@@ -1626,6 +1640,8 @@ model PluginWorkspace {
 model PluginStore {
   id String @id @default(cuid())
 
+  curated PluginStoreCurated[]
+
   /// Die Adresse, wie sie eingetragen wurde: ein einfaches `https://host/pfad`
   /// (`normalizeStoreUrl()` lehnt alles andere ab). Daraus wird geklont.
   url String
@@ -1659,4 +1675,19 @@ model PluginStore {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// Ein Plugin eines Stores, das der Admin für Workspaces und Projekte freigegeben
+/// hat. Gilt nur, wenn `SystemSettings.pluginStoreCuratedOnly` an ist; sonst
+/// ist alles freigegeben. Je Store und Plugin, denn dieselbe Id in einem anderen
+/// Store ist ein anderes Plugin. Fällt mit dem Store weg.
+model PluginStoreCurated {
+  storeId  String
+  pluginId String
+
+  createdAt DateTime @default(now())
+
+  store PluginStore @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@id([storeId, pluginId])
 }

@@ -80,6 +80,8 @@ export interface CatalogStoreState {
   official: boolean;
   /** `null` if it could be read, otherwise why not. */
   error: string | null;
+  /** `not-fetched` when there is no clone yet, which is not a fault of the store. */
+  errorCode: "not-fetched" | "unreadable" | null;
   syncedAt: Date | null;
   problems: StoreProblem[];
 }
@@ -117,6 +119,7 @@ export function buildCatalog(input: CatalogInput): Catalog {
       name: store.name,
       official: store.official,
       error: snapshot.ok ? null : snapshot.error,
+      errorCode: snapshot.ok ? null : snapshot.code,
       syncedAt: store.syncedAt,
       problems: snapshot.ok ? snapshot.problems : [],
     });

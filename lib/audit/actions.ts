@@ -53,6 +53,12 @@ export const AUDIT_ACTIONS = {
   // The token itself is never in the entry, only that one was set or removed.
   "plugin.store.credentialSet": "Plugin store access set",
   "plugin.store.credentialCleared": "Plugin store access removed",
+  // Who gets the store and which plugins they see there: what a workspace admin can
+  // bring in without asking.
+  "plugin.store.visibility": "Plugin store visibility changed",
+  "plugin.store.curated": "Plugin released for workspaces and projects",
+  "plugin.store.uncurated":
+    "Plugin release for workspaces and projects withdrawn",
   // Which code the platform takes in at all: allowing plugins from no store is
   // the loud one, switching it off narrows.
   "plugin.unsigned.allowed": "Plugins from no store allowed",

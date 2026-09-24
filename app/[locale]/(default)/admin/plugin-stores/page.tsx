@@ -1,6 +1,7 @@
 import { PluginStores } from "@/features/plugin-stores/components/PluginStores/PluginStores";
 import {
   getPluginStores,
+  getPluginStoreVisibility,
   getUnsignedPluginsAllowed,
 } from "@/features/plugin-stores/queries";
 
@@ -11,9 +12,16 @@ export const dynamic = "force-dynamic";
  * main store and any the admin connected. Needs `plugin.manage`.
  */
 export default async function AdminPluginStoresPage() {
-  const [stores, allowUnsigned] = await Promise.all([
+  const [stores, allowUnsigned, visibility] = await Promise.all([
     getPluginStores(),
     getUnsignedPluginsAllowed(),
+    getPluginStoreVisibility(),
   ]);
-  return <PluginStores stores={stores} allowUnsigned={allowUnsigned} />;
+  return (
+    <PluginStores
+      stores={stores}
+      allowUnsigned={allowUnsigned}
+      visibility={visibility}
+    />
+  );
 }

@@ -186,6 +186,7 @@ describe("a clone that is not a store", () => {
     expect(await readStoreDirectory(join(root, "nope"))).toEqual({
       ok: false,
       error: "The store has not been fetched yet.",
+      code: "not-fetched",
     });
   });
 
@@ -194,6 +195,7 @@ describe("a clone that is not a store", () => {
     expect(await readStoreDirectory(join(root, "afile", "inside"))).toEqual({
       ok: false,
       error: "The store cannot be read (ENOTDIR).",
+      code: "unreadable",
     });
   });
 
@@ -202,6 +204,7 @@ describe("a clone that is not a store", () => {
     expect(await readStoreDirectory(join(root, "afile"))).toEqual({
       ok: false,
       error: "The store is not a directory.",
+      code: "unreadable",
     });
     await mkdir(join(root, "real"));
     await symlink(join(root, "real"), join(root, "link"));
@@ -236,6 +239,8 @@ describe("a clone that is not a store", () => {
     if (!result.ok) {
       expect(result.error).toContain("Not a store");
       expect(result.error).toContain(reason);
+      // A clone that is there but is no store is a fault of the clone, not a missing fetch.
+      expect(result.code).toBe("unreadable");
     }
   });
 

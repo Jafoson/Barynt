@@ -25,7 +25,9 @@ import {
 } from "@/features/plugin-stores/actions";
 import type { PluginStoreRow } from "@/features/plugin-stores/queries";
 import { setAllowUnsignedPlugins } from "@/features/plugin-stores/unsignedActions";
+import { setPluginStoreVisibility } from "@/features/plugin-stores/visibilityActions";
 import { useModal } from "@/lib/context";
+import type { StoreVisibility } from "@/lib/plugins/storeVisibility";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import {
   type NewPluginStoreInput,
@@ -40,6 +42,8 @@ interface Props {
   stores: PluginStoreRow[];
   /** Plugins that come from no store are allowed. Off by default. */
   allowUnsigned: boolean;
+  /** Where the plugin store is shown, and whether only released plugins appear there. */
+  visibility: StoreVisibility;
 }
 
 /**
@@ -52,7 +56,7 @@ interface Props {
  * opens a warning that has to be answered with a yes, and the server asks for it
  * as well.
  */
-export function PluginStores({ stores, allowUnsigned }: Props) {
+export function PluginStores({ stores, allowUnsigned, visibility }: Props) {
   const t = useTranslations();
   const router = useRouter();
   const confirm = useConfirm();
@@ -257,6 +261,68 @@ export function PluginStores({ stores, allowUnsigned }: Props) {
     },
   }));
 
+  const setVisibility = (next: Partial<StoreVisibility>) =>
+    run(() => setPluginStoreVisibility({ ...visibility, ...next }));
+  const nowhere = !visibility.inWorkspaces && !visibility.inProjects;
+
+  const visibilityRows: SettingsRow[] = [
+    {
+      id: "store-in-workspaces",
+      label: t("pluginStores.visibilityWorkspaces"),
+      desc: t("pluginStores.visibilityWorkspacesDesc"),
+      control: (
+        <Switch
+          id="plugin-store-in-workspaces"
+          label={t("pluginStores.visibilityWorkspaces")}
+          labelHidden
+          checked={visibility.inWorkspaces}
+          disabled={isPending}
+          onChange={(checked) => setVisibility({ inWorkspaces: checked })}
+        />
+      ),
+    },
+    {
+      id: "store-in-projects",
+      label: t("pluginStores.visibilityProjects"),
+      desc: t("pluginStores.visibilityProjectsDesc"),
+      control: (
+        <Switch
+          id="plugin-store-in-projects"
+          label={t("pluginStores.visibilityProjects")}
+          labelHidden
+          checked={visibility.inProjects}
+          disabled={isPending}
+          onChange={(checked) => setVisibility({ inProjects: checked })}
+        />
+      ),
+    },
+    {
+      id: "store-curated-only",
+      label: t("pluginStores.curatedOnly"),
+      desc: (
+        <>
+          {t("pluginStores.curatedOnlyDesc")}
+          {nowhere && (
+            <>
+              {" "}
+              <em>{t("pluginStores.curatedOnlyOff")}</em>
+            </>
+          )}
+        </>
+      ),
+      control: (
+        <Switch
+          id="plugin-store-curated-only"
+          label={t("pluginStores.curatedOnly")}
+          labelHidden
+          checked={visibility.curatedOnly}
+          disabled={isPending || nowhere}
+          onChange={(checked) => setVisibility({ curatedOnly: checked })}
+        />
+      ),
+    },
+  ];
+
   const unsignedRows: SettingsRow[] = [
     {
       id: "allow-unsigned",
@@ -319,6 +385,12 @@ export function PluginStores({ stores, allowUnsigned }: Props) {
         )}
 
         <p className={styles.footnote}>{t("pluginStores.footnote")}</p>
+
+        <SettingsList
+          rows={visibilityRows}
+          title={t("pluginStores.visibilityTitle")}
+        />
+        <p className={styles.footnote}>{t("pluginStores.visibilityNote")}</p>
 
         <SettingsList
           rows={unsignedRows}

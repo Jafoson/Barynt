@@ -39,6 +39,11 @@ the main store off and use **only their own**.
 | [`lib/plugins/stores.ts`](../../lib/plugins/stores.ts) | `getActiveStoreUrls()`: the list the policy is given. **Fails closed:** if the stores cannot be read, none is on, and it never falls back to the main store |
 | [`lib/plugins/storeUrl.ts`](../../lib/plugins/storeUrl.ts) | The main store's address and how addresses are compared |
 
+### Who gets the store
+
+Which stores are on is the platform's; **who sees the store** is a separate choice with three switches (workspaces, projects, only
+released plugins), open by default. See [The plugins page](admin.md#who-gets-the-store).
+
 ### The page
 
 **Admin, Plugin stores.** One row per store: name, address, a badge on the main store and a switch.
