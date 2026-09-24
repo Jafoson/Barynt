@@ -223,6 +223,10 @@ and measured (start at `docs/plugins/README.md`).
   (`features/plugins/workspaceActions.ts`, `plugin.enable`): **switching on has to end with the plugin running there**, otherwise
   the row is put back and the reason given; `onEnable` may refuse, `onDisable` and `onUninstall` cannot (a failure is a `warning`).
   Hooks (`lib/plugins/hooks.ts`) run only for a plugin loaded in the process, on the plugin as it ran *before* the change.
+- **A store's clone is data, never code, never trusted** (`lib/plugins/store/`, `docs/plugins/store-format.md`): `readStoreDirectory` only parses JSON
+  with the schemas in `format.ts`, follows no symlink (`O_NOFOLLOW`), limits every file and the number of entries, and checks id, manifest and
+  versions against each other; `buildCatalog` (pure) makes one entry per store and plugin, offers the highest version that is not revoked, and an
+  update only from the store the plugin came from. The clone lives in `<plugins>/.stores/<name>` (`storeCloneDir`), where discovery does not look.
 - **The plugins page** (`/admin/plugins`, `docs/plugins/admin.md`): `features/plugins/overview.ts` is a pure function that puts the
   page together from the rows, the plugin directory and the registry (states and approval as codes; the words are in
   `PluginsAdmin/runtimeText.ts`, so they are translated). `getPluginsOverview` asks for `plugin.manage` itself. Its dialogs use the shared
@@ -550,6 +554,8 @@ tests/
       workspace.test.ts           ← switch on/off per workspace, onEnable/onDisable (own process: mocks `@/lib/plugins/host`)
     plugin-staging/
       stage.test.ts               ← features/plugins/disk (own process: it replaces the directory hash)
+    store-catalog/
+      format.test.ts / reader.test.ts / catalog.test.ts / paths.test.ts  ← what a store contains and how a clone is read (real hostile directories)
     plugin-admin/
       queries.test.ts             ← what the plugins page reads (own process: it mocks the registry)
       pluginsAdmin.test.tsx       ← the page: what is offered where, which action a dialog runs with which arguments
