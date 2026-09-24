@@ -11,6 +11,7 @@ import type {
 } from "./loader";
 import { type InstalledPlugin, type PluginPlan, planPlugins } from "./plan";
 import { invalidatePluginRegistry, type RegistryState } from "./registryState";
+import type { PluginRowScope } from "./scope";
 
 // Which plugins are running, decided once per process and kept until something
 // that decides it changes. The registry reads what is installed and what lies on
@@ -68,7 +69,7 @@ export type PluginStatus =
 export interface PluginState {
   id: string;
   version: string;
-  scope: "WORKSPACE" | "PLATFORM";
+  scope: PluginRowScope;
   source: string;
   origin: string | null;
   status: PluginStatus;
@@ -78,7 +79,7 @@ export interface PluginState {
 export interface ActivePlugin {
   id: string;
   version: string;
-  scope: "WORKSPACE" | "PLATFORM";
+  scope: PluginRowScope;
   mode: "declarative" | "in-process";
   registrations: Registration[];
   /** The lifecycle hooks it has, for `docs/plugins/lifecycle.md`. */
@@ -332,8 +333,11 @@ export function activePluginsIn(
   snapshot: RegistrySnapshot,
   enabledInWorkspace: ReadonlySet<string>,
 ): ActivePlugin[] {
+  // By what a plugin is, not by what it is not: one that applies per project is never a
+  // workspace's, whatever ends up in `enabledInWorkspace`.
   return snapshot.active.filter(
     (plugin) =>
-      plugin.scope === "PLATFORM" || enabledInWorkspace.has(plugin.id),
+      plugin.scope === "PLATFORM" ||
+      (plugin.scope === "WORKSPACE" && enabledInWorkspace.has(plugin.id)),
   );
 }

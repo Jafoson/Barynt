@@ -16,7 +16,7 @@ touch the database or the UI.
 | `host-incompatible` | Barynt is not a version the plugin's `barynt` range accepts | `range`, `host` |
 | `dependency-missing` | a plugin in `dependencies` is not installed | `dependency`, `range` |
 | `dependency-version` | it is installed, in a version outside the range | `dependency`, `range`, `installed` |
-| `dependency-scope` | a platform plugin needs a workspace plugin | `dependency` |
+| `dependency-scope` | a plugin needs one that is not on wherever it is (see below) | `dependency`, `scope`, `dependencyScope` |
 | `dependency-unavailable` | it is installed in a fitting version but cannot load itself | `dependency` |
 | `dependency-cycle` | the plugin depends on itself through other plugins | `members` (all of them, sorted) |
 
@@ -25,12 +25,22 @@ A plugin can have several reasons at once and gets all of them. The reasons are
 `describeProblem()` returns the English text for logs.
 
 `dependency-scope` follows from the plugin's `scope` ([manifest](manifest.md#scope)). A
-platform plugin applies to the whole instance, a workspace plugin only where a
-workspace switched it on, so a platform plugin cannot lean on one: it would run in
-workspaces where its dependency is off. The other way round is fine, a workspace plugin
-may depend on either kind. A plugin that leaves `scope` out counts as a workspace
-plugin. If the dependency also has the wrong version, both reasons are reported, and
-the platform plugin does not additionally blame the dependency for not loading.
+plugin may lean on a plugin that is on **wherever it is**: one for the whole platform, or one
+that applies at its own level. A platform plugin applies to the whole instance, so it cannot
+lean on a workspace or a project plugin: it would run where its dependency is off. A workspace
+plugin and a project plugin do not lean on each other either: one is switched on per workspace
+and the other per project, and nothing says they are on in the same places. So:
+
+| A plugin that applies | may depend on |
+| --- | --- |
+| to the whole platform | platform plugins |
+| per workspace | workspace plugins and platform plugins |
+| per project | project plugins and platform plugins |
+
+`scope` and `dependencyScope` in the reason say where each applies, so the text can say which
+way round it went (`lib/plugins/scope.ts`, `dependencyScopeFits`). A plugin that leaves `scope`
+out counts as a workspace plugin. If the dependency also has the wrong version, both reasons are
+reported, and the plugin does not additionally blame the dependency for not loading.
 
 `dependency-unavailable` is passed on, however deep: if `c` needs `b` needs `a`, and
 `a` does not fit the host, then `b` and `c` are both left out. The members of a

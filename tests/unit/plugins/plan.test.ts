@@ -432,6 +432,61 @@ describe("where a plugin applies decides what it may depend on", () => {
     });
   });
 
+  it("reads a project plugin as one: it may lean on a platform plugin, and not on a workspace plugin", () => {
+    const onPlatform = plan(
+      {
+        installed: [
+          row("sso", { scope: "PLATFORM" }),
+          row("board", { scope: "PROJECT" }),
+        ],
+        enabledSomewhere: new Set(["board"]),
+      },
+      [found("sso"), found("board", { dependencies: { sso: ">=1.0.0" } })],
+    );
+    expect(candidateIds(onPlatform)).toEqual(["sso", "board"]);
+
+    const onWorkspace = plan(
+      {
+        installed: [row("tracking"), row("board", { scope: "PROJECT" })],
+        enabledSomewhere: new Set(["tracking", "board"]),
+      },
+      [
+        found("tracking"),
+        found("board", { dependencies: { tracking: ">=1.0.0" } }),
+      ],
+    );
+    expect(onWorkspace.plans.get("board")).toMatchObject({
+      state: "incompatible",
+      problems: [
+        {
+          code: "dependency-scope",
+          scope: "project",
+          dependencyScope: "workspace",
+        },
+      ],
+    });
+  });
+
+  it("takes a project plugin's scope from the database too, whatever the file says", () => {
+    const result = plan(
+      {
+        installed: [row("tracking"), row("board", { scope: "PROJECT" })],
+        enabledSomewhere: new Set(["tracking", "board"]),
+      },
+      [
+        found("tracking", { scope: "project" }),
+        found("board", {
+          scope: "workspace",
+          dependencies: { tracking: ">=1.0.0" },
+        }),
+      ],
+    );
+    expect(result.plans.get("board")).toMatchObject({
+      state: "incompatible",
+      problems: [{ code: "dependency-scope", scope: "project" }],
+    });
+  });
+
   it("lets a platform plugin need another platform plugin", () => {
     const result = plan(
       {

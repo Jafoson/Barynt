@@ -484,19 +484,19 @@ describe("scope", () => {
     expect(result.ok && result.manifest.scope).toBe("workspace");
   });
 
-  it.each(["workspace", "platform"])("accepts %s", (scope) => {
+  it.each(["workspace", "platform", "project"])("accepts %s", (scope) => {
     const result = validateManifest(manifest({ scope }));
     expect(result.ok && result.manifest.scope).toBe(scope);
   });
 
   it.each(["Platform", "global", "instance", "", 1, null])(
-    "rejects %j and names the two that exist",
+    "rejects %j and names the three that exist",
     (scope) => {
       expect(
         hasIssue(
           issues({ scope }),
           "scope",
-          'must be "workspace" or "platform"',
+          'must be "workspace", "project" or "platform"',
         ),
       ).toBe(true);
     },

@@ -283,6 +283,18 @@ describe("an installed plugin", () => {
     expect(html).toContain("pluginsAdmin.workspacesOn|{&quot;count&quot;:2}");
   });
 
+  it("says where a plugin applies that applies per project, and counts no workspaces for it", () => {
+    const html = render(
+      overview({
+        installed: [installed({ scope: "PROJECT", workspaces: 0 })],
+      }),
+    );
+    expect(html).toContain("pluginsAdmin.scopeProject");
+    expect(html).not.toContain("pluginsAdmin.scopeWorkspace");
+    expect(html).not.toContain("pluginsAdmin.scopePlatform");
+    expect(html).not.toContain("pluginsAdmin.workspacesOn");
+  });
+
   it("does not count workspaces for a plugin of the whole platform", () => {
     const html = render(
       overview({
@@ -404,7 +416,12 @@ describe("what became of it, in words and in colour", () => {
                   range: "^2",
                   installed: "1.0.0",
                 },
-                { code: "dependency-scope", dependency: "board" },
+                {
+                  code: "dependency-scope",
+                  dependency: "board",
+                  scope: "platform",
+                  dependencyScope: "project",
+                },
                 { code: "dependency-unavailable", dependency: "wiki" },
                 { code: "dependency-cycle", members: ["a", "b"] },
               ],

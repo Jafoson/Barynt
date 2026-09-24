@@ -12,6 +12,7 @@ import { HOST_INFO } from "@/lib/plugins/hostInfo";
 import { pluginVersionSchema } from "@/lib/plugins/manifest";
 import { invalidatePluginRegistry } from "@/lib/plugins/registryState";
 import { previewInstall, previewUninstall } from "@/lib/plugins/resolve";
+import { rowScopeOf } from "@/lib/plugins/scope";
 import { getAllowUnsignedPlugins } from "@/lib/plugins/unsigned";
 import { BARYNT_VERSION } from "@/lib/version";
 import {
@@ -105,7 +106,7 @@ export async function installPlugin(
   const rows = await db.plugin.findMany({
     select: { id: true, version: true, scope: true },
   });
-  const scope = staged.manifest.scope === "platform" ? "PLATFORM" : "WORKSPACE";
+  const scope = rowScopeOf(staged.manifest.scope);
   const notDone = refuseChange(
     previewInstall(
       installedCandidates(rows, directory.plugins),
@@ -196,10 +197,10 @@ export async function updatePlugin(
   const staged = await stagePlugin(directory.plugins, pluginId, version);
   if (!staged.ok) return { error: staged.error };
 
-  if ((staged.manifest.scope === "platform") !== (row.scope === "PLATFORM")) {
+  if (rowScopeOf(staged.manifest.scope) !== row.scope) {
     return {
       error:
-        "An update cannot change where the plugin applies, to the whole platform or per workspace.",
+        "An update cannot change where the plugin applies: to the whole platform, per workspace or per project.",
     };
   }
 
@@ -312,10 +313,10 @@ export async function rollbackPlugin(
       error: `The files of ${row.previousVersion} are not the ones that were replaced, so it is not brought back.`,
     };
   }
-  if ((staged.manifest.scope === "platform") !== (row.scope === "PLATFORM")) {
+  if (rowScopeOf(staged.manifest.scope) !== row.scope) {
     return {
       error:
-        "An earlier version cannot change where the plugin applies, to the whole platform or per workspace.",
+        "An earlier version cannot change where the plugin applies: to the whole platform, per workspace or per project.",
     };
   }
 

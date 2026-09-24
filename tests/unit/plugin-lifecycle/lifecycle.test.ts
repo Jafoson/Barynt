@@ -79,7 +79,7 @@ const FAKE = {
 let root: string;
 let savedDir: string | undefined;
 
-type Scope = "WORKSPACE" | "PLATFORM";
+type Scope = "WORKSPACE" | "PLATFORM" | "PROJECT";
 interface Row {
   id: string;
   version: string;
@@ -190,7 +190,7 @@ async function installed(
   const scope = more.scope ?? "WORKSPACE";
   const integrity = await put(id, version, {
     manifest: {
-      scope: scope === "PLATFORM" ? "platform" : "workspace",
+      scope: scope.toLowerCase(),
       ...more.manifest,
     },
   });
@@ -344,6 +344,9 @@ describe("installing", () => {
     await put("chosen", "1.0.0");
     await installPlugin("chosen", "1.0.0", yes);
     expect(mockPluginCreate.mock.calls[1]?.[0].data.scope).toBe("WORKSPACE");
+    await put("per-project", "1.0.0", { manifest: { scope: "project" } });
+    await installPlugin("per-project", "1.0.0", yes);
+    expect(mockPluginCreate.mock.calls[2]?.[0].data.scope).toBe("PROJECT");
   });
 
   it("never lets the client say where a plugin came from", async () => {
@@ -769,6 +772,38 @@ describe("updating", () => {
     expect(errorOf(await updatePlugin("everywhere", "1.1.0", yes))).toContain(
       "cannot change where the plugin applies",
     );
+    // Per workspace and per project are two different places, not one that grew.
+    await put("calendar", "1.2.0", { manifest: { scope: "project" } });
+    expect(errorOf(await updatePlugin("calendar", "1.2.0", yes))).toContain(
+      "cannot change where the plugin applies",
+    );
+    await installed("board", "1.0.0", { scope: "PROJECT" });
+    await put("board", "1.1.0", { manifest: { scope: "workspace" } });
+    expect(errorOf(await updatePlugin("board", "1.1.0", yes))).toContain(
+      "cannot change where the plugin applies",
+    );
+    await put("board", "1.2.0", { manifest: { scope: "platform" } });
+    expect(errorOf(await updatePlugin("board", "1.2.0", yes))).toContain(
+      "cannot change where the plugin applies",
+    );
+    expect(untouched()).toBe(true);
+  });
+
+  it("updates a project plugin to a version that is still one", async () => {
+    await installed("board", "1.0.0", { scope: "PROJECT" });
+    await put("board", "1.1.0", { manifest: { scope: "project" } });
+    expect(await updatePlugin("board", "1.1.0", yes)).toEqual({ ok: true });
+  });
+
+  it("reads a project plugin as what it is installed as: it may not come to need a per-workspace one", async () => {
+    await installed("notes", "1.0.0", { scope: "WORKSPACE" });
+    await installed("board", "1.0.0", { scope: "PROJECT" });
+    await put("board", "1.1.0", {
+      manifest: { scope: "project", dependencies: { notes: "^1" } },
+    });
+    expect(errorOf(await updatePlugin("board", "1.1.0", yes))).toContain(
+      "applies per project but needs notes, which is switched on per workspace",
+    );
     expect(untouched()).toBe(true);
   });
 
@@ -1031,6 +1066,11 @@ describe("rolling back", () => {
   it("is refused when the earlier version applied somewhere else", async () => {
     await updated();
     Object.assign(installedRows[0] as object, { scope: "PLATFORM" });
+    expect(errorOf(await rollbackPlugin("calendar", yes))).toContain(
+      "cannot change where the plugin applies",
+    );
+    // Per workspace and per project are two different places.
+    Object.assign(installedRows[0] as object, { scope: "PROJECT" });
     expect(errorOf(await rollbackPlugin("calendar", yes))).toContain(
       "cannot change where the plugin applies",
     );

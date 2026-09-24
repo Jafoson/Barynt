@@ -96,7 +96,7 @@ const store = (more: object = {}) => ({
 
 /** A clone of the store with plugins: `[id, scope]`. */
 async function clone(
-  plugins: [string, "workspace" | "platform"][],
+  plugins: [string, "workspace" | "platform" | "project"][],
   capabilities: string[] = [],
 ) {
   const dir = storeCloneDir(root, KEY);
@@ -209,6 +209,14 @@ describe("which plugins are listed", () => {
     await clone([
       ["notes", "workspace"],
       ["audit", "platform"],
+    ]);
+    expect(await ids()).toEqual(["notes"]);
+  });
+
+  it("are not the ones that apply per project: those are added in a project", async () => {
+    await clone([
+      ["notes", "workspace"],
+      ["board", "project"],
     ]);
     expect(await ids()).toEqual(["notes"]);
   });

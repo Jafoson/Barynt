@@ -161,6 +161,12 @@ and measured (start at `docs/plugins/README.md`).
   so the host, tests and tooling all read the same one. `lib/plugins/validate.ts`
   turns it into `validateManifest()` / `parseManifest()`, which report one issue
   per problem and **never throw**: a manifest is untrusted input.
+- **Where a plugin applies** (`scope`: `workspace`, `project`, `platform`; `Plugin.scope` `WORKSPACE`, `PROJECT`, `PLATFORM`) is decided through
+  `lib/plugins/scope.ts` (`rowScopeOf`, `manifestScopeOf`, `dependencyScopeFits`), never by `=== "platform" ? … : "workspace"`: with three scopes
+  "not platform" is not one thing. **Decide by what a plugin is, not by what it is not** (`scope === "WORKSPACE"`, not `scope !== "PLATFORM"`), so a plugin
+  of another level is never taken for this one. A plugin may lean on plugins for the whole platform and on those of its own level; an update or a rollback
+  cannot change the scope. A workspace's pages and actions know only `WORKSPACE` and `PLATFORM` plugins; `PROJECT` ones are a project's.
+  `plugin.enable` is grantable in a workspace and in a project (the role says where, like `label.create`); `project_admin` has it.
 - Change the manifest schema → **`bun run plugin-schema:build`** and commit
   `public/schemas/barynt-plugin.schema.json`. `tests/unit/plugins` (and
   `bun run plugin-schema:check`) fail while it is out of date.

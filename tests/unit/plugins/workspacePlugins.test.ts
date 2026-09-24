@@ -184,6 +184,19 @@ describe("the plugins of a workspace", () => {
     ]);
   });
 
+  it("do not include a plugin that applies per project, which is a project's to switch on, whether or not it is on here or the platform has it on", () => {
+    const view = build(
+      [
+        installed({ id: "notes" }),
+        installed({ id: "board", scope: "PROJECT" }),
+        installed({ id: "asleep", scope: "PROJECT", platformOn: false }),
+      ],
+      ["board", "asleep"],
+    );
+    expect(view.plugins.map((p) => p.id)).toEqual(["notes"]);
+    expect(view.platform).toEqual([]);
+  });
+
   it("do not include a plugin the platform switched off, unless it is on here, to say why it is not running", () => {
     const off = installed({ id: "wiki", platformOn: false });
     expect(build([off]).plugins).toEqual([]);

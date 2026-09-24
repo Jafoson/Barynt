@@ -346,6 +346,28 @@ describe("whether it fits this Barynt", () => {
   });
 });
 
+describe("where a plugin applies", () => {
+  it.each([
+    [undefined, "WORKSPACE"],
+    ["workspace", "WORKSPACE"],
+    ["platform", "PLATFORM"],
+    ["project", "PROJECT"],
+  ] as const)("is %s → %s", (scope, expected) => {
+    const catalog = buildCatalog(
+      input({
+        stores: [
+          store({
+            entries: [
+              entry("notes", [version("1.0.0")], scope ? { scope } : {}),
+            ],
+          }),
+        ],
+      }),
+    );
+    expect(catalog.entries[0]?.scope).toBe(expected);
+  });
+});
+
 describe("whether it is installed", () => {
   const notes = (versions: StoreVersion[]) => entry("notes", versions);
 

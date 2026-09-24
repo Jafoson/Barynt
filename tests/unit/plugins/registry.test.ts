@@ -886,7 +886,10 @@ describe("which plugins apply in a workspace", () => {
     plugins: [],
     active,
   });
-  const running = (id: string, scope: "WORKSPACE" | "PLATFORM") => ({
+  const running = (
+    id: string,
+    scope: "WORKSPACE" | "PLATFORM" | "PROJECT",
+  ) => ({
     id,
     version: "1.0.0",
     scope,
@@ -903,6 +906,18 @@ describe("which plugins apply in a workspace", () => {
         running("other-workspace", "WORKSPACE"),
       ]),
       new Set(["chosen"]),
+    );
+    expect(result.map((p) => p.id)).toEqual(["everywhere", "chosen"]);
+  });
+
+  it("never counts a plugin that applies per project as a workspace's, whatever the workspace switched on", () => {
+    const result = activePluginsIn(
+      snapshot([
+        running("everywhere", "PLATFORM"),
+        running("chosen", "WORKSPACE"),
+        running("per-project", "PROJECT"),
+      ]),
+      new Set(["chosen", "per-project"]),
     );
     expect(result.map((p) => p.id)).toEqual(["everywhere", "chosen"]);
   });

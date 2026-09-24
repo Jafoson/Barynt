@@ -521,6 +521,27 @@ describe("an update", () => {
         extra: [at("1.1.0", { scope: "platform" })],
       }).update,
     ).toBe("1.1.0");
+    // Per workspace and per project are two different places.
+    expect(
+      one({
+        row: { ...dir, scope: "WORKSPACE" },
+        extra: [at("1.1.0", { scope: "project" })],
+      }).update,
+    ).toBeNull();
+    expect(
+      one({
+        row: { ...dir, scope: "PROJECT" },
+        manifest: { scope: "project" },
+        extra: [at("1.1.0", { scope: "workspace" })],
+      }).update,
+    ).toBeNull();
+    expect(
+      one({
+        row: { ...dir, scope: "PROJECT" },
+        manifest: { scope: "project" },
+        extra: [at("1.1.0", { scope: "project" })],
+      }).update,
+    ).toBe("1.1.0");
   });
 
   it("is a pre-release only if it is the highest there is", () => {
@@ -598,6 +619,13 @@ describe("what lies in the plugin directory and is not installed", () => {
       scope: "PLATFORM",
       hasCode: true,
     });
+  });
+
+  it("says a plugin in the directory applies per project when its manifest says so", () => {
+    const overview = buildOverview(
+      input({ discovered: [found("board", "1.0.0", { scope: "project" })] }),
+    );
+    expect(overview.available[0]?.scope).toBe("PROJECT");
   });
 
   it("is listed by name", () => {

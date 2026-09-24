@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { discoverPlugins, pluginsDirSetting } from "@/lib/plugins/discovery";
 import { invalidatePluginRegistry } from "@/lib/plugins/registryState";
 import { previewInstall } from "@/lib/plugins/resolve";
+import { type PluginRowScope, rowScopeOf } from "@/lib/plugins/scope";
 import { storeCloneDir } from "@/lib/plugins/store/paths";
 import { readStoreDirectory } from "@/lib/plugins/store/reader";
 import { placeRelease, verifyRelease } from "@/lib/plugins/store/stageRelease";
@@ -30,6 +31,18 @@ import type { PluginActionResult } from "./types";
 
 const refuse = (error: string): PluginActionResult => ({ error });
 
+/** Why a workspace or a project may not bring in a plugin that applies elsewhere. */
+function notForThisLevel(pluginId: string, scope: PluginRowScope): string {
+  switch (scope) {
+    case "PLATFORM":
+      return `${pluginId} applies to the whole platform, so only the platform installs it.`;
+    case "PROJECT":
+      return `${pluginId} applies per project, not per workspace, so it is added in a project.`;
+    case "WORKSPACE":
+      return `${pluginId} applies per workspace, not per project, so it is added in a workspace.`;
+  }
+}
+
 /**
  * Installs `pluginId` in `version` from the store `storeId`. Every check that needs no
  * download comes first, so a request that cannot succeed asks nobody for anything.
@@ -40,10 +53,11 @@ export async function installFromStore(input: {
   pluginId: string;
   version: string;
   /**
-   * Only a plugin that applies per workspace: for a workspace admin, who does not bring in
-   * what applies to the whole platform. Left out for the platform.
+   * Only a plugin that applies at this level: for a workspace admin (`WORKSPACE`) or a project
+   * admin (`PROJECT`), who do not bring in what applies to the whole platform or to the other
+   * level. Left out for the platform.
    */
-  only?: "WORKSPACE";
+  only?: "WORKSPACE" | "PROJECT";
   /** The workspace that asked, when one did: it is in the audit entry. */
   workspaceId?: string;
 }): Promise<PluginActionResult> {
@@ -99,11 +113,9 @@ export async function installFromStore(input: {
       `Only ${entry.manifest.version}, the version ${store.name} describes, can be installed.`,
     );
   }
-  const scope = entry.manifest.scope === "platform" ? "PLATFORM" : "WORKSPACE";
-  if (input.only === "WORKSPACE" && scope !== "WORKSPACE") {
-    return refuse(
-      `${pluginId} applies to the whole platform, so only the platform installs it.`,
-    );
+  const scope = rowScopeOf(entry.manifest.scope);
+  if (input.only !== undefined && scope !== input.only) {
+    return refuse(notForThisLevel(pluginId, scope));
   }
 
   // What it needs and what it would break, as for any install, before anything is downloaded.
@@ -273,9 +285,9 @@ export async function updateFromStore(input: {
       `Only ${entry.manifest.version}, the version ${store.name} describes, can be installed.`,
     );
   }
-  if ((entry.manifest.scope === "platform") !== (row.scope === "PLATFORM")) {
+  if (rowScopeOf(entry.manifest.scope) !== row.scope) {
     return refuse(
-      "An update cannot change where the plugin applies, to the whole platform or per workspace.",
+      "An update cannot change where the plugin applies: to the whole platform, per workspace or per project.",
     );
   }
 

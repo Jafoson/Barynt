@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import { scopeMessageKey } from "@/features/plugins/scopeText";
 import type { CatalogEntry } from "@/lib/plugins/store/catalog";
 import styles from "./pluginStore.module.scss";
 
@@ -44,11 +45,7 @@ export function EntryFacts({ entry, version, full = false }: Props) {
         </>
       )}
       <dt>{t("pluginStore.detailScope")}</dt>
-      <dd>
-        {entry.scope === "PLATFORM"
-          ? t("pluginStore.scopePlatform")
-          : t("pluginStore.scopeWorkspace")}
-      </dd>
+      <dd>{t(`pluginStore.${scopeMessageKey(entry.scope)}`)}</dd>
       {full && (
         <>
           <dt>{t("pluginStore.detailLicense")}</dt>

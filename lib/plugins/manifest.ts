@@ -27,12 +27,14 @@ export const MANIFEST_VERSION = 1;
 
 /**
  * Where a plugin applies. A **workspace** plugin is installed by the platform
- * and switched on per workspace (`plugin.enable`). A **platform** plugin applies
- * to the whole instance as soon as it is installed and on: there is no switch
- * per workspace, and only the platform (`plugin.manage`) configures it. Think of
- * a sign-in provider, branding or an audit export.
+ * and switched on per workspace (`plugin.enable`). A **project** plugin is
+ * installed by the platform and switched on per project (`plugin.enable` in that
+ * project). A **platform** plugin applies to the whole instance as soon as it is
+ * installed and on: there is no switch per workspace, and only the platform
+ * (`plugin.manage`) configures it. Think of a sign-in provider, branding or an
+ * audit export.
  */
-export const PLUGIN_SCOPES = ["workspace", "platform"] as const;
+export const PLUGIN_SCOPES = ["workspace", "platform", "project"] as const;
 
 export type PluginScope = (typeof PLUGIN_SCOPES)[number];
 
@@ -348,9 +350,11 @@ export const manifestSchema = z
     // Compatibility
     /** The Barynt versions the plugin works with. */
     barynt: versionRangeSchema,
-    /** Where the plugin applies: per workspace (the default) or for the whole instance. */
+    /** Where the plugin applies: per workspace (the default), per project, or for the whole instance. */
     scope: z
-      .enum(PLUGIN_SCOPES, { error: 'must be "workspace" or "platform"' })
+      .enum(PLUGIN_SCOPES, {
+        error: 'must be "workspace", "project" or "platform"',
+      })
       .default("workspace"),
     /** Other plugins that must be installed first, by id and version range. */
     dependencies: z

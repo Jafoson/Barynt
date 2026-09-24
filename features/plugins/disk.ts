@@ -11,6 +11,7 @@ import {
   describeProblem,
   type PluginCandidate,
 } from "@/lib/plugins/resolve";
+import { manifestScopeOf, type PluginRowScope } from "@/lib/plugins/scope";
 
 // What lies in the plugin directory, for the actions that install and update. The
 // directory is outside the host's control, so everything read from it is checked
@@ -80,14 +81,14 @@ export async function stagePlugin(
 /** A manifest as the resolver reads it, where the plugin applies taken from `scope`. */
 export function toCandidate(
   manifest: PluginManifest,
-  scope: "WORKSPACE" | "PLATFORM",
+  scope: PluginRowScope,
 ): PluginCandidate {
   return {
     id: manifest.id,
     version: manifest.version,
     barynt: manifest.barynt,
     dependencies: manifest.dependencies,
-    scope: scope === "PLATFORM" ? "platform" : "workspace",
+    scope: manifestScopeOf(scope),
   };
 }
 
@@ -98,7 +99,7 @@ export function toCandidate(
  * the row's, not the file's.
  */
 export function installedCandidates(
-  rows: { id: string; version: string; scope: "WORKSPACE" | "PLATFORM" }[],
+  rows: { id: string; version: string; scope: PluginRowScope }[],
   directory: DiscoveredPlugin[],
 ): PluginCandidate[] {
   const candidates: PluginCandidate[] = [];

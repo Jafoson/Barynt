@@ -56,7 +56,7 @@ A plugin with server and client code, styles, translations and a dependency:
 | `categories` | yes | What the plugin is for: one to three of the ids below. The store builds its filter from them. |
 | `keywords` | no | Up to 10 free tags for search and filtering, see [Categories and keywords](#categories-and-keywords). |
 | `barynt` | yes | The Barynt versions the plugin works with, a SemVer range such as `^0.1.0`. Barynt is in alpha, so ranges are `0.x` for now, see [Compatibility](compatibility.md#barynt-is-in-alpha). `*` is rejected: a compatibility claim has to claim something. |
-| `scope` | no | `workspace` (the default) or `platform`, see [Scope](#scope). |
+| `scope` | no | `workspace` (the default), `project` or `platform`, see [Scope](#scope). |
 | `dependencies` | no | Other plugins by id and version range, at most 20. A plugin cannot depend on itself. |
 | `server` | no | The server module, `.js` or `.mjs`. |
 | `client` | no | The client bundle, `.js` or `.mjs`. |
@@ -121,17 +121,21 @@ property of the manifest.
 
 | `scope` | Switched on | Configured by |
 | --- | --- | --- |
-| `workspace` (default) | per workspace, by its admins (`plugin.enable`) | the workspace |
+| `workspace` (default) | per workspace, by its admins (`plugin.enable` in the workspace) | the workspace |
+| `project` | per project, by its admins (`plugin.enable` in the project) | the project |
 | `platform` | for the whole instance, as soon as it is installed and on | the platform (`plugin.manage`) only |
 
 Think of a sign-in provider, branding, an audit export or an addition to the admin
-area as `platform`, a calendar view or a custom field as `workspace`. A workspace
-cannot switch a platform plugin off for itself; that would make it a workspace plugin
-that happens to be on by default.
+area as `platform`, a calendar view or a custom field as `workspace`, a board view or a
+project's own checklist as `project`. A workspace cannot switch a platform plugin off for
+itself; that would make it a workspace plugin that happens to be on by default. A workspace
+does not switch a project plugin either, and a project does not switch a workspace plugin:
+each is the switch of the level it applies to.
 
 > **Built so far.** The manifest declares the scope, and the dependency check enforces
-> that a platform plugin only depends on platform plugins
-> ([Compatibility](compatibility.md)). The admin screens follow with BARY-63.
+> what may depend on what ([Compatibility](compatibility.md)). A plugin's `scope` is also
+> stored (`Plugin.scope`) and cannot change in an update or a rollback. The switch for a
+> workspace is [built](workspace.md); the switch for a project follows.
 
 ### Contributions
 

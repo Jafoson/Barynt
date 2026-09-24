@@ -378,7 +378,7 @@ permissions at different levels (the plugin system is described in
 | Key | Scope | Holders | What it allows |
 |---|---|---|---|
 | `plugin.manage` | PLATFORM | `platform_admin` | use the plugin store and choose which stores are on; install, update and uninstall plugins; allow plugins that come from no store |
-| `plugin.enable` | WORKSPACE | `owner`, `admin` | enable, disable and configure the installed plugins in the workspace; it shows the Plugins page in the workspace settings ([docs/plugins/workspace.md](plugins/workspace.md)) |
+| `plugin.enable` | WORKSPACE, PROJECT | workspace: `owner`, `admin`; project: `project_admin` | enable, disable and configure the installed plugins in the workspace (a workspace role) or in the project (a project role): the role says where, as with labels and members. It shows the Plugins page in the workspace settings ([docs/plugins/workspace.md](plugins/workspace.md)). Whoever holds `project.admin.all` (`owner`, `admin`, `project_lead`) has it in every project of the workspace |
 
 - **What the platform installs, and what a workspace may add.** Plugin code runs with full
   trust inside the app, so **whether it runs is decided by the platform**: approving a
@@ -389,8 +389,9 @@ permissions at different levels (the plugin system is described in
   files on the instance and switches it on in that workspace. A plugin with code that a
   workspace adds waits, inert, for the platform's approval. A plugin that applies to the
   whole platform is never a workspace's to bring in, and uninstalling and updating stay
-  with `plugin.manage`. `plugin.manage` is not grantable in a workspace, and
-  `plugin.enable` is not grantable on the platform.
+  with `plugin.manage`. `plugin.manage` is not grantable in a workspace or a project, and
+  `plugin.enable` is not grantable on the platform. What applies **per project** is switched on by the
+  project (`plugin.enable` on a project role), not by the workspace.
 - **`manager` does not have `plugin.enable`.** Switching a plugin on lets its code work
   with the workspace's data, which is the leadership's call rather than
   configuration. A workspace can still give the permission to a custom role
