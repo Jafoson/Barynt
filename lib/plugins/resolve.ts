@@ -70,6 +70,15 @@ function releaseOf(version: string): string {
 }
 
 /**
+ * Whether this Barynt is one the `range` allows. Judged on the release, as for a
+ * plugin that is installed (see `releaseOf`). A range that is no range does not match.
+ * Throws only for a host version that is not SemVer.
+ */
+export function satisfiesHost(range: string, hostVersion: string): boolean {
+  return satisfies(releaseOf(hostVersion), range);
+}
+
+/**
  * Decides for a set of installed plugins which can load and in what order.
  *
  * Pass the plugins the host would load. Ids are unique; if one appears twice
