@@ -41,6 +41,21 @@ constraint would need a trigger); the registry never creates such a row.
 There is an index on `workspaceId` for the most common question, which plugins are on
 in this workspace (every page that renders slots asks it).
 
+## `PluginStore`: a plugin store
+
+A store that is connected, on or off ([Plugin stores](stores.md)).
+
+| Column | Meaning |
+| --- | --- |
+| `url` | the address as entered, a plain `https://host/path`, which the store is cloned from |
+| `key` | the address normalised (lower case, without `.git` and a trailing slash). Unique, so the same store is there once however it is spelled |
+| `name` | what the store is called in lists |
+| `official` | the project's main store. It can be switched off but not removed |
+| `enabled` | on: plugins from it may be approved and run. Off: it is not in the list the policy is given |
+
+The main store is put in by `prisma/bootstrap.ts` on every deploy. Credentials for private repositories,
+branch and sync state are not here yet.
+
 ## What happens when something is deleted
 
 | Deleted | Effect |

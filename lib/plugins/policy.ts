@@ -1,5 +1,9 @@
 import { isIntegrityHash } from "./hashFormat";
 import type { PluginManifest } from "./manifest";
+import { normalizeStoreUrl, OFFICIAL_STORE_URL } from "./storeUrl";
+
+// Kept importable from here: the address logic moved to `storeUrl.ts`.
+export { normalizeStoreUrl, OFFICIAL_STORE_URL };
 
 // Who may run plugin code in the app's process. Plugin code that runs there has
 // the power of the whole app (docs/plugins/security.md), so the rule is strict
@@ -19,45 +23,8 @@ import type { PluginManifest } from "./manifest";
 // through. Wherever a value is missing, unknown or malformed the answer is
 // "blocked", never "allowed".
 
-/**
- * The official store, managed by the project. It is the one store that is on by
- * default. Whether it stays on is the platform admin's choice, so this is the
- * *default entry* of the list of active stores, not a rule of its own. If the
- * store moves, this changes in code.
- */
-export const OFFICIAL_STORE_URL =
-  "https://github.com/Jafoson/barynt-plugin-store";
-
 /** The stores that are on until a platform admin changes them. */
 export const DEFAULT_ACTIVE_STORES: readonly string[] = [OFFICIAL_STORE_URL];
-
-/**
- * A store address in one form for comparing: `host/path`, lowercase, without
- * `.git` and a trailing slash. Only a plain `https://host/path` qualifies. Anything
- * else (another scheme, credentials, a port, a query or fragment, the `git@host:`
- * form, text that is no URL) gives `null`, which is never equal to anything.
- */
-export function normalizeStoreUrl(url: unknown): string | null {
-  if (typeof url !== "string") return null;
-  let parsed: URL;
-  try {
-    parsed = new URL(url.trim());
-  } catch {
-    return null;
-  }
-  if (
-    parsed.protocol !== "https:" ||
-    parsed.username ||
-    parsed.password ||
-    parsed.port ||
-    parsed.search ||
-    parsed.hash
-  ) {
-    return null;
-  }
-  const path = parsed.pathname.replace(/\/+$/, "").replace(/\.git$/i, "");
-  return path ? `${parsed.hostname}${path}`.toLowerCase() : null;
-}
 
 /**
  * Is `origin` one of the active stores? Both sides are compared in normalised

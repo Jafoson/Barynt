@@ -2,6 +2,11 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { PrismaClient } from "../lib/generated/prisma/client";
+import {
+  normalizeStoreUrl,
+  OFFICIAL_STORE_NAME,
+  OFFICIAL_STORE_URL,
+} from "../lib/plugins/storeUrl";
 import { provisionSystemRbac } from "../lib/rbac-provision";
 import {
   DEFAULT_ISSUE_TYPES,
@@ -37,6 +42,24 @@ export async function bootstrapSystemData(db: PrismaClient): Promise<void> {
     await db.issueType.upsert({ where: { id: t.id }, update: t, create: t });
   }
   await db.$transaction((tx) => provisionSystemRbac(tx));
+
+  // The official plugin store, on by default. `update` never touches `enabled`:
+  // an admin who switched it off keeps it off across deploys. It only makes sure
+  // the row counts as official, which is what keeps it from being deleted.
+  const officialKey = normalizeStoreUrl(OFFICIAL_STORE_URL);
+  if (officialKey) {
+    await db.pluginStore.upsert({
+      where: { key: officialKey },
+      update: { official: true },
+      create: {
+        url: OFFICIAL_STORE_URL,
+        key: officialKey,
+        name: OFFICIAL_STORE_NAME,
+        official: true,
+        enabled: true,
+      },
+    });
+  }
 }
 
 if (import.meta.main) {

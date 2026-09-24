@@ -1586,3 +1586,42 @@ model PluginWorkspace {
   /// Frage (jede Seite, die Slots rendert).
   @@index([workspaceId])
 }
+
+/// Ein Plugin-Store, den der Admin eingeschaltet oder eingetragen hat (BARY-112).
+///
+/// Es gibt einen Hauptstore, das Store-Repository des Projekts, das der
+/// Bootstrap (`prisma/bootstrap.ts`) einträgt und das standardmäßig an ist. Der
+/// Admin kann ihn ausschalten, weitere Stores anbinden oder nur eigene verwenden.
+/// Die eingeschalteten Stores sind die Liste, die die Richtlinie bekommt
+/// (`lib/plugins/policy.ts`, `lib/plugins/stores.ts`): Code aus einem Store, der
+/// hier fehlt oder aus ist, läuft nicht im Prozess. Einen Store einzuschalten
+/// gibt selbst nichts frei; jedes Plugin mit Code braucht weiter seine eigene
+/// Freigabe (BARY-122).
+///
+/// Zugangsdaten für private Repositories, Zweig und Sync-Stand kommen mit dem
+/// Store-Client (BARY-105, BARY-111), nicht hierher.
+model PluginStore {
+  id String @id @default(cuid())
+
+  /// Die Adresse, wie sie eingetragen wurde: ein einfaches `https://host/pfad`
+  /// (`normalizeStoreUrl()` lehnt alles andere ab). Daraus wird geklont.
+  url String
+
+  /// Die Adresse in einheitlicher Form (klein geschrieben, ohne `.git` und
+  /// Schrägstrich am Ende). Eindeutig: derselbe Store steht nur einmal da, auch
+  /// wenn er einmal mit und einmal ohne `.git` eingegeben wird.
+  key String @unique
+
+  name String
+
+  /// Der Hauptstore des Projekts. Er lässt sich ausschalten, aber weder löschen
+  /// noch anders eintragen.
+  official Boolean @default(false)
+
+  /// Eingeschaltet: Plugins daraus dürfen freigegeben werden und laufen. Aus: der
+  /// Store steht nicht in der Liste, die die Richtlinie bekommt.
+  enabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
