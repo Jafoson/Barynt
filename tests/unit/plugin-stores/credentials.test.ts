@@ -343,6 +343,8 @@ describe("setting the access of a connected store", () => {
     const update = mockStoreUpdate.mock.calls[0]?.[0];
     expect(update.where).toEqual({ id: "s2" });
     expect(update.data.credentialUser).toBe("deploy-bot");
+    // A new token may be what a store that failed was waiting for: the next visit tries again.
+    expect(update.data.syncAttemptedAt).toBeNull();
     expect(openStoreToken(OWN_KEY, update.data.credential)).toBe(TOKEN);
     expect(openStoreToken(OTHER_KEY, update.data.credential)).toBeNull();
 
@@ -412,7 +414,7 @@ describe("removing the access of a connected store", () => {
     expect(result).toEqual({ ok: true });
     expect(mockStoreUpdate).toHaveBeenCalledWith({
       where: { id: "s2" },
-      data: { credential: null, credentialUser: null },
+      data: { credential: null, credentialUser: null, syncAttemptedAt: null },
     });
     expect(mockAuditCreate.mock.calls).toHaveLength(1);
     expect(mockAuditCreate.mock.calls[0]?.[0].data).toMatchObject({

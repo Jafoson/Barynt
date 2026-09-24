@@ -1275,7 +1275,6 @@
     "noEntries": "The stores that are on have no plugins yet.",
     "storeError": "{store}: {error}",
     "storeProblems": "{count, plural, one {# entry in {store} cannot be used} other {# entries in {store} cannot be used}}",
-    "notFetchedHint": "Fetching stores comes with the next step. Until then this page shows what lies in the stores' folders.",
     "install": "Install",
     "installed": "Installed",
     "update": "Update to {version}",
@@ -1320,7 +1319,14 @@
     "installWarnBody": "Installing takes the files from the store and puts them on this instance. It does not switch the plugin on anywhere.",
     "installCheck": "I have read what it asks for and want to install it",
     "installConfirm": "Install",
-    "storeNotFetched": "{store} has not been fetched yet."
+    "storeNotFetched": "{store} has not been fetched yet.",
+    "syncNever": "Not fetched yet",
+    "syncedAt": "Updated {time}",
+    "sync": "Update",
+    "syncing": "Updating…",
+    "syncLabel": "Update {store}",
+    "syncFailed": "{store} could not be updated. Showing what was fetched {time}.",
+    "syncFailedNothing": "{store} could not be updated, so there is nothing to show from it yet."
   },
   "pluginStores": {
     "title": "Plugin stores",

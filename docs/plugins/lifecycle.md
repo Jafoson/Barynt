@@ -31,7 +31,7 @@ Every action:
 
 ## Where the files come from
 
-Nothing fetches a plugin yet: the store client is BARY-105, the transport BARY-111. So install and update
+Nothing fetches a plugin yet: stores are fetched (BARY-105, BARY-111), but the download of a plugin from an entry is BARY-107. So install and update
 take what already lies in the plugin directory, `<dir>/<id>/<version>/` ([Loading](loading.md#where-plugins-live)).
 Someone put it there, and the action registers it.
 
@@ -200,4 +200,4 @@ Three optional hooks in the SDK ([SDK](sdk.md#lifecycle-hooks)), run by `runHook
 
 - **The switch per workspace on the workspace's own settings page** (BARY-64). The platform's page for these actions exists ([The plugins page](admin.md)).
 - **The plugin's own settings per workspace** (`PluginWorkspace.config`, BARY-66): the actions keep what is there, nothing writes it yet.
-- **Install from a store** (BARY-105, BARY-111). It will call the same checks and set `source` and `origin` itself.
+- **Install from a store** (BARY-107). It will call the same checks and set `source` and `origin` itself.

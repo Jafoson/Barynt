@@ -1673,6 +1673,19 @@ model PluginStore {
   /// DevOps). Kein Geheimnis. Nur sinnvoll, wenn `credential` gesetzt ist.
   credentialUser String?
 
+  /// Wann der lokale Klon zuletzt erfolgreich aktualisiert wurde. Null: noch nie
+  /// (die Store-Seite sagt dann "noch nicht abgerufen").
+  syncedAt DateTime?
+
+  /// Wann zuletzt versucht wurde, den Klon zu aktualisieren, auch erfolglos. Damit
+  /// wird ein Store, der nicht erreichbar ist, nicht bei jedem Öffnen der Seite
+  /// neu angefragt.
+  syncAttemptedAt DateTime?
+
+  /// Warum der letzte Versuch scheiterte, sonst null. Ein Satz ohne Token und ohne
+  /// Header (`lib/plugins/store/sync.ts`); der alte Klon bleibt dabei unverändert.
+  syncError String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

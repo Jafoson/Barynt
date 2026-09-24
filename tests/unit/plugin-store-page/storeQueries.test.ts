@@ -69,6 +69,8 @@ const store = (more: object = {}) => ({
   key: KEY,
   name: "Official",
   official: true,
+  syncedAt: null,
+  syncError: null,
   ...more,
 });
 
@@ -153,7 +155,14 @@ describe("what is put together", () => {
     expect(mockStoreFindMany.mock.calls[0]?.[0]).toEqual({
       where: { enabled: true },
       orderBy: [{ official: "desc" }, { name: "asc" }],
-      select: { id: true, key: true, name: true, official: true },
+      select: {
+        id: true,
+        key: true,
+        name: true,
+        official: true,
+        syncedAt: true,
+        syncError: true,
+      },
     });
   });
 
@@ -174,6 +183,19 @@ describe("what is put together", () => {
       id: "store-2",
       error: "The store has not been fetched yet.",
       errorCode: "not-fetched",
+    });
+  });
+
+  it("passes on when each store was fetched and why the last try failed", async () => {
+    await clone(KEY, ["notes"]);
+    const when = new Date("2026-09-24T10:00:00Z");
+    mockStoreFindMany.mockResolvedValue([
+      store({ syncedAt: when, syncError: "The server answered 404." }),
+    ]);
+    const view = await getStoreCatalogView("en");
+    expect(view.catalog.stores[0]).toMatchObject({
+      syncedAt: when,
+      syncError: "The server answered 404.",
     });
   });
 

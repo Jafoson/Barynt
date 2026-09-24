@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { PLATFORM, requirePermission } from "@/lib/permissions";
+import { pluginsDirSetting } from "@/lib/plugins/discovery";
 import { invalidatePluginRegistry } from "@/lib/plugins/registryState";
+import { removeStoreClone } from "@/lib/plugins/store/sync";
 import { sealStoreToken } from "@/lib/plugins/storeCredentials";
 import { normalizeStoreUrl } from "@/lib/plugins/storeUrl";
 import { SecretsKeyError } from "@/lib/secrets";
@@ -222,6 +224,9 @@ export async function removePluginStore(
   }
 
   await db.pluginStore.delete({ where: { id } });
+  // Its clone goes with it: the same address connected again starts from nothing.
+  const setting = pluginsDirSetting();
+  if (setting.dir !== null) await removeStoreClone(setting.dir, store.key);
 
   await recordAudit({
     action: "plugin.store.removed",
@@ -263,7 +268,12 @@ export async function setPluginStoreCredential(
 
   await db.pluginStore.update({
     where: { id },
-    data: { credential: result.sealed, credentialUser: parsed.username },
+    // A new token may be what a store that failed was waiting for: try it on the next visit.
+    data: {
+      credential: result.sealed,
+      credentialUser: parsed.username,
+      syncAttemptedAt: null,
+    },
   });
 
   await recordAudit({
@@ -295,7 +305,7 @@ export async function clearPluginStoreCredential(
 
   await db.pluginStore.update({
     where: { id },
-    data: { credential: null, credentialUser: null },
+    data: { credential: null, credentialUser: null, syncAttemptedAt: null },
   });
 
   await recordAudit({

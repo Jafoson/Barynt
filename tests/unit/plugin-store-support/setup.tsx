@@ -10,11 +10,14 @@ export const refresh = mock();
 export const mockInstall = mock();
 export const mockSetCurated = mock();
 export const mockSetVisibility = mock();
+export const mockSync = mock();
 
 // `startTransition` cannot be called after a server render; here it runs what it is
 // given at once and remembers it, so a test can wait for it.
 const actualReact = await import("react");
 export let started: Promise<unknown>[] = [];
+/** What `useTransition` says about whether something is running. */
+export const transition = { pending: false };
 export const resetStarted = () => {
   started = [];
 };
@@ -26,7 +29,7 @@ mock.module("react", () => ({
   ...actualReact,
   default: actualReact,
   useTransition: () => [
-    false,
+    transition.pending,
     (callback: () => unknown) => {
       started.push(Promise.resolve(callback()));
     },
@@ -42,7 +45,13 @@ mock.module("next-intl", () => {
     params ? `${key}|${JSON.stringify(params)}` : key;
   t.rich = (key: string, params?: Record<string, unknown>) =>
     `${key}|${JSON.stringify(params, (_k, v) => (typeof v === "function" ? "fn" : v))}`;
-  return { useTranslations: () => t, useLocale: () => "en" };
+  return {
+    useTranslations: () => t,
+    useLocale: () => "en",
+    useFormatter: () => ({
+      dateTime: (value: number) => `date:${value}`,
+    }),
+  };
 });
 mock.module("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 mock.module("@/i18n/navigation", () => ({
@@ -64,6 +73,7 @@ mock.module("@/i18n/navigation", () => ({
 mock.module("@/lib/context", () => ({ useModal: () => ({ openModal }) }));
 mock.module("@/features/plugins/storeActions", () => ({
   installStorePlugin: mockInstall,
+  syncPluginStores: mockSync,
 }));
 mock.module("@/features/plugin-stores/visibilityActions", () => ({
   setPluginCurated: mockSetCurated,

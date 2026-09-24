@@ -157,6 +157,70 @@
   color: var(--on-surface-variant);
 }
 
+/* ─── The stores: when each was fetched, and the button ─────────────────── */
+
+.syncList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sync {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.syncRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  min-width: 0;
+}
+
+.syncName {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.syncStatus {
+  margin-right: auto;
+  font-size: var(--text-sm);
+  color: var(--on-surface-variant);
+}
+
+.syncButton {
+  @include bp.coarse {
+    min-height: var(--touch-min);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The server's own words for why, after the sentence that says what it means. */
+.reason {
+  opacity: 0.85;
+}
+
 .hint {
   margin: 0;
   font-size: var(--text-xs, 0.75rem);

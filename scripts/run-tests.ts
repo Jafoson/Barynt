@@ -112,6 +112,9 @@ const SEGMENTS: string[][] = [
   // plugin's files differ between two reads; `tests/unit/plugins/integrity.test.ts`
   // tests the real one.
   ["tests/unit/plugin-staging"],
+  // Mocks `@/lib/db`, `@/lib/permissions`, `next/server` (`after`) and `node:dns/promises` for the
+  // fetching of the stores that are on; `store-catalog` tests the download and the sync for real.
+  ["tests/unit/store-sync"],
   // Mocks `@/lib/project-membership` away entirely — see CLAUDE.md.
   [
     "tests/unit/workspace/inviteLinks.test.ts",

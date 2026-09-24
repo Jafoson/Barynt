@@ -33,7 +33,14 @@ export async function getStoreCatalogView(
     db.pluginStore.findMany({
       where: { enabled: true },
       orderBy: [{ official: "desc" }, { name: "asc" }],
-      select: { id: true, key: true, name: true, official: true },
+      select: {
+        id: true,
+        key: true,
+        name: true,
+        official: true,
+        syncedAt: true,
+        syncError: true,
+      },
     }),
     db.plugin.findMany({ select: { id: true, version: true, origin: true } }),
     db.pluginStoreCurated.findMany({
@@ -57,8 +64,8 @@ export async function getStoreCatalogView(
             error: "Plugins are off: there is no plugin directory.",
             code: "unreadable",
           } as const),
-      // When a clone was last updated is recorded by the sync (BARY-105).
-      syncedAt: null,
+      syncedAt: store.syncedAt,
+      syncError: store.syncError,
     })),
   );
 

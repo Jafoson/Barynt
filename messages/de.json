@@ -1275,7 +1275,6 @@
     "noEntries": "In den eingeschalteten Stores gibt es noch keine Plugins.",
     "storeError": "{store}: {error}",
     "storeProblems": "{count, plural, one {# Eintrag in {store} ist nicht verwendbar} other {# Einträge in {store} sind nicht verwendbar}}",
-    "notFetchedHint": "Das Abrufen der Stores kommt mit dem nächsten Schritt. Bis dahin zeigt diese Seite, was in den Ordnern der Stores liegt.",
     "install": "Installieren",
     "installed": "Installiert",
     "update": "Auf {version} aktualisieren",
@@ -1320,7 +1319,14 @@
     "installWarnBody": "Beim Installieren werden die Dateien aus dem Store auf diese Instanz gelegt. Das Plugin wird dadurch nirgends eingeschaltet.",
     "installCheck": "Ich habe gelesen, was es anfragt, und möchte es installieren",
     "installConfirm": "Installieren",
-    "storeNotFetched": "{store} wurde noch nicht abgerufen."
+    "storeNotFetched": "{store} wurde noch nicht abgerufen.",
+    "syncNever": "Noch nicht abgerufen",
+    "syncedAt": "Aktualisiert {time}",
+    "sync": "Aktualisieren",
+    "syncing": "Aktualisiere…",
+    "syncLabel": "{store} aktualisieren",
+    "syncFailed": "{store} konnte nicht aktualisiert werden. Gezeigt wird, was {time} abgerufen wurde.",
+    "syncFailedNothing": "{store} konnte nicht aktualisiert werden, deshalb gibt es noch nichts daraus zu zeigen."
   },
   "pluginStores": {
     "title": "Plugin-Stores",

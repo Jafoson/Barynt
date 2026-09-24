@@ -70,8 +70,12 @@ links, what it asks for (a promise, not a limit), every version with its date, c
 
 - **It shows what the stores that are on list**, read from their local clones ([Store format](store-format.md)). A store that has not been
   fetched, cannot be read, or has entries that cannot be used says so above the list; it never looks like a store with nothing in it.
-  Fetching and updating a clone is the next step, so today the page shows what lies in `<plugins>/.stores/`. For development,
-  `bun run plugins:dev-store` writes a sample store there and connects it (`--remove` takes it away again).
+- **Each store has a row under the search**: its name, when it was last fetched ("Updated 3h ago", or "Not fetched yet") and an *Update*
+  button that fetches it now. A store that could not be updated says so, with the server's reason, and that what is shown is the state from
+  before ("Acme could not be updated. Showing what was fetched 3h ago. The server answered 404."). Opening the page fetches a store that was
+  never fetched (and waits for it, up to 15 seconds), and one whose state is older than six hours after the page is sent
+  ([how it is kept up to date](store-format.md#keeping-the-clone-up-to-date)). For development, `bun run plugins:dev-store` writes a sample
+  store into `<plugins>/.stores/` and connects it (`--remove` takes it away again); its address does not exist, so fetching it fails and says so.
 - **Installing** opens the consent (what it is, what it asks for, that installing switches nothing on and that code waits for approval)
   and calls `installStorePlugin`. Until the download and the unpacking exist (BARY-107) that action says so and does nothing.
 - **Icons** are made from the name (its first letters on a colour that is the same for the same id): the catalog reads no files of the
@@ -97,7 +101,7 @@ workspaces and projects themselves are later steps.
 
 ## Deliberately not here
 
-- **Fetching a store** (BARY-111, BARY-105) and **installing from one** (BARY-107): the store tab is built, its install button is not
+- **Installing from a store** (BARY-107): the store tab is built and fetches its stores, its install button is not
   connected yet. Install and update on the first tab take what lies in the plugin directory.
 - **"Keep or delete the data" on uninstall.** There is no storage yet (BARY-85).
 - **The switch per workspace.** That belongs to the workspace's own settings (BARY-64), where a workspace admin
