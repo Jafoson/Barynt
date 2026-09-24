@@ -250,6 +250,10 @@ and measured (start at `docs/plugins/README.md`).
   page together from the rows, the plugin directory and the registry (states and approval as codes; the words are in
   `PluginsAdmin/runtimeText.ts`, so they are translated). `getPluginsOverview` asks for `plugin.manage` itself. Its dialogs use the shared
   `WarningBox` and `AcknowledgeModal` (also used by the plugin stores page); they are the question, the actions are the protection.
+- **The plugins of a workspace** (`/<workspace>/settings/plugins`, `docs/plugins/workspace.md`, `plugin.enable` in that workspace, asked by the query itself; a page for someone
+  who may not is a 404): `getWorkspacePlugins` (`workspaceQueries.ts`) reads the platform's overview (`loadOverview`) and `buildWorkspacePlugins` (pure) **selects** from it: **nothing that is
+  the platform's** (the plugin directory's path, why plugins are off, hashes, origin, counts) reaches a workspace admin. The switch is `enablePlugin`/`disablePlugin`; one that cannot run is
+  disabled with the reason (`blockerOf`), the action refuses the same way.
 - **The registry** (`lib/plugins/registry.ts`, wired in `host.ts`) decides once per process which plugins run and keeps a
   snapshot: `planPlugins()` (pure, `plan.ts`) picks, the loader loads, `instrumentation.ts` starts it with the server (not
   awaited) so `boot` runs once per process outside a request. Its state lives on `global`
@@ -583,6 +587,9 @@ tests/
     plugin-store-page/ · plugin-store-parts/ · plugin-store-support/  ← the store page (own processes: they stand in for parts of it)
     store-sync/
       storeSync.test.ts           ← features/plugins/storeSync and the sync action (own process: mocks the db, permissions, `after` and DNS)
+    plugin-workspace/
+      workspaceQueries.test.ts    ← what a workspace's plugins page reads (own process: mocks the db, permissions and the registry)
+      workspacePlugins.test.tsx   ← the page: which switches can be flipped, which action runs with which ids
     store-install/
       storeInstall.test.ts        ← installing from a store (own process: mocks the db and DNS; the clone, the release and the plugin directory are real)
     plugin-admin/

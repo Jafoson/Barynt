@@ -102,6 +102,9 @@ const SEGMENTS: string[][] = [
   // Mocks the plugin actions and the registry for the plugins page (`features/plugins/queries`,
   // `PluginsAdmin`); `tests/unit/plugin-approval` and `plugin-lifecycle` test the real ones.
   ["tests/unit/plugin-admin"],
+  // The same for a workspace's plugins page and what it reads (`features/plugins/workspaceQueries`,
+  // `WorkspacePlugins`): they replace the registry, the switch and the workspace actions.
+  ["tests/unit/plugin-workspace"],
   // Mocks the actions the store page calls, the registry-free store query and its dialogs;
   // `tests/unit/store-settings` and `plugin-lifecycle` test the real ones.
   ["tests/unit/plugin-store-page"],

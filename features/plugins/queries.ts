@@ -16,7 +16,23 @@ export async function getPluginsOverview(
   locale: string,
 ): Promise<PluginsOverview> {
   await requirePermission("plugin.manage", PLATFORM);
-  const [rows, counts, snapshot, directory, activeStores, allowUnsigned] =
+  // The setting is read so that a database error is an error, not "off": an admin who is
+  // shown "off" while it is on would be misled.
+  return loadOverview(locale, getUnsignedPluginsAllowed);
+}
+
+/**
+ * The same, without asking who wants it: for a caller that has asked for its own
+ * permission and shows only part of it (`workspaceQueries.ts`). It is never handed
+ * to a page as it is: it has the plugin directory's path and the hashes in it.
+ * `allowUnsigned` says whether plugins from no store are allowed, read the way the
+ * caller needs it.
+ */
+export async function loadOverview(
+  locale: string,
+  allowUnsigned: () => Promise<boolean>,
+): Promise<PluginsOverview> {
+  const [rows, counts, snapshot, directory, activeStores, unsignedAllowed] =
     await Promise.all([
       db.plugin.findMany({
         select: {
@@ -38,7 +54,7 @@ export async function getPluginsOverview(
       getPluginRegistry().get(),
       readPluginDirectory(),
       getActiveStoreUrls(),
-      getUnsignedPluginsAllowed(),
+      allowUnsigned(),
     ]);
   return buildOverview({
     rows,
@@ -47,7 +63,7 @@ export async function getPluginsOverview(
     snapshot,
     workspaceCounts: new Map(counts.map((c) => [c.pluginId, c._count._all])),
     activeStores,
-    allowUnsigned,
+    allowUnsigned: unsignedAllowed,
     locale,
   });
 }
