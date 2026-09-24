@@ -122,6 +122,7 @@ export const PROJECT_SETTINGS_PERMISSIONS: Permission[] = [
   "role.manage",
   "label.create",
   "project.update",
+  "plugin.enable",
 ];
 
 /**
@@ -355,6 +356,13 @@ export const PROJECT_SETTINGS_NAV: NavEntry[] = [
   },
   { section: "labels", icon: "lucide:tag", labelKey: "labels" },
   { section: "fields", icon: "lucide:layout-list", labelKey: "fields" },
+  {
+    // Which of the platform's plugins this project uses.
+    section: "plugins",
+    icon: "lucide:puzzle",
+    labelKey: "plugins",
+    permission: "plugin.enable",
+  },
   {
     section: "activity",
     icon: "lucide:scroll-text",

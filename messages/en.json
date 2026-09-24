@@ -1657,6 +1657,27 @@
       "approval-outdated": "The platform approved the code of another version. This version has to be approved before it can run."
     }
   },
+  "projectPlugins": {
+    "title": "Plugins",
+    "listTitle": "Available in this project",
+    "intro": "The platform installs plugins. Here you switch on the ones this project should use.",
+    "empty": "The platform has not installed a plugin yet that a project can switch on.",
+    "switchLabel": "Use {name} in this project",
+    "running": "Running in this project.",
+    "off": "Off in this project.",
+    "cannotRun": "It cannot run at the moment. {reason}",
+    "switchOffTitle": "Switch off {name}?",
+    "switchOffDesc": "It stops in this project. What this project set for it stays, so switching it on again brings it back as it was.",
+    "switchOff": "Switch off",
+    "unavailable": "Plugins are not available on this instance.",
+    "platformTitle": "For the whole platform",
+    "platformNote": "These apply everywhere. Only the platform switches them on or off.",
+    "blocker": {
+      "platform-off": "The platform has switched this plugin off.",
+      "needs-approval": "It has code, and the platform has to approve the code before it can run.",
+      "approval-outdated": "The platform approved the code of another version. This version has to be approved before it can run."
+    }
+  },
   "workspaceStore": {
     "add": "Add",
     "switchOn": "Switch on",

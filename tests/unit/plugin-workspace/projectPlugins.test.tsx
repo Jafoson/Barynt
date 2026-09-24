@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-// A workspace's plugins page. Static markup shows what is offered where; the switches are
+// A project's plugins page. Static markup shows what is offered where; the switches are
 // stand-ins that keep the functions they were given, so a test can flip them and see which action
-// runs with which arguments. What matters: a workspace only switches on and off, a plugin that
+// runs with which arguments. What matters: a project only switches on and off, a plugin that
 // cannot run cannot be switched on and says why, one that is on can always be switched off (after
 // a question), and what the server answers is shown, not swallowed.
 
@@ -69,12 +69,12 @@ mock.module("@/components/ui/atoms/Switch/Switch", () => ({
     );
   },
 }));
-mock.module("@/features/plugins/workspaceActions", () => ({
-  enablePlugin: mockEnable,
-  disablePlugin: mockDisable,
+mock.module("@/features/plugins/projectActions", () => ({
+  enablePluginInProject: mockEnable,
+  disablePluginInProject: mockDisable,
 }));
 
-import { WorkspacePlugins } from "@/features/plugins/components/WorkspacePlugins/WorkspacePlugins";
+import { ProjectPlugins } from "@/features/plugins/components/ProjectPlugins/ProjectPlugins";
 import type {
   WorkspacePlugin,
   WorkspacePluginsView,
@@ -109,19 +109,19 @@ function view(more: Partial<WorkspacePluginsView> = {}): WorkspacePluginsView {
 function render(v: WorkspacePluginsView): string {
   switches = [];
   started = [];
-  return renderToStaticMarkup(<WorkspacePlugins workspaceId="ws-7" view={v} />);
+  return renderToStaticMarkup(<ProjectPlugins projectId="p-7" view={v} />);
 }
 const settled = async () => {
   while (started.length > 0) await Promise.all(started.splice(0));
 };
 const flip = async (id: string, on: boolean) => {
-  const found = switches.find((s) => s.id === `workspace-plugin-${id}`);
+  const found = switches.find((s) => s.id === `project-plugin-${id}`);
   if (!found) throw new Error(`no switch for ${id}`);
   found.onChange(on);
   await settled();
 };
 const switchOf = (id: string) =>
-  switches.find((s) => s.id === `workspace-plugin-${id}`);
+  switches.find((s) => s.id === `project-plugin-${id}`);
 
 beforeEach(() => {
   confirm.mockReset();
@@ -156,15 +156,15 @@ describe("what is shown", () => {
     expect(html).toContain("pluginsAdmin.withCode");
     expect(html).toContain("pluginsAdmin.declarative");
     expect(switches.map((s) => s.id)).toEqual([
-      "workspace-plugin-notes",
-      "workspace-plugin-wiki",
+      "project-plugin-notes",
+      "project-plugin-wiki",
     ]);
   });
 
   it("names the plugin for whoever cannot see the switch", () => {
     render(view({ plugins: [plugin()] }));
     expect(switchOf("notes")?.label).toBe(
-      'workspacePlugins.switchLabel|{"name":"Notes"}',
+      'projectPlugins.switchLabel|{"name":"Notes"}',
     );
   });
 
@@ -189,7 +189,7 @@ describe("what is shown", () => {
 
   it("does not show a section for the platform's own plugins when it has none", () => {
     expect(render(view({ plugins: [plugin()] }))).not.toContain(
-      "workspacePlugins.platformTitle",
+      "projectPlugins.platformTitle",
     );
   });
 
@@ -201,11 +201,11 @@ describe("what is shown", () => {
         ],
       }),
     );
-    expect(html).toContain("workspacePlugins.running");
+    expect(html).toContain("projectPlugins.running");
     expect(html).toContain('data-tone="ok"');
   });
 
-  it("says it is off here when it runs for another workspace and this one has not switched it on", () => {
+  it("says it is off here when it runs for another project and this one has not switched it on", () => {
     const html = render(
       view({
         plugins: [
@@ -217,8 +217,8 @@ describe("what is shown", () => {
         ],
       }),
     );
-    expect(html).toContain("workspacePlugins.off");
-    expect(html).not.toContain("workspacePlugins.running");
+    expect(html).toContain("projectPlugins.off");
+    expect(html).not.toContain("projectPlugins.running");
   });
 
   it("reads a problem where a plugin that is on cannot run or the platform switched it off, and a wait where it only needs the platform's approval", () => {
@@ -234,7 +234,7 @@ describe("what is shown", () => {
 
   it("says it is off here, when nothing is in the way", () => {
     const html = render(view({ plugins: [plugin()] }));
-    expect(html).toContain("workspacePlugins.off");
+    expect(html).toContain("projectPlugins.off");
     expect(html).toContain('data-tone="idle"');
   });
 
@@ -242,7 +242,7 @@ describe("what is shown", () => {
     "says why it cannot be switched on, for %s",
     (blocker) => {
       const html = render(view({ plugins: [plugin({ blocker })] }));
-      expect(html).toContain(`workspacePlugins.blocker.${blocker}`);
+      expect(html).toContain(`projectPlugins.blocker.${blocker}`);
     },
   );
 
@@ -254,19 +254,19 @@ describe("what is shown", () => {
         ],
       }),
     );
-    expect(html).toContain("workspacePlugins.cannotRun");
+    expect(html).toContain("projectPlugins.cannotRun");
     expect(html).toContain("pluginsAdmin.state.missing");
     expect(html).toContain('data-tone="problem"');
   });
 
-  it("says why an idle plugin is not running in the workspace's words: no workspace has switched it on", () => {
+  it("says why an idle plugin is not running in the project's words: no project has switched it on", () => {
     const html = render(
       view({
         plugins: [plugin({ on: true, blocker: null, state: { kind: "idle" } })],
       }),
     );
-    expect(html).toContain("pluginsAdmin.state.idle");
-    expect(html).not.toContain("pluginsAdmin.state.idleProject");
+    expect(html).toContain("pluginsAdmin.state.idleProject");
+    expect(html).not.toContain("pluginsAdmin.state.idle&");
   });
 
   it("says a plugin that is on here and is not running is a problem, not an off switch", () => {
@@ -277,17 +277,17 @@ describe("what is shown", () => {
         ],
       }),
     );
-    expect(html).toContain("workspacePlugins.blocker.platform-off");
+    expect(html).toContain("projectPlugins.blocker.platform-off");
     expect(html).toContain('data-tone="problem"');
     const stale = render(
       view({
         plugins: [plugin({ on: true, blocker: null, state: { kind: "idle" } })],
       }),
     );
-    expect(stale).toContain("workspacePlugins.cannotRun");
+    expect(stale).toContain("projectPlugins.cannotRun");
   });
 
-  it("says the platform's own plugins apply everywhere, and are not for this workspace to switch", () => {
+  it("says the platform's own plugins apply everywhere, and are not for this project to switch", () => {
     const html = render(
       view({
         plugins: [plugin()],
@@ -301,33 +301,26 @@ describe("what is shown", () => {
         ],
       }),
     );
-    expect(html).toContain("workspacePlugins.platformTitle");
+    expect(html).toContain("projectPlugins.platformTitle");
     expect(html).toContain("Audit trail");
-    expect(html).toContain("workspacePlugins.platformNote");
+    expect(html).toContain("projectPlugins.platformNote");
     expect(switches).toHaveLength(1);
   });
 
   it("says there is nothing to switch on yet, and that plugins are unavailable, when they are", () => {
-    expect(render(view())).toContain("workspacePlugins.empty");
+    expect(render(view())).toContain("projectPlugins.empty");
     const off = render(view({ available: false }));
-    expect(off).toContain("workspacePlugins.unavailable");
-    expect(off).not.toContain("workspacePlugins.empty");
+    expect(off).toContain("projectPlugins.unavailable");
+    expect(off).not.toContain("projectPlugins.empty");
   });
 });
 
 describe("the tabs", () => {
-  it("are there, to the workspace's own two pages, when the platform gave workspaces the store", () => {
+  it("are not there yet: the store in a project is a later step, and the page says nothing of it", () => {
     const html = render(view({ storeAvailable: true, plugins: [plugin()] }));
-    expect(html).toContain('href="/ws-7/settings/plugins"');
-    expect(html).toContain('href="/ws-7/settings/plugins/store"');
-    expect(html).toContain('aria-current="page"');
-    expect(html).toContain("pluginStore.tabStore");
-  });
-
-  it("are not there when it did not", () => {
-    const html = render(view({ storeAvailable: false, plugins: [plugin()] }));
     expect(html).not.toContain("/store");
     expect(html).not.toContain("pluginStore.tabStore");
+    expect(html).not.toContain('aria-current="page"');
   });
 });
 
@@ -372,26 +365,26 @@ describe("the switch", () => {
     expect(switchOf("x")?.disabled).toBe(false);
   });
 
-  it("switches a plugin on in this workspace, with the ids the page was given and nothing else, and reads the page again", async () => {
+  it("switches a plugin on in this project, with the ids the page was given and nothing else, and reads the page again", async () => {
     render(view({ plugins: [plugin()] }));
     await flip("notes", true);
-    expect(mockEnable.mock.calls).toEqual([["ws-7", "notes"]]);
+    expect(mockEnable.mock.calls).toEqual([["p-7", "notes"]]);
     expect(mockDisable).not.toHaveBeenCalled();
     expect(confirm).not.toHaveBeenCalled();
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
-  it("asks before it switches a plugin off, and then does, in this workspace", async () => {
+  it("asks before it switches a plugin off, and then does, in this project", async () => {
     render(view({ plugins: [plugin({ on: true })] }));
     await flip("notes", false);
     expect(confirm).toHaveBeenCalledTimes(1);
     expect(confirm.mock.calls[0]?.[0]).toMatchObject({
-      title: 'workspacePlugins.switchOffTitle|{"name":"Notes"}',
-      description: "workspacePlugins.switchOffDesc",
-      confirmLabel: "workspacePlugins.switchOff",
+      title: 'projectPlugins.switchOffTitle|{"name":"Notes"}',
+      description: "projectPlugins.switchOffDesc",
+      confirmLabel: "projectPlugins.switchOff",
       danger: true,
     });
-    expect(mockDisable.mock.calls).toEqual([["ws-7", "notes"]]);
+    expect(mockDisable.mock.calls).toEqual([["p-7", "notes"]]);
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 

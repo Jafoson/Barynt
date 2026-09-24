@@ -87,14 +87,14 @@ export function blockerOf(
   }
 }
 
-/**
- * The plugins a workspace can use, and which of them it has switched on. `enabledHere` is the
- * ids of the plugins switched on in this workspace.
- */
-export function buildWorkspacePlugins(
+/** The scope of the plugins a level switches: a workspace's are the per-workspace ones, a project's the per-project ones. */
+type Level = "WORKSPACE" | "PROJECT";
+
+function buildLevelPlugins(
   overview: PluginsOverview,
   enabledHere: ReadonlySet<string>,
   storeAvailable: boolean,
+  level: Level,
 ): WorkspacePluginsView {
   const plugins: WorkspacePlugin[] = [];
   const platform: PlatformPlugin[] = [];
@@ -110,8 +110,9 @@ export function buildWorkspacePlugins(
       }
       continue;
     }
-    // What applies per project is a project's to switch on (its own settings), not the workspace's.
-    if (plugin.scope !== "WORKSPACE") continue;
+    // What applies at another level is that level's to switch on (a workspace's plugin is not a
+    // project's, and the other way round), not this one's.
+    if (plugin.scope !== level) continue;
     const on = enabledHere.has(plugin.id);
     // A plugin the platform switched off is only shown where it is on here, to say why it is not
     // running; one that is off everywhere is nobody's business.
@@ -137,4 +138,29 @@ export function buildWorkspacePlugins(
     plugins,
     platform,
   };
+}
+
+/**
+ * The plugins a workspace can use, and which of them it has switched on. `enabledHere` is the
+ * ids of the plugins switched on in this workspace.
+ */
+export function buildWorkspacePlugins(
+  overview: PluginsOverview,
+  enabledHere: ReadonlySet<string>,
+  storeAvailable: boolean,
+): WorkspacePluginsView {
+  return buildLevelPlugins(overview, enabledHere, storeAvailable, "WORKSPACE");
+}
+
+/**
+ * The plugins a project can use, and which of them it has switched on: the same page as a
+ * workspace's (`WorkspacePluginsView`), for the plugins that apply per project. `enabledHere` is
+ * the ids of the plugins switched on in this project.
+ */
+export function buildProjectPlugins(
+  overview: PluginsOverview,
+  enabledHere: ReadonlySet<string>,
+  storeAvailable: boolean,
+): WorkspacePluginsView {
+  return buildLevelPlugins(overview, enabledHere, storeAvailable, "PROJECT");
 }

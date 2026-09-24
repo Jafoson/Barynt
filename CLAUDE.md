@@ -261,6 +261,10 @@ and measured (start at `docs/plugins/README.md`).
   version its store offers (`storeUpdate`, from `loadStoreCatalog`, only what fits this Barynt): a pointer to the store page (`?q=<id>` starts the search), where the
   update is made (`UpdateFromStoreModal`, which sets apart `installed.addedCapabilities`, what the new manifest asks for that the installed files did not). A workspace's
   page is a selection of this and passes none of it on.
+- **The plugins of a project** (`/<workspace>/project/<slug>/settings/plugins`, `docs/plugins/project.md`, `plugin.enable` in that project, asked by the query itself):
+  the workspace's page with the words of a project. `features/plugins/components/LevelPlugins` is the one component (`level="workspace" | "project"`, the words
+  `workspacePlugins.*` or `projectPlugins.*`), `WorkspacePlugins` and `ProjectPlugins` are thin wrappers that bind the ids; `buildWorkspacePlugins` and `buildProjectPlugins`
+  (`workspacePlugins.ts`) make the same selection for the plugins that apply per workspace or per project. `getProjectPlugins` (`projectQueries.ts`) has no store tab yet.
 - **The plugins of a workspace** (`/<workspace>/settings/plugins`, `docs/plugins/workspace.md`, `plugin.enable` in that workspace, asked by the query itself; a page for someone
   who may not is a 404): `getWorkspacePlugins` (`workspaceQueries.ts`) reads the platform's overview (`loadOverview`) and `buildWorkspacePlugins` (pure) **selects** from it: **nothing that is
   the platform's** (the plugin directory's path, why plugins are off, hashes, origin, counts) reaches a workspace admin. The switch is `enablePlugin`/`disablePlugin`; one that cannot run is
