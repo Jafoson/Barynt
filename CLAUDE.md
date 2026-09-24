@@ -227,6 +227,12 @@ and measured (start at `docs/plugins/README.md`).
   with the schemas in `format.ts`, follows no symlink (`O_NOFOLLOW`), limits every file and the number of entries, and checks id, manifest and
   versions against each other; `buildCatalog` (pure) makes one entry per store and plugin, offers the highest version that is not revoked, and an
   update only from the store the plugin came from. The clone lives in `<plugins>/.stores/<name>` (`storeCloneDir`), where discovery does not look.
+  **It gets there as the archive of the default branch over https, not with git** (`transport.ts`, `docs/plugins/adr-0003-store-transport.md`):
+  everything downloaded goes through `safeDownload` (`fetch.ts`: https only, every address a name resolves to must be public per `address.ts`,
+  every redirect checked, size and time limited, **a token goes only to the host it was given for**, never in an address or an error), our own
+  `readTar` (`tar.ts`) reads it, and `unpackStoreArchive` (`archive.ts`) writes **only** `store.json` and each plugin's `barynt-plugin.json` and
+  `source.json`. New code that fetches from an address someone else wrote uses `safeDownload`, never `fetch` directly. Known gap: DNS rebinding
+  (needs the egress rules, BARY-97).
 - **The plugin store page** (`/admin/plugins/store`): `buildCatalog` output plus `features/plugins/storeView.ts` (search, categories, featured, avatars: pure) in
   `features/plugins/components/PluginStore/`. **Who gets the store** is `SystemSettings.pluginStoreInWorkspaces/InProjects/CuratedOnly` (open by default;
   `getStoreVisibility()` fails **closed**) plus `PluginStoreCurated` (a plugin of a store the admin released). Adding a plugin never changes who approves its
@@ -560,6 +566,7 @@ tests/
       stage.test.ts               ← features/plugins/disk (own process: it replaces the directory hash)
     store-catalog/
       format.test.ts / reader.test.ts / catalog.test.ts / paths.test.ts  ← what a store contains and how a clone is read (real hostile directories)
+      address.test.ts / fetch.test.ts / transport.test.ts / tar.test.ts / archive.test.ts  ← how it gets there: the public-address guard, the safe download (`fetch` and DNS replaced), the host styles, the tar reader, the allowlist unpack (real temp dirs); archives are built by `tests/unit/store-support/tarBuilder.ts`
     store-settings/
       visibility.test.ts / installAction.test.ts  ← who gets the store, releasing a plugin, the install action's checks
     plugin-store-page/ · plugin-store-parts/ · plugin-store-support/  ← the store page (own processes: they stand in for parts of it)
