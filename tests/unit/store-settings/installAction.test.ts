@@ -15,16 +15,24 @@ mock.module("@/lib/permissions", () => ({
 const mockInstallFromStore = mock(
   async (_input: unknown): Promise<unknown> => ({ ok: true }),
 );
+const mockUpdateFromStore = mock(
+  async (_input: unknown): Promise<unknown> => ({ ok: true }),
+);
 mock.module("@/features/plugins/storeInstall", () => ({
   installFromStore: mockInstallFromStore,
+  updateFromStore: mockUpdateFromStore,
 }));
 
-import { installStorePlugin } from "@/features/plugins/storeActions";
+import {
+  installStorePlugin,
+  updateStorePlugin,
+} from "@/features/plugins/storeActions";
 
 beforeEach(() => {
   mockRequirePermission.mockReset();
   mockRequirePermission.mockResolvedValue("admin1");
   mockInstallFromStore.mockClear();
+  mockUpdateFromStore.mockClear();
 });
 
 describe("who may", () => {
@@ -54,6 +62,10 @@ describe("what is asked for", () => {
     ["a plugin id that is a path", ["store-1", "../etc", "1.0.0"]],
     ["a plugin id with capitals", ["store-1", "Notes", "1.0.0"]],
     ["a plugin id that is not text", ["store-1", 7, "1.0.0"]],
+    [
+      "a plugin id that is a list which reads like a good one",
+      ["store-1", ["notes"], "1.0.0"],
+    ],
     ["a version that is a range", ["store-1", "notes", "^1.0.0"]],
     ["a version that is a path", ["store-1", "notes", "../1.0.0"]],
     ["a version that is not text", ["store-1", "notes", 1]],
@@ -129,5 +141,82 @@ describe("what it hands over", () => {
     expect(
       Object.keys(mockInstallFromStore.mock.calls[0]?.[0] as object).sort(),
     ).toEqual(["actorId", "pluginId", "storeId", "version"]);
+  });
+});
+
+describe("updating: who may, what is asked for, what it hands over", () => {
+  const ack = { acknowledged: true };
+
+  it("asks for plugin.manage in the platform context, first, and looks at nothing before that", async () => {
+    await updateStorePlugin("notes", "1.1.0", ack);
+    expect(mockRequirePermission.mock.calls[0]).toEqual([
+      "plugin.manage",
+      { scope: "platform" },
+    ]);
+    mockRequirePermission.mockRejectedValue(new Error("not allowed"));
+    await expect(
+      updateStorePlugin("../etc", "nope", undefined),
+    ).rejects.toThrow("not allowed");
+    expect(mockUpdateFromStore).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["a plugin id that is a path", ["../etc", "1.1.0"]],
+    ["a plugin id with capitals", ["Notes", "1.1.0"]],
+    ["a plugin id that is not text", [7, "1.1.0"]],
+    [
+      "a plugin id that is a list which reads like a good one",
+      [["notes"], "1.1.0"],
+    ],
+    ["a version that is a range", ["notes", "^1.1.0"]],
+    ["a version that is a path", ["notes", "../1.1.0"]],
+    ["a version that is not text", ["notes", 1]],
+    ["nothing", [undefined, undefined]],
+  ])("is refused with %s", async (_n, [plugin, version]) => {
+    expect(
+      await updateStorePlugin(plugin as string, version as string, ack),
+    ).toEqual({ error: "Invalid request." });
+    expect(mockUpdateFromStore).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["nothing", undefined],
+    ["false", { acknowledged: false }],
+    ["the text true", { acknowledged: "true" as never }],
+    ["1", { acknowledged: 1 as never }],
+    ["an empty object", {}],
+  ])("needs the yes, and %s is not that", async (_n, input) => {
+    expect(await updateStorePlugin("notes", "1.1.0", input)).toEqual({
+      error:
+        "Confirm that you have read what the new version asks for before it is installed.",
+    });
+    expect(mockUpdateFromStore).not.toHaveBeenCalled();
+  });
+
+  it("hands over who asked, the plugin and the version, and gives back what the updater says", async () => {
+    mockUpdateFromStore.mockResolvedValue({ error: "no" });
+    expect(await updateStorePlugin("notes", "1.1.0", ack)).toEqual({
+      error: "no",
+    });
+    expect(mockUpdateFromStore.mock.calls).toEqual([
+      [{ actorId: "admin1", pluginId: "notes", version: "1.1.0" }],
+    ]);
+    mockUpdateFromStore.mockResolvedValue({ ok: true });
+    expect(await updateStorePlugin("notes", "1.1.0", ack)).toEqual({
+      ok: true,
+    });
+  });
+
+  it("names no store, and takes no source, origin or hash from the client", async () => {
+    await updateStorePlugin("notes", "1.1.0", {
+      ...ack,
+      storeId: "evil",
+      source: "STORE",
+      origin: "https://evil.example",
+      integrity: "x",
+    } as never);
+    expect(
+      Object.keys(mockUpdateFromStore.mock.calls[0]?.[0] as object).sort(),
+    ).toEqual(["actorId", "pluginId", "version"]);
   });
 });

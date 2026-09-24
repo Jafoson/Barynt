@@ -1495,7 +1495,8 @@
       "issueStoryPointsChanged": "Story points changed",
       "issueEstimateHoursChanged": "Time estimate changed",
       "labelCreated": "Label created",
-      "labelDeleted": "Label deleted"
+      "labelDeleted": "Label deleted",
+      "pluginRolledBack": "Plugin rolled back"
     }
   },
   "dashboard": {

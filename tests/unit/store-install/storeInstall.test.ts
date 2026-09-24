@@ -29,6 +29,7 @@ import { join } from "node:path";
 const pluginFindUnique = mock();
 const pluginFindMany = mock();
 const pluginCreate = mock();
+const pluginUpdateMany = mock();
 const storeFindUnique = mock();
 const auditCreate = mock();
 const revalidate = mock();
@@ -39,6 +40,7 @@ mock.module("@/lib/db", () => ({
       findUnique: pluginFindUnique,
       findMany: pluginFindMany,
       create: pluginCreate,
+      updateMany: pluginUpdateMany,
     },
     pluginStore: { findUnique: storeFindUnique },
     auditLog: { create: auditCreate },
@@ -51,7 +53,10 @@ mock.module("node:dns/promises", () => ({
   lookup: async () => [{ address: "140.82.112.3", family: 4 }],
 }));
 
-import { installFromStore } from "@/features/plugins/storeInstall";
+import {
+  installFromStore,
+  updateFromStore,
+} from "@/features/plugins/storeInstall";
 import { hashPluginDirectory } from "@/lib/plugins/integrity";
 import { getRegistryState } from "@/lib/plugins/registryState";
 import { storeCloneDir } from "@/lib/plugins/store/paths";
@@ -89,9 +94,12 @@ async function clone(
     pinned?: string;
     plugins?: string[];
     storeJson?: string;
+    /** The version the store describes (its manifest's), 1.0.0 unless said. */
+    version?: string;
   } = {},
 ) {
-  const text = manifestText(more.manifest);
+  const version = more.version ?? "1.0.0";
+  const text = manifestText({ version, ...more.manifest });
   served = more.release ?? releaseOf(text);
   const dir = storeCloneDir(root, KEY);
   await mkdir(join(dir, "plugins", "notes"), { recursive: true });
@@ -106,7 +114,7 @@ async function clone(
     JSON.stringify({
       versions: more.versions ?? [
         {
-          version: "1.0.0",
+          version,
           download: DOWNLOAD,
           sha512: more.pinned ?? sha512(served),
         },
@@ -156,6 +164,7 @@ beforeEach(async () => {
     pluginFindUnique,
     pluginFindMany,
     pluginCreate,
+    pluginUpdateMany,
     storeFindUnique,
     auditCreate,
     revalidate,
@@ -171,6 +180,7 @@ beforeEach(async () => {
   pluginFindUnique.mockResolvedValue(null);
   pluginFindMany.mockResolvedValue([]);
   pluginCreate.mockResolvedValue({});
+  pluginUpdateMany.mockResolvedValue({ count: 1 });
   auditCreate.mockResolvedValue({});
   fetchSpy.mockReset();
   fetchSpy.mockImplementation((async (url: string, init: RequestInit) => {
@@ -578,5 +588,470 @@ describe("when the row cannot be made", () => {
     pluginCreate.mockRejectedValue(new Error("database is down"));
     await expect(install()).rejects.toThrow("database is down");
     await nothingInstalled(true);
+  });
+});
+
+describe("updating from the store the plugin came from", () => {
+  /** notes 1.0.0 is installed from the store, its files are on disk; the store now describes 1.1.0. */
+  async function installedThenListed(
+    more: Parameters<typeof clone>[0] = {},
+    row: Record<string, unknown> = {},
+    first: Parameters<typeof clone>[0] = {},
+  ) {
+    await clone(first);
+    await install();
+    const hash = pluginCreate.mock.calls[0]?.[0].data.integrity as string;
+    pluginCreate.mockClear();
+    auditCreate.mockClear();
+    requests.length = 0;
+    const current = {
+      version: "1.0.0",
+      source: "STORE",
+      origin: URL_OF_STORE,
+      scope: "WORKSPACE",
+      integrity: hash,
+      codeApprovalHash: null,
+      ...row,
+    };
+    pluginFindUnique.mockResolvedValue(current);
+    pluginFindMany.mockResolvedValue([
+      { id: "notes", version: "1.0.0", scope: "WORKSPACE" },
+    ]);
+    storeFindUnique.mockResolvedValue({
+      key: KEY,
+      url: URL_OF_STORE,
+      name: "Acme",
+      enabled: true,
+    });
+    await clone({ version: "1.1.0", ...more });
+    return { hash, current };
+  }
+  const update = (version = "1.1.0", pluginId = "notes") =>
+    updateFromStore({ actorId: "admin1", pluginId, version });
+
+  it("puts the new version next to the old one, and the row at the new one with the old one as the way back", async () => {
+    const { hash } = await installedThenListed();
+    expect(await update()).toEqual({ ok: true });
+    expect(
+      await readFile(at("notes", "1.1.0", "barynt-plugin.json"), "utf8"),
+    ).toBe(manifestText({ version: "1.1.0" }));
+    // What is replaced is not touched.
+    expect(
+      await readFile(at("notes", "1.0.0", "barynt-plugin.json"), "utf8"),
+    ).toBe(manifestText());
+    const newHash = await hashPluginDirectory(at("notes", "1.1.0"));
+    expect(pluginUpdateMany.mock.calls).toEqual([
+      [
+        {
+          where: { id: "notes", version: "1.0.0", integrity: hash },
+          data: {
+            version: "1.1.0",
+            integrity: newHash.ok ? newHash.digest : "",
+            previousVersion: "1.0.0",
+            previousIntegrity: hash,
+            codeApprovalHash: null,
+            codeApprovedAt: null,
+          },
+        },
+      ],
+    ]);
+    expect(pluginCreate).not.toHaveBeenCalled();
+  });
+
+  it("asks the store the plugin came from, found by where the row says it came from, and no other", async () => {
+    await installedThenListed(
+      {},
+      { origin: "https://GitHub.com/Acme/Plugins.git" },
+    );
+    await update();
+    expect(storeFindUnique.mock.calls.at(-1)).toEqual([
+      {
+        where: { key: KEY },
+        select: { key: true, url: true, name: true, enabled: true },
+      },
+    ]);
+    expect(requests.map((r) => r.url)).toEqual([DOWNLOAD]);
+  });
+
+  it("is audited with from and to, the store, both hashes and what is asked for that was not", async () => {
+    await installedThenListed({
+      manifest: { capabilities: ["issues:read", "issues:write"] },
+    });
+    await update();
+    const data = auditCreate.mock.calls[0]?.[0].data;
+    expect(data).toMatchObject({
+      action: "plugin.updated",
+      actorId: "admin1",
+      targetId: "notes",
+      targetLabel: "notes@1.1.0",
+    });
+    expect(data.meta).toMatchObject({
+      from: "1.0.0",
+      to: "1.1.0",
+      source: "STORE",
+      store: KEY,
+      approvalWithdrawn: false,
+      archive: sha512(served),
+      addedCapabilities: ["issues:read", "issues:write"],
+    });
+    expect(String(data.meta.hash)).toMatch(/^sha512-/);
+  });
+
+  it("says nothing of capabilities when it asks for nothing more", async () => {
+    await installedThenListed();
+    await update();
+    expect(auditCreate.mock.calls[0]?.[0].data.meta).not.toHaveProperty(
+      "addedCapabilities",
+    );
+  });
+
+  it("names only what is new: what the old version asked for already is not", async () => {
+    await installedThenListed(
+      { manifest: { capabilities: ["issues:read", "issues:write"] } },
+      {},
+      { manifest: { capabilities: ["issues:read"] } },
+    );
+    await update();
+    expect(auditCreate.mock.calls[0]?.[0].data.meta.addedCapabilities).toEqual([
+      "issues:write",
+    ]);
+  });
+
+  it("names all of them when the old files cannot be read, since nothing is known of what they asked for", async () => {
+    await installedThenListed(
+      { manifest: { capabilities: ["issues:read"] } },
+      {},
+      { manifest: { capabilities: ["issues:read"] } },
+    );
+    await writeFile(at("notes", "1.0.0", "barynt-plugin.json"), "not json");
+    await update();
+    expect(auditCreate.mock.calls[0]?.[0].data.meta.addedCapabilities).toEqual([
+      "issues:read",
+    ]);
+  });
+
+  it("compares with the version that is installed, not with another one that lies there", async () => {
+    await installedThenListed(
+      { manifest: { capabilities: ["issues:read", "issues:write"] } },
+      {},
+      { manifest: { capabilities: ["issues:read"] } },
+    );
+    await mkdir(at("notes", "0.9.0"), { recursive: true });
+    await writeFile(
+      at("notes", "0.9.0", "barynt-plugin.json"),
+      manifestText({ version: "0.9.0", capabilities: [] }),
+    );
+    await update();
+    expect(auditCreate.mock.calls[0]?.[0].data.meta.addedCapabilities).toEqual([
+      "issues:write",
+    ]);
+  });
+
+  it("reads the plugin by its id, and only the columns it needs", async () => {
+    await installedThenListed();
+    pluginFindUnique.mockClear();
+    await update();
+    expect(pluginFindUnique.mock.calls).toEqual([
+      [
+        {
+          where: { id: "notes" },
+          select: {
+            version: true,
+            source: true,
+            origin: true,
+            scope: true,
+            integrity: true,
+            codeApprovalHash: true,
+          },
+        },
+      ],
+    ]);
+  });
+
+  it("is refused for a plugin of the whole platform that would need one that is per workspace", async () => {
+    await installedThenListed(
+      { manifest: { scope: "platform", dependencies: { base: "^1.0.0" } } },
+      { scope: "PLATFORM" },
+      { manifest: { scope: "platform" } },
+    );
+    await mkdir(at("base", "1.0.0"), { recursive: true });
+    await writeFile(
+      at("base", "1.0.0", "barynt-plugin.json"),
+      manifestOf("base"),
+    );
+    pluginFindMany.mockResolvedValue([
+      { id: "notes", version: "1.0.0", scope: "PLATFORM" },
+      { id: "base", version: "1.0.0", scope: "WORKSPACE" },
+    ]);
+    expect(await update()).toMatchObject({
+      error: expect.stringContaining(
+        "applies to the whole platform but needs base",
+      ),
+    });
+    expect(requests).toHaveLength(0);
+    expect(pluginUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it("is refused when another copy of the new version lies in the plugin directory, which is never written over", async () => {
+    await installedThenListed();
+    await mkdir(at("notes", "1.1.0"), { recursive: true });
+    await writeFile(
+      at("notes", "1.1.0", "barynt-plugin.json"),
+      "somebody else's",
+    );
+    expect(await update()).toMatchObject({
+      error: expect.stringContaining("A different copy of notes 1.1.0"),
+    });
+    expect(pluginUpdateMany).not.toHaveBeenCalled();
+    expect(
+      await readFile(at("notes", "1.1.0", "barynt-plugin.json"), "utf8"),
+    ).toBe("somebody else's");
+  });
+
+  it("withdraws the approval of the old files, which is for the old files, and says so", async () => {
+    await installedThenListed({}, { codeApprovalHash: "approved-hash" });
+    await update();
+    expect(
+      pluginUpdateMany.mock.calls[0]?.[0].data.codeApprovalHash,
+    ).toBeNull();
+    expect(auditCreate.mock.calls[0]?.[0].data.meta.approvalWithdrawn).toBe(
+      true,
+    );
+  });
+
+  it("is told to the registry and the pages", async () => {
+    await installedThenListed();
+    const before = getRegistryState().generation;
+    await update();
+    expect(getRegistryState().generation).toBe(before + 1);
+    expect(revalidate).toHaveBeenCalledWith("/", "layout");
+  });
+
+  describe("what is refused before anything is downloaded", () => {
+    const refused = async (message: string | RegExp, version = "1.1.0") => {
+      const result = await update(version);
+      expect(result).toMatchObject({ error: expect.stringMatching(message) });
+      expect(requests).toHaveLength(0);
+      expect(pluginUpdateMany).not.toHaveBeenCalled();
+      expect(auditCreate).not.toHaveBeenCalled();
+      expect(await readdir(at("notes"))).toEqual(["1.0.0"]);
+    };
+
+    it("is plugins that are off", async () => {
+      await installedThenListed();
+      process.env.BARYNT_PLUGINS_DIR = "relative/dir";
+      await refused(/absolute/);
+    });
+
+    it("is a plugin that is not installed", async () => {
+      await installedThenListed();
+      pluginFindUnique.mockResolvedValue(null);
+      await refused(/^Unknown plugin\.$/);
+    });
+
+    it.each(["DIRECTORY", "UPLOAD"])(
+      "is a plugin that came from %s: it is updated where it came from",
+      async (source) => {
+        await installedThenListed({}, { source, origin: null });
+        await refused(/did not come from a store/);
+      },
+    );
+
+    it.each(["1.0.0", "0.9.0"])(
+      "is version %s, which is not newer than the installed 1.0.0",
+      async (version) => {
+        await installedThenListed();
+        await refused(/newer version than the installed 1\.0\.0/, version);
+      },
+    );
+
+    it("is a plugin whose store is not connected any more: another store that lists the same id is not a way out", async () => {
+      await installedThenListed();
+      storeFindUnique.mockResolvedValue(null);
+      await refused(
+        /not connected any more, so it is not updated from another store/,
+      );
+    });
+
+    it.each([
+      ["no origin", null],
+      ["an origin that is no store address", "not a url"],
+      [
+        "an origin with a port, which is no store's",
+        "https://github.com:8443/acme/plugins",
+      ],
+    ])(
+      "is a plugin that has %s: nothing says which store to ask",
+      async (_n, origin) => {
+        await installedThenListed({}, { origin });
+        storeFindUnique.mockClear();
+        await refused(/not connected any more/);
+        expect(storeFindUnique).not.toHaveBeenCalled();
+      },
+    );
+
+    it("is a store that is switched off", async () => {
+      await installedThenListed();
+      storeFindUnique.mockResolvedValue({
+        key: KEY,
+        url: URL_OF_STORE,
+        name: "Acme",
+        enabled: false,
+      });
+      await refused(/^The store is switched off\.$/);
+    });
+
+    it("is a store that cannot be read", async () => {
+      await installedThenListed();
+      await rm(storeCloneDir(root, KEY), { recursive: true });
+      await refused(/Acme cannot be read/);
+    });
+
+    it("is a plugin the store does not list any more, and a version it does not list", async () => {
+      await installedThenListed();
+      await rm(join(storeCloneDir(root, KEY), "plugins", "notes"), {
+        recursive: true,
+      });
+      await refused(/does not list notes any more/);
+      await installedThenListed({ version: "1.1.0" });
+      await refused(/does not list notes 1\.2\.0/, "1.2.0");
+    });
+
+    it("is not another plugin the store lists in its place", async () => {
+      await installedThenListed();
+      const dir = storeCloneDir(root, KEY);
+      await rm(join(dir, "plugins", "notes"), { recursive: true });
+      await mkdir(join(dir, "plugins", "alpha"), { recursive: true });
+      await writeFile(
+        join(dir, "plugins", "alpha", "barynt-plugin.json"),
+        JSON.stringify({
+          ...JSON.parse(manifestOf("alpha")),
+          version: "1.1.0",
+        }),
+      );
+      await writeFile(
+        join(dir, "plugins", "alpha", "source.json"),
+        JSON.stringify({
+          versions: [
+            { version: "1.1.0", download: DOWNLOAD, sha512: sha512(served) },
+          ],
+        }),
+      );
+      await refused(/does not list notes any more/);
+    });
+
+    it("is a version the store withdrew, with its reason when there is one", async () => {
+      await installedThenListed({
+        versions: [
+          {
+            version: "1.1.0",
+            download: DOWNLOAD,
+            sha512: "a".repeat(128),
+            revoked: "stole data",
+          },
+        ],
+      });
+      await refused(/withdrawn by the store: stole data/);
+    });
+
+    it("is a version the store lists and does not describe", async () => {
+      await installedThenListed({
+        version: "1.2.0",
+        versions: [
+          { version: "1.2.0", download: DOWNLOAD, sha512: "a".repeat(128) },
+          { version: "1.1.0", download: DOWNLOAD, sha512: "b".repeat(128) },
+        ],
+      });
+      await refused(/Only 1\.2\.0, the version Acme describes/);
+    });
+
+    it("is a plugin that would apply somewhere else than the installed one", async () => {
+      await installedThenListed({ manifest: { scope: "platform" } });
+      await refused(/cannot change where the plugin applies/);
+    });
+
+    it("is a version for another Barynt, and one that needs a plugin that is not installed", async () => {
+      await installedThenListed({ manifest: { barynt: "^9.0.0" } });
+      await refused(/works with Barynt \^9\.0\.0/);
+      await installedThenListed({
+        manifest: { dependencies: { base: "^1.0.0" } },
+      });
+      await refused(/needs the plugin base/);
+    });
+  });
+
+  describe("a release that is not what the store says", () => {
+    const nothingChanged = async () => {
+      expect(pluginUpdateMany).not.toHaveBeenCalled();
+      expect(auditCreate).not.toHaveBeenCalled();
+      expect(await readdir(at("notes"))).toEqual(["1.0.0"]);
+      expect(await readdir(at(".staging")).catch(() => [])).toEqual([]);
+    };
+
+    it("is not installed when the download fails", async () => {
+      await installedThenListed();
+      status = 404;
+      expect(await update()).toEqual({ error: "The server answered 404." });
+      await nothingChanged();
+    });
+
+    it("is not installed when it is not the release the store pinned", async () => {
+      await installedThenListed({ pinned: "f".repeat(128) });
+      expect(await update()).toMatchObject({
+        error: expect.stringContaining("does not match the hash"),
+      });
+      await nothingChanged();
+    });
+
+    it("is not installed when its manifest is not the one the store lists", async () => {
+      await installedThenListed({
+        release: releaseOf(
+          manifestText({ version: "1.1.0", capabilities: ["issues:write"] }),
+        ),
+      });
+      expect(await update()).toMatchObject({
+        error: expect.stringContaining("not the one the store lists"),
+      });
+      await nothingChanged();
+    });
+  });
+
+  describe("when the row cannot be updated", () => {
+    it("takes away what this call put in place, and leaves the old version, when another change got there first", async () => {
+      await installedThenListed();
+      pluginUpdateMany.mockResolvedValue({ count: 0 });
+      expect(await update()).toEqual({
+        error: "The plugin changed while it was being updated.",
+      });
+      expect(await readdir(at("notes"))).toEqual(["1.0.0"]);
+      expect(auditCreate).not.toHaveBeenCalled();
+    });
+
+    it("does not take away files that were there before, when the same ones were", async () => {
+      await installedThenListed();
+      await update();
+      pluginUpdateMany.mockClear();
+      pluginUpdateMany.mockResolvedValue({ count: 0 });
+      auditCreate.mockClear();
+      expect(await update()).toEqual({
+        error: "The plugin changed while it was being updated.",
+      });
+      expect((await readdir(at("notes"))).sort()).toEqual(["1.0.0", "1.1.0"]);
+    });
+
+    it("does not take away files that were there before when the database fails", async () => {
+      await installedThenListed();
+      await update();
+      pluginUpdateMany.mockRejectedValue(new Error("database is down"));
+      await expect(update()).rejects.toThrow("database is down");
+      expect((await readdir(at("notes"))).sort()).toEqual(["1.0.0", "1.1.0"]);
+    });
+
+    it("takes them away and passes the error on when the database fails", async () => {
+      await installedThenListed();
+      pluginUpdateMany.mockRejectedValue(new Error("database is down"));
+      await expect(update()).rejects.toThrow("database is down");
+      expect(await readdir(at("notes"))).toEqual(["1.0.0"]);
+    });
   });
 });

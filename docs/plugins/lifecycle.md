@@ -24,6 +24,8 @@ Every action:
 | --- | --- | --- |
 | `installPlugin(id, version, { acknowledged })` | Adds the plugin that lies in the plugin directory, switched on for the platform | `plugin.installed` (marked) |
 | `updatePlugin(id, version, { acknowledged })` | Moves an installed plugin to a newer version in the directory | `plugin.updated` (marked) |
+| `updateStorePlugin(id, version, { acknowledged })` | Moves a plugin that came from a store to the version that store describes now, from that store | `plugin.updated` (marked) |
+| `rollbackPlugin(id, { acknowledged })` | Goes back to the version that was installed before the last update | `plugin.rolledBack` (marked) |
 | `uninstallPlugin(id)` | Removes the plugin and the workspaces' settings for it | `plugin.uninstalled` |
 | `setPluginStatus(id, enabled)` | Switches the plugin on or off for the whole platform | `plugin.status.enabled`, `plugin.status.disabled` |
 
@@ -41,7 +43,7 @@ There are two ways a plugin gets to be installed, and the `source` of the row sa
   (`previewInstall`); a request that cannot succeed asks nobody for anything. Nothing runs and nothing is switched on: code needs its own
   approval, and a per-workspace plugin applies nowhere until a workspace switches it on. It is audited as `plugin.installed` with the
   store, the hash of the files and the hash of the archive. If the row cannot be made, what the call put in place is taken away again
-  and what was there before is not touched. **Updating** a plugin that came from a store is the next step (BARY-108); today it says so.
+  and what was there before is not touched. **Updating** a plugin that came from a store is [its own action](#update-from-a-store).
 - **From the plugin directory** (`installPlugin`, `updatePlugin`), for what already lies in `<dir>/<id>/<version>/`
   ([Loading](loading.md#where-plugins-live)): someone put it there, and the action registers it.
 
@@ -106,13 +108,51 @@ Only to a **newer** version, compared as versions (`1.10.0` is newer than `1.9.0
 directory. A plugin from a store is updated where it came from. The scope cannot change, because the plugin's row, its
 workspaces' settings and its dependents were made for the one it had.
 
-The old version's files stay where they are (one directory per version, so an update can be undone by hand). The plugin keeps
+The old version's files stay where they are (one directory per version), and the row remembers which version and which hash they
+had (`previousVersion`, `previousIntegrity`), so the update can be [undone](#rollback). The plugin keeps
 its `status`, its `config` and which workspaces switched it on. **A code approval does not carry over**: it was for the exact files of
 the old version, so the update clears `codeApprovalHash` and `codeApprovedAt` and the audit entry says so (`approvalWithdrawn`).
 The new version has to be approved on its own ([Security](security.md#the-approval)).
 
 The write is tied to the version and the hash that were read, so an update that lost a race to another one changes nothing, says
 so, and is not audited.
+
+### Update from a store
+
+`updateStorePlugin(id, version, { acknowledged })` (`features/plugins/storeActions.ts`, the work in `updateFromStore`,
+`features/plugins/storeInstall.ts`). It needs `plugin.manage` and a real yes, and the client passes **only the plugin and the version**.
+
+- **The store is the one the plugin came from, and nobody else's.** It is found from the row's `origin` (`normalizeStoreUrl`), never
+  from the request. A plugin whose store is not connected any more is not updated from another store that lists the same id: that
+  would be exactly the swap this is there to stop. A plugin that did not come from a store is updated where it came from
+  (`updatePlugin`, from the directory).
+- **Only to a newer version**, compared as versions, and only the one the store describes now (its manifest's). The store must list
+  it, it must not be withdrawn, the scope must not change, and it has to fit this Barynt and everything that is installed
+  (`previewInstall`, as for an install). All of that is asked before anything is downloaded.
+- **Then as an install**: `verifyRelease` (the pinned hash, then the archive rules, then the manifest against the store's) and
+  `placeRelease` (one rename into `<id>/<version>`, never over another copy). The row is written tied to the version and hash that were
+  read; if another update got there first, what this call placed is taken away again, and nothing that was there before is touched.
+- **What it asks for now is written down**: the capabilities of the new manifest that the old one (read from the files that are
+  installed) did not have go into the audit entry (`addedCapabilities`). If the old files cannot be read, all of them count as added.
+- **The approval does not carry over**, as for every update: the code of the new version waits for its own approval, and the
+  audit entry says whether one was withdrawn.
+
+## Rollback
+
+`rollbackPlugin(id, { acknowledged })` goes back to the version that was installed before the last update. It needs `plugin.manage`.
+It is possible because an update leaves the old files in place and the row keeps `previousVersion` and `previousIntegrity`.
+
+- **The files have to be the ones that were replaced**: the hash of the old directory is computed again and has to equal the one the row
+  kept. Files that were changed, added or taken away in the meantime, or a link inside, refuse it. Nothing is brought back on trust.
+- **Not to a version the store has withdrawn.** For a plugin from a store, the store's clone is asked (by the plugin's `origin`) whether
+  it withdrew that version, and if so the rollback says why and stops. Any doubt allows it (the store is gone, its clone cannot be read,
+  it does not list the version): going back is what one does when something is wrong, and the files still need their own approval.
+- **The approval does not come back.** It was for the files that are replaced now, so what runs again has to be approved again.
+- **The same checks as an update**: where the plugin applies cannot change, it has to fit this Barynt, and it must not stop another plugin
+  from loading (`previewInstall`). A plugin from no store needs the unsigned setting and a yes, as an update does.
+- **The two swap places**: `version`/`previousVersion` and `integrity`/`previousIntegrity` are exchanged, so a second rollback is the way
+  forward again. The write is tied to what was read, so a rollback that lost a race changes nothing and says so.
+- It is audited as `plugin.rolledBack` (marked): from, to, the hash that is in use again, and whether an approval was withdrawn.
 
 ## Uninstall
 

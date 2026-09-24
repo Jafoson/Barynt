@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { PLATFORM, requirePermission } from "@/lib/permissions";
 import { pluginVersionSchema } from "@/lib/plugins/manifest";
 import { STORE_PLUGIN_ID } from "@/lib/plugins/store/format";
-import { installFromStore } from "./storeInstall";
+import { installFromStore, updateFromStore } from "./storeInstall";
 import { syncStore } from "./storeSync";
 import type { PluginActionResult } from "./types";
 
@@ -42,6 +42,32 @@ export async function installStorePlugin(
     };
   }
   return installFromStore({ actorId, storeId, pluginId, version });
+}
+
+/**
+ * Updates the plugin `pluginId` to `version`, from the store it came from. Needs
+ * `plugin.manage`. The client names no store: it is found from where the plugin came from.
+ */
+export async function updateStorePlugin(
+  pluginId: string,
+  version: string,
+  input?: { acknowledged?: boolean },
+): Promise<PluginActionResult> {
+  const actorId = await requirePermission("plugin.manage", PLATFORM);
+  if (
+    typeof pluginId !== "string" ||
+    !STORE_PLUGIN_ID.test(pluginId) ||
+    !pluginVersionSchema.safeParse(version).success
+  ) {
+    return { error: "Invalid request." };
+  }
+  if (input?.acknowledged !== true) {
+    return {
+      error:
+        "Confirm that you have read what the new version asks for before it is installed.",
+    };
+  }
+  return updateFromStore({ actorId, pluginId, version });
 }
 
 /**

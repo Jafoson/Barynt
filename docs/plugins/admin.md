@@ -77,7 +77,7 @@ links, what it asks for (a promise, not a limit), every version with its date, c
   ([how it is kept up to date](store-format.md#keeping-the-clone-up-to-date)). For development, `bun run plugins:dev-store` writes a sample
   store into `<plugins>/.stores/` and connects it (`--remove` takes it away again); its address does not exist, so fetching it fails and says so.
 - **Installing** opens the consent (what it is, what it asks for, that installing switches nothing on and that code waits for approval)
-  and calls `installStorePlugin` ([Lifecycle](lifecycle.md#where-the-files-come-from)): the release is downloaded, checked against the hash and the manifest the store pins and lists, and installed; the plugin then shows as installed, and its code, if it has any, waits for approval on the plugins page. An error (the store withdrew it, the hash does not match, ...) is shown in the dialog in the server's words. An *Update* button is there, but updating from a store is the next step (BARY-108).
+  and calls `installStorePlugin` ([Lifecycle](lifecycle.md#where-the-files-come-from)): the release is downloaded, checked against the hash and the manifest the store pins and lists, and installed; the plugin then shows as installed, and its code, if it has any, waits for approval on the plugins page. An error (the store withdrew it, the hash does not match, ...) is shown in the dialog in the server's words. An *Update* button is there; the action behind it (`updateStorePlugin`) exists, and the button is wired to it in the next step (BARY-108).
 - **Icons** are made from the name (its first letters on a colour that is the same for the same id): the catalog reads no files of the
   plugin, so it has no picture. **Ratings, download counts and prices** do not exist in a store entry and are not shown.
 - **The shelf is "new and updated"**, not "recommended": a store entry has no such flag, so the most recently released compatible plugins go on top
@@ -101,7 +101,7 @@ code stays with `plugin.manage`, for the exact files, whoever added the plugin (
 
 ## Deliberately not here
 
-- **Updating from a store** (BARY-108): the store tab installs, but its update button says it is not there yet. Install and update on the first tab take what lies in the plugin directory.
+- **Updating from a store and rolling back, in the interface** (BARY-108): `updateStorePlugin` and `rollbackPlugin` are there ([Lifecycle](lifecycle.md#update-from-a-store)), the buttons and their consent are the next step. Install and update on the first tab take what lies in the plugin directory.
 - **"Keep or delete the data" on uninstall.** There is no storage yet (BARY-85).
 - **The switch per workspace.** That is the workspace's own settings page ([The plugins of a workspace](workspace.md)), where a workspace admin
   switches on what the platform installed.

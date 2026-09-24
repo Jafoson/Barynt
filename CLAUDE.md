@@ -245,7 +245,7 @@ and measured (start at `docs/plugins/README.md`).
 - **The plugin store page** (`/admin/plugins/store`): `buildCatalog` output plus `features/plugins/storeView.ts` (search, categories, featured, avatars: pure) in
   `features/plugins/components/PluginStore/`. **Who gets the store** is `SystemSettings.pluginStoreInWorkspaces/InProjects/CuratedOnly` (open by default;
   `getStoreVisibility()` fails **closed**) plus `PluginStoreCurated` (a plugin of a store the admin released). Adding a plugin never changes who approves its
-  code (`plugin.manage`). `installStorePlugin` (`storeActions.ts`, the work in `storeInstall.ts`) reads the entry from the store's clone itself, checks everything that needs no download before downloading, then `verifyRelease`/`placeRelease`, and sets `source` `STORE` and `origin` from the store's row: **the client passes no store address, hash or source**. Installing approves no code; updating a store plugin is BARY-108. `bun run plugins:dev-store` writes a sample store clone for development.
+  code (`plugin.manage`). `installStorePlugin` (`storeActions.ts`, the work in `storeInstall.ts`) reads the entry from the store's clone itself, checks everything that needs no download before downloading, then `verifyRelease`/`placeRelease`, and sets `source` `STORE` and `origin` from the store's row: **the client passes no store address, hash or source**. Installing approves no code. **Updating** (`updateStorePlugin` → `updateFromStore`) finds the store from the row's `origin` (`normalizeStoreUrl`), never from the client, offers only a newer, listed, not withdrawn version the store describes and the same scope, runs the same `verifyRelease`/`placeRelease`, keeps the replaced files and their hash on the row (`Plugin.previousVersion/previousIntegrity`) and withdraws the code approval. **`rollbackPlugin`** goes back to those files only if they still hash to `previousIntegrity`, refuses a version the plugin's store withdrew (`storeWithdrawn.ts`, any doubt allows it), withdraws the approval, and swaps the two so it can be undone. `bun run plugins:dev-store` writes a sample store clone for development.
 - **The plugins page** (`/admin/plugins`, `docs/plugins/admin.md`): `features/plugins/overview.ts` is a pure function that puts the
   page together from the rows, the plugin directory and the registry (states and approval as codes; the words are in
   `PluginsAdmin/runtimeText.ts`, so they are translated). `getPluginsOverview` asks for `plugin.manage` itself. Its dialogs use the shared
@@ -594,7 +594,7 @@ tests/
       workspaceQueries.test.ts    ← what a workspace's plugins page reads (own process: mocks the db, permissions and the registry)
       workspacePlugins.test.tsx   ← the page: which switches can be flipped, which action runs with which ids
     store-install/
-      storeInstall.test.ts        ← installing from a store (own process: mocks the db and DNS; the clone, the release and the plugin directory are real)
+      storeInstall.test.ts        ← installing and updating from a store (own process: mocks the db and DNS; the clone, the release and the plugin directory are real)
     plugin-admin/
       queries.test.ts             ← what the plugins page reads (own process: it mocks the registry)
       pluginsAdmin.test.tsx       ← the page: what is offered where, which action a dialog runs with which arguments

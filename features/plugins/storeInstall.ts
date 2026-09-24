@@ -2,6 +2,7 @@ import "server-only";
 import { rm, rmdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { revalidatePath } from "next/cache";
+import { gt } from "semver";
 import { recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { discoverPlugins, pluginsDirSetting } from "@/lib/plugins/discovery";
@@ -10,6 +11,7 @@ import { previewInstall } from "@/lib/plugins/resolve";
 import { storeCloneDir } from "@/lib/plugins/store/paths";
 import { readStoreDirectory } from "@/lib/plugins/store/reader";
 import { placeRelease, verifyRelease } from "@/lib/plugins/store/stageRelease";
+import { normalizeStoreUrl } from "@/lib/plugins/storeUrl";
 import { BARYNT_VERSION } from "@/lib/version";
 import { installedCandidates, refuseChange, toCandidate } from "./disk";
 import { isUniqueViolation } from "./guards";
@@ -186,4 +188,172 @@ async function removePlaced(dir: string): Promise<void> {
     force: true,
   }).catch(() => {});
   await rmdir(/* turbopackIgnore: true */ dirname(dir)).catch(() => {});
+}
+
+/**
+ * Updates an installed plugin that came from a store to the version that store describes now.
+ * **The store is the one the plugin came from, and nobody else's**: it is found from the row's
+ * `origin`, the client names none, and a plugin from a store that is not connected any more is not
+ * updated from another one that lists the same id (that would be the swap this is there to stop).
+ * As for an install, everything that needs no download comes first. The files of the version
+ * that is replaced stay on disk and its hash on the row, so the platform can go back
+ * (`rollbackPlugin`); the code approval does not carry over, the new files have to be approved.
+ */
+export async function updateFromStore(input: {
+  actorId: string;
+  pluginId: string;
+  version: string;
+}): Promise<PluginActionResult> {
+  const { actorId, pluginId, version } = input;
+
+  const setting = pluginsDirSetting();
+  if (setting.dir === null) {
+    return refuse(
+      setting.problem ?? "Plugins are off: there is no plugin directory.",
+    );
+  }
+
+  const row = await db.plugin.findUnique({
+    where: { id: pluginId },
+    select: {
+      version: true,
+      source: true,
+      origin: true,
+      scope: true,
+      integrity: true,
+      codeApprovalHash: true,
+    },
+  });
+  if (!row) return refuse("Unknown plugin.");
+  if (row.source !== "STORE") {
+    return refuse(
+      "This plugin did not come from a store, so it is updated where it came from.",
+    );
+  }
+  if (!gt(version, row.version)) {
+    return refuse(
+      `An update goes to a newer version than the installed ${row.version}.`,
+    );
+  }
+
+  const key = normalizeStoreUrl(row.origin);
+  const store = key
+    ? await db.pluginStore.findUnique({
+        where: { key },
+        select: { key: true, url: true, name: true, enabled: true },
+      })
+    : null;
+  if (!store) {
+    return refuse(
+      "The store this plugin came from is not connected any more, so it is not updated from another store.",
+    );
+  }
+  if (!store.enabled) return refuse("The store is switched off.");
+
+  const snapshot = await readStoreDirectory(
+    storeCloneDir(setting.dir, store.key),
+  );
+  if (!snapshot.ok) {
+    return refuse(`${store.name} cannot be read: ${snapshot.error}`);
+  }
+  const entry = snapshot.entries.find((e) => e.id === pluginId);
+  if (!entry)
+    return refuse(`${store.name} does not list ${pluginId} any more.`);
+  const listed = entry.versions.find((v) => v.version === version);
+  if (!listed) {
+    return refuse(`${store.name} does not list ${pluginId} ${version}.`);
+  }
+  if (listed.revoked) {
+    return refuse(
+      `${pluginId} ${version} was withdrawn by the store${listed.revokedReason ? `: ${listed.revokedReason}` : ""}, so it is not installed.`,
+    );
+  }
+  if (entry.manifest.version !== version) {
+    return refuse(
+      `Only ${entry.manifest.version}, the version ${store.name} describes, can be installed.`,
+    );
+  }
+  if ((entry.manifest.scope === "platform") !== (row.scope === "PLATFORM")) {
+    return refuse(
+      "An update cannot change where the plugin applies, to the whole platform or per workspace.",
+    );
+  }
+
+  const { plugins } = await discoverPlugins(setting.dir);
+  const rows = await db.plugin.findMany({
+    select: { id: true, version: true, scope: true },
+  });
+  const notDone = refuseChange(
+    previewInstall(
+      installedCandidates(rows, plugins),
+      toCandidate(entry.manifest, row.scope),
+      BARYNT_VERSION,
+    ),
+  );
+  if (notDone) return refuse(notDone);
+
+  // What it asks for now that it did not before, for the record and for whoever reads it.
+  const before = plugins.find(
+    (p) => p.id === pluginId && p.version === row.version,
+  );
+  const known = before?.ok ? before.manifest.capabilities : [];
+  const added = entry.manifest.capabilities.filter((c) => !known.includes(c));
+
+  const verified = await verifyRelease({
+    download: listed.download,
+    sha512: listed.sha512,
+    expected: entry.manifest,
+  });
+  if (!verified.ok) return refuse(verified.error);
+
+  const placed = await placeRelease({
+    pluginsDir: setting.dir,
+    id: pluginId,
+    version,
+    files: verified.release.files,
+  });
+  if (!placed.ok) return refuse(placed.error);
+
+  // Tied to what was read: if another update got there first, nothing is written.
+  let written: { count: number };
+  try {
+    written = await db.plugin.updateMany({
+      where: { id: pluginId, version: row.version, integrity: row.integrity },
+      data: {
+        version,
+        integrity: placed.integrity,
+        previousVersion: row.version,
+        previousIntegrity: row.integrity,
+        codeApprovalHash: null,
+        codeApprovedAt: null,
+      },
+    });
+  } catch (error) {
+    if (placed.created) await removePlaced(placed.dir);
+    throw error;
+  }
+  if (written.count !== 1) {
+    if (placed.created) await removePlaced(placed.dir);
+    return refuse("The plugin changed while it was being updated.");
+  }
+
+  await recordAudit({
+    action: "plugin.updated",
+    actorId,
+    target: { type: "plugin", id: pluginId, label: `${pluginId}@${version}` },
+    meta: {
+      from: row.version,
+      to: version,
+      hash: placed.integrity,
+      approvalWithdrawn: row.codeApprovalHash !== null,
+      source: "STORE",
+      store: store.key,
+      archive: verified.release.archiveSha512,
+      ...(added.length > 0 ? { addedCapabilities: added } : {}),
+    },
+  });
+
+  invalidatePluginRegistry();
+  revalidatePath("/", "layout");
+  return { ok: true };
 }

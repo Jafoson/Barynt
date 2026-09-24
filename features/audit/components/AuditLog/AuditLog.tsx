@@ -190,6 +190,12 @@ export const AUDIT_ACTION_META = {
     message: "pluginUpdated",
     loud: true,
   },
+  // The files of an earlier version are in use again: new files that were not approved.
+  "plugin.rolledBack": {
+    icon: "lucide:undo-2",
+    message: "pluginRolledBack",
+    loud: true,
+  },
   "plugin.uninstalled": {
     icon: "lucide:trash-2",
     message: "pluginUninstalled",

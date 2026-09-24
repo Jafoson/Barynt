@@ -66,4 +66,5 @@ hashed (`Plugin.integrity`), and moved to `<plugins>/<id>/<version>` with **one 
 - It does not make the code safe, only what the store pinned and listed. Approved malicious code is still malicious ([Security](security.md)).
 - It does not check the code against what the manifest asks for; a capability is a promise, not a limit.
 - It does not install anything: no row is written, nothing is switched on, nothing runs. That is the action's job (`storeInstall.ts`), which
-  also checks who may, that the plugin fits this Barynt and what is installed, and records it.
+  also checks who may, that the plugin fits this Barynt and what is installed, and records it. An **update** from the store the plugin came
+  from goes through the same two steps, and puts the new version next to the old one instead of over it ([Lifecycle](lifecycle.md#update-from-a-store)).
