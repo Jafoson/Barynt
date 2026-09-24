@@ -22,8 +22,11 @@ interface Props {
   released: boolean;
   /** "Only released plugins" is on, so the release counts. */
   curatedOnly: boolean;
-  /** Releases it or takes the release back. `null` = done, otherwise the error text. */
-  onRelease: (released: boolean) => Promise<string | null>;
+  /**
+   * Releases it or takes the release back. `null` = done, otherwise the error text. Only the
+   * platform admin releases: without it the details have no release block.
+   */
+  onRelease?: (released: boolean) => Promise<string | null>;
   onInstall: (entry: CatalogEntry, version: string) => void;
   close: () => void;
   sheet?: boolean;
@@ -54,6 +57,7 @@ export function StoreDetailModal({
 
   const release = (next: boolean) =>
     startTransition(async () => {
+      if (!onRelease) return;
       const failure = await onRelease(next);
       if (failure) setError(failure);
       else {
@@ -169,36 +173,38 @@ export function StoreDetailModal({
           </div>
         )}
 
-        <div className={styles.block}>
-          <h3>{t("pluginStore.curationTitle")}</h3>
-          <div className={styles.curation}>
-            <div>
-              <span>
-                {isReleased
-                  ? t("pluginStore.curationOn")
-                  : t("pluginStore.curationOff")}
-              </span>
-              {!curatedOnly && (
-                <span className={styles.note}>
-                  {t("pluginStore.curationInactive")}
+        {onRelease && (
+          <div className={styles.block}>
+            <h3>{t("pluginStore.curationTitle")}</h3>
+            <div className={styles.curation}>
+              <div>
+                <span>
+                  {isReleased
+                    ? t("pluginStore.curationOn")
+                    : t("pluginStore.curationOff")}
                 </span>
-              )}
+                {!curatedOnly && (
+                  <span className={styles.note}>
+                    {t("pluginStore.curationInactive")}
+                  </span>
+                )}
+              </div>
+              <Switch
+                id={`store-release-${entry.key}`}
+                label={t("pluginStore.curationSwitch")}
+                checked={isReleased}
+                disabled={isPending}
+                onChange={release}
+              />
             </div>
-            <Switch
-              id={`store-release-${entry.key}`}
-              label={t("pluginStore.curationSwitch")}
-              checked={isReleased}
-              disabled={isPending}
-              onChange={release}
-            />
+            {error && (
+              <p className={styles.error} role="alert">
+                <Icon icon="lucide:circle-alert" width={14} />
+                {error}
+              </p>
+            )}
           </div>
-          {error && (
-            <p className={styles.error} role="alert">
-              <Icon icon="lucide:circle-alert" width={14} />
-              {error}
-            </p>
-          )}
-        </div>
+        )}
       </ModalBody>
 
       <ModalFooter>

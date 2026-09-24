@@ -96,8 +96,8 @@ On **Admin, Plugin stores**, three switches under *Where the store is shown* (`S
 Open by default, so the admin has to decide nothing. Releasing is done in the store, on a plugin's details (*Released for workspaces
 and projects*), per store and plugin, and it counts only while *only released* is on; the choice is kept when it is off. Each change is
 audited (`plugin.store.visibility`, `plugin.store.curated`, `plugin.store.uncurated`). **What this does not change:** approving a plugin's
-code stays with `plugin.manage`, for the exact files, whoever added the plugin ([Security](security.md#the-approval)). The store pages for
-workspaces and projects themselves are later steps.
+code stays with `plugin.manage`, for the exact files, whoever added the plugin ([Security](security.md#the-approval)). The store for a workspace is
+[its own page](workspace.md#the-store-of-a-workspace); the store for projects is a later step.
 
 ## Deliberately not here
 

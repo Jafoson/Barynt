@@ -380,10 +380,16 @@ permissions at different levels (the plugin system is described in
 | `plugin.manage` | PLATFORM | `platform_admin` | use the plugin store and choose which stores are on; install, update and uninstall plugins; allow plugins that come from no store |
 | `plugin.enable` | WORKSPACE | `owner`, `admin` | enable, disable and configure the installed plugins in the workspace; it shows the Plugins page in the workspace settings ([docs/plugins/workspace.md](plugins/workspace.md)) |
 
-- **Installing is a platform matter.** Plugin code runs with full trust inside the
-  app, so what may be installed is decided once for the whole instance, by the
-  platform. A workspace admin can switch on what the platform has installed, but can
-  never bring new code in: `plugin.manage` is not grantable in a workspace, and
+- **What the platform installs, and what a workspace may add.** Plugin code runs with full
+  trust inside the app, so **whether it runs is decided by the platform**: approving a
+  plugin's code is `plugin.manage`, for its exact files, whoever added the plugin. Which
+  plugins are *there* is different: by default (open, unless the platform closed it under
+  *Where the store is shown*) a workspace admin with `plugin.enable` can **add a plugin
+  from the stores the platform switched on** that applies per workspace, which puts its
+  files on the instance and switches it on in that workspace. A plugin with code that a
+  workspace adds waits, inert, for the platform's approval. A plugin that applies to the
+  whole platform is never a workspace's to bring in, and uninstalling and updating stay
+  with `plugin.manage`. `plugin.manage` is not grantable in a workspace, and
   `plugin.enable` is not grantable on the platform.
 - **`manager` does not have `plugin.enable`.** Switching a plugin on lets its code work
   with the workspace's data, which is the leadership's call rather than

@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/permissions";
+import { getStoreVisibility } from "@/lib/plugins/storeVisibility";
 import { loadOverview } from "./queries";
 import {
   buildWorkspacePlugins,
@@ -18,7 +19,7 @@ export async function getWorkspacePlugins(
   locale: string,
 ): Promise<WorkspacePluginsView> {
   await requirePermission("plugin.enable", { workspaceId });
-  const [overview, enabled] = await Promise.all([
+  const [overview, enabled, visibility] = await Promise.all([
     // Whether plugins from no store are allowed decides nothing here: code from no store does not
     // run whatever it says, and a plugin without code needs no approval. So it is not read.
     loadOverview(locale, async () => false),
@@ -26,9 +27,13 @@ export async function getWorkspacePlugins(
       where: { workspaceId, enabled: true },
       select: { pluginId: true },
     }),
+    // Whether the platform gave workspaces the store: fails closed, so a setting that cannot
+    // be read is no Store tab.
+    getStoreVisibility(),
   ]);
   return buildWorkspacePlugins(
     overview,
     new Set(enabled.map((e) => e.pluginId)),
+    visibility.inWorkspaces,
   );
 }

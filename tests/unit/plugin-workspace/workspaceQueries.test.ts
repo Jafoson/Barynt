@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -62,7 +70,12 @@ beforeEach(async () => {
   mockGroupBy.mockResolvedValue([]);
   mockWorkspaceRows.mockResolvedValue([]);
   mockStoreFindMany.mockResolvedValue([{ url: OFFICIAL_STORE_URL }]);
-  mockSettingsFindUnique.mockResolvedValue({ allowUnsignedPlugins: false });
+  mockSettingsFindUnique.mockResolvedValue({
+    allowUnsignedPlugins: false,
+    pluginStoreInWorkspaces: true,
+    pluginStoreInProjects: true,
+    pluginStoreCuratedOnly: false,
+  });
   mockRegistryGet.mockResolvedValue({
     dir: root,
     problem: null,
@@ -222,7 +235,34 @@ describe("what is put together", () => {
       blocker: "cannot-run",
     });
     expect(mockRequirePermission).toHaveBeenCalledTimes(1);
-    expect(mockSettingsFindUnique).not.toHaveBeenCalled();
+    // Only the store's visibility is read from the settings, not whether unsigned plugins are allowed.
+    expect(mockSettingsFindUnique).toHaveBeenCalledTimes(1);
+    expect(mockSettingsFindUnique.mock.calls[0]?.[0].select).toEqual({
+      pluginStoreInWorkspaces: true,
+      pluginStoreInProjects: true,
+      pluginStoreCuratedOnly: true,
+    });
+  });
+
+  it("says whether workspaces have the store, from what the platform set, and none when that cannot be read", async () => {
+    expect((await getWorkspacePlugins("ws-7", "en")).storeAvailable).toBe(true);
+    mockSettingsFindUnique.mockResolvedValue({
+      pluginStoreInWorkspaces: false,
+      pluginStoreInProjects: true,
+      pluginStoreCuratedOnly: false,
+    });
+    expect((await getWorkspacePlugins("ws-7", "en")).storeAvailable).toBe(
+      false,
+    );
+    mockSettingsFindUnique.mockRejectedValue(new Error("database down"));
+    const quiet = spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect((await getWorkspacePlugins("ws-7", "en")).storeAvailable).toBe(
+        false,
+      );
+    } finally {
+      quiet.mockRestore();
+    }
   });
 
   it("gives the words of a plugin in the language it is asked for", async () => {
@@ -257,6 +297,11 @@ describe("what is put together", () => {
       active: [],
     });
     const view = await getWorkspacePlugins("ws-7", "en");
-    expect(view).toEqual({ available: false, plugins: [], platform: [] });
+    expect(view).toEqual({
+      available: false,
+      storeAvailable: false,
+      plugins: [],
+      platform: [],
+    });
   });
 });

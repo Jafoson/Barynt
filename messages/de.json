@@ -1634,5 +1634,20 @@
       "needs-approval": "Es hat Code, und die Plattform muss den Code freigeben, bevor es laufen kann.",
       "approval-outdated": "Die Plattform hat den Code einer anderen Version freigegeben. Diese Version muss freigegeben werden, bevor sie laufen kann."
     }
+  },
+  "workspaceStore": {
+    "add": "Hinzufügen",
+    "switchOn": "Einschalten",
+    "installTitle": "{name} {version} hinzufügen",
+    "installConfirm": "Hinzufügen",
+    "installCodeNote": "Es hat Code. Es wird für die ganze Plattform hinzugefügt, und sein Code läuft erst, wenn die Plattform ihn freigegeben hat. Bis dahin ist es hinzugefügt und hier nicht eingeschaltet.",
+    "installNoCodeNote": "Es hat keinen Code. Was sein Manifest beschreibt, ist hier verfügbar, sobald es hinzugefügt ist.",
+    "installWarnBody": "Beim Hinzufügen werden die Dateien aus dem Store geholt, für die ganze Plattform auf dieser Instanz abgelegt und das Plugin in diesem Workspace eingeschaltet.",
+    "installCheck": "Ich habe gelesen, was es anfordert, und will es hinzufügen",
+    "storeUnavailable": "Ein Store kann im Moment nicht gelesen oder aktualisiert werden, deshalb kann veraltet sein, was hier steht.",
+    "storeUpdated": "Store aktualisiert {time}",
+    "addedNotOn": "{message}",
+    "noStores": "Es ist kein Plugin-Store eingeschaltet, deshalb gibt es hier noch nichts zum Hinzufügen.",
+    "nothingReleased": "Die Plattform hat noch kein Plugin für Workspaces freigegeben."
   }
 }

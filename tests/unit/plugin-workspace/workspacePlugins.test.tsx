@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
+import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 // A workspace's plugins page. Static markup shows what is offered where; the switches are
@@ -42,6 +43,21 @@ mock.module("next-intl", () => {
   return { useTranslations: () => t };
 });
 mock.module("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+mock.module("@/i18n/navigation", () => ({
+  Link: ({
+    href,
+    children,
+    ...rest
+  }: {
+    href: string;
+    children: ReactNode;
+    "aria-current"?: "page";
+  }) => (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  ),
+}));
 mock.module("@/components/ui/layout/ConfirmDialog/ConfirmDialog", () => ({
   useConfirm: () => confirm,
 }));
@@ -82,7 +98,13 @@ function plugin(more: Partial<WorkspacePlugin> = {}): WorkspacePlugin {
   };
 }
 function view(more: Partial<WorkspacePluginsView> = {}): WorkspacePluginsView {
-  return { available: true, plugins: [], platform: [], ...more };
+  return {
+    available: true,
+    storeAvailable: false,
+    plugins: [],
+    platform: [],
+    ...more,
+  };
 }
 function render(v: WorkspacePluginsView): string {
   switches = [];
@@ -280,6 +302,22 @@ describe("what is shown", () => {
     const off = render(view({ available: false }));
     expect(off).toContain("workspacePlugins.unavailable");
     expect(off).not.toContain("workspacePlugins.empty");
+  });
+});
+
+describe("the tabs", () => {
+  it("are there, to the workspace's own two pages, when the platform gave workspaces the store", () => {
+    const html = render(view({ storeAvailable: true, plugins: [plugin()] }));
+    expect(html).toContain('href="/ws-7/settings/plugins"');
+    expect(html).toContain('href="/ws-7/settings/plugins/store"');
+    expect(html).toContain('aria-current="page"');
+    expect(html).toContain("pluginStore.tabStore");
+  });
+
+  it("are not there when it did not", () => {
+    const html = render(view({ storeAvailable: false, plugins: [plugin()] }));
+    expect(html).not.toContain("/store");
+    expect(html).not.toContain("pluginStore.tabStore");
   });
 });
 

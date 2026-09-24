@@ -1,15 +1,18 @@
 import "../plugin-store-support/setup";
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import type { ComponentProps, ReactElement } from "react";
+import { type ComponentProps, type ReactElement, useContext } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { CatalogEntry } from "@/lib/plugins/store/catalog";
 import { entry, view } from "../plugin-store-support/fixtures";
 import {
+  mockAddToWorkspace,
+  mockEnable,
   mockInstall,
   mockSetCurated,
   openModal,
   refresh,
   resetStarted,
+  settled,
 } from "../plugin-store-support/setup";
 
 // The plugin store page. The cards and the featured shelf are stand-ins that keep the
@@ -23,12 +26,14 @@ const cards: {
   released?: boolean;
   onOpen: (e: CatalogEntry) => void;
   onInstall: (e: CatalogEntry, v: string) => void;
+  /** What the store page said about where it is opened, as the card is given it. */
+  mode: StoreMode;
 }[] = [];
 const featuredShown: CatalogEntry[][] = [];
 
 mock.module("@/features/plugins/components/PluginStore/PluginCard", () => ({
-  PluginCard: (props: (typeof cards)[number]) => {
-    cards.push(props);
+  PluginCard: (props: Omit<(typeof cards)[number], "mode">) => {
+    cards.push({ ...props, mode: useContext(StoreModeContext) });
     return <div data-card={props.entry.key} />;
   },
 }));
@@ -43,16 +48,23 @@ mock.module(
 );
 
 import { PluginStore } from "@/features/plugins/components/PluginStore/PluginStore";
+import {
+  type StoreMode,
+  StoreModeContext,
+} from "@/features/plugins/components/PluginStore/storeMode";
 import type { StoreCatalogView } from "@/features/plugins/storeQueries";
 
 function render(
   v: StoreCatalogView,
   initial?: ComponentProps<typeof PluginStore>["initial"],
+  workspace?: ComponentProps<typeof PluginStore>["workspace"],
 ): string {
   cards.length = 0;
   featuredShown.length = 0;
   resetStarted();
-  return renderToStaticMarkup(<PluginStore view={v} initial={initial} />);
+  return renderToStaticMarkup(
+    <PluginStore view={v} initial={initial} workspace={workspace} />,
+  );
 }
 
 const dated = (
@@ -81,8 +93,17 @@ const four = () => [
 ];
 
 beforeEach(() => {
-  for (const m of [openModal, refresh, mockInstall, mockSetCurated])
+  for (const m of [
+    openModal,
+    refresh,
+    mockInstall,
+    mockSetCurated,
+    mockEnable,
+    mockAddToWorkspace,
+  ])
     m.mockClear();
+  mockEnable.mockResolvedValue({ ok: true });
+  mockAddToWorkspace.mockResolvedValue({ ok: true });
   mockInstall.mockResolvedValue({ ok: true });
   mockSetCurated.mockResolvedValue({ ok: true });
 });
@@ -544,5 +565,138 @@ describe("installing", () => {
     expect((consent.props as { entry: CatalogEntry }).entry.id).toBe(
       "a-plugin",
     );
+  });
+});
+
+describe("a workspace's store", () => {
+  const WS = { id: "ws-7", switchOn: ["b-plugin"] };
+  const wsRender = (v = view({ entries: four() })) => render(v, undefined, WS);
+  const modal = () => {
+    const call = openModal.mock.calls.at(-1);
+    if (!call) throw new Error("no dialog");
+    return (call[0] as (a: { close: () => void }) => ReactElement)({
+      close: () => {},
+    }).props as Record<string, unknown> & {
+      entry: CatalogEntry;
+      workspace?: boolean;
+      onConfirm: () => Promise<string | null>;
+      onRelease?: unknown;
+    };
+  };
+
+  it("has the workspace's own two pages as tabs, not the platform's", () => {
+    const html = wsRender();
+    expect(html).toContain('href="/ws-7/settings/plugins/store"');
+    expect(html).toContain('href="/ws-7/settings/plugins"');
+    expect(html).not.toContain("/admin/plugins");
+  });
+
+  it("tells the cards it is a workspace's page, and which plugins are to be switched on", () => {
+    wsRender();
+    const modes = cards.map((c) => c.mode);
+    expect(modes.every((m) => m.workspace)).toBe(true);
+    expect([...(modes[0]?.switchOn ?? [])]).toEqual(["b-plugin"]);
+    expect(typeof modes[0]?.onSwitchOn).toBe("function");
+  });
+
+  it("tells the cards nothing of the kind on the platform's page", () => {
+    render(view({ entries: four() }));
+    for (const card of cards) {
+      expect(card.mode.workspace).toBe(false);
+      expect(card.mode.switchOn.size).toBe(0);
+      expect(card.mode.onSwitchOn).toBeNull();
+    }
+  });
+
+  it("has no button to update a store, which is the platform's", () => {
+    const html = wsRender();
+    expect(html).toContain("Official");
+    expect(html).not.toContain("pluginStore.syncLabel");
+    expect(render(view({ entries: four() }))).toContain(
+      "pluginStore.syncLabel",
+    );
+  });
+
+  it("says the platform has released nothing yet, where it asked for that and there is nothing", () => {
+    const curated = view({
+      entries: [],
+      visibility: { inWorkspaces: true, inProjects: true, curatedOnly: true },
+    });
+    expect(wsRender(curated)).toContain("workspaceStore.nothingReleased");
+    expect(wsRender(curated)).not.toContain("pluginStore.noEntries");
+    // Not on the platform's page, where the admin releases, and not where everything is offered.
+    expect(render(curated)).toContain("pluginStore.noEntries");
+    expect(wsRender(view({ entries: [] }))).toContain("pluginStore.noEntries");
+  });
+
+  it("does not send a workspace admin to the platform's stores page when none is on", () => {
+    const html = wsRender(view({ stores: [] }));
+    expect(html).toContain("workspaceStore.noStores");
+    expect(html).not.toContain("/admin/plugin-stores");
+    expect(render(view({ stores: [] }))).toContain("/admin/plugin-stores");
+  });
+
+  it("adds a plugin for this workspace, with the ids it was shown and the yes, and not through the platform's install", async () => {
+    wsRender();
+    cards[2]?.onInstall(cards[2].entry, "2.3.4");
+    const props = modal();
+    expect(props.workspace).toBe(true);
+    expect(await props.onConfirm()).toBeNull();
+    expect(mockAddToWorkspace.mock.calls).toEqual([
+      ["ws-7", "store-1", "c-plugin", "2.3.4", { acknowledged: true }],
+    ]);
+    expect(mockInstall).not.toHaveBeenCalled();
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives back the server's reason and does not reload when it refuses", async () => {
+    wsRender();
+    cards[2]?.onInstall(cards[2].entry, "1.0.0");
+    mockAddToWorkspace.mockResolvedValue({
+      error: "The platform has not released this plugin for workspaces.",
+    });
+    expect(await modal().onConfirm()).toBe(
+      "The platform has not released this plugin for workspaces.",
+    );
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("reloads and is done when the plugin was added but could not be switched on yet: that is a warning", async () => {
+    wsRender();
+    cards[2]?.onInstall(cards[2].entry, "1.0.0");
+    mockAddToWorkspace.mockResolvedValue({
+      ok: true,
+      warning: "not approved yet",
+    });
+    expect(await modal().onConfirm()).toBeNull();
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("switches on, in this workspace, a plugin the platform has, and reloads", async () => {
+    wsRender();
+    cards[1]?.mode.onSwitchOn?.(cards[1].entry);
+    await settled();
+    expect(mockEnable.mock.calls).toEqual([["ws-7", "b-plugin"]]);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(mockAddToWorkspace).not.toHaveBeenCalled();
+  });
+
+  it("does not reload when the server refused to switch it on", async () => {
+    mockEnable.mockResolvedValue({
+      error: "The platform has not approved its code.",
+    });
+    wsRender();
+    cards[1]?.mode.onSwitchOn?.(cards[1].entry);
+    await settled();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("has details without the release switch, which only the platform admin has", () => {
+    wsRender();
+    cards[1]?.onOpen(cards[1].entry);
+    expect(modal().onRelease).toBeUndefined();
+    render(view({ entries: four() }));
+    cards[1]?.onOpen(cards[1].entry);
+    expect(typeof modal().onRelease).toBe("function");
   });
 });

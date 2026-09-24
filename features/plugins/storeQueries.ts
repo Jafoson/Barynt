@@ -29,7 +29,22 @@ export async function getStoreCatalogView(
   locale: string,
 ): Promise<StoreCatalogView> {
   await requirePermission("plugin.manage", PLATFORM);
-  const [stores, installed, released, visibility] = await Promise.all([
+  const [loaded, visibility] = await Promise.all([
+    loadStoreCatalog(locale),
+    getPluginStoreVisibility(),
+  ]);
+  return { ...loaded, visibility };
+}
+
+/**
+ * The catalog and the releases, without asking who wants them: for a caller that has asked
+ * for its own permission and shows only part of it (`workspaceStoreQueries.ts`). It is never
+ * handed to a page as it is: it has the state of every store, with the reasons.
+ */
+export async function loadStoreCatalog(
+  locale: string,
+): Promise<Omit<StoreCatalogView, "visibility">> {
+  const [stores, installed, released] = await Promise.all([
     db.pluginStore.findMany({
       where: { enabled: true },
       orderBy: [{ official: "desc" }, { name: "asc" }],
@@ -46,7 +61,6 @@ export async function getStoreCatalogView(
     db.pluginStoreCurated.findMany({
       select: { storeId: true, pluginId: true },
     }),
-    getPluginStoreVisibility(),
   ]);
 
   const setting = pluginsDirSetting();
@@ -76,7 +90,6 @@ export async function getStoreCatalogView(
       hostVersion: BARYNT_VERSION,
       locale,
     }),
-    visibility,
     released: released.map((r) => `${r.storeId}/${r.pluginId}`),
     problem: setting.dir === null ? (setting.problem ?? null) : null,
   };

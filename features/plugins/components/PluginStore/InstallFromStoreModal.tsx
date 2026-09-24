@@ -15,6 +15,8 @@ interface Props {
   onConfirm: () => Promise<string | null>;
   close: () => void;
   sheet?: boolean;
+  /** A workspace adds it for the platform and switches it on here: the words say so. */
+  workspace?: boolean;
 }
 
 /**
@@ -29,14 +31,16 @@ export function InstallFromStoreModal({
   onConfirm,
   close,
   sheet,
+  workspace,
 }: Props) {
   const t = useTranslations();
+  const scope = workspace ? "workspaceStore" : "pluginStore";
   return (
     <AcknowledgeModal
       close={close}
       sheet={sheet}
-      title={t("pluginStore.installTitle", { name: entry.name, version })}
-      confirmLabel={t("pluginStore.installConfirm")}
+      title={t(`${scope}.installTitle`, { name: entry.name, version })}
+      confirmLabel={t(`${scope}.installConfirm`)}
       notice={(state) => (
         <>
           <EntryFacts entry={entry} version={version} />
@@ -44,15 +48,15 @@ export function InstallFromStoreModal({
           <p className={styles.notice}>
             <Icon icon="lucide:info" width={14} />
             {entry.hasCode
-              ? t("pluginStore.installCodeNote")
-              : t("pluginStore.installNoCodeNote")}
+              ? t(`${scope}.installCodeNote`)
+              : t(`${scope}.installNoCodeNote`)}
           </p>
           <WarningBox
             {...state}
             title={t("pluginStore.installWarnTitle")}
-            checkLabel={t("pluginStore.installCheck")}
+            checkLabel={t(`${scope}.installCheck`)}
           >
-            <p>{t("pluginStore.installWarnBody")}</p>
+            <p>{t(`${scope}.installWarnBody`)}</p>
           </WarningBox>
         </>
       )}
