@@ -48,7 +48,7 @@
     "@tiptap/starter-kit": "^3.31.3",
     "@tiptap/suggestion": "^3.31.3",
     "aws4fetch": "^1.0.20",
-    "baseline-browser-mapping": "2.11.21",
+    "baseline-browser-mapping": "2.11.25",
     "bcryptjs": "^3.0.3",
     "highlight.js": "^11.11.1",
     "immutable": "5.1.9",
