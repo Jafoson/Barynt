@@ -43,6 +43,7 @@ plugins that use the context.
 | A different plugin version than the one approved gets loaded | The approval is of one exact hash; a new version needs a new approval | planned (BARY-60, BARY-95) |
 | A plugin update asks for more than the old one | A new version needs new consent, including every added capability | planned (BARY-95) |
 | A plugin's client code loads scripts or frames from elsewhere | Content Security Policy for plugin client code (BARY-97) | planned |
+| A private store's access token leaks: from a database dump or backup, a log, an error, a page or an audit entry | Sealed with AES-256-GCM and bound to the store's address; never selected into a page, an action result, an error or an audit entry; only the store client may open it, and only to send it to that address ([Plugin stores](stores.md#private-repositories)) | storing built; the client that uses it is planned (BARY-105) |
 | **A reviewed plugin is malicious, or so is one of its bundled dependencies** | **Only the review. Nothing technical stops it in tier B.** | cannot be stopped |
 
 ## The integrity check

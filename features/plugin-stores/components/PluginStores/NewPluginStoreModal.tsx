@@ -15,12 +15,16 @@ import {
 } from "@/features/plugin-stores/constants";
 import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
 import styles from "./pluginStores.module.scss";
+import { StoreAccessFields } from "./StoreAccessFields";
 import { TrustNotice } from "./TrustNotice";
 
 export interface NewPluginStoreInput {
   name: string;
   url: string;
   trusted: boolean;
+  /** For a private repository. Left out for a public one. */
+  token?: string;
+  username?: string;
 }
 
 interface Props {
@@ -32,15 +36,17 @@ interface Props {
 }
 
 /**
- * "Connect a plugin store": a name, the address, and the question whether the
- * admin trusts the store. A dialog from a tablet up, a bottom sheet on a phone
- * (`sheet`). The button stays off until both fields are filled and the question
- * is answered with yes.
+ * "Connect a plugin store": a name, the address, optionally the access to a
+ * private repository, and the question whether the admin trusts the store. A
+ * dialog from a tablet up, a bottom sheet on a phone (`sheet`). The button stays
+ * off until both fields are filled and the question is answered with yes.
  */
 export function NewPluginStoreModal({ onConnect, close, sheet }: Props) {
   const t = useTranslations();
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
+  const [token, setToken] = useState("");
+  const [username, setUsername] = useState("");
   const [trusted, setTrusted] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -56,6 +62,9 @@ export function NewPluginStoreModal({ onConnect, close, sheet }: Props) {
         name: name.trim(),
         url: url.trim(),
         trusted,
+        ...(token.trim()
+          ? { token: token.trim(), username: username.trim() }
+          : {}),
       });
       if (failure) setError(failure);
       else close();
@@ -105,6 +114,22 @@ export function NewPluginStoreModal({ onConnect, close, sheet }: Props) {
           disabled={isPending}
           onChange={(e) => setUrl(e.target.value)}
         />
+
+        {/* Native `details`: closed by default, so a public store is not asked
+            for anything it does not need, and it needs no state of its own. */}
+        <details className={styles.private}>
+          <summary>{t("pluginStores.privateSummary")}</summary>
+          <div className={styles.privateBody}>
+            <p className={styles.accessDesc}>{t("pluginStores.privateHint")}</p>
+            <StoreAccessFields
+              token={token}
+              username={username}
+              onToken={setToken}
+              onUsername={setUsername}
+              disabled={isPending}
+            />
+          </div>
+        </details>
 
         <TrustNotice
           checked={trusted}

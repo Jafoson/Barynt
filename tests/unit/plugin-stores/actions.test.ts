@@ -148,6 +148,8 @@ describe("connecting a store", () => {
         name: "Our plugins",
         official: false,
         enabled: true,
+        credential: null,
+        credentialUser: null,
       },
       select: { id: true },
     });
@@ -384,12 +386,22 @@ describe("removing a store", () => {
 });
 
 describe("the list for the settings page", () => {
-  it("has the official store first, then by name, and only what the page shows", async () => {
+  it("has the official store first, then by name, and reads only the columns it needs", async () => {
     mockStoreFindMany.mockResolvedValue([
-      { id: "s1", name: "A", url: "u", official: true, enabled: true },
+      {
+        id: "s1",
+        name: "A",
+        url: "u",
+        official: true,
+        enabled: true,
+        credential: null,
+        credentialUser: null,
+      },
     ]);
     const rows = await getPluginStores();
     expect(rows).toHaveLength(1);
+    // The sealed token is read only to say whether there is one, and is not passed on
+    // (see credentials.test.ts).
     expect(mockStoreFindMany).toHaveBeenCalledWith({
       orderBy: [{ official: "desc" }, { name: "asc" }],
       select: {
@@ -398,6 +410,8 @@ describe("the list for the settings page", () => {
         url: true,
         official: true,
         enabled: true,
+        credential: true,
+        credentialUser: true,
       },
     });
   });

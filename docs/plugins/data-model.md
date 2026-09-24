@@ -52,9 +52,10 @@ A store that is connected, on or off ([Plugin stores](stores.md)).
 | `name` | what the store is called in lists |
 | `official` | the project's main store. It can be switched off but not removed |
 | `enabled` | on: plugins from it may be approved and run. Off: it is not in the list the policy is given |
+| `credential` | the access token for a private repository, **sealed** (`lib/secrets.ts`) and bound to `key`. Null: the repository is public. Never in the clear, never in a query result for a page, never logged ([Plugin stores](stores.md#private-repositories)) |
+| `credentialUser` | the user name that goes with the token, if the host wants one. Not a secret |
 
-The main store is put in by `prisma/bootstrap.ts` on every deploy. Credentials for private repositories,
-branch and sync state are not here yet.
+The main store is put in by `prisma/bootstrap.ts` on every deploy. Branch and sync state are not here yet.
 
 ## What happens when something is deleted
 

@@ -154,6 +154,14 @@ export const AUDIT_ACTION_META = {
     icon: "lucide:package-x",
     message: "pluginStoreRemoved",
   },
+  "plugin.store.credentialSet": {
+    icon: "lucide:key-round",
+    message: "pluginStoreCredentialSet",
+  },
+  "plugin.store.credentialCleared": {
+    icon: "lucide:lock-open",
+    message: "pluginStoreCredentialCleared",
+  },
   "project.created": { icon: "lucide:folder-plus", message: "projectCreated" },
   "project.visibility.changed": {
     icon: "lucide:eye",

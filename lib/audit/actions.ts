@@ -50,6 +50,9 @@ export const AUDIT_ACTIONS = {
   "plugin.store.enabled": "Plugin store switched on",
   "plugin.store.disabled": "Plugin store switched off",
   "plugin.store.removed": "Plugin store removed",
+  // The token itself is never in the entry, only that one was set or removed.
+  "plugin.store.credentialSet": "Plugin store access set",
+  "plugin.store.credentialCleared": "Plugin store access removed",
 
   // ── Everyday events in project and workspace ───────────────────────────────
   //
