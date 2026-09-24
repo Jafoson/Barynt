@@ -1298,7 +1298,7 @@
     "detailHomepage": "Webseite",
     "detailRepository": "Quellcode",
     "incompatibleNote": "Dieses Plugin läuft nicht mit diesem Barynt (es braucht {range}).",
-    "revokedNote": "Alle Versionen dieses Plugins wurden vom Store zurückgezogen, deshalb lässt es sich nicht installieren.",
+    "revokedNote": "Der Store hat die aktuelle Version dieses Plugins zurückgezogen, deshalb lässt es sich nicht installieren.",
     "capabilities": "Was es anfragt",
     "capabilitiesNone": "Es bittet um nichts Bestimmtes.",
     "capabilitiesNote": "Was ein Plugin anfragt, ist ein Versprechen und keine Grenze: Sein Code kann mehr, als er sagt.",

@@ -1298,7 +1298,7 @@
     "detailHomepage": "Homepage",
     "detailRepository": "Source code",
     "incompatibleNote": "This plugin does not work with this Barynt (it needs {range}).",
-    "revokedNote": "Every version of this plugin was withdrawn by the store, so it cannot be installed.",
+    "revokedNote": "The store withdrew the current version of this plugin, so it cannot be installed.",
     "capabilities": "What it asks for",
     "capabilitiesNone": "It asks for nothing in particular.",
     "capabilitiesNote": "What a plugin asks for is a promise, not a limit: its code can do more than it says.",

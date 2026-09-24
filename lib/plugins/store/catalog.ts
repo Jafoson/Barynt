@@ -64,7 +64,7 @@ export interface CatalogEntry {
   barynt: string;
   /** This Barynt is one of them. */
   compatible: boolean;
-  /** The version to install: the highest that is not revoked. `null` if all are. */
+  /** The version to install: the one the store describes, unless it was withdrawn. Otherwise `null`. */
   offered: string | null;
   /** All of them, highest first. */
   versions: CatalogVersion[];
@@ -133,7 +133,12 @@ export function buildCatalog(input: CatalogInput): Catalog {
 
     for (const entry of snapshot.entries) {
       const m = entry.manifest;
-      const offered = entry.versions.find((v) => !v.revoked) ?? null;
+      // The store describes one version: the manifest's (its CI keeps that the newest listed).
+      // That is the only one that can be installed, because it is the only one whose manifest
+      // the installer can compare with what the store lists (`stageRelease.ts`); an older one
+      // is shown in the details, and one that is withdrawn is offered as nothing.
+      const described = entry.versions.find((v) => v.version === m.version);
+      const offered = described && !described.revoked ? described : null;
       const installed = installedById.get(entry.id) ?? null;
       // `normalizeStoreUrl` gives `null` for no address and for one that is no store
       // address, which is never a store's key.

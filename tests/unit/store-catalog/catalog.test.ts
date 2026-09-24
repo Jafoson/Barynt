@@ -236,14 +236,14 @@ describe("the entries", () => {
 });
 
 describe("the version to install", () => {
-  it("is the highest that is not revoked, as the store lists them", () => {
+  it("is the version the store describes, which is the newest it lists", () => {
     const catalog = buildCatalog(
       input({
         stores: [
           store({
             entries: [
               entry("notes", [
-                version("2.0.0", { revoked: true }),
+                version("2.0.0"),
                 version("1.5.0"),
                 version("1.0.0"),
               ]),
@@ -252,14 +252,51 @@ describe("the version to install", () => {
         ],
       }),
     );
-    expect(catalog.entries[0]?.offered).toBe("1.5.0");
+    expect(catalog.entries[0]?.offered).toBe("2.0.0");
     expect(
       catalog.entries[0]?.versions.map((v) => [v.version, v.revoked]),
     ).toEqual([
-      ["2.0.0", true],
+      ["2.0.0", false],
       ["1.5.0", false],
       ["1.0.0", false],
     ]);
+  });
+
+  it("is nothing when that version was withdrawn, though older ones were not: only the described one can be installed", () => {
+    const catalog = buildCatalog(
+      input({
+        stores: [
+          store({
+            entries: [
+              entry("notes", [
+                version("2.0.0", {
+                  revoked: true,
+                  revokedReason: "stole data",
+                }),
+                version("1.5.0"),
+                version("1.0.0"),
+              ]),
+            ],
+          }),
+        ],
+      }),
+    );
+    expect(catalog.entries[0]?.offered).toBeNull();
+    expect(catalog.entries[0]?.versions[0]).toMatchObject({
+      revoked: true,
+      revokedReason: "stole data",
+    });
+    expect(catalog.entries[0]?.versions.filter((v) => !v.revoked)).toHaveLength(
+      2,
+    );
+  });
+
+  it("is the version the manifest is for even when the store lists a newer one, which nothing describes", () => {
+    const newer = entry("notes", [version("1.0.0"), version("2.0.0")]);
+    const catalog = buildCatalog(
+      input({ stores: [store({ entries: [newer] })] }),
+    );
+    expect(catalog.entries[0]?.offered).toBe("1.0.0");
   });
 
   it("is nothing when every version is revoked, and says why they are", () => {
@@ -339,18 +376,13 @@ describe("whether it is installed", () => {
     });
   });
 
-  it("offers an update from the store it came from, to the highest version that is not revoked", () => {
+  it("offers an update from the store it came from, to the version the store describes", () => {
     const catalog = buildCatalog(
       input({
         stores: [
           store({
             entries: [
-              notes([
-                version("2.0.0", { revoked: true }),
-                version("1.10.0"),
-                version("1.9.0"),
-                version("1.0.0"),
-              ]),
+              notes([version("1.10.0"), version("1.9.0"), version("1.0.0")]),
             ],
           }),
         ],
@@ -436,7 +468,7 @@ describe("whether it is installed", () => {
     },
   );
 
-  it("offers no update when every newer version is revoked", () => {
+  it("offers no update when the version the store describes is revoked, whatever older ones there are", () => {
     const catalog = buildCatalog(
       input({
         stores: [
