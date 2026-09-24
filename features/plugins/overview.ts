@@ -78,8 +78,10 @@ export interface InstalledPlugin {
   hasCode: boolean;
   /** The platform's switch. */
   platformOn: boolean;
-  /** In how many workspaces it is on. Always 0 for a platform plugin. */
+  /** In how many workspaces it is on. 0 unless the plugin applies per workspace. */
   workspaces: number;
+  /** In how many projects it is on. 0 unless the plugin applies per project. */
+  projects: number;
   state: RuntimeState;
   approval: ApprovalState;
   /** The hash of the installed files: what an approval is for. */
@@ -146,6 +148,8 @@ export interface OverviewInput {
   };
   /** Ids of workspace plugins, and in how many workspaces each is on. */
   workspaceCounts: ReadonlyMap<string, number>;
+  /** Ids of project plugins, and in how many projects each is on. */
+  projectCounts: ReadonlyMap<string, number>;
   activeStores: readonly string[];
   allowUnsigned: boolean;
   /** Plugin id → the version its store offers as an update. Left out where it is not asked. */
@@ -271,6 +275,8 @@ export function buildOverview(input: OverviewInput): PluginsOverview {
         row.scope === "WORKSPACE"
           ? (input.workspaceCounts.get(row.id) ?? 0)
           : 0,
+      projects:
+        row.scope === "PROJECT" ? (input.projectCounts.get(row.id) ?? 0) : 0,
       state: runtimeState(statusById.get(row.id)),
       approval: approvalState(
         row,

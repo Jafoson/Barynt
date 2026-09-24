@@ -12,6 +12,7 @@ import { join } from "node:path";
 
 const mockPluginFindMany = mock();
 const mockGroupBy = mock();
+const mockProjectGroupBy = mock();
 const mockStoreFindMany = mock();
 const mockCuratedFindMany = mock();
 const mockSettingsFindUnique = mock();
@@ -24,6 +25,7 @@ mock.module("@/lib/db", () => ({
   db: {
     plugin: { findMany: mockPluginFindMany },
     pluginWorkspace: { groupBy: mockGroupBy },
+    pluginProject: { groupBy: mockProjectGroupBy },
     pluginStore: { findMany: mockStoreFindMany },
     pluginStoreCurated: { findMany: mockCuratedFindMany },
     systemSettings: { findUnique: mockSettingsFindUnique },
@@ -52,6 +54,7 @@ beforeEach(async () => {
   for (const m of [
     mockPluginFindMany,
     mockGroupBy,
+    mockProjectGroupBy,
     mockStoreFindMany,
     mockCuratedFindMany,
     mockSettingsFindUnique,
@@ -63,6 +66,7 @@ beforeEach(async () => {
   mockRequirePermission.mockResolvedValue("admin1");
   mockPluginFindMany.mockResolvedValue([]);
   mockGroupBy.mockResolvedValue([]);
+  mockProjectGroupBy.mockResolvedValue([]);
   mockStoreFindMany.mockResolvedValue([officialStore()]);
   mockCuratedFindMany.mockResolvedValue([]);
   mockSettingsFindUnique.mockResolvedValue({ allowUnsignedPlugins: false });
@@ -131,6 +135,7 @@ describe("who may look", () => {
     for (const m of [
       mockPluginFindMany,
       mockGroupBy,
+      mockProjectGroupBy,
       mockStoreFindMany,
       mockCuratedFindMany,
       mockSettingsFindUnique,
@@ -205,6 +210,36 @@ describe("what is put together", () => {
       where: { enabled: true },
       _count: { _all: true },
     });
+    expect(mockProjectGroupBy.mock.calls[0]?.[0]).toEqual({
+      by: ["pluginId"],
+      where: { enabled: true },
+      _count: { _all: true },
+    });
+  });
+
+  it("counts the projects that switched a project plugin on", async () => {
+    const hash = await put("board", "1.0.0", { scope: "project" });
+    mockPluginFindMany.mockResolvedValue([
+      {
+        id: "board",
+        version: "1.0.0",
+        status: "ENABLED",
+        source: "STORE",
+        scope: "PROJECT",
+        origin: OFFICIAL_STORE_URL,
+        integrity: hash,
+        codeApprovalHash: null,
+        previousVersion: null,
+        previousIntegrity: null,
+      },
+    ]);
+    mockGroupBy.mockResolvedValue([{ pluginId: "board", _count: { _all: 9 } }]);
+    mockProjectGroupBy.mockResolvedValue([
+      { pluginId: "board", _count: { _all: 6 } },
+    ]);
+    const plugin = (await getPluginsOverview("en")).installed[0];
+    expect(plugin?.projects).toBe(6);
+    expect(plugin?.workspaces).toBe(0);
   });
 
   it("offers what lies in the directory and is not installed", async () => {

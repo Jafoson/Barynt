@@ -17,6 +17,7 @@ const mockPluginUpdateMany = mock();
 const mockPluginUpdate = mock();
 const mockPluginDelete = mock();
 const mockWorkspaceCount = mock();
+const mockProjectCount = mock();
 const mockSettingsFindUnique = mock();
 const mockAuditCreate = mock();
 const mockRevalidate = mock();
@@ -33,6 +34,7 @@ mock.module("@/lib/db", () => ({
       delete: mockPluginDelete,
     },
     pluginWorkspace: { count: mockWorkspaceCount },
+    pluginProject: { count: mockProjectCount },
     systemSettings: { findUnique: mockSettingsFindUnique },
     auditLog: { create: mockAuditCreate },
     user: { findUnique: mock(async () => null) },
@@ -106,6 +108,7 @@ beforeEach(async () => {
     mockPluginUpdate,
     mockPluginDelete,
     mockWorkspaceCount,
+    mockProjectCount,
     mockSettingsFindUnique,
     mockAuditCreate,
     mockRevalidate,
@@ -123,6 +126,7 @@ beforeEach(async () => {
   mockPluginUpdate.mockResolvedValue({});
   mockPluginDelete.mockResolvedValue({});
   mockWorkspaceCount.mockResolvedValue(0);
+  mockProjectCount.mockResolvedValue(0);
   // Plugins from no store are allowed: the case these actions are for.
   mockSettingsFindUnique.mockResolvedValue({ allowUnsignedPlugins: true });
   mockAuditCreate.mockResolvedValue({});
@@ -1331,8 +1335,12 @@ describe("uninstalling", () => {
   it("audits what it was and for how many workspaces it was on, and tells the registry and the cache", async () => {
     const row = await installed("calendar", "1.0.0");
     mockWorkspaceCount.mockResolvedValue(3);
+    mockProjectCount.mockResolvedValue(5);
     await uninstallPlugin("calendar");
     expect(mockWorkspaceCount).toHaveBeenCalledWith({
+      where: { pluginId: "calendar", enabled: true },
+    });
+    expect(mockProjectCount).toHaveBeenCalledWith({
       where: { pluginId: "calendar", enabled: true },
     });
     expect(mockAuditCreate.mock.calls).toHaveLength(1);
@@ -1347,6 +1355,7 @@ describe("uninstalling", () => {
         source: "DIRECTORY",
         hash: row.integrity,
         workspacesThatHadItOn: 3,
+        projectsThatHadItOn: 5,
       },
     });
     expect(state.snapshot).toBeNull();

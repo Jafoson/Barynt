@@ -7,6 +7,7 @@ import { loadPlugins } from "./loader";
 import {
   type ActivePlugin,
   activePluginsIn,
+  activePluginsInProject,
   createPluginRegistry,
   type PluginRegistry,
   type RegistryDeps,
@@ -24,7 +25,7 @@ import { getAllowUnsignedPlugins } from "./unsigned";
 const deps: RegistryDeps = {
   pluginsDir: () => pluginsDirSetting(),
   installed: async () => {
-    const [rows, enabled] = await Promise.all([
+    const [rows, inWorkspaces, inProjects] = await Promise.all([
       db.plugin.findMany({
         select: {
           id: true,
@@ -37,8 +38,16 @@ const deps: RegistryDeps = {
           codeApprovalHash: true,
         },
       }),
+      // A workspace's row counts for a plugin that applies per workspace, and a
+      // project's for one that applies per project: a stray row of the other kind
+      // (there is none, the actions refuse it) would not get a plugin loaded.
       db.pluginWorkspace.findMany({
-        where: { enabled: true },
+        where: { enabled: true, plugin: { scope: "WORKSPACE" } },
+        select: { pluginId: true },
+        distinct: ["pluginId"],
+      }),
+      db.pluginProject.findMany({
+        where: { enabled: true, plugin: { scope: "PROJECT" } },
         select: { pluginId: true },
         distinct: ["pluginId"],
       }),
@@ -47,7 +56,9 @@ const deps: RegistryDeps = {
       // The approval to run code in the process, for the exact hash: without one a
       // plugin with code does not run there (`features/plugins/actions.ts`).
       plugins: rows,
-      enabledSomewhere: new Set(enabled.map((row) => row.pluginId)),
+      enabledSomewhere: new Set(
+        [...inWorkspaces, ...inProjects].map((row) => row.pluginId),
+      ),
     };
   },
   discover: discoverPlugins,
@@ -98,6 +109,51 @@ export const getActivePlugins = cache(
     } catch (error) {
       console.error(
         "[plugins] The plugins of a workspace could not be read, so none apply:",
+        error instanceof Error ? error.message : String(error),
+      );
+      return [];
+    }
+  },
+);
+
+/**
+ * The plugins that apply in a project, once per request: every platform plugin that is
+ * running, each workspace plugin that is running and switched on in the project's
+ * workspace, and each project plugin that is running and switched on in the project.
+ * Waits for the registry if it is still building. Fails closed: if the settings cannot
+ * be read, or the project is not there, no plugin applies.
+ *
+ * Like `getActivePlugins` it does not ask whether the signed-in user may see the project:
+ * that is the caller's, which is the project's layout for anything rendered under it.
+ */
+export const getActivePluginsInProject = cache(
+  async (projectId: string): Promise<ActivePlugin[]> => {
+    try {
+      const snapshot = await getPluginRegistry().get();
+      if (snapshot.active.length === 0) return [];
+      const project = await db.project.findUnique({
+        where: { id: projectId },
+        select: { workspaceId: true },
+      });
+      if (!project) return [];
+      const [inWorkspace, inProject] = await Promise.all([
+        db.pluginWorkspace.findMany({
+          where: { workspaceId: project.workspaceId, enabled: true },
+          select: { pluginId: true },
+        }),
+        db.pluginProject.findMany({
+          where: { projectId, enabled: true },
+          select: { pluginId: true },
+        }),
+      ]);
+      return activePluginsInProject(
+        snapshot,
+        new Set(inWorkspace.map((r) => r.pluginId)),
+        new Set(inProject.map((r) => r.pluginId)),
+      );
+    } catch (error) {
+      console.error(
+        "[plugins] The plugins of a project could not be read, so none apply:",
         error instanceof Error ? error.message : String(error),
       );
       return [];

@@ -76,8 +76,8 @@ whatever order the plugins were read in.
 
 Pass the plugins the host would load. Resolution is over the **installed** set, not
 per workspace: a plugin loads once per process, and only when it is wanted (a platform
-plugin that is switched on, or a workspace plugin that at least one workspace switched on,
-and what they need), a workspace only enables it (BARY-54,
+plugin that is switched on, a workspace plugin that at least one workspace switched on, or a
+project plugin that at least one project switched on, and what they need), a workspace or a project only enables it (BARY-54,
 [Loading](loading.md#what-is-decided)).
 
 `resolvePlugins()` throws only when the host version is not SemVer, which is a build

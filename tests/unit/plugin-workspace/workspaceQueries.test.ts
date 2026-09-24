@@ -19,6 +19,7 @@ import { join } from "node:path";
 
 const mockPluginFindMany = mock();
 const mockGroupBy = mock();
+const mockProjectGroupBy = mock();
 const mockWorkspaceRows = mock();
 const mockStoreFindMany = mock();
 const mockSettingsFindUnique = mock();
@@ -31,6 +32,7 @@ mock.module("@/lib/db", () => ({
   db: {
     plugin: { findMany: mockPluginFindMany },
     pluginWorkspace: { groupBy: mockGroupBy, findMany: mockWorkspaceRows },
+    pluginProject: { groupBy: mockProjectGroupBy },
     pluginStore: { findMany: mockStoreFindMany },
     systemSettings: { findUnique: mockSettingsFindUnique },
   },
@@ -57,6 +59,7 @@ beforeEach(async () => {
   for (const m of [
     mockPluginFindMany,
     mockGroupBy,
+    mockProjectGroupBy,
     mockWorkspaceRows,
     mockStoreFindMany,
     mockSettingsFindUnique,
@@ -68,6 +71,7 @@ beforeEach(async () => {
   mockRequirePermission.mockResolvedValue("member1");
   mockPluginFindMany.mockResolvedValue([]);
   mockGroupBy.mockResolvedValue([]);
+  mockProjectGroupBy.mockResolvedValue([]);
   mockWorkspaceRows.mockResolvedValue([]);
   mockStoreFindMany.mockResolvedValue([{ url: OFFICIAL_STORE_URL }]);
   mockSettingsFindUnique.mockResolvedValue({
@@ -142,6 +146,7 @@ describe("who may look", () => {
     for (const m of [
       mockPluginFindMany,
       mockGroupBy,
+      mockProjectGroupBy,
       mockWorkspaceRows,
       mockStoreFindMany,
       mockSettingsFindUnique,

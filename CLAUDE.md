@@ -271,7 +271,8 @@ and measured (start at `docs/plugins/README.md`).
   awaited) so `boot` runs once per process outside a request. Its state lives on `global`
   (`registryState.ts`), because Next bundles a module once per layer; **anything that changes which code may run calls
   `invalidatePluginRegistry()`** (the store, unsigned-setting, approval, lifecycle and per-workspace actions all do). A page asks
-  `getActivePlugins(workspaceId)`. Request-scoped state seeded by `cache()` does not cross layers: the services find the
+  `getActivePlugins(workspaceId)` (or `getActivePluginsInProject(projectId)`: what applies in the project's workspace plus its own project plugins;
+  a workspace's page never gets a project plugin). Request-scoped state seeded by `cache()` does not cross layers: the services find the
   workspace through the reader `setCurrentWorkspaceId` publishes on `global`. **Code runs in the process only with an approval
   for one plugin and its exact hash** (`Plugin.codeApprovalHash`, `features/plugins/actions.ts`: `plugin.manage`, the server asks for
   the yes itself, refuses what the policy would not run, checks the files on disk); the registry reads it from the row, and while

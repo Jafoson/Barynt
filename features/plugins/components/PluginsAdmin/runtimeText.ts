@@ -1,6 +1,7 @@
 import { useTranslations } from "next-intl";
 import type { ApprovalState, RuntimeState } from "@/features/plugins/overview";
 import type { Problem } from "@/lib/plugins/resolve";
+import type { PluginRowScope } from "@/lib/plugins/scope";
 
 export type Tone = "ok" | "idle" | "problem";
 
@@ -60,14 +61,17 @@ export function useRuntimeText() {
     }
   };
 
-  const state = (value: RuntimeState): string => {
+  /** `scope` is where the plugin applies: "no workspace has switched it on" is said of a workspace plugin only. */
+  const state = (value: RuntimeState, scope?: PluginRowScope): string => {
     switch (value.kind) {
       case "running":
         return value.mode === "in-process"
           ? t("pluginsAdmin.state.runningInProcess")
           : t("pluginsAdmin.state.runningDeclarative");
       case "idle":
-        return t("pluginsAdmin.state.idle");
+        return scope === "PROJECT"
+          ? t("pluginsAdmin.state.idleProject")
+          : t("pluginsAdmin.state.idle");
       case "off":
         return t("pluginsAdmin.state.off");
       case "missing":

@@ -9,6 +9,7 @@ import type { InstalledPlugin } from "@/lib/plugins/plan";
 import { OFFICIAL_STORE_URL } from "@/lib/plugins/policy";
 import {
   activePluginsIn,
+  activePluginsInProject,
   createPluginRegistry,
   RETRY_AFTER_FAILURE_MS,
   type RegistryDeps,
@@ -943,6 +944,91 @@ describe("which plugins apply in a workspace", () => {
       new Set(),
     );
     expect(result.map((p) => p.id)).toEqual(["b", "a"]);
+  });
+});
+
+describe("the plugins that apply in a project", () => {
+  const snapshot = (active: ReturnType<typeof running>[]) => ({
+    builtAt: 0,
+    dir: "/plugins",
+    problem: null,
+    discoveryIssues: [],
+    plugins: [],
+    active,
+  });
+  const running = (
+    id: string,
+    scope: "WORKSPACE" | "PLATFORM" | "PROJECT",
+  ) => ({
+    id,
+    version: "1.0.0",
+    scope,
+    mode: "declarative" as const,
+    registrations: [],
+    hooks: {},
+  });
+
+  it("is what applies in its workspace and each project plugin the project switched on", () => {
+    const result = activePluginsInProject(
+      snapshot([
+        running("everywhere", "PLATFORM"),
+        running("chosen", "WORKSPACE"),
+        running("other-workspace", "WORKSPACE"),
+        running("board", "PROJECT"),
+        running("other-project", "PROJECT"),
+      ]),
+      new Set(["chosen"]),
+      new Set(["board"]),
+    );
+    expect(result.map((p) => p.id)).toEqual(["everywhere", "chosen", "board"]);
+  });
+
+  it("does not take a plugin for the other level's whatever the sets hold", () => {
+    const result = activePluginsInProject(
+      snapshot([
+        running("workspace-plugin", "WORKSPACE"),
+        running("project-plugin", "PROJECT"),
+      ]),
+      new Set(["project-plugin"]),
+      new Set(["workspace-plugin"]),
+    );
+    expect(result).toEqual([]);
+  });
+
+  it("leaves out a plugin that runs only because another one needs it", () => {
+    const result = activePluginsInProject(
+      snapshot([running("dependency", "PROJECT"), running("top", "PROJECT")]),
+      new Set(),
+      new Set(["top"]),
+    );
+    expect(result.map((p) => p.id)).toEqual(["top"]);
+  });
+
+  it("is nothing when nothing runs", () => {
+    expect(
+      activePluginsInProject(snapshot([]), new Set(["a"]), new Set(["b"])),
+    ).toEqual([]);
+  });
+
+  it("keeps the order in which the plugins loaded", () => {
+    const result = activePluginsInProject(
+      snapshot([
+        running("b", "PROJECT"),
+        running("a", "PLATFORM"),
+        running("c", "WORKSPACE"),
+      ]),
+      new Set(["c"]),
+      new Set(["b"]),
+    );
+    expect(result.map((p) => p.id)).toEqual(["b", "a", "c"]);
+  });
+
+  it("is what a workspace gets, for a workspace: a project's plugins are not among them", () => {
+    const result = activePluginsIn(
+      snapshot([running("board", "PROJECT"), running("chosen", "WORKSPACE")]),
+      new Set(["chosen", "board"]),
+    );
+    expect(result.map((p) => p.id)).toEqual(["chosen"]);
   });
 });
 
