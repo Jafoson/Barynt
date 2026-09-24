@@ -1467,6 +1467,16 @@ model SystemSettings {
   defaultWorkspaceId String?
   defaultWorkspace   Workspace? @relation(fields: [defaultWorkspaceId], references: [id], onDelete: SetNull)
 
+  /// Erlaubt Plugins, die aus keinem Store kommen (Upload, Verzeichnis, von Hand
+  /// eingegebene Repository-Adresse). Aus (Standard): solche Plugins werden nicht
+  /// geladen. An: eines ohne Code läuft; eines mit Code bleibt blockiert, weil
+  /// ungeprüfter Code nicht im Prozess der App läuft (`lib/plugins/policy.ts`).
+  /// Nur mit `plugin.manage` änderbar und nur nach einer Warnung, die der Server
+  /// selbst einfordert (`features/plugin-stores/unsignedActions.ts`). Fehlt die
+  /// Zeile oder lässt sich die Einstellung nicht lesen, gilt "aus"
+  /// (`lib/plugins/unsigned.ts`).
+  allowUnsignedPlugins Boolean @default(false)
+
   updatedAt DateTime @updatedAt
 
   @@index([defaultWorkspaceId])

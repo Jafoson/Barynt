@@ -123,8 +123,6 @@ describe("the official store", () => {
 describe("a plugin without code", () => {
   it.each([
     ["from the official store", {}],
-    ["from an upload", { source: "UPLOAD", origin: null }],
-    ["from a directory", { source: "DIRECTORY", origin: null }],
     ["from another store", { origin: "https://example.com/store" }],
     ["with no hash and no approval", { integrity: "", codeApprovalHash: null }],
   ])("runs, %s", (_name, more) => {
@@ -148,12 +146,19 @@ describe("a plugin with code", () => {
     },
   );
 
-  it("is blocked when it is not from an active store, however well approved", () => {
+  it("is blocked when its store is not active, however well approved", () => {
     for (const more of [
       { origin: "https://example.com/my-store" },
       { origin: null },
       { origin: "" },
       { origin: "https://github.com/Jafoson/barynt-plugin-store.evil" },
+    ]) {
+      expect(decide(input(more))).toEqual(blocked("store-not-active"));
+    }
+  });
+
+  it("is blocked as unsigned when it is not from a store at all, however well approved", () => {
+    for (const more of [
       { source: "UPLOAD" },
       { source: "DIRECTORY" },
       { source: "UPLOAD", origin: OFFICIAL_STORE_URL },
@@ -161,7 +166,7 @@ describe("a plugin with code", () => {
       { source: "store" },
       { source: "" },
     ]) {
-      expect(decide(input(more))).toEqual(blocked("store-not-active"));
+      expect(decide(input(more))).toEqual(blocked("unsigned-not-allowed"));
     }
   });
 
@@ -317,14 +322,20 @@ describe("which stores are on", () => {
   it("does not let a store that is on vouch for an upload or a directory", () => {
     for (const source of ["UPLOAD", "DIRECTORY"]) {
       expect(decide(input({ source, origin: OWN }), [OWN])).toEqual(
-        blocked("store-not-active"),
+        blocked("unsigned-not-allowed"),
       );
+      // Not even when unsigned plugins are allowed: it does not become in-process.
+      expect(
+        decideExecution(input({ source, origin: OWN }), [OWN], {
+          allowUnsigned: true,
+        }),
+      ).toEqual(blocked("unsigned-code"));
     }
   });
 
   it("does not need a store for a plugin without code, so it still runs with none on", () => {
     expect(
-      decide(input({ manifest: {}, source: "UPLOAD", origin: null }), []),
+      decide(input({ manifest: {}, origin: OFFICIAL_STORE_URL }), []),
     ).toEqual({
       mode: "declarative",
     });
@@ -336,6 +347,183 @@ describe("which stores are on", () => {
     expect(isActiveStore(OWN, undefined as unknown as string[])).toBe(false);
     expect(isOfficialStore(OWN)).toBe(false);
     expect(isOfficialStore(OFFICIAL_STORE_URL)).toBe(true);
+  });
+});
+
+describe("a plugin from no store (unsigned)", () => {
+  const OWN = "https://git.example.com/team/plugins";
+  const SOURCES = ["UPLOAD", "DIRECTORY", "URL", "store", "", "STORE "];
+  const MANIFESTS = [
+    ["without code", {}],
+    ["with a server module", { server: "server.js" }],
+    ["with a client bundle", { client: "client.js" }],
+    ["with both", { server: "server.js", client: "client.js" }],
+  ] as const;
+  const unsigned = (more: Partial<ExecutionInput> = {}) =>
+    input({ source: "UPLOAD", origin: null, ...more });
+
+  it("is blocked when nothing says it is allowed, with or without code", () => {
+    for (const source of SOURCES) {
+      for (const [, manifest] of MANIFESTS) {
+        const value = unsigned({ source, manifest });
+        expect(decideExecution(value, DEFAULT_ACTIVE_STORES)).toEqual(
+          blocked("unsigned-not-allowed"),
+        );
+        expect(decideExecution(value, DEFAULT_ACTIVE_STORES, {})).toEqual(
+          blocked("unsigned-not-allowed"),
+        );
+        expect(
+          decideExecution(value, DEFAULT_ACTIVE_STORES, {
+            allowUnsigned: false,
+          }),
+        ).toEqual(blocked("unsigned-not-allowed"));
+      }
+    }
+  });
+
+  it.each([
+    ["the text true", "true"],
+    ["the text TRUE", "TRUE"],
+    ["1", 1],
+    ["a non-empty text", "yes"],
+    ["an object", {}],
+    ["a list", [true]],
+    ["null", null],
+    ["nothing", undefined],
+  ])(
+    "is still blocked when the setting is %s: only the value true allows it",
+    (_name, allow) => {
+      const options = { allowUnsigned: allow } as unknown as {
+        allowUnsigned: boolean;
+      };
+      for (const [, manifest] of MANIFESTS) {
+        expect(
+          decideExecution(
+            unsigned({ manifest }),
+            DEFAULT_ACTIVE_STORES,
+            options,
+          ),
+        ).toEqual(blocked("unsigned-not-allowed"));
+      }
+    },
+  );
+
+  it("is blocked, without throwing, when the options are not an object", () => {
+    for (const options of [null, undefined, "yes", 5, true]) {
+      expect(
+        decideExecution(
+          unsigned(),
+          DEFAULT_ACTIVE_STORES,
+          options as unknown as { allowUnsigned: boolean },
+        ),
+      ).toEqual(blocked("unsigned-not-allowed"));
+    }
+  });
+
+  it("runs, when allowed, if it has no code", () => {
+    for (const source of SOURCES) {
+      expect(
+        decideExecution(unsigned({ source, manifest: {} }), [], {
+          allowUnsigned: true,
+        }),
+      ).toEqual({ mode: "declarative" });
+    }
+  });
+
+  it("does not need a hash or an approval to run without code, when allowed", () => {
+    expect(
+      decideExecution(
+        unsigned({ manifest: {}, integrity: "", codeApprovalHash: null }),
+        [],
+        { allowUnsigned: true },
+      ),
+    ).toEqual({ mode: "declarative" });
+  });
+
+  it("stays blocked, when allowed, if it has code: unreviewed code does not run in the process", () => {
+    for (const source of SOURCES) {
+      for (const [, manifest] of MANIFESTS.filter(
+        ([, m]) => "server" in m || "client" in m,
+      )) {
+        expect(
+          decideExecution(
+            unsigned({ source, manifest }),
+            DEFAULT_ACTIVE_STORES,
+            {
+              allowUnsigned: true,
+            },
+          ),
+        ).toEqual(blocked("unsigned-code"));
+      }
+    }
+  });
+
+  it("never becomes in-process, whatever else is true of it", () => {
+    // Every mix of source, code, store, origin, hash and approval, with the
+    // setting on: none may end in-process.
+    for (const source of SOURCES) {
+      for (const [, manifest] of MANIFESTS) {
+        for (const origin of [null, OFFICIAL_STORE_URL, OWN]) {
+          for (const codeApprovalHash of [null, HASH, OTHER_HASH]) {
+            for (const stores of [[], DEFAULT_ACTIVE_STORES, [OWN]]) {
+              const decision = decideExecution(
+                input({ source, manifest, origin, codeApprovalHash }),
+                stores,
+                { allowUnsigned: true },
+              );
+              expect(decision.mode).not.toBe("in-process");
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it("does not change what a plugin from a store gets, whatever the setting", () => {
+    const cases: Partial<ExecutionInput>[] = [
+      {},
+      { manifest: {} },
+      { codeApprovalHash: null },
+      { codeApprovalHash: OTHER_HASH },
+      { origin: OWN },
+      { origin: null },
+      { integrity: "" },
+    ];
+    for (const more of cases) {
+      const without = decideExecution(input(more), DEFAULT_ACTIVE_STORES);
+      for (const allowUnsigned of [true, false]) {
+        expect(
+          decideExecution(input(more), DEFAULT_ACTIVE_STORES, {
+            allowUnsigned,
+          }),
+        ).toEqual(without);
+      }
+    }
+    expect(
+      decideExecution(input(), DEFAULT_ACTIVE_STORES, { allowUnsigned: true }),
+    ).toEqual({ mode: "in-process" });
+  });
+
+  it("does not read the setting for a plugin from a store", () => {
+    const options = {
+      get allowUnsigned(): boolean {
+        throw new Error("never read");
+      },
+    };
+    expect(decideExecution(input(), DEFAULT_ACTIVE_STORES, options)).toEqual({
+      mode: "in-process",
+    });
+  });
+
+  it("is blocked as invalid, not allowed, when the setting cannot be read", () => {
+    const options = {
+      get allowUnsigned(): boolean {
+        throw new Error("unreadable");
+      },
+    };
+    expect(decideExecution(unsigned(), DEFAULT_ACTIVE_STORES, options)).toEqual(
+      blocked("invalid"),
+    );
   });
 });
 
@@ -395,17 +583,40 @@ describe("input that cannot be trusted", () => {
     }
   });
 
-  it("does not read what it does not need: a plugin without code does not depend on its source", () => {
-    const value = {
-      manifest: {},
-      get source(): string {
-        throw new Error("never read");
-      },
-    };
-    expect(decide(value as unknown as ExecutionInput)).toEqual({
-      mode: "declarative",
-    });
+  it("blocks a plugin whose source cannot be read, code or not: where it came from decides whether it runs at all", () => {
+    for (const manifest of [{}, { server: "server.js" }]) {
+      const value = {
+        manifest,
+        get source(): string {
+          throw new Error("unreadable");
+        },
+      };
+      expect(decide(value as unknown as ExecutionInput)).toEqual(
+        blocked("invalid"),
+      );
+    }
   });
+
+  it.each([
+    ["missing", undefined],
+    ["null", null],
+    ["a number", 5],
+    ["an object", { toString: () => "STORE" }],
+    ["a list", ["STORE"]],
+  ])(
+    "blocks a source that is %s, even with unsigned plugins allowed",
+    (_name, source) => {
+      for (const manifest of [{}, { server: "server.js" }]) {
+        const value = input({ manifest, source: source as unknown as string });
+        expect(decide(value)).toEqual(blocked("invalid"));
+        expect(
+          decideExecution(value, DEFAULT_ACTIVE_STORES, {
+            allowUnsigned: true,
+          }),
+        ).toEqual(blocked("invalid"));
+      }
+    },
+  );
 });
 
 describe("the English text", () => {
@@ -413,6 +624,8 @@ describe("the English text", () => {
     { mode: "declarative" },
     { mode: "in-process" },
     blocked("invalid"),
+    blocked("unsigned-not-allowed"),
+    blocked("unsigned-code"),
     blocked("store-not-active"),
     blocked("not-approved"),
     blocked("approval-outdated"),

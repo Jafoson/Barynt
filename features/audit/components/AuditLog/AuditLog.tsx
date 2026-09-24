@@ -162,6 +162,15 @@ export const AUDIT_ACTION_META = {
     icon: "lucide:lock-open",
     message: "pluginStoreCredentialCleared",
   },
+  "plugin.unsigned.allowed": {
+    icon: "lucide:shield-alert",
+    message: "pluginUnsignedAllowed",
+    loud: true,
+  },
+  "plugin.unsigned.disallowed": {
+    icon: "lucide:shield-check",
+    message: "pluginUnsignedDisallowed",
+  },
   "project.created": { icon: "lucide:folder-plus", message: "projectCreated" },
   "project.visibility.changed": {
     icon: "lucide:eye",

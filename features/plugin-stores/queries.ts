@@ -41,3 +41,18 @@ export async function getPluginStores(): Promise<PluginStoreRow[]> {
     credentialUser: store.credentialUser,
   }));
 }
+
+/**
+ * Whether plugins from no store are allowed, for the settings page. Needs
+ * `plugin.manage`. Unlike the reader the policy uses (`lib/plugins/unsigned.ts`),
+ * a database error is not turned into "off" here: an admin who is shown "off"
+ * while it is on would be misled.
+ */
+export async function getUnsignedPluginsAllowed(): Promise<boolean> {
+  await requirePermission("plugin.manage", PLATFORM);
+  const row = await db.systemSettings.findUnique({
+    where: { id: 1 },
+    select: { allowUnsignedPlugins: true },
+  });
+  return row?.allowUnsignedPlugins === true;
+}
