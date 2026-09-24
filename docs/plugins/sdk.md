@@ -4,7 +4,7 @@
 of a plugin, the two contexts it receives, and the version of the contract. The
 host imports the same types, so both sides agree on one definition.
 
-> **Status: early, version 0.2.0.** This is the frame: the two phases, the three
+> **Status: early, version 0.3.0.** This is the frame: the two phases, the five
 > lifecycle hooks, the names of the registration methods and services, and how the
 > host reads a plugin module. What most definitions hold is still open (see [Not decided yet](#not-decided-yet)).
 > The package is `private` and not published yet.
@@ -101,7 +101,7 @@ second time** ([Loading](loading.md#the-registry)).
 
 ## Lifecycle hooks
 
-Three more optional functions on the definition, called when the plugin's life changes ([Lifecycle](lifecycle.md#hooks)):
+Five more optional functions on the definition, called when the plugin's life changes ([Lifecycle](lifecycle.md#hooks)):
 
 ```ts
 export default definePlugin({
@@ -109,6 +109,10 @@ export default definePlugin({
     // ctx.workspace is the workspace that switched the plugin on. Throw to refuse.
   },
   onDisable(ctx) { /* the workspace switched it off; it cannot be refused */ },
+  async onProjectEnable(ctx) {
+    // For a plugin that applies per project: ctx.project switched it on, in ctx.workspace. Throw to refuse.
+  },
+  onProjectDisable(ctx) { /* the project switched it off; it cannot be refused */ },
   onUninstall(ctx) { /* the platform removed the plugin; it cannot be refused */ },
 });
 ```
@@ -117,12 +121,15 @@ export default definePlugin({
 | --- | --- | --- |
 | `onEnable(ctx)` | `plugin`, `host`, `workspace` (`id`, `name`) | **yes**: throw, or take longer than 30 seconds, and the plugin is not switched on |
 | `onDisable(ctx)` | `plugin`, `host`, `workspace` | no, a failure is a warning to the admin |
+| `onProjectEnable(ctx)` | `plugin`, `host`, `workspace` (the one the project is in), `project` (`id`, `name`) | **yes**, as `onEnable` |
+| `onProjectDisable(ctx)` | `plugin`, `host`, `workspace`, `project` | no, a failure is a warning to the admin |
 | `onUninstall(ctx)` | `plugin`, `host` | no, a failure is a warning to the admin |
 
 - **Only for a plugin that runs in the process.** A hook is plugin code, and code the platform did not approve does not run. A plugin
   the platform has not approved, or that no workspace has switched on, is not woken up for a lifecycle event.
-- **`onEnable` and `onDisable` are per workspace and only for plugins with `scope: workspace`.** A platform plugin has `boot`, and
-  `onUninstall`.
+- **`onEnable` and `onDisable` are per workspace and only for plugins with `scope: workspace`; `onProjectEnable` and `onProjectDisable`
+  are per project and only for plugins with `scope: project`.** A platform plugin has `boot`, and `onUninstall`. A hook that does not
+  fit the plugin's scope is never called.
 - **They can run again.** A plugin is switched on, off and on again, in as many workspaces as there are, so a hook has to be safe to repeat.
 - **The context is plain values**, frozen copies. Services (storage, events) arrive with their tickets and will be added to it.
 - **There is no `onInstall` and no `onUpdate`.** The code of a plugin that was just installed or updated is not approved to run yet,
@@ -138,9 +145,9 @@ every problem and never throws, even for a module made of throwing getters.
 ```
 no default export: write `export default definePlugin({ register, boot })`
 the default export is a function: wrap it as `definePlugin({ register })`
-bot: is not a known hook (use register, boot, onEnable, onDisable or onUninstall)
+bot: is not a known hook (use register, boot, onEnable, onDisable, onProjectEnable, onProjectDisable or onUninstall)
 boot: must be a function
-the plugin defines no hook (register, boot, onEnable, onDisable or onUninstall)
+the plugin defines no hook (register, boot, onEnable, onDisable, onProjectEnable, onProjectDisable or onUninstall)
 ```
 
 Unknown hooks are an error for the same reason unknown manifest fields are: a typo

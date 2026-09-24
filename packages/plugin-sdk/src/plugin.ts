@@ -1,5 +1,6 @@
 import type {
   BootContext,
+  ProjectLifecycleContext,
   RegistrationContext,
   UninstallContext,
   WorkspaceLifecycleContext,
@@ -7,7 +8,7 @@ import type {
 
 /**
  * What a plugin's server module exports as its default: two optional phases and
- * three optional lifecycle hooks.
+ * five optional lifecycle hooks.
  *
  * The hooks run only for a plugin that is loaded in the app's process, and they
  * can run more than once (a plugin is switched on and off again), so they have to
@@ -34,6 +35,17 @@ export interface PluginDefinition {
    * either way, and a failure is reported to the admin as a warning.
    */
   onDisable?(ctx: WorkspaceLifecycleContext): void | Promise<void>;
+  /**
+   * A project has switched the plugin on. Like `onEnable`, throwing or taking longer than
+   * the host waits **refuses** it. Only for plugins that apply per project (`scope:
+   * "project"`); one that applies per workspace has `onEnable`.
+   */
+  onProjectEnable?(ctx: ProjectLifecycleContext): void | Promise<void>;
+  /**
+   * A project has switched the plugin off. It cannot refuse; a failure is reported to the
+   * admin as a warning.
+   */
+  onProjectDisable?(ctx: ProjectLifecycleContext): void | Promise<void>;
   /**
    * The plugin was removed from the platform. It cannot refuse either. What the
    * plugin stored is not the host's to delete yet (BARY-85).

@@ -10,6 +10,7 @@ import type {
 import type {
   JobService,
   PluginEvents,
+  PluginProject,
   PluginStorage,
   PluginWorkspace,
   UserService,
@@ -78,6 +79,20 @@ export interface WorkspaceLifecycleContext {
   readonly host: HostInfo;
   /** The workspace the plugin is switched on or off in. */
   readonly workspace: PluginWorkspace;
+}
+
+/**
+ * What `onProjectEnable` and `onProjectDisable` get: the plugin is switched on or off in one
+ * project. Like `WorkspaceLifecycleContext`, plain values: which project it is about, and
+ * the workspace that project is in.
+ */
+export interface ProjectLifecycleContext {
+  readonly plugin: PluginInfo;
+  readonly host: HostInfo;
+  /** The workspace the project is in. */
+  readonly workspace: PluginWorkspace;
+  /** The project the plugin is switched on or off in. */
+  readonly project: PluginProject;
 }
 
 /** What `onUninstall` gets: the plugin is removed from the whole platform. */

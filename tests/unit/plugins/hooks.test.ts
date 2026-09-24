@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   HOOK_TIMEOUT_MS,
+  projectHookContext,
   runHook,
   uninstallHookContext,
   workspaceHookContext,
@@ -11,7 +12,7 @@ import type { PluginHooks } from "@/lib/plugins/loader";
 // that code misbehaves: nothing thrown, one short line, and a hook that hangs is
 // waited for only so long.
 
-const HOST = { barynt: "0.1.0", sdk: "0.2.0" };
+const HOST = { barynt: "0.1.0", sdk: "0.3.0" };
 const context = workspaceHookContext(
   { id: "calendar", version: "1.0.0" },
   HOST,
@@ -216,6 +217,65 @@ describe("the contexts", () => {
       expect(Object.isFrozen(value)).toBe(true);
     }
     expect(gone.plugin).not.toBe(info);
+  });
+
+  it("carry, for a project, the plugin, the host, the workspace it is in and the project", () => {
+    const made = projectHookContext(
+      { id: "calendar", version: "1.0.0" },
+      HOST,
+      { id: "w1", name: "W" },
+      { id: "p1", name: "P" },
+    );
+    expect(made).toEqual({
+      plugin: { id: "calendar", version: "1.0.0" },
+      host: HOST,
+      workspace: { id: "w1", name: "W" },
+      project: { id: "p1", name: "P" },
+    });
+    expect(Object.keys(made).sort()).toEqual([
+      "host",
+      "plugin",
+      "project",
+      "workspace",
+    ]);
+  });
+
+  it("are frozen for a project too, and copies of what the host holds", () => {
+    const info = { id: "calendar", version: "1.0.0" };
+    const host = { ...HOST };
+    const workspace = { id: "w1", name: "W" };
+    const project = { id: "p1", name: "P" };
+    const made = projectHookContext(info, host, workspace, project);
+    for (const value of [
+      made,
+      made.plugin,
+      made.host,
+      made.workspace,
+      made.project,
+    ]) {
+      expect(Object.isFrozen(value)).toBe(true);
+    }
+    expect(made.plugin).not.toBe(info);
+    expect(made.host).not.toBe(host);
+    expect(made.workspace).not.toBe(workspace);
+    expect(made.project).not.toBe(project);
+  });
+
+  it("run a project hook with the project's context, like any other", async () => {
+    const seen: unknown[] = [];
+    const made = projectHookContext(
+      { id: "calendar", version: "1.0.0" },
+      HOST,
+      { id: "w1", name: "W" },
+      { id: "p1", name: "P" },
+    );
+    const outcome = await runHook(
+      running({ onProjectEnable: (ctx) => void seen.push(ctx) }),
+      "onProjectEnable",
+      made,
+    );
+    expect(outcome).toEqual({ ran: true, ok: true });
+    expect(seen).toEqual([made]);
   });
 
   it("carry nothing else: no services, no way to reach the database", () => {

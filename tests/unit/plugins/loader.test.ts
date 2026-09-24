@@ -855,6 +855,21 @@ describe("lifecycle hooks", () => {
     ]);
   });
 
+  it("hands out the hooks of a project too, and calls them on the definition", async () => {
+    const a = await plugin("board", {
+      code: `const definition = { onProjectEnable(ctx) { ${T}.push("this " + (this === definition) + " " + ctx.project.id); }, onProjectDisable() {} };
+export default definition;`,
+    });
+    const report = await loadPlugins([a], options());
+    const hooks = report.loaded[0]?.hooks;
+    expect(Object.keys(hooks ?? {}).sort()).toEqual([
+      "onProjectDisable",
+      "onProjectEnable",
+    ]);
+    await hooks?.onProjectEnable?.({ project: { id: "p1" } } as never);
+    expect(trace()).toEqual(["this true p1"]);
+  });
+
   it("gives a plugin with the phases only no hooks at all", async () => {
     const a = await plugin("calendar", {
       code: `export default { register() {}, async boot() {} };`,
