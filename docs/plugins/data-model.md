@@ -20,6 +20,7 @@ tables, one row per installation and one per plugin and workspace.
 | `config` | the platform's settings for a `PLATFORM` plugin, `{}` until something is set. Unused for `WORKSPACE` plugins, whose settings are per workspace in `PluginWorkspace.config` |
 | `origin` | for `STORE` the address of the store (the official one or a custom one), otherwise empty |
 | `integrity` | the hash of the plugin **directory** as `sha512-<base64>`, computed at install by `hashPluginDirectory()` and approved by the admin. It is checked before every load, and a plugin whose files differ does not load ([Security](security.md#the-integrity-check)). The archive hash pinned in a store entry is verified by the installer before it extracts; the directory hash is what is stored |
+| `codeApprovalHash`, `codeApprovedAt` | the hash the platform approved for the plugin's **code** to run in the process, and when. Empty: not approved, a plugin with `server` or `client` does not run. It fits only while it equals `integrity`; after an update it no longer does and the code does not run until the new version is approved ([Security](security.md#the-approval)). A plugin without code needs none |
 | `installedAt`, `updatedAt` | `updatedAt` changes on every update, every switch of `status` and every change of `config` |
 
 Whether a plugin **loads** is not stored. That is decided at start by

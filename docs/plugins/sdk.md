@@ -94,7 +94,8 @@ inside the manifest's `CONTRIBUTION_POINTS`.
 
 `boot` runs once per process, when the server starts (`instrumentation.ts`), before the first
 request and outside any. So `ctx.user` and `ctx.workspace` are **services that answer when asked**,
-from inside a request, and not values fixed at boot: in `boot` itself both answer `null`. When the
+from inside a request, and not values fixed at boot: in `boot` itself both answer `null`, also for a plugin that boots later because
+it was approved while the app runs. When the
 plugins change while the app runs, a plugin that booted is registered again and **not booted a
 second time** ([Loading](loading.md#the-registry)).
 
