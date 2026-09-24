@@ -91,10 +91,10 @@ A scheduled job (BARY-90) is a later addition; the rule above is `lib/plugins/st
 
 ## The catalog
 
-One entry per store **and** plugin: the same id in two stores is two entries with their store on them, because an installed plugin is
+One entry per store **and** plugin (a store describes one version of each plugin, the manifest's, and only that version is offered, see [Release](release.md#checking-a-release-verifyrelease-nothing-is-written)): the same id in two stores is two entries with their store on them, because an installed plugin is
 updated only from the store it came from (BARY-96). An entry carries the manifest's words in the admin's language, the scope, whether it
-has code, what it asks for, the versions (highest first, revoked ones marked), the version to install (the highest that is not
-revoked, `null` if all are), whether it is compatible with this Barynt, and if it is installed: which version, whether from this store,
+has code, what it asks for, the versions (highest first, revoked ones marked), the version to install (the one the store describes, `null` if
+that one was withdrawn), whether it is compatible with this Barynt, and if it is installed: which version, whether from this store,
 and the update (only from the store it came from, only to a higher version that is not revoked).
 
 ## Deliberately not here

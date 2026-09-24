@@ -237,6 +237,11 @@ and measured (start at `docs/plugins/README.md`).
   store page says so (`StoreSync`). `features/plugins/storeSync.ts` opens the sealed token and is what `syncPluginStores` (the button, `plugin.manage`) and opening the page
   (`refreshStoresForPage`: a never-fetched store is waited for, an old one is fetched after the page is sent) call; `BARYNT_STORE_AUTO_SYNC` and
   `BARYNT_STORE_MAX_AGE_HOURS` are read by `syncPolicy.ts`.
+  **A plugin's release** (`docs/plugins/release.md`) is checked by `verifyRelease` (`stageRelease.ts`, writes nothing: download with `safeDownload` and **no
+  credentials**, the SHA-512 the store pinned *before* anything is read, `readRelease`/`planRelease` in `release.ts` with `tar.ts` and `zip.ts`, the manifest equal
+  to the store's) and put in place by `placeRelease` (`.staging/release-*`, hashed like an installed plugin, one rename, never over what is there). A release,
+  unlike a store's archive, **refuses the whole archive** for a link, a bad name, a duplicate or anything over the limits of `hashPluginDirectory`; only the version
+  the store describes (the manifest's) is offered.
 - **The plugin store page** (`/admin/plugins/store`): `buildCatalog` output plus `features/plugins/storeView.ts` (search, categories, featured, avatars: pure) in
   `features/plugins/components/PluginStore/`. **Who gets the store** is `SystemSettings.pluginStoreInWorkspaces/InProjects/CuratedOnly` (open by default;
   `getStoreVisibility()` fails **closed**) plus `PluginStoreCurated` (a plugin of a store the admin released). Adding a plugin never changes who approves its
@@ -571,6 +576,7 @@ tests/
     store-catalog/
       format.test.ts / reader.test.ts / catalog.test.ts / paths.test.ts  ← what a store contains and how a clone is read (real hostile directories)
       sync.test.ts / syncPolicy.test.ts  ← the sync (real temp dirs, the old clone stays on any failure) and when opening the page fetches
+      zip.test.ts / release.test.ts / stageRelease.test.ts / workdir.test.ts  ← a plugin's release: the zip reader, what a release may hold, verify and place (real temp dirs); zip archives are built by `tests/unit/store-support/zipBuilder.ts`
       address.test.ts / fetch.test.ts / transport.test.ts / tar.test.ts / archive.test.ts  ← how it gets there: the public-address guard, the safe download (`fetch` and DNS replaced), the host styles, the tar reader, the allowlist unpack (real temp dirs); archives are built by `tests/unit/store-support/tarBuilder.ts`
     store-settings/
       visibility.test.ts / installAction.test.ts  ← who gets the store, releasing a plugin, the install action's checks

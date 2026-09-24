@@ -1,13 +1,5 @@
 import "server-only";
-import {
-  lstat,
-  mkdir,
-  mkdtemp,
-  readdir,
-  rename,
-  rm,
-  stat,
-} from "node:fs/promises";
+import { mkdtemp, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { errorCode } from "../discovery";
 import { unpackStoreArchive } from "./archive";
@@ -15,6 +7,7 @@ import type { DownloadDeps } from "./fetch";
 import { storeCloneDir } from "./paths";
 import { readStoreDirectory } from "./reader";
 import { fetchStoreArchive, type StoreSource } from "./transport";
+import { realDirectory, removeLeftovers } from "./workdir";
 
 // Brings one store's clone up to date: download the archive, unpack it into a fresh
 // directory of ours, read it as a store, and only then put it where the clone is. Whatever
@@ -44,42 +37,16 @@ export interface SyncDeps extends DownloadDeps {
   beforeInstall?: (fresh: string) => Promise<void>;
 }
 
-/** Leftovers of a sync that was cut off (a crash, a restart) are removed after this. */
-const LEFTOVER_MS = 60 * 60 * 1000;
-
 const failure = (code: SyncCode, error: string): SyncResult => ({
   ok: false,
   error,
   code,
 });
 
-/** `.stores` as a real directory of ours, created if it is not there. A symlink is refused. */
-async function storesDirectory(pluginsDir: string): Promise<string | null> {
-  const dir = join(pluginsDir, ".stores");
-  await mkdir(/* turbopackIgnore: true */ dir, { recursive: true });
-  const info = await lstat(/* turbopackIgnore: true */ dir);
-  return info.isDirectory() ? dir : null;
-}
-
-/** Removes what an earlier sync left behind, when it is old enough not to be one that is running. */
-async function removeLeftovers(dir: string, now: number): Promise<void> {
-  for (const name of await readdir(/* turbopackIgnore: true */ dir)) {
-    if (!name.startsWith(".tmp-") && !name.includes(".old-")) continue;
-    const path = join(dir, name);
-    const info = await stat(/* turbopackIgnore: true */ path).catch(() => null);
-    if (info && now - info.mtimeMs > LEFTOVER_MS) {
-      await rm(/* turbopackIgnore: true */ path, {
-        recursive: true,
-        force: true,
-      });
-    }
-  }
-}
-
 async function run(options: SyncOptions, deps: SyncDeps): Promise<SyncResult> {
   let stores: string | null;
   try {
-    stores = await storesDirectory(options.pluginsDir);
+    stores = await realDirectory(join(options.pluginsDir, ".stores"));
   } catch (error) {
     return failure(
       "disk",
@@ -89,7 +56,11 @@ async function run(options: SyncOptions, deps: SyncDeps): Promise<SyncResult> {
   if (stores === null) {
     return failure("disk", "The store directory is not a directory.");
   }
-  await removeLeftovers(stores, Date.now()).catch(() => {});
+  await removeLeftovers(
+    stores,
+    (name) => name.startsWith(".tmp-") || name.includes(".old-"),
+    Date.now(),
+  );
 
   const download = await fetchStoreArchive(
     options.source,
