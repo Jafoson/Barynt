@@ -24,6 +24,11 @@ export interface PluginWorkspace {
   readonly name: string;
 }
 
+export interface PluginProject {
+  readonly id: string;
+  readonly name: string;
+}
+
 /** Who is signed in. Answers `null` outside a request. */
 export interface UserService {
   current(): Promise<PluginUser | null>;

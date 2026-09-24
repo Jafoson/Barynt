@@ -5,11 +5,13 @@ import type { PluginDefinition } from "@barynt/plugin-sdk";
 // like the manifest validator it reports every problem and never throws, even
 // for a module made of getters or a proxy that throws on access.
 
-/** The two phases and the three lifecycle hooks. Anything else is most likely a typo. */
+/** The two phases and the five lifecycle hooks. Anything else is most likely a typo. */
 export const PHASE_HOOKS = ["register", "boot"] as const;
 export const LIFECYCLE_HOOKS = [
   "onEnable",
   "onDisable",
+  "onProjectEnable",
+  "onProjectDisable",
   "onUninstall",
 ] as const;
 const HOOKS = [...PHASE_HOOKS, ...LIFECYCLE_HOOKS] as const;

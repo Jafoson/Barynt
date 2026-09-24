@@ -1481,6 +1481,8 @@
       "pluginStoreUncurated": "Plugin release for workspaces and projects withdrawn",
       "pluginWorkspaceEnabled": "Plugin switched on in a workspace",
       "pluginWorkspaceDisabled": "Plugin switched off in a workspace",
+      "pluginProjectEnabled": "Plugin switched on in a project",
+      "pluginProjectDisabled": "Plugin switched off in a project",
       "projectCreated": "Project created",
       "projectVisibilityChanged": "Visibility changed",
       "memberAdded": "Member added",

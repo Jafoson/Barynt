@@ -156,8 +156,8 @@ It is possible because an update leaves the old files in place and the row keeps
 
 ## Uninstall
 
-Deletes the row, and with it the workspaces' settings (`PluginWorkspace` goes by the foreign key). The audit entry keeps what
-it was (version, source, hash) and in how many workspaces it was switched on.
+Deletes the row, and with it the workspaces' and projects' settings (`PluginWorkspace` and `PluginProject` go by the foreign key). The audit
+entry keeps what it was (version, source, hash) and in how many workspaces and projects it was switched on.
 
 **The plugin's files stay in the directory.** They are the admin's; nothing that put them there exists yet to clean up
 after itself, and a plugin that is uninstalled by mistake can be installed again from the same files. What the plugin already
@@ -212,14 +212,39 @@ row is created with the primary key as the referee. The second admin's call find
 One narrow case is left: if the first admin's enable fails and is put back at that very moment, the second was told `ok` for a
 plugin that ends up off. Its page shows the truth on the next load.
 
+## Per project
+
+A project switches on what the platform installed **and that applies per project** (`scope = PROJECT`), the same way a workspace does, one level
+down: `enablePluginInProject(projectId, pluginId)` and `disablePluginInProject(projectId, pluginId)`
+([`projectActions.ts`](../../features/plugins/projectActions.ts)), with **`plugin.enable` in that project** (`project_admin`, and whoever
+holds `project.admin.all` in the workspace, [RBAC](../rbac.md)).
+
+| Action | What it does | Audit entry (with the project and its workspace) |
+| --- | --- | --- |
+| `enablePluginInProject(projectId, pluginId)` | Switches the plugin on in the project, if it can run there | `plugin.project.enabled` |
+| `disablePluginInProject(projectId, pluginId)` | Switches it off there; the plugin cannot refuse | `plugin.project.disabled` |
+
+- **Which plugins have this switch:** only the ones with `scope = PROJECT`. A plugin that applies per workspace is a workspace's switch and one
+  for the whole platform is the platform's; each action says which when it is asked for the wrong one. A plugin the platform switched off
+  cannot be switched on in a project, but a project can still switch it off.
+- **The rules are the workspace's** ([switching on has to end with the plugin running](#switching-on-has-to-end-with-the-plugin-running),
+  [two admins at once](#two-admins-at-once)): the row is written, the registry is built again, and the plugin has to be loaded, or the row is put
+  back and the reason given; `onProjectEnable` can refuse, `onProjectDisable` cannot.
+- **What it needs, in this project:** the project plugins it depends on have to be on in the same project (they are named while they are
+  not), and disabling is refused while a project plugin that needs it is on there. The plugins of the platform it needs apply everywhere.
+  (A project plugin cannot depend on a workspace plugin at all, [Compatibility](compatibility.md#when-a-plugin-cannot-load).)
+- **Hooks get the project and its workspace**: `ctx.project` and `ctx.workspace` ([SDK](sdk.md#lifecycle-hooks)).
+
 ## Hooks
 
-Three optional hooks in the SDK ([SDK](sdk.md#lifecycle-hooks)), run by `runHook` ([`lib/plugins/hooks.ts`](../../lib/plugins/hooks.ts)):
+Five optional hooks in the SDK ([SDK](sdk.md#lifecycle-hooks)), run by `runHook` ([`lib/plugins/hooks.ts`](../../lib/plugins/hooks.ts)):
 
 | Hook | When | Can refuse? | If it fails |
 | --- | --- | --- | --- |
 | `onEnable(ctx)` | after a workspace switched the plugin on, and the plugin runs there | **yes** | the switch is refused and put back |
 | `onDisable(ctx)` | after a workspace switched it off | no | `{ ok: true, warning }`, audited as `hook: "failed"` |
+| `onProjectEnable(ctx)` | after a project switched the plugin on, and the plugin runs there | **yes** | the switch is refused and put back |
+| `onProjectDisable(ctx)` | after a project switched it off | no | `{ ok: true, warning }`, audited as `hook: "failed"` |
 | `onUninstall(ctx)` | after the plugin was removed | no | `{ ok: true, warning }`, audited as `hook: "failed"` |
 
 - **Only for a plugin that is loaded in the process** (`ActivePlugin.hooks`). A plugin the platform did not approve, one that no
@@ -230,7 +255,8 @@ Three optional hooks in the SDK ([SDK](sdk.md#lifecycle-hooks)), run by `runHook
   memory. What is uninstalled or switched off must not depend on plugin code: a hook that fails or hangs is a warning, not a reason to keep it.
 - **Never throws, and not forever.** A hook that throws, rejects or takes longer than 30 seconds (like `boot`) comes back as an
   outcome with one short line, no stack. JavaScript cannot stop a hook that never returns; the host only stops waiting.
-- **What it gets**: `ctx.plugin`, `ctx.host`, and for `onEnable`/`onDisable` `ctx.workspace` (`id`, `name`). Frozen copies, plain values.
+- **What it gets**: `ctx.plugin`, `ctx.host`, and for `onEnable`/`onDisable` `ctx.workspace` (`id`, `name`); for `onProjectEnable`/`onProjectDisable` `ctx.workspace` (the
+  project's) and `ctx.project` (`id`, `name`). Frozen copies, plain values.
   No services yet; they arrive with storage and events (BARY-85, BARY-84).
 - **Hooks run again.** A plugin is switched on and off and on again, so a hook has to be safe to repeat.
 - **The audit entry says what happened**: `meta.hook` is `ran`, `none` or `failed` (with `hookError`).

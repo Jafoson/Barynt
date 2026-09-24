@@ -39,6 +39,14 @@ describe("definePlugin", () => {
       async onDisable(ctx) {
         seen.push(`disable ${ctx.workspace.name}`);
       },
+      onProjectEnable(ctx) {
+        seen.push(`project enable ${ctx.workspace.id} ${ctx.project.id}`);
+      },
+      async onProjectDisable(ctx) {
+        seen.push(
+          `project disable ${ctx.project.name} in ${ctx.workspace.name}`,
+        );
+      },
       onUninstall(ctx) {
         seen.push(`uninstall ${ctx.plugin.version}`);
       },
@@ -50,10 +58,15 @@ describe("definePlugin", () => {
     };
     definition.onEnable?.({ ...base, workspace });
     definition.onDisable?.({ ...base, workspace });
+    const project = { id: "p1", name: "P" };
+    definition.onProjectEnable?.({ ...base, workspace, project });
+    definition.onProjectDisable?.({ ...base, workspace, project });
     definition.onUninstall?.(base);
     expect(seen).toEqual([
       `enable demo ${SDK_VERSION} w1`,
       "disable W",
+      "project enable w1 p1",
+      "project disable P in W",
       "uninstall 1.0.0",
     ]);
   });

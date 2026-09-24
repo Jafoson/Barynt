@@ -229,6 +229,8 @@ and measured (start at `docs/plugins/README.md`).
   (`features/plugins/workspaceActions.ts`, `plugin.enable`): **switching on has to end with the plugin running there**, otherwise
   the row is put back and the reason given; `onEnable` may refuse, `onDisable` and `onUninstall` cannot (a failure is a `warning`).
   Hooks (`lib/plugins/hooks.ts`) run only for a plugin loaded in the process, on the plugin as it ran *before* the change.
+  A **project** switches on its own plugins (`scope: project`) with `enablePluginInProject`/`disablePluginInProject` (`features/plugins/projectActions.ts`,
+  `plugin.enable` **in that project**, hooks `onProjectEnable` (may refuse) and `onProjectDisable`, SDK 0.3.0): the workspace's rules one level down.
 - **A store's clone is data, never code, never trusted** (`lib/plugins/store/`, `docs/plugins/store-format.md`): `readStoreDirectory` only parses JSON
   with the schemas in `format.ts`, follows no symlink (`O_NOFOLLOW`), limits every file and the number of entries, and checks id, manifest and
   versions against each other; `buildCatalog` (pure) makes one entry per store and plugin, offers the highest version that is not revoked, and an
@@ -588,6 +590,7 @@ tests/
     plugin-lifecycle/
       lifecycle.test.ts           ← install, update, uninstall, switch off (features/plugins/lifecycleActions)
       workspace.test.ts           ← switch on/off per workspace, onEnable/onDisable (own process: mocks `@/lib/plugins/host`)
+      project.test.ts             ← switch on/off per project, onProjectEnable/onProjectDisable (same shape, one level down)
     plugin-staging/
       stage.test.ts               ← features/plugins/disk (own process: it replaces the directory hash)
     store-catalog/

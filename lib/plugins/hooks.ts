@@ -1,16 +1,18 @@
 import type {
   HostInfo,
   PluginInfo,
+  PluginProject,
   PluginWorkspace,
+  ProjectLifecycleContext,
   UninstallContext,
   WorkspaceLifecycleContext,
 } from "@barynt/plugin-sdk";
 import { describe, type PluginHooks, withTimeout } from "./loader";
 
-// Runs a plugin's lifecycle hooks (`onEnable`, `onDisable`, `onUninstall`). Like
-// the loader it never throws: a hook is plugin code, and whatever it does is
-// caught and given back as an outcome the caller decides on (`onEnable` refuses,
-// the other two only warn). A hook that never returns is waited for only so long;
+// Runs a plugin's lifecycle hooks (`onEnable`, `onDisable`, `onProjectEnable`,
+// `onProjectDisable`, `onUninstall`). Like the loader it never throws: a hook is
+// plugin code, and whatever it does is caught and given back as an outcome the
+// caller decides on (`onEnable` and `onProjectEnable` refuse, the others only warn). A hook that never returns is waited for only so long;
 // JavaScript cannot stop it.
 //
 // Only a plugin that is loaded in the process has hooks (the registry gives them
@@ -37,7 +39,10 @@ export type HookOutcome =
 export async function runHook(
   plugin: { hooks: PluginHooks } | undefined,
   name: HookName,
-  context: WorkspaceLifecycleContext | UninstallContext,
+  context:
+    | WorkspaceLifecycleContext
+    | ProjectLifecycleContext
+    | UninstallContext,
   timeoutMs: number = HOOK_TIMEOUT_MS,
 ): Promise<HookOutcome> {
   const hook = plugin?.hooks[name] as
@@ -66,6 +71,21 @@ export function workspaceHookContext(
     plugin: frozen(plugin),
     host: frozen(host),
     workspace: frozen(workspace),
+  });
+}
+
+/** What `onProjectEnable` and `onProjectDisable` get. Copies, like the workspace's. */
+export function projectHookContext(
+  plugin: PluginInfo,
+  host: HostInfo,
+  workspace: PluginWorkspace,
+  project: PluginProject,
+): ProjectLifecycleContext {
+  return Object.freeze({
+    plugin: frozen(plugin),
+    host: frozen(host),
+    workspace: frozen(workspace),
+    project: frozen(project),
   });
 }
 
