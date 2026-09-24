@@ -25,6 +25,8 @@ interface Props {
   rows: SettingsRow[];
   /** Heading above the list. Without it, the list stands on its own. */
   title?: string;
+  /** Something to say between the heading and the list, such as why it cannot be used yet. Needs a `title`. */
+  note?: ReactNode;
   /** Name of the list for screen readers. Default: `title`. */
   label?: string;
   /**
@@ -67,6 +69,7 @@ const SETTING_COLUMN: TableColumn<SettingsRow> = {
 export function SettingsList({
   rows,
   title,
+  note,
   label,
   columns,
   danger = false,
@@ -121,6 +124,7 @@ export function SettingsList({
       >
         {title}
       </h2>
+      {note && <div className={styles.note}>{note}</div>}
       {table}
     </section>
   );

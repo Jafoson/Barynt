@@ -198,6 +198,6 @@ Three optional hooks in the SDK ([SDK](sdk.md#lifecycle-hooks)), run by `runHook
 
 ## Not built yet
 
-- **The admin page** that calls these actions and shows the warning, the hash and the reasons (BARY-63).
+- **The switch per workspace on the workspace's own settings page** (BARY-64). The platform's page for these actions exists ([The plugins page](admin.md)).
 - **The plugin's own settings per workspace** (`PluginWorkspace.config`, BARY-66): the actions keep what is there, nothing writes it yet.
 - **Install from a store** (BARY-105, BARY-111). It will call the same checks and set `source` and `origin` itself.

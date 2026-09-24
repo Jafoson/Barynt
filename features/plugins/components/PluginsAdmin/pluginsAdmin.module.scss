@@ -1,0 +1,239 @@
+@use "breakpoints" as bp;
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.description {
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.5rem;
+  min-width: 0;
+}
+
+.metaText {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--on-surface-variant);
+}
+
+/* Comes from no store: a mark that is meant to be seen. */
+.unsigned {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.0625rem 0.4375rem;
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-full, 999px);
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 550;
+  color: var(--on-surface);
+  background: color-mix(in srgb, var(--warning) 12%, var(--surface));
+
+  svg {
+    flex: none;
+    color: var(--warning);
+  }
+}
+
+/* What became of the plugin, in one line. */
+.state,
+.approval {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  min-width: 0;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+
+  svg {
+    flex: none;
+    margin-top: 0.125rem;
+  }
+}
+
+.state[data-tone="ok"] svg {
+  color: var(--success, var(--primary));
+}
+
+.state[data-tone="idle"] {
+  color: var(--on-surface-variant);
+}
+
+.state[data-tone="problem"] {
+  color: var(--on-error-container, var(--error));
+
+  svg {
+    color: var(--error);
+  }
+}
+
+.approval {
+  color: var(--on-surface-variant);
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+}
+
+.notice,
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0.5625rem 0.75rem;
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+
+  svg {
+    flex: none;
+    margin-top: 0.1875rem;
+  }
+}
+
+.notice {
+  background: color-mix(in srgb, var(--warning) 12%, var(--surface));
+  color: var(--on-surface);
+
+  svg {
+    color: var(--warning);
+  }
+
+  a {
+    color: var(--primary);
+    font-weight: 550;
+  }
+}
+
+.error {
+  background: var(--error-container);
+  color: var(--on-error-container);
+}
+
+.footnote {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--on-surface-variant);
+  max-width: 65ch;
+  overflow-wrap: anywhere;
+
+  code {
+    font-family: var(--font-mono);
+  }
+}
+
+.empty {
+  margin: 0;
+  padding: 1rem 0;
+  font-size: var(--text-sm);
+  color: var(--on-surface-variant);
+}
+
+.sectionNote {
+  margin: 0 0 0.5rem;
+  font-size: var(--text-sm);
+  color: var(--on-surface-variant);
+}
+
+.issueList {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: var(--text-sm);
+  color: var(--on-surface-variant);
+
+  li {
+    overflow-wrap: anywhere;
+  }
+}
+
+/* What the approval and install dialogs show about a plugin. */
+.facts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.factList {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.375rem 1rem;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  font-size: var(--text-sm);
+
+  dt {
+    color: var(--on-surface-variant);
+  }
+
+  dd {
+    margin: 0;
+    color: var(--on-surface);
+    overflow-wrap: anywhere;
+  }
+
+  @include bp.phone {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.125rem;
+
+    dd {
+      margin-bottom: 0.5rem;
+    }
+  }
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.asks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: var(--text-sm);
+
+  p {
+    margin: 0;
+  }
+}
+
+.asksNote {
+  color: var(--on-surface-variant);
+}
+
+.capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  code {
+    padding: 0.125rem 0.4375rem;
+    border-radius: var(--radius);
+    background: var(--surface-container, var(--surface));
+    border: 1px solid var(--outline-variant);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs, 0.75rem);
+  }
+}

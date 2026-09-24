@@ -9,7 +9,7 @@ import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader
 import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
 import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
-import styles from "./pluginStores.module.scss";
+import styles from "./acknowledgeModal.module.scss";
 
 interface Props {
   title: string;
@@ -30,8 +30,8 @@ interface Props {
 /**
  * A warning that has to be answered with a yes before anything happens: a dialog
  * from a tablet up, a bottom sheet on a phone. The button stays off until the box
- * is ticked. The server asks for the same yes, so this is the question, not the
- * protection.
+ * is ticked (`WarningBox` is the usual `notice`). The server asks for the same yes,
+ * so this is the question, not the protection.
  */
 export function AcknowledgeModal({
   title,
@@ -77,7 +77,7 @@ export function AcknowledgeModal({
         />
       )}
 
-      <ModalBody ref={bodyRef} className={styles.modalBody}>
+      <ModalBody ref={bodyRef} className={styles.body}>
         {notice({ checked, onChange: setChecked, disabled: isPending })}
         {error && (
           <p className={styles.error} role="alert">

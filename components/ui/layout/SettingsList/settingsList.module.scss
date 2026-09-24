@@ -87,6 +87,11 @@
   color: var(--on-surface);
 }
 
+/* Between the heading and the list: room to breathe on both sides. */
+.note {
+  margin-block: 0.25rem 0.5rem;
+}
+
 /* Whatever can't be undone carries the warning color already in the
    heading and the border — before anyone clicks, not after. */
 .dangerTitle {

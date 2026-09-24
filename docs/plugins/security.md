@@ -171,8 +171,8 @@ run, so both tell the registry, and from the next request the plugin is or is no
 
 Approving is audited as `plugin.code.approved` and marked as an intervention, with the hash; withdrawing as `plugin.code.revoked`.
 
-**Still to come.** The dialog that shows the hash, the origin and what a plugin promises, and says what the approval means: it needs the
-admin page for plugins (BARY-63). Until then the actions can only be called from code. An install does not approve
+**The dialog** that shows the hash, the origin and what a plugin promises, and says what the approval means, is on
+[the plugins page](admin.md). An install does not approve
 anything ([Lifecycle](lifecycle.md#install)); an update withdraws the approval of the old version.
 
 **What it does not do.** It does not make code safe. Approved code that is malicious is malicious, and it has the power of the app. The
