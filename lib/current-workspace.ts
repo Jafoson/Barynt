@@ -10,6 +10,11 @@ import { cache } from "react";
 // request-scoped storage. No state leaks between requests.
 const store = cache(() => ({ id: null as string | null }));
 
+/** Where the copy of this module that seeds the request store publishes its reader. */
+export const CURRENT_WORKSPACE_READER = Symbol.for(
+  "barynt.currentWorkspaceReader",
+);
+
 /**
  * Seeds the request store with the active workspace id.
  *
@@ -23,6 +28,15 @@ const store = cache(() => ({ id: null as string | null }));
  */
 export function setCurrentWorkspaceId(id: string): void {
   store().id = id;
+  // The plugin host's services (`lib/plugins/services.ts`) run from another
+  // compilation layer than the pages, with their own copy of this module and so
+  // their own `store()`, which is never seeded. The copy that *is* seeded says
+  // so here, at the moment it is: this is the reader of the request's store, for
+  // them to call. It holds no request data, only the way to it, so publishing it
+  // again on every request is harmless.
+  (globalThis as unknown as Record<symbol, () => string | null>)[
+    CURRENT_WORKSPACE_READER
+  ] = getCurrentWorkspaceId;
 }
 
 /** Active workspace id of the request, or `null` outside the app shell. */

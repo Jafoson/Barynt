@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { PLATFORM, requirePermission } from "@/lib/permissions";
+import { invalidatePluginRegistry } from "@/lib/plugins/registryState";
 import { sealStoreToken } from "@/lib/plugins/storeCredentials";
 import { normalizeStoreUrl } from "@/lib/plugins/storeUrl";
 import { SecretsKeyError } from "@/lib/secrets";
@@ -26,6 +27,12 @@ import { parseStoreCredential } from "./credential";
 // (`lib/secrets.ts`, bound to the store's address), and no result, error text or
 // audit entry from this file ever contains it. Only the fact that one was set or
 // removed is recorded.
+//
+// Which stores are on decides which plugins may run, and the registry keeps its
+// answer (`lib/plugins/registry.ts`). So whatever changes that answer, connecting a
+// store, switching one on or off, removing one, says so, and the next request builds
+// the registry again. Code a plugin already started keeps running until the process
+// restarts; what changes at once is that the host stops handing the plugin out.
 
 export type PluginStoreResult = { ok: true } | { error: string };
 
@@ -148,6 +155,7 @@ export async function addPluginStore(input: {
     });
   }
 
+  invalidatePluginRegistry();
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -187,6 +195,7 @@ export async function setPluginStoreEnabled(
     },
   });
 
+  invalidatePluginRegistry();
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -224,6 +233,7 @@ export async function removePluginStore(
     },
   });
 
+  invalidatePluginRegistry();
   revalidatePath("/", "layout");
   return { ok: true };
 }
