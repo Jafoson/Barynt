@@ -110,6 +110,14 @@ export interface LoadOptions {
    * compares them with `candidate.integrity`. Only tests replace it.
    */
   verify?: (candidate: LoadCandidate) => Promise<string | null>;
+  /**
+   * Whether this plugin already booted in this process. `boot` runs once per
+   * process (docs/plugins/sdk.md), so when the registry loads again after a
+   * change the ones that booted are registered again, which only declares, and
+   * are not booted a second time. Importing the file again gives the module the
+   * runtime already holds, with whatever state it kept.
+   */
+  alreadyBooted?: (candidate: LoadCandidate) => boolean;
 }
 
 const MAX_MESSAGE = 300;
@@ -341,6 +349,7 @@ export async function loadPlugins(
     }
     if (!definition?.boot) continue;
     try {
+      if (options.alreadyBooted?.(candidate)) continue;
       const info: PluginInfo = { id, version: candidate.version };
       const services = options.services(info);
       // Picked one by one: a factory that returns more than the five services

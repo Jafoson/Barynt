@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { PLATFORM, requirePermission } from "@/lib/permissions";
+import { invalidatePluginRegistry } from "@/lib/plugins/registryState";
 import type { PluginStoreResult } from "./actions";
 
 // Whether plugins from no store are allowed. Only `plugin.manage` may change it,
@@ -57,6 +58,7 @@ export async function setAllowUnsignedPlugins(
     },
   });
 
+  invalidatePluginRegistry();
   revalidatePath("/", "layout");
   return { ok: true };
 }

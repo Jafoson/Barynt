@@ -41,7 +41,7 @@ start, and an install / enable / disable / uninstall lifecycle.
 | [Manifest](manifest.md) | The `barynt-plugin.json` format: every field, the rules, how to validate it, what is still open. Examples in [examples/](examples). |
 | [SDK](sdk.md) | `@barynt/plugin-sdk`: how a plugin's server module is written (`definePlugin`), the two phases `register` and `boot`, what each context offers, how the host reads a module, what is still open. |
 | [Compatibility](compatibility.md) | Which installed plugins can load and in what order: the `barynt` range against the host, dependencies, cycles, and the reasons a plugin is left out. |
-| [Loading](loading.md) | Where plugins live on disk, how the host finds them (discovery) and runs them (the loader: register, boot, errors per plugin); the registry is still to come. |
+| [Loading](loading.md) | Where plugins live on disk, how the host finds them (discovery) and runs them (the loader: register, boot, errors per plugin) and which are running (the registry: start, snapshot, the services). |
 | [Plugin stores](stores.md) | Which stores plugins come from: the main store on by default, others the admin can connect, who may change the list, what it means for running code. |
 | [Security](security.md) | What can go wrong when a plugin runs and what stops it: why tier B code has the power of the app, the integrity check on every load, and who may run code in-process (only approved plugins from a store the platform switched on). |
 | [Data model](data-model.md) | The two tables (`Plugin`, `PluginWorkspace`): what each column means, what happens on delete, what is deliberately left out. |

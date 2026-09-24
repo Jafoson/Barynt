@@ -34,6 +34,7 @@ mock.module("react", () => ({ cache: <T>(fn: T) => fn }));
 
 import { getUnsignedPluginsAllowed } from "@/features/plugin-stores/queries";
 import { setAllowUnsignedPlugins } from "@/features/plugin-stores/unsignedActions";
+import { getRegistryState } from "@/lib/plugins/registryState";
 import { getAllowUnsignedPlugins } from "@/lib/plugins/unsigned";
 
 function reset() {
@@ -234,5 +235,47 @@ describe("what the page gets to see", () => {
     await expect(getUnsignedPluginsAllowed()).rejects.toThrow(
       "connection lost",
     );
+  });
+});
+
+describe("the registry that keeps which plugins run", () => {
+  const FAKE = {
+    builtAt: 0,
+    dir: "/plugins",
+    problem: null,
+    discoveryIssues: [],
+    plugins: [],
+    active: [],
+  };
+  const state = getRegistryState();
+  beforeEach(() => {
+    state.snapshot = FAKE;
+    state.generation = 0;
+  });
+
+  it("is invalidated when plugins from no store are allowed, and when they are forbidden", async () => {
+    await setAllowUnsignedPlugins(true, true);
+    expect(state.snapshot).toBeNull();
+    expect(state.generation).toBe(1);
+
+    state.snapshot = FAKE;
+    mockSettingsFindUnique.mockResolvedValue({ allowUnsignedPlugins: true });
+    await setAllowUnsignedPlugins(false);
+    expect(state.snapshot).toBeNull();
+    expect(state.generation).toBe(2);
+  });
+
+  it("is left alone when nothing changed, was refused or was not allowed", async () => {
+    await setAllowUnsignedPlugins(true, false);
+    await setAllowUnsignedPlugins("true" as unknown as boolean, true);
+    // Off already.
+    await setAllowUnsignedPlugins(false);
+    // On already.
+    mockSettingsFindUnique.mockResolvedValue({ allowUnsignedPlugins: true });
+    await setAllowUnsignedPlugins(true, true);
+    mockRequirePermission.mockRejectedValue(new Error("not allowed"));
+    await expect(setAllowUnsignedPlugins(true, true)).rejects.toThrow();
+    expect(state.snapshot).toBe(FAKE);
+    expect(state.generation).toBe(0);
   });
 });

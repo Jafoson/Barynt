@@ -645,6 +645,89 @@ describe("boot", () => {
   });
 });
 
+describe("boot runs once per process", () => {
+  // When the registry builds again after a change, plugins that booted are
+  // registered again (that only declares) and not booted a second time.
+  it("registers a plugin that already booted and does not boot it again", async () => {
+    const a = await plugin("calendar", {
+      contributes: { jobs: [{ id: "sync" }] },
+      code: tracing("calendar", `ctx.registerJob("sync", { run() {} });`),
+    });
+    const report = await loadPlugins(
+      [a],
+      options({ alreadyBooted: (candidate) => candidate.id === "calendar" }),
+    );
+    expect(report.failed.size).toBe(0);
+    expect(ids(report)).toEqual(["calendar"]);
+    expect(report.loaded[0]?.registrations.map((r) => r.id)).toEqual(["sync"]);
+    expect(trace()).toEqual(["import:calendar", "register:calendar"]);
+  });
+
+  it("boots the others, and only asks about plugins that have a boot", async () => {
+    const a = await plugin("alpha", { code: tracing("alpha") });
+    const b = await plugin("bravo", { code: tracing("bravo") });
+    const asked: string[] = [];
+    await loadPlugins(
+      [a, b],
+      options({
+        alreadyBooted: (candidate) => {
+          asked.push(candidate.id);
+          return candidate.id === "alpha";
+        },
+      }),
+    );
+    expect(trace()).toEqual([
+      "import:alpha",
+      "register:alpha",
+      "import:bravo",
+      "register:bravo",
+      "boot:bravo",
+    ]);
+    expect(asked).toEqual(["alpha", "bravo"]);
+  });
+
+  it("still loads a plugin that needs one that booted before", async () => {
+    const base = await plugin("base", { code: tracing("base") });
+    const top = await plugin("top", {
+      dependencies: { base: ">=1.0.0" },
+      code: tracing("top"),
+    });
+    const report = await loadPlugins(
+      [base, top],
+      options({ alreadyBooted: (candidate) => candidate.id === "base" }),
+    );
+    expect(ids(report)).toEqual(["base", "top"]);
+    expect(trace()).toContain("boot:top");
+    expect(trace()).not.toContain("boot:base");
+  });
+
+  it("boots every plugin when nothing says it booted", async () => {
+    const a = await plugin("alpha", { code: tracing("alpha") });
+    await loadPlugins([a], options());
+    expect(trace()).toContain("boot:alpha");
+  });
+
+  it("reports a plugin as failed in boot when the answer cannot be given, and carries on", async () => {
+    const a = await plugin("alpha", { code: tracing("alpha") });
+    const b = await plugin("bravo", { code: tracing("bravo") });
+    const report = await loadPlugins(
+      [a, b],
+      options({
+        alreadyBooted: (candidate) => {
+          if (candidate.id === "alpha") throw new Error("no answer");
+          return false;
+        },
+      }),
+    );
+    expect(why(report, "alpha")).toEqual({
+      phase: "boot",
+      message: "no answer",
+    });
+    expect(ids(report)).toEqual(["bravo"]);
+    expect(trace()).toContain("boot:bravo");
+  });
+});
+
 describe("one plugin failing", () => {
   it("does not stop the others", async () => {
     const good1 = await plugin("alpha", { code: tracing("alpha") });

@@ -50,6 +50,7 @@ import {
   MAX_STORE_URL_LENGTH,
 } from "@/features/plugin-stores/constants";
 import { getPluginStores } from "@/features/plugin-stores/queries";
+import { getRegistryState } from "@/lib/plugins/registryState";
 
 const OWN = "https://git.example.com/team/plugins";
 
@@ -414,5 +415,81 @@ describe("the list for the settings page", () => {
         credentialUser: true,
       },
     });
+  });
+});
+
+describe("the registry that keeps which plugins run", () => {
+  // Which stores are on decides which plugins may run, and the registry keeps its
+  // answer. Whatever changes that says so; whatever changes nothing does not.
+  const FAKE = {
+    builtAt: 0,
+    dir: "/plugins",
+    problem: null,
+    discoveryIssues: [],
+    plugins: [],
+    active: [],
+  };
+  const state = getRegistryState();
+  beforeEach(() => {
+    state.snapshot = FAKE;
+    state.generation = 0;
+  });
+
+  it("is invalidated when a store is connected", async () => {
+    await addPluginStore(addInput());
+    expect(state.snapshot).toBeNull();
+    expect(state.generation).toBe(1);
+  });
+
+  it("is invalidated when a store is switched on or off", async () => {
+    mockStoreFindUnique.mockResolvedValue({ ...CUSTOM, enabled: true });
+    await setPluginStoreEnabled("s2", false);
+    expect(state.snapshot).toBeNull();
+
+    state.snapshot = FAKE;
+    mockStoreFindUnique.mockResolvedValue({ ...CUSTOM, enabled: false });
+    await setPluginStoreEnabled("s2", true, true);
+    expect(state.snapshot).toBeNull();
+    expect(state.generation).toBe(2);
+  });
+
+  it("is invalidated when a store is removed", async () => {
+    mockStoreFindUnique.mockResolvedValue(CUSTOM);
+    await removePluginStore("s2");
+    expect(state.snapshot).toBeNull();
+    expect(state.generation).toBe(1);
+  });
+
+  it("is left alone when nothing changed or nothing was allowed", async () => {
+    // Refused: no yes to trusting the store, a name that is too long, an address that is not one.
+    await addPluginStore(addInput({ trusted: false }));
+    await addPluginStore(
+      addInput({ name: "x".repeat(MAX_STORE_NAME_LENGTH + 1) }),
+    );
+    await addPluginStore(addInput({ url: "http://insecure.example.com/x" }));
+    // Already there.
+    mockStoreFindUnique.mockResolvedValue(CUSTOM);
+    await addPluginStore(addInput());
+    // Switching to the state it is in.
+    mockStoreFindUnique.mockResolvedValue({ ...CUSTOM, enabled: true });
+    await setPluginStoreEnabled("s2", true);
+    // Switching a store on without the yes.
+    mockStoreFindUnique.mockResolvedValue({ ...CUSTOM, enabled: false });
+    await setPluginStoreEnabled("s2", true, false);
+    // The official store cannot be removed, an unknown one is nothing to remove.
+    mockStoreFindUnique.mockResolvedValue(OFFICIAL);
+    await removePluginStore("s1");
+    mockStoreFindUnique.mockResolvedValue(null);
+    await removePluginStore("nope");
+    expect(state.snapshot).toBe(FAKE);
+    expect(state.generation).toBe(0);
+  });
+
+  it("is left alone when the permission is refused", async () => {
+    mockRequirePermission.mockRejectedValue(new Error("not allowed"));
+    await expect(addPluginStore(addInput())).rejects.toThrow();
+    await expect(setPluginStoreEnabled("s2", false)).rejects.toThrow();
+    await expect(removePluginStore("s2")).rejects.toThrow();
+    expect(state.snapshot).toBe(FAKE);
   });
 });
