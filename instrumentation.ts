@@ -4,10 +4,10 @@
 // request it would see that request's session.
 
 export async function register() {
-  // Only the Node.js server loads plugins, and only if there is a directory for them.
-  // Without one (the default) nothing is imported and no database is touched.
+  // Only the Node.js server loads plugins. Nothing has to be set for it: the plugin
+  // directory has a default, and with no plugins installed this reads two empty
+  // tables and does nothing else.
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
-  if (!process.env.BARYNT_PLUGINS_DIR?.trim()) return;
   try {
     const { startPluginRegistry } = await import("@/lib/plugins/host");
     // Not awaited: `register` has to finish before the server takes requests, and

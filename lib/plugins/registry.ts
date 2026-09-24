@@ -33,7 +33,7 @@ export const RETRY_AFTER_FAILURE_MS = 10_000;
 const MAX_ATTEMPTS = 4;
 
 export interface RegistryDeps {
-  /** Where plugins live, from the environment. Without a directory plugins are off. */
+  /** Where plugins live: the default, or what the environment names. `null` if there is no usable one. */
   pluginsDir(): PluginsDirSetting;
   /** What is installed, and which workspace plugins some workspace has switched on. */
   installed(): Promise<{
@@ -209,7 +209,11 @@ async function buildSnapshot(
     builtAt: deps.now(),
     dir: setting.dir,
     problem: null,
-    discoveryIssues: discovery.issues,
+    // A default directory that is not there is not a problem, there are no
+    // plugins yet. One that was named and is missing is. Plugins that are
+    // installed but lost with the directory still show as missing, above.
+    discoveryIssues:
+      setting.implicit && discovery.rootMissing ? [] : discovery.issues,
     plugins,
     active,
   };

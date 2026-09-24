@@ -190,8 +190,10 @@ and measured (start at `docs/plugins/README.md`).
   Production and Helm provision new permissions on every deploy (`prisma/bootstrap.ts`);
   on an existing dev database run the `provisionSystemRbac` snippet from "New
   permission" below.
-- Plugins are read from `BARYNT_PLUGINS_DIR` (absolute path, ideally outside the app
-  directory; without it plugins are off): `<dir>/<id>/<version>/barynt-plugin.json`. `lib/plugins/discovery.ts` lists
+- Plugins are read from a directory with a **default**, so nothing has to be set: `/plugins` in the image (a volume in
+  Compose), `~/.barynt/plugins` elsewhere; a default that does not exist is fine. `BARYNT_PLUGINS_DIR` only *moves* it
+  (absolute path, ideally outside the app directory; a relative one is refused, not ignored):
+  `<dir>/<id>/<version>/barynt-plugin.json`. `lib/plugins/discovery.ts` lists
   and checks them and **never throws**: the directory is outside the host's control
   (symlinks are not followed, names and manifests are validated). Every fs call with a
   variable path needs `/* turbopackIgnore: true */` (ADR 0001). `lib/plugins/loader.ts`
@@ -212,8 +214,8 @@ and measured (start at `docs/plugins/README.md`).
   setting on needs the warning's tick, which `setAllowUnsignedPlugins` checks on the **server** (`plugin.manage`, audited),
   and installing a plugin from an address entered by hand has to ask for it again every time (BARY-60).
 - **The registry** (`lib/plugins/registry.ts`, wired in `host.ts`) decides once per process which plugins run and keeps a
-  snapshot: `planPlugins()` (pure, `plan.ts`) picks, the loader loads, `instrumentation.ts` starts it with the server (only
-  with `BARYNT_PLUGINS_DIR`, not awaited) so `boot` runs once per process outside a request. Its state lives on `global`
+  snapshot: `planPlugins()` (pure, `plan.ts`) picks, the loader loads, `instrumentation.ts` starts it with the server (not
+  awaited) so `boot` runs once per process outside a request. Its state lives on `global`
   (`registryState.ts`), because Next bundles a module once per layer; **anything that changes which code may run calls
   `invalidatePluginRegistry()`** (the store and unsigned-setting actions do; lifecycle actions must, BARY-60). A page asks
   `getActivePlugins(workspaceId)`. Request-scoped state seeded by `cache()` does not cross layers: the services find the

@@ -4,20 +4,34 @@ How the host gets from a directory on disk to running plugins. Built in three st
 (BARY-59): **discovery**, the **loader** and the **registry**.
 
 > **Status: early.** Discovery, the loader and the registry are built, and the registry starts
-> with the server when `BARYNT_PLUGINS_DIR` is set. Nothing in the app asks it for a workspace's
+> with the server, with nothing to configure. Nothing in the app asks it for a workspace's
 > plugins yet (`getActivePlugins`), and no plugin with code runs in the process, because nothing
 > records the approval that would allow it (BARY-122).
 
 ## Where plugins live
 
-The directory named by **`BARYNT_PLUGINS_DIR`**, an absolute path. It should lie outside
-the app's own directory ([ADR 0001](adr-0001-runtime-loading.md), decision 1); that is not
-enforced, only the absolute path is. Without the variable plugins are off and the app runs
-as before; a relative path is refused, because "relative to what" changes with where the
-process was started.
+**Nothing has to be set.** There is a default, and it lies outside the app's own directory
+([ADR 0001](adr-0001-runtime-loading.md), decision 1):
+
+| Where the app runs | The plugin directory |
+| --- | --- |
+| the Docker image | `/plugins`, set by the image (`BARYNT_PLUGINS_DIR` in the `Dockerfile`), owned by the unprivileged user |
+| Docker Compose | the same `/plugins`, with a named volume (`orbit-plugins`), so installed plugins survive the container being replaced |
+| anywhere else (`bun run dev`, a build on a server) | `~/.barynt/plugins`, under the home directory and not the working directory, because that changes with how the app is started and a rebuild wipes the one inside `.next` |
+| the Helm chart | `/plugins` from the image, **not** persistent and not shared between replicas yet (BARY-117) |
+
+A directory that does not exist yet is not a problem, it just means there are no plugins.
+
+**`BARYNT_PLUGINS_DIR` only moves it.** An absolute path, ideally outside the app's own
+directory. A relative path is refused and does **not** fall back to the default: "relative to
+what" changes with where the process was started, and a value that was meant to say something
+must not be quietly replaced by one that says something else. A directory that was named
+and does not exist is reported, unlike the default, because someone asked for it. If there
+is no home directory to put the default under (and nothing is set) plugins are off, with the
+reason.
 
 ```
-<BARYNT_PLUGINS_DIR>/
+<the plugin directory>/
   calendar-view/
     1.0.0/
       barynt-plugin.json
@@ -30,8 +44,9 @@ process was started.
 One directory per installed version, never overwritten: activating an update means
 importing from the new path (ADR 0001, decision 3). Which version is the active one is
 the database's answer (`Plugin.version`, see [Data model](data-model.md)); discovery lists
-**every** version it finds. The Docker image and the Helm chart have no volume for this
-directory yet (BARY-117).
+**every** version it finds. Discovery says when the directory itself does not exist
+(`rootMissing`), which is how the registry tells a default directory that is not there yet from
+one that was named and is missing.
 
 ## Discovery
 
@@ -128,9 +143,9 @@ which plugins are running and keeps the answer, a *snapshot*, until something th
 ### Starting
 
 `instrumentation.ts` starts it when the server starts, before the first request and outside any. Only on
-the Node.js server, and only if `BARYNT_PLUGINS_DIR` is set: without it nothing is imported and the database
-is not touched. It is **not awaited**, so plugins never delay the app coming up, and a request that needs them
-waits for the build that is running.
+the Node.js server, and with nothing set: with no plugins installed it reads the two plugin tables and looks
+for the directory, and does nothing else. It is **not awaited**, so plugins never delay the app coming up,
+and a request that needs them waits for the build that is running.
 
 That is what makes `boot` run **once per process, outside a request**, as the SDK promises. Started from a
 request instead, a plugin's `boot` would see that request's session.
@@ -213,7 +228,10 @@ was seeded on `global`, and the service calls that. The production build found t
 - **The approval** to run code in the process (BARY-122). Until then nothing with code runs.
 - **Calling `invalidatePluginRegistry()` from the lifecycle actions** (install, update, uninstall, enable, disable;
   BARY-60). Only the store and unsigned-plugin settings call it today.
-- **The volume** in Docker Compose and Helm (BARY-117).
+- **The Helm chart's volume** (BARY-117). The chart runs two replicas by default, and the registry lives in the process,
+  so plugins installed in one pod would not be in the other: a shared volume (ReadWriteMany) or another way to hand
+  the plugins out has to be decided first. Until then the chart has the image's `/plugins`, which is neither persistent
+  nor shared.
 - **Jobs** (BARY-90), **storage** (BARY-85), **events** (BARY-84): the services exist, without members or, for jobs, an
   honest refusal.
 - **A retry at start.** If the database is not reachable when the server starts, the registry is empty until a request
