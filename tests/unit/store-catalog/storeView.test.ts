@@ -46,7 +46,12 @@ function entry(id: string, more: Partial<CatalogEntry> = {}): CatalogEntry {
   };
 }
 
-const installed = { version: "1.0.0", fromThisStore: true, update: null };
+const installed = {
+  version: "1.0.0",
+  fromThisStore: true,
+  update: null,
+  addedCapabilities: [],
+};
 
 describe("searching", () => {
   const entries = [

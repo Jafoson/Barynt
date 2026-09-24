@@ -23,6 +23,9 @@ export interface InstalledRow {
   origin: string | null;
   integrity: string;
   codeApprovalHash: string | null;
+  /** The version before the last update or rollback, and the hash of its files. Both or neither. */
+  previousVersion: string | null;
+  previousIntegrity: string | null;
 }
 
 /** What became of an installed plugin, as a code the page turns into a sentence. */
@@ -82,6 +85,17 @@ export interface InstalledPlugin {
   integrity: string;
   /** A newer version that lies in the plugin directory, if there is one. */
   update: string | null;
+  /**
+   * The version a rollback goes back to, if the last update left one. Only says it is there:
+   * the server checks the files (`rollbackPlugin`) before it brings them back.
+   */
+  previousVersion: string | null;
+  /**
+   * For a plugin from a store: the version that store describes now, when that is newer and the
+   * plugin fits this Barynt. It is updated in the store (`updateStorePlugin`), where what it asks
+   * for is shown; this is only the pointer to it.
+   */
+  storeUpdate: string | null;
 }
 
 /** A plugin in the plugin directory that is not installed. */
@@ -133,6 +147,8 @@ export interface OverviewInput {
   workspaceCounts: ReadonlyMap<string, number>;
   activeStores: readonly string[];
   allowUnsigned: boolean;
+  /** Plugin id → the version its store offers as an update. Left out where it is not asked. */
+  storeUpdates?: ReadonlyMap<string, string>;
   locale: string;
 }
 
@@ -263,6 +279,14 @@ export function buildOverview(input: OverviewInput): PluginsOverview {
       ),
       integrity: row.integrity,
       update,
+      previousVersion:
+        row.previousVersion && row.previousIntegrity
+          ? row.previousVersion
+          : null,
+      storeUpdate:
+        row.source === "STORE"
+          ? (input.storeUpdates?.get(row.id) ?? null)
+          : null,
     };
   });
   installed.sort(

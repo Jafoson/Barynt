@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 export const openModal = mock((_render: unknown, _options: unknown) => "modal");
 export const refresh = mock();
 export const mockInstall = mock();
+export const mockUpdate = mock();
 export const mockSetCurated = mock();
 export const mockSetVisibility = mock();
 export const mockSync = mock();
@@ -73,8 +74,16 @@ mock.module("@/i18n/navigation", () => ({
   ),
 }));
 mock.module("@/lib/context", () => ({ useModal: () => ({ openModal }) }));
+/** Whether the page is opened on a phone: dialogs are bottom sheets there. */
+export const viewport = { phone: false };
+mock.module("@/lib/utils/useMediaQuery", () => ({
+  useMediaQuery: () => viewport.phone,
+  PHONE_QUERY: "(max-width: 640px)",
+  COMPACT_QUERY: "(max-width: 1024px)",
+}));
 mock.module("@/features/plugins/storeActions", () => ({
   installStorePlugin: mockInstall,
+  updateStorePlugin: mockUpdate,
   syncPluginStores: mockSync,
 }));
 mock.module("@/features/plugins/workspaceActions", () => ({

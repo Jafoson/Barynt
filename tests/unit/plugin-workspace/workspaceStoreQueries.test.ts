@@ -95,7 +95,10 @@ const store = (more: object = {}) => ({
 });
 
 /** A clone of the store with plugins: `[id, scope]`. */
-async function clone(plugins: [string, "workspace" | "platform"][]) {
+async function clone(
+  plugins: [string, "workspace" | "platform"][],
+  capabilities: string[] = [],
+) {
   const dir = storeCloneDir(root, KEY);
   await mkdir(join(dir, "plugins"), { recursive: true });
   await writeFile(
@@ -118,6 +121,7 @@ async function clone(plugins: [string, "workspace" | "platform"][]) {
         categories: ["other"],
         barynt: "^0.1.0",
         scope,
+        capabilities,
       }),
     );
     await writeFile(
@@ -265,16 +269,22 @@ describe("what the workspace can do with each", () => {
       version: "1.0.0",
       fromThisStore: true,
       update: null,
+      addedCapabilities: [],
     });
     expect(result?.workspace.switchOn).toEqual([]);
   });
 
-  it("is never an update: what is installed is updated by the platform", async () => {
-    await clone([["notes", "workspace"]]);
+  it("is never an update, and says nothing of what one would ask for: what is installed is updated by the platform", async () => {
+    await clone([["notes", "workspace"]], ["issues:write"]);
     mockPluginFindMany.mockResolvedValue([installedRow("notes", "0.9.0")]);
     mockWorkspaceRows.mockResolvedValue([{ pluginId: "notes" }]);
     const result = await getWorkspaceStore("ws-7", "en");
-    expect(result?.view.catalog.entries[0]?.installed?.update).toBeNull();
+    expect(result?.view.catalog.entries[0]?.installed).toEqual({
+      version: "0.9.0",
+      fromThisStore: true,
+      update: null,
+      addedCapabilities: [],
+    });
   });
 
   it("is not a switch-on for a plugin that is on for a workspace and no longer on the platform", async () => {

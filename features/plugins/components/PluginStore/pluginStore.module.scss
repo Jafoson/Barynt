@@ -711,6 +711,29 @@
   color: var(--on-surface-variant);
 }
 
+// What an update asks for that the installed version did not: the one thing in the consent
+// that has to be seen, so it is set apart.
+.added {
+  padding: 0.75rem 0.875rem;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--warning) 12%, var(--surface));
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  svg {
+    flex: none;
+    color: var(--warning);
+  }
+
+  code {
+    border-color: color-mix(in srgb, var(--warning) 45%, var(--outline-variant));
+  }
+}
+
 .versions {
   display: flex;
   flex-direction: column;

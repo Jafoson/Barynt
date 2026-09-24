@@ -9,10 +9,12 @@ import {
   mockEnable,
   mockInstall,
   mockSetCurated,
+  mockUpdate,
   openModal,
   refresh,
   resetStarted,
   settled,
+  viewport,
 } from "../plugin-store-support/setup";
 
 // The plugin store page. The cards and the featured shelf are stand-ins that keep the
@@ -47,11 +49,13 @@ mock.module(
   }),
 );
 
+import { InstallFromStoreModal } from "@/features/plugins/components/PluginStore/InstallFromStoreModal";
 import { PluginStore } from "@/features/plugins/components/PluginStore/PluginStore";
 import {
   type StoreMode,
   StoreModeContext,
 } from "@/features/plugins/components/PluginStore/storeMode";
+import { UpdateFromStoreModal } from "@/features/plugins/components/PluginStore/UpdateFromStoreModal";
 import type { StoreCatalogView } from "@/features/plugins/storeQueries";
 
 function render(
@@ -97,11 +101,13 @@ beforeEach(() => {
     openModal,
     refresh,
     mockInstall,
+    mockUpdate,
     mockSetCurated,
     mockEnable,
     mockAddToWorkspace,
   ])
     m.mockClear();
+  mockUpdate.mockResolvedValue({ ok: true });
   mockEnable.mockResolvedValue({ ok: true });
   mockAddToWorkspace.mockResolvedValue({ ok: true });
   mockInstall.mockResolvedValue({ ok: true });
@@ -131,7 +137,12 @@ describe("the page", () => {
           entry("a-plugin", { categories: ["planning", "other"] }),
           entry("b-plugin", {
             categories: ["planning"],
-            installed: { version: "1.0.0", fromThisStore: true, update: null },
+            installed: {
+              version: "1.0.0",
+              fromThisStore: true,
+              update: null,
+              addedCapabilities: [],
+            },
           }),
           entry("c-plugin", { categories: ["reporting"] }),
         ],
@@ -181,7 +192,12 @@ describe("searching and filtering", () => {
     dated("gantt", "2026-02-01", { categories: ["planning", "reporting"] }),
     dated("board", "2026-03-01", {
       categories: ["reporting"],
-      installed: { version: "1.0.0", fromThisStore: true, update: null },
+      installed: {
+        version: "1.0.0",
+        fromThisStore: true,
+        update: null,
+        addedCapabilities: [],
+      },
     }),
     dated("wiki", "2026-04-01", { categories: ["other"] }),
   ];
@@ -565,6 +581,103 @@ describe("installing", () => {
     expect((consent.props as { entry: CatalogEntry }).entry.id).toBe(
       "a-plugin",
     );
+  });
+});
+
+describe("updating", () => {
+  const withUpdate = () =>
+    entry("notes", {
+      storeId: "store-9",
+      installed: {
+        version: "1.0.0",
+        fromThisStore: true,
+        update: "1.1.0",
+        addedCapabilities: ["issues:write"],
+      },
+    });
+  const press = (e: CatalogEntry, version: string) => {
+    render(view({ entries: [e, ...four()] }));
+    const card = cards.find((c) => c.entry.id === e.id);
+    card?.onInstall(card.entry, version);
+    const call = openModal.mock.calls.at(-1);
+    if (!call) throw new Error("no dialog");
+    const element = (call[0] as (a: { close: () => void }) => ReactElement)({
+      close: () => {},
+    });
+    return {
+      element,
+      props: element.props as {
+        entry: CatalogEntry;
+        version: string;
+        sheet?: boolean;
+        onConfirm: () => Promise<string | null>;
+      },
+      options: call[1] as { label: string; placement?: string },
+    };
+  };
+
+  it("opens the consent for an update, not the one for an install, when the plugin is installed", () => {
+    const { element, props, options } = press(withUpdate(), "1.1.0");
+    expect(element.type).toBe(UpdateFromStoreModal);
+    expect(props.entry.id).toBe("notes");
+    expect(props.version).toBe("1.1.0");
+    expect(options.label).toBe("notes");
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockInstall).not.toHaveBeenCalled();
+  });
+
+  it("is a bottom sheet on a phone, and a dialog from a tablet up", () => {
+    expect(press(withUpdate(), "1.1.0").props.sheet).toBe(false);
+    viewport.phone = true;
+    try {
+      const { props, options } = press(withUpdate(), "1.1.0");
+      expect(props.sheet).toBe(true);
+      expect(options).toEqual({ label: "notes", placement: "bottom" });
+    } finally {
+      viewport.phone = false;
+    }
+  });
+
+  it("still opens the consent for an install when it is not installed", () => {
+    const { element } = press(entry("notes"), "1.0.0");
+    expect(element.type).toBe(InstallFromStoreModal);
+  });
+
+  it("updates that plugin to that version with the yes it asked for, and names no store", async () => {
+    const { props } = press(withUpdate(), "1.1.0");
+    expect(await props.onConfirm()).toBeNull();
+    expect(mockUpdate.mock.calls).toEqual([
+      ["notes", "1.1.0", { acknowledged: true }],
+    ]);
+    expect(mockInstall).not.toHaveBeenCalled();
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives back the server's reason and does not reload when it refuses", async () => {
+    const { props } = press(withUpdate(), "1.1.0");
+    mockUpdate.mockResolvedValue({ error: "The store withdrew it." });
+    expect(await props.onConfirm()).toBe("The store withdrew it.");
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("is reachable from the details too", () => {
+    render(view({ entries: [withUpdate(), ...four()] }));
+    const card = cards.find((c) => c.entry.id === "notes");
+    card?.onOpen(card.entry);
+    const details = (
+      openModal.mock.calls.at(-1)?.[0] as (a: {
+        close: () => void;
+      }) => ReactElement
+    )({ close: () => {} });
+    (
+      details.props as { onInstall: (e: CatalogEntry, v: string) => void }
+    ).onInstall(card?.entry as CatalogEntry, "1.1.0");
+    const consent = (
+      openModal.mock.calls.at(-1)?.[0] as (a: {
+        close: () => void;
+      }) => ReactElement
+    )({ close: () => {} });
+    expect(consent.type).toBe(UpdateFromStoreModal);
   });
 });
 

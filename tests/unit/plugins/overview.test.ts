@@ -65,6 +65,8 @@ function row(id: string, more: Partial<InstalledRow> = {}): InstalledRow {
     origin: OFFICIAL_STORE_URL,
     integrity: H1,
     codeApprovalHash: null,
+    previousVersion: null,
+    previousIntegrity: null,
     ...more,
   };
 }
@@ -232,6 +234,8 @@ describe("an installed plugin", () => {
       categories: [],
       hasCode: false,
       update: null,
+      previousVersion: null,
+      storeUpdate: null,
     });
   });
 
@@ -395,6 +399,71 @@ describe("whether its code may be approved", () => {
     expect(
       one({ row: { source: "DIRECTORY", origin: null } }).approval,
     ).toEqual({ kind: "none" });
+  });
+});
+
+describe("the way back, and the update in the store", () => {
+  const updates = (entries: [string, string][]) => ({
+    storeUpdates: new Map(entries),
+  });
+
+  it("is the version before the last update, when the row kept it and the hash of its files", () => {
+    expect(
+      one({
+        row: {
+          version: "1.1.0",
+          previousVersion: "1.0.0",
+          previousIntegrity: H1,
+        },
+        manifest: {},
+      }).previousVersion,
+    ).toBe("1.0.0");
+  });
+
+  it("is nothing when the row kept only one of the two, or none", () => {
+    expect(
+      one({ row: { previousVersion: "1.0.0" } }).previousVersion,
+    ).toBeNull();
+    expect(one({ row: { previousIntegrity: H1 } }).previousVersion).toBeNull();
+    expect(one().previousVersion).toBeNull();
+  });
+
+  it("says which version the store the plugin came from offers", () => {
+    expect(one({ input: updates([["calendar", "1.1.0"]]) }).storeUpdate).toBe(
+      "1.1.0",
+    );
+  });
+
+  it("is nothing for another plugin's update, and when the store was not asked", () => {
+    expect(
+      one({ input: updates([["notes", "9.9.9"]]) }).storeUpdate,
+    ).toBeNull();
+    expect(one().storeUpdate).toBeNull();
+  });
+
+  it("is nothing for a plugin from no store, whatever the map says", () => {
+    expect(
+      one({
+        row: { source: "DIRECTORY", origin: null },
+        input: updates([["calendar", "1.1.0"]]),
+      }).storeUpdate,
+    ).toBeNull();
+    expect(
+      one({
+        row: { source: "UPLOAD", origin: null },
+        input: updates([["calendar", "1.1.0"]]),
+      }).storeUpdate,
+    ).toBeNull();
+  });
+
+  it("is not the update of the plugin directory: the two do not mix", () => {
+    const plugin = one({
+      row: { source: "DIRECTORY", origin: null },
+      extra: [found("calendar", "1.2.0")],
+      input: updates([["calendar", "1.1.0"]]),
+    });
+    expect(plugin.update).toBe("1.2.0");
+    expect(plugin.storeUpdate).toBeNull();
   });
 });
 

@@ -2,7 +2,7 @@ import "server-only";
 import { getPluginStoreVisibility } from "@/features/plugin-stores/queries";
 import { db } from "@/lib/db";
 import { PLATFORM, requirePermission } from "@/lib/permissions";
-import { pluginsDirSetting } from "@/lib/plugins/discovery";
+import { discoverPlugins, pluginsDirSetting } from "@/lib/plugins/discovery";
 import { buildCatalog, type Catalog } from "@/lib/plugins/store/catalog";
 import { storeCloneDir } from "@/lib/plugins/store/paths";
 import { readStoreDirectory } from "@/lib/plugins/store/reader";
@@ -65,6 +65,8 @@ export async function loadStoreCatalog(
 
   const setting = pluginsDirSetting();
   const dir = setting.dir;
+  // What the installed files ask for, so that an update can say what it asks for in addition.
+  const onDisk = dir ? (await discoverPlugins(dir)).plugins : [];
   const inputs = await Promise.all(
     stores.map(async (store) => ({
       id: store.id,
@@ -86,7 +88,15 @@ export async function loadStoreCatalog(
   return {
     catalog: buildCatalog({
       stores: inputs,
-      installed,
+      installed: installed.map((row) => {
+        const found = onDisk.find(
+          (p) => p.id === row.id && p.version === row.version,
+        );
+        return {
+          ...row,
+          capabilities: found?.ok ? found.manifest.capabilities : null,
+        };
+      }),
       hostVersion: BARYNT_VERSION,
       locale,
     }),

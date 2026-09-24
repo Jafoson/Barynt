@@ -373,6 +373,7 @@ describe("whether it is installed", () => {
       version: "1.0.0",
       fromThisStore: true,
       update: null,
+      addedCapabilities: [],
     });
   });
 
@@ -399,6 +400,80 @@ describe("whether it is installed", () => {
       version: "1.9.0",
       fromThisStore: true,
       update: "1.10.0",
+      addedCapabilities: [],
+    });
+  });
+
+  describe("what an update asks for in addition", () => {
+    const asks = ["issues:read", "issues:write"];
+    const added = (
+      installedCapabilities: readonly string[] | null | undefined,
+      installedVersion = "1.0.0",
+    ) =>
+      buildCatalog(
+        input({
+          stores: [
+            store({
+              entries: [
+                entry("notes", [version("1.1.0")], { capabilities: asks }),
+              ],
+            }),
+          ],
+          installed: [
+            {
+              id: "notes",
+              version: installedVersion,
+              origin: `https://${OFFICIAL}`,
+              ...(installedCapabilities === undefined
+                ? {}
+                : { capabilities: installedCapabilities }),
+            },
+          ],
+        }),
+      ).entries[0]?.installed?.addedCapabilities;
+
+    it("is only what the installed version did not ask for", () => {
+      expect(added(["issues:read"])).toEqual(["issues:write"]);
+      expect(added(["issues:write"])).toEqual(["issues:read"]);
+    });
+
+    it("is nothing when it asks for no more, or for less", () => {
+      expect(added(asks)).toEqual([]);
+      expect(added([...asks, "comments:read"])).toEqual([]);
+    });
+
+    it("is all of it when it is not known what the installed version asked for", () => {
+      expect(added(null)).toEqual(asks);
+      expect(added(undefined)).toEqual(asks);
+      expect(added([])).toEqual(asks);
+    });
+
+    it("is nothing when there is no update, whatever the store asks for", () => {
+      expect(added([], "1.1.0")).toEqual([]);
+      expect(added(null, "2.0.0")).toEqual([]);
+    });
+
+    it("is nothing for a plugin that came from another store, which gets no update", () => {
+      const catalog = buildCatalog(
+        input({
+          stores: [
+            store({
+              entries: [
+                entry("notes", [version("1.1.0")], { capabilities: asks }),
+              ],
+            }),
+          ],
+          installed: [
+            {
+              id: "notes",
+              version: "1.0.0",
+              origin: `https://${OTHER}`,
+              capabilities: [],
+            },
+          ],
+        }),
+      );
+      expect(catalog.entries[0]?.installed?.addedCapabilities).toEqual([]);
     });
   });
 
@@ -439,11 +514,13 @@ describe("whether it is installed", () => {
       version: "1.0.0",
       fromThisStore: true,
       update: null,
+      addedCapabilities: [],
     });
     expect(by.s2).toEqual({
       version: "1.0.0",
       fromThisStore: false,
       update: null,
+      addedCapabilities: [],
     });
   });
 
@@ -464,6 +541,7 @@ describe("whether it is installed", () => {
         version: "1.0.0",
         fromThisStore: false,
         update: null,
+        addedCapabilities: [],
       });
     },
   );
