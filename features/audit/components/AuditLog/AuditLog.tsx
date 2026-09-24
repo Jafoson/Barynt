@@ -180,6 +180,28 @@ export const AUDIT_ACTION_META = {
     icon: "lucide:shield-minus",
     message: "pluginCodeRevoked",
   },
+  "plugin.installed": {
+    icon: "lucide:download",
+    message: "pluginInstalled",
+    loud: true,
+  },
+  "plugin.updated": {
+    icon: "lucide:refresh-cw",
+    message: "pluginUpdated",
+    loud: true,
+  },
+  "plugin.uninstalled": {
+    icon: "lucide:trash-2",
+    message: "pluginUninstalled",
+  },
+  "plugin.status.enabled": {
+    icon: "lucide:toggle-right",
+    message: "pluginStatusEnabled",
+  },
+  "plugin.status.disabled": {
+    icon: "lucide:toggle-left",
+    message: "pluginStatusDisabled",
+  },
   "project.created": { icon: "lucide:folder-plus", message: "projectCreated" },
   "project.visibility.changed": {
     icon: "lucide:eye",

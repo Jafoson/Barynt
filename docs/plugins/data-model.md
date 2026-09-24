@@ -79,7 +79,8 @@ storage (BARY-85), which is a separate table with no foreign key to `Plugin`.
 - **Tables of a plugin's own.** Plugin data goes through the generic storage (BARY-85).
 - **An opt-out per project.** It arrives with the slot framework (BARY-65), the first
   thing that needs it.
-- **Who installed it.** The audit log records that with the lifecycle actions (BARY-60).
+- **Who installed it.** The audit log records that (`plugin.installed`, `plugin.updated`, `plugin.uninstalled`, see
+  [Lifecycle](lifecycle.md)); the row has no column for it.
 
 ## Working with the schema
 

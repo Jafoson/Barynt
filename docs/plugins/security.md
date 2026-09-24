@@ -132,9 +132,10 @@ A plugin that comes from **no store** (an upload, a directory, later a repositor
   always opens a dialog that says these plugins are untested and used at the admin's own risk, and asks for a tick.
   The **server** asks for the same tick (`setAllowUnsignedPlugins(true, true)`), so calling the action directly does not
   skip it. Switching it off asks nothing. Both are audited (`plugin.unsigned.allowed`, `plugin.unsigned.disallowed`).
-- **It asks again for each plugin.** Allowing unsigned plugins once is not consent for every one: installing one from
-  an address entered by hand has to show the same warning and refuse without the tick, every time. That installer does
-  not exist yet (BARY-60, BARY-111); this is the requirement it is built to.
+- **It asks again for each plugin.** Allowing unsigned plugins once is not consent for every one: installing or updating
+  one has to show the same warning and refuse without the tick, every time. The actions that install from the plugin
+  directory do this now, and the **server** checks the tick (`installPlugin`, `updatePlugin`, [Lifecycle](lifecycle.md));
+  installing from an address entered by hand (BARY-111) is built to the same requirement.
 - **What it allows.** A plugin without code runs. **A plugin with code stays blocked** (`unsigned-code`), with the setting
   on as well: unreviewed code does not get to run in the app's process, which has the power of the whole app (decided
   in BARY-120). It will run isolated, in a sandbox or as a service of its own, when those exist (BARY-123, BARY-124).
@@ -171,8 +172,8 @@ run, so both tell the registry, and from the next request the plugin is or is no
 Approving is audited as `plugin.code.approved` and marked as an intervention, with the hash; withdrawing as `plugin.code.revoked`.
 
 **Still to come.** The dialog that shows the hash, the origin and what a plugin promises, and says what the approval means: it needs the
-admin page for plugins (BARY-63). Until then the actions can only be called from code. The installer will offer the approval after an
-install (BARY-60).
+admin page for plugins (BARY-63). Until then the actions can only be called from code. An install does not approve
+anything ([Lifecycle](lifecycle.md#install)); an update withdraws the approval of the old version.
 
 **What it does not do.** It does not make code safe. Approved code that is malicious is malicious, and it has the power of the app. The
 approval is a decision about *whose* code and *which* files, made by someone who was told what it means.

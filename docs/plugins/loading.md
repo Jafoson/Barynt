@@ -230,8 +230,9 @@ was seeded on `global`, and the service calls that. The production build found t
 ## Not built yet
 
 - **The approval dialog** (BARY-63): the actions exist, the page that shows the hash, the origin and what the approval means does not.
-- **Calling `invalidatePluginRegistry()` from the lifecycle actions** (install, update, uninstall, enable, disable;
-  BARY-60). Only the store and unsigned-plugin settings call it today.
+- **Calling `invalidatePluginRegistry()` for the switches per workspace** (enable, disable in a workspace; BARY-60, second
+  part). The store and unsigned-plugin settings, the approval and the platform's lifecycle (install, update, uninstall,
+  switching off; [Lifecycle](lifecycle.md)) call it.
 - **The Helm chart's volume** (BARY-117). The chart runs two replicas by default, and the registry lives in the process,
   so plugins installed in one pod would not be in the other: a shared volume (ReadWriteMany) or another way to hand
   the plugins out has to be decided first. Until then the chart has the image's `/plugins`, which is neither persistent
