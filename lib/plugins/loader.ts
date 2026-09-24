@@ -9,7 +9,7 @@ import type {
   RegistrationContext,
   ServerContributionPoint,
 } from "@barynt/plugin-sdk";
-import { parsePluginModule } from "./definition";
+import { LIFECYCLE_HOOKS, parsePluginModule } from "./definition";
 import { errorCode } from "./discovery";
 import { verifyPluginIntegrity } from "./integrity";
 import type { PluginManifest } from "./manifest";
@@ -63,11 +63,21 @@ export interface Registration {
   definition: unknown;
 }
 
+/**
+ * The lifecycle hooks a plugin defined, each bound to the plugin's definition so
+ * that `this` works as it does in `boot`. Only the ones it has.
+ */
+export type PluginHooks = Readonly<
+  Pick<PluginDefinition, (typeof LIFECYCLE_HOOKS)[number]>
+>;
+
 export interface LoadedPlugin {
   id: string;
   version: string;
   /** In the order the plugin registered them. Empty for a plugin without server code. */
   registrations: Registration[];
+  /** The lifecycle hooks it has. Empty for a plugin without server code. */
+  hooks: PluginHooks;
 }
 
 export interface LoadReport {
@@ -123,7 +133,7 @@ export interface LoadOptions {
 const MAX_MESSAGE = 300;
 
 /** The message of whatever was thrown, which may not be an Error at all. */
-function describe(error: unknown): string {
+export function describe(error: unknown): string {
   let message: string;
   try {
     message =
@@ -141,7 +151,7 @@ function describe(error: unknown): string {
 }
 
 /** Stops waiting after `ms`. The work itself is not stopped, JavaScript cannot do that. */
-function withTimeout<T>(
+export function withTimeout<T>(
   work: Promise<T>,
   ms: number,
   what: string,
@@ -252,6 +262,21 @@ interface Pending {
   candidate: LoadCandidate;
   definition: PluginDefinition | null;
   registrations: Registration[];
+  hooks: PluginHooks;
+}
+
+/** The lifecycle hooks of a definition, bound to it, in an object of their own. */
+function pickHooks(definition: PluginDefinition | null): PluginHooks {
+  const hooks: Record<string, unknown> = {};
+  if (definition) {
+    for (const name of LIFECYCLE_HOOKS) {
+      const hook: unknown = definition[name];
+      if (typeof hook === "function") {
+        hooks[name] = (context: unknown) => hook.call(definition, context);
+      }
+    }
+  }
+  return Object.freeze(hooks) as PluginHooks;
 }
 
 /**
@@ -332,7 +357,12 @@ export async function loadPlugins(
         }
         if (violations.length > 0) throw new Error(violations.join("; "));
       }
-      pending.set(id, { candidate, definition, registrations });
+      pending.set(id, {
+        candidate,
+        definition,
+        registrations,
+        hooks: pickHooks(definition),
+      });
       alive.add(id);
     } catch (error) {
       fail(id, phase, error);
@@ -374,9 +404,9 @@ export async function loadPlugins(
   }
 
   const loaded: LoadedPlugin[] = [];
-  for (const [id, { candidate, registrations }] of pending) {
+  for (const [id, { candidate, registrations, hooks }] of pending) {
     if (alive.has(id)) {
-      loaded.push({ id, version: candidate.version, registrations });
+      loaded.push({ id, version: candidate.version, registrations, hooks });
     }
   }
   return { loaded, failed };

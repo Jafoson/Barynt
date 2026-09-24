@@ -203,11 +203,16 @@ that moment. A change that happens while a build runs discards that build.
   the process restarts, because JavaScript cannot unload a module. The host stops *handing the plugin out*, which is what
   changes at once. Switching a store off therefore ends a plugin's use in the app, but a restart is what ends its code.
 - It applies to **this process**. With several replicas each has to be told; today the app is one process.
+- **It can be built from a Server Action.** The actions that switch a plugin on or off for a workspace, and uninstall one, read
+  the registry after they wrote, to see whether the plugin runs and to get its hooks, so a build can start there and not only in
+  `instrumentation.ts` or a page. Checked in a production build (Bun, standalone): state, plugin code and hooks are the same for the
+  action, a route handler and the startup, and a hook runs on the code the registry loaded.
 
 ### For a page
 
 `getActivePlugins(workspaceId)` in [`host.ts`](../../lib/plugins/host.ts), once per request: every running platform
-plugin and each running workspace plugin that workspace switched on. It waits if the registry is still building and fails
+plugin and each running workspace plugin that workspace switched on. Each `ActivePlugin` carries its `registrations` and
+its lifecycle `hooks` ([Lifecycle](lifecycle.md#hooks)), bound to the plugin's definition and frozen. It waits if the registry is still building and fails
 closed, an empty list, if it cannot read. It does not ask whether the user may see the workspace; the workspace layout
 does that for everything under it.
 
@@ -230,9 +235,9 @@ was seeded on `global`, and the service calls that. The production build found t
 ## Not built yet
 
 - **The approval dialog** (BARY-63): the actions exist, the page that shows the hash, the origin and what the approval means does not.
-- **Calling `invalidatePluginRegistry()` for the switches per workspace** (enable, disable in a workspace; BARY-60, second
-  part). The store and unsigned-plugin settings, the approval and the platform's lifecycle (install, update, uninstall,
-  switching off; [Lifecycle](lifecycle.md)) call it.
+- **Calling `invalidatePluginRegistry()` from every change.** The store and unsigned-plugin settings, the approval, the
+  platform's lifecycle (install, update, uninstall, switching off) and the switches per workspace
+  ([Lifecycle](lifecycle.md)) all call it: nothing that decides what runs is left out.
 - **The Helm chart's volume** (BARY-117). The chart runs two replicas by default, and the registry lives in the process,
   so plugins installed in one pod would not be in the other: a shared volume (ReadWriteMany) or another way to hand
   the plugins out has to be decided first. Until then the chart has the image's `/plugins`, which is neither persistent

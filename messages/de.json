@@ -1249,6 +1249,8 @@
       "pluginUninstalled": "Plugin deinstalliert",
       "pluginStatusEnabled": "Plugin eingeschaltet",
       "pluginStatusDisabled": "Plugin ausgeschaltet",
+      "pluginWorkspaceEnabled": "Plugin in einem Workspace eingeschaltet",
+      "pluginWorkspaceDisabled": "Plugin in einem Workspace ausgeschaltet",
       "projectCreated": "Projekt angelegt",
       "projectVisibilityChanged": "Sichtbarkeit geändert",
       "memberAdded": "Mitglied hinzugefügt",

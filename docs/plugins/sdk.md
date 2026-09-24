@@ -4,9 +4,9 @@
 of a plugin, the two contexts it receives, and the version of the contract. The
 host imports the same types, so both sides agree on one definition.
 
-> **Status: early, version 0.1.0.** This is the frame: the two phases, the names
-> of the registration methods and services, and how the host reads a plugin
-> module. What most definitions hold is still open (see [Not decided yet](#not-decided-yet)).
+> **Status: early, version 0.2.0.** This is the frame: the two phases, the three
+> lifecycle hooks, the names of the registration methods and services, and how the
+> host reads a plugin module. What most definitions hold is still open (see [Not decided yet](#not-decided-yet)).
 > The package is `private` and not published yet.
 
 ## Where it lives
@@ -54,7 +54,7 @@ Modelled on Nextcloud's `register()` before `boot()`:
 | May ask for data or other plugins | **No.** Not every plugin has registered yet, which is why plugin order does not matter | Yes, through the services |
 | Async | **No.** The host refuses a `register` that returns a promise | Yes |
 
-Both hooks are optional; a plugin needs at least one.
+Both phases are optional, and so are the [lifecycle hooks](#lifecycle-hooks); a plugin needs at least one of the five.
 
 ### Registration context
 
@@ -99,6 +99,35 @@ it was approved while the app runs. When the
 plugins change while the app runs, a plugin that booted is registered again and **not booted a
 second time** ([Loading](loading.md#the-registry)).
 
+## Lifecycle hooks
+
+Three more optional functions on the definition, called when the plugin's life changes ([Lifecycle](lifecycle.md#hooks)):
+
+```ts
+export default definePlugin({
+  async onEnable(ctx) {
+    // ctx.workspace is the workspace that switched the plugin on. Throw to refuse.
+  },
+  onDisable(ctx) { /* the workspace switched it off; it cannot be refused */ },
+  onUninstall(ctx) { /* the platform removed the plugin; it cannot be refused */ },
+});
+```
+
+| Hook | Context | Can refuse? |
+| --- | --- | --- |
+| `onEnable(ctx)` | `plugin`, `host`, `workspace` (`id`, `name`) | **yes**: throw, or take longer than 30 seconds, and the plugin is not switched on |
+| `onDisable(ctx)` | `plugin`, `host`, `workspace` | no, a failure is a warning to the admin |
+| `onUninstall(ctx)` | `plugin`, `host` | no, a failure is a warning to the admin |
+
+- **Only for a plugin that runs in the process.** A hook is plugin code, and code the platform did not approve does not run. A plugin
+  the platform has not approved, or that no workspace has switched on, is not woken up for a lifecycle event.
+- **`onEnable` and `onDisable` are per workspace and only for plugins with `scope: workspace`.** A platform plugin has `boot`, and
+  `onUninstall`.
+- **They can run again.** A plugin is switched on, off and on again, in as many workspaces as there are, so a hook has to be safe to repeat.
+- **The context is plain values**, frozen copies. Services (storage, events) arrive with their tickets and will be added to it.
+- **There is no `onInstall` and no `onUpdate`.** The code of a plugin that was just installed or updated is not approved to run yet,
+  so nothing of it can be called then. Prepare in `onEnable`, which runs once the plugin runs.
+
 ## How the host reads a plugin module
 
 `parsePluginModule()` in [`lib/plugins/definition.ts`](../../lib/plugins/definition.ts)
@@ -109,9 +138,9 @@ every problem and never throws, even for a module made of throwing getters.
 ```
 no default export: write `export default definePlugin({ register, boot })`
 the default export is a function: wrap it as `definePlugin({ register })`
-bot: is not a known hook (use register or boot)
+bot: is not a known hook (use register, boot, onEnable, onDisable or onUninstall)
 boot: must be a function
-the plugin defines neither register nor boot
+the plugin defines no hook (register, boot, onEnable, onDisable or onUninstall)
 ```
 
 Unknown hooks are an error for the same reason unknown manifest fields are: a typo
@@ -128,8 +157,7 @@ Left open because the ticket that builds the feature decides it:
   context hooks (`useHostContext`), toast, navigation and the UI kit (BARY-65).
   The SDK will export `version` and the hooks at runtime through
   `globalThis.__BARYNT__.sdk`, re-exported by a shim module ([ADR 0002](adr-0002-client-bundles.md)).
-- **Lifecycle hooks** `onInstall`, `onEnable`, `onDisable`, `onUninstall`,
-  `onUpdate` (BARY-60).
+- **Services in the hook contexts** (storage, events), when those exist (BARY-85, BARY-84).
 - **`storage` and `events`** on the boot context (BARY-85, BARY-84).
 - **Publishing** the package to npm.
 

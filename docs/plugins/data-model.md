@@ -35,7 +35,7 @@ constraint would need a trigger); the registry never creates such a row.
 
 | Column | Meaning |
 | --- | --- |
-| `enabled` | on in this workspace. The row appears at the first switch-on and **stays when it is switched off**, so the settings are not lost |
+| `enabled` | on in this workspace. The row appears at the first switch-on (`enablePlugin`) and **stays when it is switched off** (`disablePlugin` sets it to `false`), so the settings are not lost. It is deleted only with the plugin (uninstall), with the workspace, or when a switch-on that this call created is put back because the plugin could not run there ([Lifecycle](lifecycle.md#switching-on-has-to-end-with-the-plugin-running)) |
 | `config` | the plugin's settings in this workspace, `{}` until something is set. The plugin defines the shape (BARY-66) |
 | `createdAt`, `updatedAt` | |
 

@@ -202,6 +202,14 @@ export const AUDIT_ACTION_META = {
     icon: "lucide:toggle-left",
     message: "pluginStatusDisabled",
   },
+  "plugin.workspace.enabled": {
+    icon: "lucide:plug",
+    message: "pluginWorkspaceEnabled",
+  },
+  "plugin.workspace.disabled": {
+    icon: "lucide:unplug",
+    message: "pluginWorkspaceDisabled",
+  },
   "project.created": { icon: "lucide:folder-plus", message: "projectCreated" },
   "project.visibility.changed": {
     icon: "lucide:eye",

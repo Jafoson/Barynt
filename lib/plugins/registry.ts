@@ -6,6 +6,7 @@ import type {
   LoadCandidate,
   LoadOptions,
   LoadReport,
+  PluginHooks,
   Registration,
 } from "./loader";
 import { type InstalledPlugin, type PluginPlan, planPlugins } from "./plan";
@@ -80,6 +81,8 @@ export interface ActivePlugin {
   scope: "WORKSPACE" | "PLATFORM";
   mode: "declarative" | "in-process";
   registrations: Registration[];
+  /** The lifecycle hooks it has, for `docs/plugins/lifecycle.md`. */
+  hooks: PluginHooks;
 }
 
 export interface RegistrySnapshot {
@@ -208,6 +211,7 @@ async function buildSnapshot(
       scope,
       mode,
       registrations: entry.registrations,
+      hooks: entry.hooks,
     });
     state.booted.add(bootKey(entry));
   }

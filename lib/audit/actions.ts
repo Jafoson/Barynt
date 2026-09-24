@@ -67,6 +67,9 @@ export const AUDIT_ACTIONS = {
   "plugin.uninstalled": "Plugin uninstalled",
   "plugin.status.enabled": "Plugin switched on",
   "plugin.status.disabled": "Plugin switched off",
+  // A workspace's use of what the platform installed. Logged with the workspace.
+  "plugin.workspace.enabled": "Plugin switched on in a workspace",
+  "plugin.workspace.disabled": "Plugin switched off in a workspace",
 
   // ── Everyday events in project and workspace ───────────────────────────────
   //

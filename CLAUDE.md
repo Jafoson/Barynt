@@ -165,7 +165,7 @@ and measured (start at `docs/plugins/README.md`).
   `public/schemas/barynt-plugin.schema.json`. `tests/unit/plugins` (and
   `bun run plugin-schema:check`) fail while it is out of date.
 - `packages/plugin-sdk` (`@barynt/plugin-sdk`) is what plugin authors and the host
-  both import: `definePlugin`, `RegistrationContext`, `BootContext`, `SDK_VERSION`.
+  both import: `definePlugin`, `RegistrationContext`, `BootContext`, the hook contexts, `SDK_VERSION`.
   It is **not** a Bun workspace: `tsconfig.json` maps the name to its `src/index.ts`,
   which keeps `bun.lock` and the Docker build untouched. It must import nothing
   from the host, because a plugin bundles it. Change its version in `SDK_VERSION`
@@ -219,11 +219,15 @@ and measured (start at `docs/plugins/README.md`).
   never says where a plugin came from**, and `source`, `origin`, `status` and the hash are not parameters. `disk.ts` reads the
   directory (hash twice, valid manifest, `previewInstall`/`previewUninstall` before any change). Install approves no code, an update
   withdraws the approval of the old version, uninstall leaves the files, and none of them runs plugin code (no `onInstall`).
+  A workspace switches a per-workspace plugin on and off with `enablePlugin`/`disablePlugin`
+  (`features/plugins/workspaceActions.ts`, `plugin.enable`): **switching on has to end with the plugin running there**, otherwise
+  the row is put back and the reason given; `onEnable` may refuse, `onDisable` and `onUninstall` cannot (a failure is a `warning`).
+  Hooks (`lib/plugins/hooks.ts`) run only for a plugin loaded in the process, on the plugin as it ran *before* the change.
 - **The registry** (`lib/plugins/registry.ts`, wired in `host.ts`) decides once per process which plugins run and keeps a
   snapshot: `planPlugins()` (pure, `plan.ts`) picks, the loader loads, `instrumentation.ts` starts it with the server (not
   awaited) so `boot` runs once per process outside a request. Its state lives on `global`
   (`registryState.ts`), because Next bundles a module once per layer; **anything that changes which code may run calls
-  `invalidatePluginRegistry()`** (the store, unsigned-setting, approval and lifecycle actions do; the per-workspace ones must, BARY-60). A page asks
+  `invalidatePluginRegistry()`** (the store, unsigned-setting, approval, lifecycle and per-workspace actions all do). A page asks
   `getActivePlugins(workspaceId)`. Request-scoped state seeded by `cache()` does not cross layers: the services find the
   workspace through the reader `setCurrentWorkspaceId` publishes on `global`. **Code runs in the process only with an approval
   for one plugin and its exact hash** (`Plugin.codeApprovalHash`, `features/plugins/actions.ts`: `plugin.manage`, the server asks for
@@ -539,6 +543,7 @@ tests/
       actions.test.ts             ← approve / withdraw the approval of a plugin's code (real plugin dirs)
     plugin-lifecycle/
       lifecycle.test.ts           ← install, update, uninstall, switch off (features/plugins/lifecycleActions)
+      workspace.test.ts           ← switch on/off per workspace, onEnable/onDisable (own process: mocks `@/lib/plugins/host`)
     plugin-staging/
       stage.test.ts               ← features/plugins/disk (own process: it replaces the directory hash)
     notifications/

@@ -1,19 +1,24 @@
 # Lifecycle
 
-What a plugin goes through on the platform: installed, updated, switched off, uninstalled.
-The actions are in [`features/plugins/lifecycleActions.ts`](../../features/plugins/lifecycleActions.ts);
-what they read from disk is in [`features/plugins/disk.ts`](../../features/plugins/disk.ts).
-This is the platform's half. Enabling a plugin per workspace, and the hooks a plugin can
-run on these events, come with the second half of BARY-60 (see [Not built yet](#not-built-yet)).
+What a plugin goes through: installed, updated, switched off and uninstalled by the platform, switched on
+and off by a workspace, and the hooks it can run on these events.
+
+- The platform's half is in [`features/plugins/lifecycleActions.ts`](../../features/plugins/lifecycleActions.ts),
+  with `plugin.manage`. What it reads from disk is in [`features/plugins/disk.ts`](../../features/plugins/disk.ts).
+- The workspace's half is in [`features/plugins/workspaceActions.ts`](../../features/plugins/workspaceActions.ts),
+  with `plugin.enable` ([Per workspace](#per-workspace)).
+- The hooks are in the SDK, run by [`lib/plugins/hooks.ts`](../../lib/plugins/hooks.ts) ([Hooks](#hooks)).
 
 Every action:
 
-- asks for **`plugin.manage`** itself, in the platform context: a layout protects no action, and the
-  first thing that happens is the permission check, so nothing is looked up for someone who may not;
+- asks for its permission itself: `plugin.manage` in the platform context for the platform's, `plugin.enable` in the
+  workspace of the request for a workspace's. A layout protects no action, and the first thing that happens is the
+  permission check, so nothing is looked up for someone who may not;
 - is **audited**, and tells the **registry** (`invalidatePluginRegistry()`) and the cache, so from
   the next request the plugin is or is not handed out ([Loading](loading.md#when-it-is-built-again));
-- never throws for a reason the admin can act on: it returns `{ ok: true }` or `{ error }` with a sentence.
-  Only a broken database or a missing permission throws.
+- never throws for a reason the admin can act on: it returns `{ ok: true }` or `{ error }` with a sentence, and
+  `{ ok: true, warning }` when the change was made but a hook of the plugin failed on the way. Only a broken database or a
+  missing permission throws.
 
 | Action | What it does | Audit entry |
 | --- | --- | --- |
@@ -110,17 +115,81 @@ after itself, and a plugin that is uninstalled by mistake can be installed again
 started in this process keeps running until a restart, like after any change that stops a plugin
 ([Loading](loading.md#when-it-is-built-again)).
 
+If the plugin is running, its `onUninstall` runs **after** the row is gone ([Hooks](#hooks)).
+
 ## Switching off
 
 `setPluginStatus(id, false)` stops the plugin from loading and from being handed out, without uninstalling it: what workspaces
 set for it stays. Switching on again is the reverse. Doing what is already the case changes and audits nothing. Neither direction
 needs the plugin's files or the unsigned setting: switching off has to be possible whatever else is wrong.
 
+## Per workspace
+
+A workspace switches on what the platform installed: `enablePlugin(workspaceId, pluginId)` and
+`disablePlugin(workspaceId, pluginId)`, with **`plugin.enable`** (`owner` and `admin`) for that workspace.
+
+| Action | What it does | Audit entry (with the workspace) |
+| --- | --- | --- |
+| `enablePlugin(workspaceId, pluginId)` | Switches the plugin on in the workspace, if it can run there | `plugin.workspace.enabled` |
+| `disablePlugin(workspaceId, pluginId)` | Switches it off there; the plugin cannot refuse | `plugin.workspace.disabled` |
+
+Which plugins have this switch: only the ones with `scope = WORKSPACE`. A plugin that applies to the whole platform has none,
+and neither action touches it; only `plugin.manage` switches it, with `setPluginStatus`. A plugin the platform switched off cannot
+be switched on in a workspace, but a workspace can still switch it off.
+
+### Switching on has to end with the plugin running
+
+The row is written, the registry is built again, and then the plugin has to be **loaded**. If it is not, the row is put back and
+the admin is told why, in words (`describeStatus`, [`lib/plugins/describe.ts`](../../lib/plugins/describe.ts)): the platform has
+not approved its code, its files are gone, a dependency failed, the registry could not be built. So a workspace never shows a
+plugin as on that is not running, and `onEnable` is not skipped because the plugin could not run at that moment. A row that
+was off is switched on again and keeps the settings the workspace had; a row that this call created is deleted again.
+
+Then `onEnable` runs. If it throws, or takes longer than the host waits, the switch is **refused** the same way: the row is put back,
+nothing is audited, the admin sees the plugin's message. What the hook did before it failed is not undone; that is the plugin's to make safe.
+
+### What it needs, in this workspace
+
+A plugin that applies per workspace needs the plugins it depends on switched on **in the same workspace**, or its slots would call
+a plugin that is not there. So enabling is refused until they are, and the ones missing are named; disabling is refused while a plugin
+that needs it is on in the workspace, and the ones that do are named. Plugins of the platform it needs apply everywhere already; if
+one of those cannot load, the registry says so and the switch is refused for that reason. If the plugin directory cannot be read,
+enabling is refused (its manifest is what says what it needs), disabling stays possible.
+
+### Two admins at once
+
+Both switches are single writes tied to the state they expect (`enabled: false` to switch on, `enabled: true` to switch off), and the
+row is created with the primary key as the referee. The second admin's call finds nothing to do and says `ok`, without an audit entry.
+One narrow case is left: if the first admin's enable fails and is put back at that very moment, the second was told `ok` for a
+plugin that ends up off. Its page shows the truth on the next load.
+
+## Hooks
+
+Three optional hooks in the SDK ([SDK](sdk.md#lifecycle-hooks)), run by `runHook` ([`lib/plugins/hooks.ts`](../../lib/plugins/hooks.ts)):
+
+| Hook | When | Can refuse? | If it fails |
+| --- | --- | --- | --- |
+| `onEnable(ctx)` | after a workspace switched the plugin on, and the plugin runs there | **yes** | the switch is refused and put back |
+| `onDisable(ctx)` | after a workspace switched it off | no | `{ ok: true, warning }`, audited as `hook: "failed"` |
+| `onUninstall(ctx)` | after the plugin was removed | no | `{ ok: true, warning }`, audited as `hook: "failed"` |
+
+- **Only for a plugin that is loaded in the process** (`ActivePlugin.hooks`). A plugin the platform did not approve, one that no
+  workspace has switched on, one without code: nothing is woken up for a lifecycle event. So the hooks are for plugins whose code the
+  platform approved; a plugin without one has nothing to run.
+- **After the change, on the plugin as it ran before.** `onDisable` and `onUninstall` may be the last thing that kept the plugin
+  loaded, so the running plugin is taken from the registry *before* the change and its hook runs on that, from the code that is still in
+  memory. What is uninstalled or switched off must not depend on plugin code: a hook that fails or hangs is a warning, not a reason to keep it.
+- **Never throws, and not forever.** A hook that throws, rejects or takes longer than 30 seconds (like `boot`) comes back as an
+  outcome with one short line, no stack. JavaScript cannot stop a hook that never returns; the host only stops waiting.
+- **What it gets**: `ctx.plugin`, `ctx.host`, and for `onEnable`/`onDisable` `ctx.workspace` (`id`, `name`). Frozen copies, plain values.
+  No services yet; they arrive with storage and events (BARY-85, BARY-84).
+- **Hooks run again.** A plugin is switched on and off and on again, so a hook has to be safe to repeat.
+- **The audit entry says what happened**: `meta.hook` is `ran`, `none` or `failed` (with `hookError`).
+
 ## What is deliberately not here
 
 - **`onInstall` and `onUpdate` hooks.** The code of a new or updated plugin is not approved when it is installed, so it must
-  not run then. Hooks for switching on and off and for uninstalling come with the second half of BARY-60, and run only for a
-  plugin that is loaded in the process.
+  not run then. A plugin that wants to prepare something does it in `onEnable`, which runs once it is approved and running.
 - **"Delete the plugin's data" on uninstall.** There is no storage for a plugin to have data in yet (BARY-85). Until then
   there is nothing to keep or delete.
 - **Deleting files.** See [Uninstall](#uninstall).
@@ -129,7 +198,6 @@ needs the plugin's files or the unsigned setting: switching off has to be possib
 
 ## Not built yet
 
-- **Per workspace**: `enablePlugin` and `disablePlugin` (`plugin.enable`, the plugin's dependencies checked in that workspace),
-  and the hooks `onEnable`, `onDisable` and `onUninstall` in the SDK (BARY-60, second part).
 - **The admin page** that calls these actions and shows the warning, the hash and the reasons (BARY-63).
+- **The plugin's own settings per workspace** (`PluginWorkspace.config`, BARY-66): the actions keep what is there, nothing writes it yet.
 - **Install from a store** (BARY-105, BARY-111). It will call the same checks and set `source` and `origin` itself.
