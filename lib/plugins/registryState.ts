@@ -27,6 +27,13 @@ export interface RegistryState {
   booted: Set<string>;
   /** When the last build failed as a whole (not a plugin), so it is tried again after a while. */
   failedAt: number | null;
+  /**
+   * How many loads are running right now. While it is above zero the host's services
+   * answer `null`: a plugin that boots later than the server start (one that was
+   * approved while the app runs) boots from inside whichever request built the
+   * registry, and must not see that request's user.
+   */
+  loading: number;
 }
 
 const KEY = Symbol.for("barynt.plugins.registry");
@@ -38,6 +45,7 @@ export function createRegistryState(): RegistryState {
     building: null,
     booted: new Set(),
     failedAt: null,
+    loading: 0,
   };
 }
 

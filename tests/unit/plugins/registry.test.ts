@@ -462,6 +462,56 @@ describe("building the snapshot", () => {
   });
 });
 
+describe("while plugins load", () => {
+  it("counts a load as running while the loader runs, and only then", async () => {
+    const seen: number[] = [];
+    h = harness({
+      load: async (candidates) => {
+        seen.push(h.state.loading);
+        return {
+          loaded: candidates.map((c) => ({
+            id: c.id,
+            version: c.version,
+            registrations: [],
+          })),
+          failed: new Map(),
+        };
+      },
+    });
+    expect(h.state.loading).toBe(0);
+    await registry().get();
+    expect(seen).toEqual([1]);
+    expect(h.state.loading).toBe(0);
+  });
+
+  it("counts it down again when the loader throws", async () => {
+    h = harness({
+      load: async () => {
+        throw new Error("boom");
+      },
+    });
+    const snapshot = await registry().get();
+    expect(snapshot.problem).toContain("boom");
+    expect(h.state.loading).toBe(0);
+  });
+
+  it("does not count a load when there is nothing to load", async () => {
+    const seen: number[] = [];
+    h = harness(
+      {
+        load: async () => {
+          seen.push(h.state.loading);
+          return { loaded: [], failed: new Map() };
+        },
+      },
+      { installed: [], discovered: [] },
+    );
+    await registry().get();
+    expect(seen).toEqual([]);
+    expect(h.state.loading).toBe(0);
+  });
+});
+
 describe("what the loader says", () => {
   it("records a plugin it refused, with the phase and the message, and does not run it", async () => {
     h.data.refuse.set("calendar", { phase: "import", message: "boom" });

@@ -1561,6 +1561,19 @@ model Plugin {
   /// Verzeichnis-Hash.
   integrity String
 
+  /// Der Hash, für den die Plattform ausdrücklich freigegeben hat, dass der Code
+  /// dieses Plugins im Prozess der App läuft (`features/plugins/actions.ts`,
+  /// `plugin.manage`). Leer: nicht freigegeben, ein Plugin mit `server` oder
+  /// `client` läuft dann nicht. Immer je Plugin und je Hash, nie für einen Store
+  /// als Ganzes. Passt er nicht mehr zu `integrity` (nach einem Update), läuft der
+  /// Code nicht, bis die neue Version freigegeben ist (`approval-outdated` in
+  /// `lib/plugins/policy.ts`). Ein Plugin ohne Code braucht keine Freigabe.
+  codeApprovalHash String?
+
+  /// Wann die Freigabe erteilt wurde. Gesetzt und gelöscht zusammen mit
+  /// `codeApprovalHash`. Wer sie erteilt hat, steht im Audit-Protokoll.
+  codeApprovedAt DateTime?
+
   installedAt DateTime @default(now())
   /// Ändert sich bei jedem Update, jedem Umschalten von `status` und jeder
   /// Änderung von `config`.

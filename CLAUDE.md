@@ -217,10 +217,12 @@ and measured (start at `docs/plugins/README.md`).
   snapshot: `planPlugins()` (pure, `plan.ts`) picks, the loader loads, `instrumentation.ts` starts it with the server (not
   awaited) so `boot` runs once per process outside a request. Its state lives on `global`
   (`registryState.ts`), because Next bundles a module once per layer; **anything that changes which code may run calls
-  `invalidatePluginRegistry()`** (the store and unsigned-setting actions do; lifecycle actions must, BARY-60). A page asks
+  `invalidatePluginRegistry()`** (the store, unsigned-setting and approval actions do; lifecycle actions must, BARY-60). A page asks
   `getActivePlugins(workspaceId)`. Request-scoped state seeded by `cache()` does not cross layers: the services find the
-  workspace through the reader `setCurrentWorkspaceId` publishes on `global`. No approval exists yet (BARY-122), so no
-  plugin with code runs in the process. Verify anything that touches this in a production build in an isolated copy, never
+  workspace through the reader `setCurrentWorkspaceId` publishes on `global`. **Code runs in the process only with an approval
+  for one plugin and its exact hash** (`Plugin.codeApprovalHash`, `features/plugins/actions.ts`: `plugin.manage`, the server asks for
+  the yes itself, refuses what the policy would not run, checks the files on disk); the registry reads it from the row, and while
+  plugins load the services answer `null`, so a `boot` that runs inside a request never sees that request's user. Verify anything that touches this in a production build in an isolated copy, never
   in the dev folder (`docs/plugins/loading.md#the-registry`).
 - Which stores are on is the `PluginStore` table (`docs/plugins/stores.md`): the official store is put in by
   `prisma/bootstrap.ts` (which never touches `enabled`), only `plugin.manage` changes the list, connecting or

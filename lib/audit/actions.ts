@@ -57,6 +57,9 @@ export const AUDIT_ACTIONS = {
   // the loud one, switching it off narrows.
   "plugin.unsigned.allowed": "Plugins from no store allowed",
   "plugin.unsigned.disallowed": "Plugins from no store not allowed",
+  // The one that gives a plugin the full power of the app: the loud one.
+  "plugin.code.approved": "Plugin code approved to run",
+  "plugin.code.revoked": "Plugin code approval withdrawn",
 
   // ── Everyday events in project and workspace ───────────────────────────────
   //
@@ -133,6 +136,7 @@ export type AuditTargetType =
   | "mailTemplate"
   | "systemSettings"
   | "pluginStore"
+  | "plugin"
   | "issue"
   | "label";
 

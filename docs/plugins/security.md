@@ -2,9 +2,9 @@
 
 What can go wrong when a plugin runs, what stops it, and what cannot be stopped.
 
-> **Status: early.** The integrity check and the rule for who may run code in-process are built.
-> The approval, the sandbox and the service mode are planned in the tickets named. Nothing here
-> has been reviewed by anyone outside the project.
+> **Status: early.** The integrity check, the rule for who may run code in-process and the approval
+> that lets a plugin's code run there are built. The sandbox and the service mode are planned in the
+> tickets named. Nothing here has been reviewed by anyone outside the project.
 
 ## The one thing to know
 
@@ -36,11 +36,11 @@ plugins that use the context.
 
 | Threat | Control | Status |
 | --- | --- | --- |
-| **A plugin with code that is not from an active store, or not approved** | **It does not run in the app's process: `decideExecution()` blocks it, fail closed** | **built (the rule); the approval is planned (BARY-122)** |
+| **A plugin with code that is not from an active store, or not approved** | **It does not run in the app's process: `decideExecution()` blocks it, fail closed** | **built: the rule, and the approval ([below](#the-approval))** |
 | Someone uploads or drops in a plugin, or enters a repository address by hand | Not loaded at all unless the platform allows plugins from no store. The setting is off by default, only `plugin.manage` can switch it on, and only after a warning that the server checks itself. Even then one with code stays blocked ([below](#plugins-from-no-store-unsigned)) | the setting and the rule are built; the installer that enters an address is planned (BARY-60, BARY-111) |
 | A store's plugin was changed after review | The store entry pins a hash of the release archive; the installer verifies it before it extracts anything | store repository built; installer planned (BARY-60, BARY-105) |
 | **Files on disk changed after install** | **The hash of the plugin directory is checked before every load; a plugin whose files differ, or that contains a symlink or another odd file, does not load** | **built** |
-| A different plugin version than the one approved gets loaded | The approval is of one exact hash; a new version needs a new approval | planned (BARY-60, BARY-95) |
+| A different plugin version than the one approved gets loaded | The approval is of one exact hash; a new version needs a new approval, and a plugin whose approval does not fit is not imported | approval built; the update itself is planned (BARY-60, BARY-95) |
 | A plugin update asks for more than the old one | A new version needs new consent, including every added capability | planned (BARY-95) |
 | A plugin's client code loads scripts or frames from elsewhere | Content Security Policy for plugin client code (BARY-97) | planned |
 | A private store's access token leaks: from a database dump or backup, a log, an error, a page or an audit entry | Sealed with AES-256-GCM and bound to the store's address; never selected into a page, an action result, an error or an audit entry; only the store client may open it, and only to send it to that address ([Plugin stores](stores.md#private-repositories)) | storing built; the client that uses it is planned (BARY-105) |
@@ -94,10 +94,10 @@ A, B and C in the [overview](README.md#trust-tiers):
 | `declarative` | Nothing of the plugin runs; the host renders what the manifest declares | any plugin from a store | built |
 | `sandbox` | The plugin's UI in an iframe without same-origin, on its own origin, talking through a message bridge; no server code | the default for an unreviewed plugin that shows UI | planned (BARY-123) |
 | `service` | The plugin's server logic as a service of its own, with no secrets and no database access, calling Barynt only through its REST and MCP APIs with a token of narrow scopes | a plugin that needs server logic | planned (BARY-124) |
-| `in-process` | A server module in the app's process, a client bundle in the page, with the full power of the app | **only** a plugin from a store that is **switched on**, that the platform has **approved**, for the **exact hash** | the rule is built (below), the approval is planned (BARY-122) |
+| `in-process` | A server module in the app's process, a client bundle in the page, with the full power of the app | **only** a plugin from a store that is **switched on**, that the platform has **approved**, for the **exact hash** | the rule and the approval are built (below) |
 
-**The rule today.** Until the approval exists (BARY-122) the registry gives the policy none, so **no plugin with
-code runs in the app's process at all**; only plugins without code do. `sandbox` and `service` do not exist yet, so a plugin with `server` or `client`
+**The rule today.** A plugin with code runs in the app's process only with an approval ([below](#the-approval)); without
+one it is not even imported. `sandbox` and `service` do not exist yet, so a plugin with `server` or `client`
 code counts as `in-process`, and is therefore **blocked** unless it is from an active store and
 approved. A plugin without code runs, if it comes from a store or the platform allows plugins from no
 store. This is what [`lib/plugins/policy.ts`](../../lib/plugins/policy.ts) decides, for every installed
@@ -145,6 +145,38 @@ A plugin that comes from **no store** (an upload, a directory, later a repositor
 - **What it does not protect against.** An admin who ticks the box and installs a plugin has decided to run
   something nobody checked. The warning says so; it cannot make the plugin safe.
 
+### The approval
+
+Installing a plugin and letting its code run are two steps. A plugin with `server` or `client` runs in the process only when the
+platform has approved it, for **one plugin and its exact files, and never for a store as a whole**
+([`features/plugins/actions.ts`](../../features/plugins/actions.ts), `approvePluginCode`). The approval is `Plugin.codeApprovalHash`,
+the directory hash the plugin was installed with (`Plugin.integrity`), and `Plugin.codeApprovedAt`; who approved it is in the audit log.
+
+What the server checks before it writes anything:
+
+1. **`plugin.manage`**, and a real **yes** (`acknowledged === true`) to: after this the plugin's code runs with the full power of the app,
+   can read the data of every workspace and act as any user, and nothing stops it. The server asks for it itself, so the dialog cannot
+   be skipped by calling the action directly.
+2. **The hash the admin was shown.** If the plugin's recorded hash is another one by now, nothing is approved, and the write itself is tied
+   to that hash, so an update between the check and the write cannot get the old approval.
+3. **What is on disk is what the hash says**, checked before the manifest is read.
+4. **Only what the policy would run anyway.** Not a plugin without code, not one from a store that is not switched on, and not one from no
+   store (its code does not run in the process, whatever is approved). An approval that could never take effect would only look like a promise.
+
+An update brings another hash, so the old approval stays stored and **no longer fits**: the policy says `approval-outdated`, the plugin
+is not imported, and the new version has to be approved on its own. Withdrawing (`revokePluginCodeApproval`) clears it. Both change what may
+run, so both tell the registry, and from the next request the plugin is or is not handed out
+([Loading](loading.md#when-it-is-built-again)); what it already started keeps running until a restart.
+
+Approving is audited as `plugin.code.approved` and marked as an intervention, with the hash; withdrawing as `plugin.code.revoked`.
+
+**Still to come.** The dialog that shows the hash, the origin and what a plugin promises, and says what the approval means: it needs the
+admin page for plugins (BARY-63). Until then the actions can only be called from code. The installer will offer the approval after an
+install (BARY-60).
+
+**What it does not do.** It does not make code safe. Approved code that is malicious is malicious, and it has the power of the app. The
+approval is a decision about *whose* code and *which* files, made by someone who was told what it means.
+
 ### Stores
 
 The **official store** is the Git repository the project owner manages (the store repository). It is
@@ -155,7 +187,7 @@ the registry reads the list, it passes the default, the official store alone (`D
 
 Connecting a store means trusting what its authors publish, and the dialog has to say so. But it runs
 **nothing by itself**: every plugin with code from any store, the official one included, still needs its own
-approval for its exact hash (BARY-122). A store that is switched off keeps nothing running: its plugins with
+approval for its exact hash ([The approval](#the-approval)). A store that is switched off keeps nothing running: its plugins with
 code stop being allowed in-process **from the next request**, because the registry is built again
 ([Loading](loading.md#when-it-is-built-again)). What a plugin already started, such as a timer or a listener in its
 `boot`, keeps running until the process restarts: JavaScript cannot unload it, so a restart is what ends the code.

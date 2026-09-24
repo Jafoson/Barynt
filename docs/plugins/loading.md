@@ -5,8 +5,8 @@ How the host gets from a directory on disk to running plugins. Built in three st
 
 > **Status: early.** Discovery, the loader and the registry are built, and the registry starts
 > with the server, with nothing to configure. Nothing in the app asks it for a workspace's
-> plugins yet (`getActivePlugins`), and no plugin with code runs in the process, because nothing
-> records the approval that would allow it (BARY-122).
+> plugins yet (`getActivePlugins`). A plugin with code runs in the process only with an approval
+> ([Security](security.md#the-approval)); the dialog for it comes with the admin page (BARY-63).
 
 ## Where plugins live
 
@@ -170,9 +170,9 @@ even when another needs it; the one that needs it then fails in the loader with 
 applies (`scope`), where it came from (`source`, `origin`) and its hash come **from the database**, not from the
 manifest on disk, which has not been checked against the hash when it is read.
 
-Until the approval exists (BARY-122) the registry gives the policy none, so **no plugin with code runs in the
-process**; a plugin without code runs, and a plugin from no store runs only if the platform allowed it
-([Security](security.md#plugins-from-no-store-unsigned)).
+The approval to run code comes from the database (`Plugin.codeApprovalHash`, [Security](security.md#the-approval)): a plugin
+with code that is not approved for its current hash is `blocked` and **not even imported**. A plugin without code runs, and a
+plugin from no store runs only if the platform allowed it ([Security](security.md#plugins-from-no-store-unsigned)), and never its code.
 
 ### One state for the whole process
 
@@ -192,6 +192,10 @@ that moment. A change that happens while a build runs discards that build.
 
 - **`boot` runs once per process.** A plugin that booted is registered again (that only declares) and not booted a
   second time; a new version boots. A plugin whose `boot` failed is tried again.
+- **A plugin that boots after the server started** (one approved while the app runs) boots inside whichever request built the
+  registry. While plugins load the services answer `null`, so it never sees that request's user or workspace. Checked in a
+  production build: booted inside an admin's request, the plugin saw `user=null`, and in a later request the same services
+  answered.
 - **Failing closed.** A build that fails as a whole, such as the database being down, is a snapshot with no plugins and
   the reason, tried again after 10 seconds. It is never the last good snapshot: a plugin allowed a moment ago may not be
   now. (Checked: the app starts, other routes answer, the reason is in the log.)
@@ -225,7 +229,7 @@ was seeded on `global`, and the service calls that. The production build found t
 
 ## Not built yet
 
-- **The approval** to run code in the process (BARY-122). Until then nothing with code runs.
+- **The approval dialog** (BARY-63): the actions exist, the page that shows the hash, the origin and what the approval means does not.
 - **Calling `invalidatePluginRegistry()` from the lifecycle actions** (install, update, uninstall, enable, disable;
   BARY-60). Only the store and unsigned-plugin settings call it today.
 - **The Helm chart's volume** (BARY-117). The chart runs two replicas by default, and the registry lives in the process,

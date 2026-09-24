@@ -35,6 +35,7 @@ const deps: RegistryDeps = {
           scope: true,
           origin: true,
           integrity: true,
+          codeApprovalHash: true,
         },
       }),
       db.pluginWorkspace.findMany({
@@ -44,9 +45,9 @@ const deps: RegistryDeps = {
       }),
     ]);
     return {
-      // Nothing records an approval to run code in the process yet (BARY-122),
-      // so no plugin with code is approved and none runs there.
-      plugins: rows.map((row) => ({ ...row, codeApprovalHash: null })),
+      // The approval to run code in the process, for the exact hash: without one a
+      // plugin with code does not run there (`features/plugins/actions.ts`).
+      plugins: rows,
       enabledSomewhere: new Set(enabled.map((row) => row.pluginId)),
     };
   },

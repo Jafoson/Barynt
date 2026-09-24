@@ -14,7 +14,7 @@ the main store off and use **only their own**.
   yes; the server refuses without it, so the warning cannot be skipped by calling the action directly.
   Switching a store on again needs the same yes (the main store excepted).
 - **It runs nothing by itself.** Every plugin with code, from any store including the main one, still
-  needs its own approval for its exact hash (BARY-122).
+  needs its own approval for its exact hash ([Security](security.md#the-approval)).
 - **Only `plugin.manage` may change the list**, and every change is audited (`plugin.store.added`,
   `.enabled`, `.disabled`, `.removed`). Which stores are on decides which code the platform can be asked
   to approve, so it is not a workspace setting.
