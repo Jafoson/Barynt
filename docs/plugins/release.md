@@ -4,7 +4,7 @@ A store entry (`plugins/<id>/source.json`) names a **release archive** for each 
 archive, pinned by the store. Installing from a store means getting that archive onto the instance and into the plugin directory
 (`<plugins>/<id>/<version>/`, [Loading](loading.md)) without trusting anything about it that cannot be checked. This page is about that
 path: [`lib/plugins/store/`](../../lib/plugins/store) (`release.ts`, `zip.ts`, `stageRelease.ts`) and, for the tar part, `tar.ts`. The
-action that calls it (who may install, what the plugin needs, what it is recorded as) is described in [Lifecycle](lifecycle.md).
+action that calls it (`installStorePlugin`: who may install, what the plugin needs, what it is recorded as) is described in [Lifecycle](lifecycle.md#where-the-files-come-from).
 
 ## The archive
 
@@ -65,4 +65,5 @@ hashed (`Plugin.integrity`), and moved to `<plugins>/<id>/<version>` with **one 
 
 - It does not make the code safe, only what the store pinned and listed. Approved malicious code is still malicious ([Security](security.md)).
 - It does not check the code against what the manifest asks for; a capability is a promise, not a limit.
-- It does not install anything: no row is written, nothing is switched on, nothing runs. That is the action's job (BARY-107, the next step).
+- It does not install anything: no row is written, nothing is switched on, nothing runs. That is the action's job (`storeInstall.ts`), which
+  also checks who may, that the plugin fits this Barynt and what is installed, and records it.

@@ -1139,7 +1139,7 @@
     "unusableDesc": "Diese Versionen im Plugin-Verzeichnis haben kein gültiges Manifest.",
     "emptyInstalled": "Es ist noch kein Plugin installiert.",
     "emptyAvailable": "Im Plugin-Verzeichnis liegt kein weiteres Plugin.",
-    "dirNote": "Plugins werden aus <code>{dir}</code> gelesen. Installieren und Aktualisieren nehmen, was dort schon liegt; ein Plugin-Store zum Herunterladen kommt später.",
+    "dirNote": "Plugins werden aus <code>{dir}</code> gelesen. Der Reiter Store installiert aus den Stores, die eingeschaltet sind; Installieren und Aktualisieren hier nehmen, was selbst in dieses Verzeichnis gelegt wurde.",
     "noDir": "Plugins sind aus: Es gibt kein Plugin-Verzeichnis, aus dem gelesen werden könnte.",
     "problemTitle": "Die Plugins konnten nicht geladen werden",
     "dirIssuesTitle": "Probleme im Plugin-Verzeichnis",

@@ -115,6 +115,9 @@ const SEGMENTS: string[][] = [
   // Mocks `@/lib/db`, `@/lib/permissions`, `next/server` (`after`) and `node:dns/promises` for the
   // fetching of the stores that are on; `store-catalog` tests the download and the sync for real.
   ["tests/unit/store-sync"],
+  // Mocks `@/lib/db`, `next/cache` and `node:dns/promises` for installing from a store; the store's
+  // clone, the release, the plugin directory and the checks are real.
+  ["tests/unit/store-install"],
   // Mocks `@/lib/project-membership` away entirely — see CLAUDE.md.
   [
     "tests/unit/workspace/inviteLinks.test.ts",

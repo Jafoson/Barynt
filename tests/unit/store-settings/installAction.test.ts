@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 
-// Installing from a store. The action is what the dialog calls; the download and the
-// unpacking come with BARY-107, so until then it checks who may and what it is asked for,
-// and then says plainly that it cannot, and does nothing.
+// Installing from a store. The action is what the dialog calls: it checks who may and what it is
+// asked for, and only then hands over to the installer (`storeInstall.ts`, tested on its own in
+// `tests/unit/store-install`, where the store, the release and the disk are real).
 
 const mockRequirePermission = mock(
   async (_permission: string, _context: unknown) => "admin1",
@@ -12,11 +12,19 @@ mock.module("@/lib/permissions", () => ({
   PLATFORM: { scope: "platform" },
 }));
 
+const mockInstallFromStore = mock(
+  async (_input: unknown): Promise<unknown> => ({ ok: true }),
+);
+mock.module("@/features/plugins/storeInstall", () => ({
+  installFromStore: mockInstallFromStore,
+}));
+
 import { installStorePlugin } from "@/features/plugins/storeActions";
 
 beforeEach(() => {
   mockRequirePermission.mockReset();
   mockRequirePermission.mockResolvedValue("admin1");
+  mockInstallFromStore.mockClear();
 });
 
 describe("who may", () => {
@@ -76,14 +84,50 @@ describe("what is asked for", () => {
   });
 });
 
-describe("what it does today", () => {
-  it("says that installing from a store is not available yet, and does nothing else", async () => {
+describe("what it hands over", () => {
+  it("is who asked, and exactly what was asked, and gives back what the installer says", async () => {
+    mockInstallFromStore.mockResolvedValue({ error: "no" });
     const result = await installStorePlugin("store-1", "notes", "1.0.0", {
       acknowledged: true,
     });
-    expect(result).toEqual({
-      error:
-        "Installing from a store is not available yet: downloading and unpacking a plugin come with the next step.",
+    expect(result).toEqual({ error: "no" });
+    expect(mockInstallFromStore.mock.calls).toEqual([
+      [
+        {
+          actorId: "admin1",
+          storeId: "store-1",
+          pluginId: "notes",
+          version: "1.0.0",
+        },
+      ],
+    ]);
+    mockInstallFromStore.mockResolvedValue({ ok: true });
+    expect(
+      await installStorePlugin("store-1", "notes", "1.0.0", {
+        acknowledged: true,
+      }),
+    ).toEqual({ ok: true });
+  });
+
+  it("is nothing at all, not even a look at the store, when the request is refused", async () => {
+    await installStorePlugin("", "notes", "1.0.0", { acknowledged: true });
+    await installStorePlugin("store-1", "notes", "1.0.0", undefined);
+    await installStorePlugin("store-1", "../x", "1.0.0", {
+      acknowledged: true,
     });
+    expect(mockInstallFromStore).not.toHaveBeenCalled();
+  });
+
+  it("takes no source, origin or hash from the client: the installer is given none", async () => {
+    await installStorePlugin("store-1", "notes", "1.0.0", {
+      acknowledged: true,
+      // Whatever else a caller passes is not looked at.
+      source: "STORE",
+      origin: "https://evil.example",
+      integrity: "x",
+    } as never);
+    expect(
+      Object.keys(mockInstallFromStore.mock.calls[0]?.[0] as object).sort(),
+    ).toEqual(["actorId", "pluginId", "storeId", "version"]);
   });
 });
