@@ -207,5 +207,6 @@ Three optional hooks in the SDK ([SDK](sdk.md#lifecycle-hooks)), run by `runHook
 
 ## Not built yet
 
-- **The switch per workspace on the workspace's own settings page** (BARY-64). The platform's page for these actions exists ([The plugins page](admin.md)).
+The switch per workspace is on the workspace's own settings page ([The plugins of a workspace](workspace.md)).
+
 - **The plugin's own settings per workspace** (`PluginWorkspace.config`, BARY-66): the actions keep what is there, nothing writes it yet.

@@ -103,7 +103,7 @@ workspaces and projects themselves are later steps.
 
 - **Updating from a store** (BARY-108): the store tab installs, but its update button says it is not there yet. Install and update on the first tab take what lies in the plugin directory.
 - **"Keep or delete the data" on uninstall.** There is no storage yet (BARY-85).
-- **The switch per workspace.** That belongs to the workspace's own settings (BARY-64), where a workspace admin
+- **The switch per workspace.** That is the workspace's own settings page ([The plugins of a workspace](workspace.md)), where a workspace admin
   switches on what the platform installed.
 - **Changelog and details.** The manifest has no changelog field; the row shows what the manifest does say.
 

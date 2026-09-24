@@ -378,7 +378,7 @@ permissions at different levels (the plugin system is described in
 | Key | Scope | Holders | What it allows |
 |---|---|---|---|
 | `plugin.manage` | PLATFORM | `platform_admin` | use the plugin store and choose which stores are on; install, update and uninstall plugins; allow plugins that come from no store |
-| `plugin.enable` | WORKSPACE | `owner`, `admin` | enable, disable and configure the installed plugins in the workspace |
+| `plugin.enable` | WORKSPACE | `owner`, `admin` | enable, disable and configure the installed plugins in the workspace; it shows the Plugins page in the workspace settings ([docs/plugins/workspace.md](plugins/workspace.md)) |
 
 - **Installing is a platform matter.** Plugin code runs with full trust inside the
   app, so what may be installed is decided once for the whole instance, by the

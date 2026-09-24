@@ -1613,5 +1613,26 @@
     "defaultWorkspaceDesc": "Where accounts without a membership land once workspace creation is off. Leave it unset and creation stays effectively on until one is chosen.",
     "none": "None",
     "searchWorkspaces": "Search workspaces"
+  },
+  "workspacePlugins": {
+    "title": "Plugins",
+    "listTitle": "Available in this workspace",
+    "intro": "The platform installs plugins. Here you switch on the ones this workspace should use.",
+    "empty": "The platform has not installed a plugin yet that a workspace can switch on.",
+    "switchLabel": "Use {name} in this workspace",
+    "running": "Running in this workspace.",
+    "off": "Off in this workspace.",
+    "cannotRun": "It cannot run at the moment. {reason}",
+    "switchOffTitle": "Switch off {name}?",
+    "switchOffDesc": "It stops in this workspace. What this workspace set for it stays, so switching it on again brings it back as it was.",
+    "switchOff": "Switch off",
+    "unavailable": "Plugins are not available on this instance.",
+    "platformTitle": "For the whole platform",
+    "platformNote": "These apply everywhere. Only the platform switches them on or off.",
+    "blocker": {
+      "platform-off": "The platform has switched this plugin off.",
+      "needs-approval": "It has code, and the platform has to approve the code before it can run.",
+      "approval-outdated": "The platform approved the code of another version. This version has to be approved before it can run."
+    }
   }
 }

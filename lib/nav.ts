@@ -385,6 +385,13 @@ export const WORKSPACE_SETTINGS_NAV: NavEntry[] = [
   },
   { section: "teams", icon: "lucide:users-round", labelKey: "teams" },
   {
+    // Which of the platform's plugins this workspace uses.
+    section: "plugins",
+    icon: "lucide:puzzle",
+    labelKey: "plugins",
+    permission: "plugin.enable",
+  },
+  {
     section: "roles",
     icon: "lucide:shield-check",
     labelKey: "roles",
