@@ -135,7 +135,7 @@ each is the switch of the level it applies to.
 > **Built so far.** The manifest declares the scope, and the dependency check enforces
 > what may depend on what ([Compatibility](compatibility.md)). A plugin's `scope` is also
 > stored (`Plugin.scope`) and cannot change in an update or a rollback. The switch for a
-> workspace is [built](workspace.md); the switch for a project follows.
+> workspace is [built](workspace.md), and so is the switch for a [project](project.md).
 
 ### Contributions
 

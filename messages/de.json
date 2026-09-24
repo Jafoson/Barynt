@@ -1657,6 +1657,27 @@
       "approval-outdated": "Die Plattform hat den Code einer anderen Version freigegeben. Diese Version muss freigegeben werden, bevor sie laufen kann."
     }
   },
+  "projectPlugins": {
+    "title": "Plugins",
+    "listTitle": "In diesem Projekt verfügbar",
+    "intro": "Die Plattform installiert Plugins. Hier schaltest du die ein, die dieses Projekt nutzen soll.",
+    "empty": "Die Plattform hat noch kein Plugin installiert, das ein Projekt einschalten kann.",
+    "switchLabel": "{name} in diesem Projekt verwenden",
+    "running": "Läuft in diesem Projekt.",
+    "off": "In diesem Projekt aus.",
+    "cannotRun": "Es kann im Moment nicht laufen. {reason}",
+    "switchOffTitle": "{name} ausschalten?",
+    "switchOffDesc": "Es stoppt in diesem Projekt. Was dieses Projekt dafür eingestellt hat, bleibt erhalten, sodass es beim erneuten Einschalten wieder so ist wie zuvor.",
+    "switchOff": "Ausschalten",
+    "unavailable": "Plugins sind auf dieser Instanz nicht verfügbar.",
+    "platformTitle": "Für die ganze Plattform",
+    "platformNote": "Diese gelten überall. Nur die Plattform schaltet sie ein oder aus.",
+    "blocker": {
+      "platform-off": "Die Plattform hat dieses Plugin ausgeschaltet.",
+      "needs-approval": "Es hat Code, und die Plattform muss den Code freigeben, bevor es laufen kann.",
+      "approval-outdated": "Die Plattform hat den Code einer anderen Version freigegeben. Diese Version muss freigegeben werden, bevor sie laufen kann."
+    }
+  },
   "workspaceStore": {
     "add": "Hinzufügen",
     "switchOn": "Einschalten",

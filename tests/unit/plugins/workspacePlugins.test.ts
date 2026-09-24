@@ -7,6 +7,7 @@ import type {
 } from "@/features/plugins/overview";
 import {
   blockerOf,
+  buildProjectPlugins,
   buildWorkspacePlugins,
 } from "@/features/plugins/workspacePlugins";
 
@@ -318,5 +319,101 @@ describe("the plugins of a workspace", () => {
     expect(build([], [], {}, true).storeAvailable).toBe(true);
     expect(build([], [], {}, false).storeAvailable).toBe(false);
     expect(build([], [], { dir: null }, true).storeAvailable).toBe(false);
+  });
+});
+
+describe("the plugins a project can use", () => {
+  const buildProject = (
+    list: InstalledPlugin[],
+    on: string[] = [],
+    more: Partial<PluginsOverview> = {},
+    storeAvailable = false,
+  ) => buildProjectPlugins(overview(list, more), new Set(on), storeAvailable);
+
+  it("are the ones that apply per project, and only those", () => {
+    const view = buildProject([
+      installed({ id: "board", scope: "PROJECT" }),
+      installed({ id: "notes" }),
+    ]);
+    expect(view.plugins.map((p) => p.id)).toEqual(["board"]);
+  });
+
+  it("do not include a plugin that applies per workspace, whether or not the project holds a row for it", () => {
+    const view = buildProject([installed({ id: "notes" })], ["notes"]);
+    expect(view.plugins).toEqual([]);
+    expect(view.platform).toEqual([]);
+  });
+
+  it("list a plugin of the whole platform apart, and only where the platform has it on", () => {
+    const view = buildProject([
+      installed({ id: "board", scope: "PROJECT" }),
+      installed({ id: "audit", name: "Audit", scope: "PLATFORM" }),
+      installed({ id: "asleep", scope: "PLATFORM", platformOn: false }),
+    ]);
+    expect(view.plugins.map((p) => p.id)).toEqual(["board"]);
+    expect(view.platform.map((p) => p.id)).toEqual(["audit"]);
+  });
+
+  it("say which of them this project has on", () => {
+    const view = buildProject(
+      [
+        installed({ id: "board", scope: "PROJECT" }),
+        installed({ id: "gantt", scope: "PROJECT" }),
+      ],
+      ["gantt", "notes"],
+    );
+    expect(view.plugins.map((p) => [p.id, p.on])).toEqual([
+      ["board", false],
+      ["gantt", true],
+    ]);
+  });
+
+  it("do not include a plugin the platform switched off, unless it is on here, to say why it is not running", () => {
+    const off = installed({ id: "board", scope: "PROJECT", platformOn: false });
+    expect(buildProject([off]).plugins).toEqual([]);
+    const view = buildProject([off], ["board"]);
+    expect(view.plugins[0]).toMatchObject({
+      on: true,
+      blocker: "platform-off",
+    });
+  });
+
+  it("say what keeps each from running, as a workspace's do", () => {
+    const view = buildProject([
+      installed({
+        id: "board",
+        scope: "PROJECT",
+        hasCode: true,
+        approval: { kind: "open" },
+      }),
+    ]);
+    expect(view.plugins[0]?.blocker).toBe("needs-approval");
+  });
+
+  it("have a store only where it is asked for and the platform reads plugins", () => {
+    expect(buildProject([], [], {}, true).storeAvailable).toBe(true);
+    expect(buildProject([], [], {}, false).storeAvailable).toBe(false);
+    expect(buildProject([], [], { dir: null }, true).storeAvailable).toBe(
+      false,
+    );
+    expect(buildProject([], [], { dir: null }).available).toBe(false);
+  });
+
+  it("pass on nothing that is the platform's, as a workspace's do not", () => {
+    const view = buildProject([
+      installed({ id: "board", scope: "PROJECT", integrity: "sha512-secret" }),
+    ]);
+    const text = JSON.stringify(view);
+    expect(text).not.toContain("sha512-secret");
+    expect(text).not.toContain("/plugins");
+  });
+
+  it("are the workspace's view for a workspace, and a different one for a project", () => {
+    const list = [
+      installed({ id: "board", scope: "PROJECT" }),
+      installed({ id: "notes" }),
+    ];
+    expect(build(list).plugins.map((p) => p.id)).toEqual(["notes"]);
+    expect(buildProject(list).plugins.map((p) => p.id)).toEqual(["board"]);
   });
 });
