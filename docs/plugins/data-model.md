@@ -64,6 +64,18 @@ A column on the singleton `SystemSettings` row, `false` by default. Whether plug
 is not `STORE`) are loaded at all. Read for the policy by `getAllowUnsignedPlugins()`, which treats a missing row and any
 read error as `false`; written only by `setAllowUnsignedPlugins()` ([Security](security.md#plugins-from-no-store-unsigned)).
 
+## `SystemSettings`: where the store is shown
+
+Three more columns on the same row: `pluginStoreInWorkspaces` and `pluginStoreInProjects` (`true` by default) and `pluginStoreCuratedOnly` (`false`).
+Read for the store pages by `getStoreVisibility()` (`lib/plugins/storeVisibility.ts`): a missing row is the default, open, and a database that
+cannot be read means **closed** (not shown to workspaces and projects, and if shown only what is released), so an error never widens what
+people can add. Written only by `setPluginStoreVisibility()`, all three at once ([The plugins page](admin.md#who-gets-the-store)).
+
+## `PluginStoreCurated`: a plugin the admin released
+
+Primary key `(storeId, pluginId)`: one row for a plugin of one store that the admin released for workspaces and projects. The same id in
+another store is another plugin. It counts only while `pluginStoreCuratedOnly` is on, and stays when it is off. Deleted with its store.
+
 ## What happens when something is deleted
 
 | Deleted | Effect |

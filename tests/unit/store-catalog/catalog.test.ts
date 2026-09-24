@@ -475,6 +475,7 @@ describe("the stores themselves", () => {
             snapshot: {
               ok: false,
               error: "The store has not been fetched yet.",
+              code: "not-fetched",
             },
           }),
         ],
@@ -486,6 +487,7 @@ describe("the stores themselves", () => {
         name: "Official",
         official: true,
         error: null,
+        errorCode: null,
         syncedAt: when,
         problems: [{ id: "bad-one", issues: ["source.json is missing"] }],
       },
@@ -494,6 +496,7 @@ describe("the stores themselves", () => {
         name: "Acme",
         official: false,
         error: "The store has not been fetched yet.",
+        errorCode: "not-fetched",
         syncedAt: null,
         problems: [],
       },
@@ -507,7 +510,7 @@ describe("the stores themselves", () => {
           store({
             id: "s2",
             key: OTHER,
-            snapshot: { ok: false, error: "gone" },
+            snapshot: { ok: false, error: "gone", code: "unreadable" },
           }),
           store({ id: "s1", entries: [entry("notes")] }),
         ],

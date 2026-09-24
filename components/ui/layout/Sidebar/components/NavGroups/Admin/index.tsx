@@ -17,11 +17,16 @@ async function NavGroupAdmin() {
 
   const tabs: TabGroup[] = ADMIN_NAV.filter((entry) =>
     navEntryAllowed(access.has, entry),
-  ).map((entry) => ({
-    href: adminPath(entry.section),
-    icon: entry.icon,
-    label: t(entry.labelKey),
-  }));
+  ).map((entry) => {
+    const href = adminPath(entry.section);
+    return {
+      href,
+      icon: entry.icon,
+      label: t(entry.labelKey),
+      // The plugins have a second page under theirs, the store.
+      ...(entry.section === "plugins" ? { activeHref: `${href}/*` } : {}),
+    };
+  });
 
   return <TabList tabs={tabs} />;
 }

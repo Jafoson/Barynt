@@ -62,7 +62,12 @@ export type StoreSnapshot =
       /** Entries that cannot be used, and why. */
       problems: StoreProblem[];
     }
-  | { ok: false; error: string };
+  | {
+      ok: false;
+      error: string;
+      /** `not-fetched` when there is no clone yet, which is not a fault of the store. */
+      code: "not-fetched" | "unreadable";
+    };
 
 type Text = { ok: true; text: string } | { ok: false; issue: string };
 
@@ -200,17 +205,22 @@ export async function readStoreDirectory(dir: string): Promise<StoreSnapshot> {
       (error) => error,
     );
     if (root instanceof Error) {
+      const missing = errorCode(root) === "ENOENT";
       return {
         ok: false,
-        error:
-          errorCode(root) === "ENOENT"
-            ? "The store has not been fetched yet."
-            : `The store cannot be read (${errorCode(root)}).`,
+        error: missing
+          ? "The store has not been fetched yet."
+          : `The store cannot be read (${errorCode(root)}).`,
+        code: missing ? "not-fetched" : "unreadable",
       };
     }
     // `lstat` does not follow a symlink, so one is not a directory here.
     if (!root.isDirectory()) {
-      return { ok: false, error: "The store is not a directory." };
+      return {
+        ok: false,
+        error: "The store is not a directory.",
+        code: "unreadable",
+      };
     }
 
     const storeText = await readSmallFile(
@@ -218,12 +228,17 @@ export async function readStoreDirectory(dir: string): Promise<StoreSnapshot> {
       "store.json",
     );
     if (!storeText.ok)
-      return { ok: false, error: `Not a store: ${storeText.issue}.` };
+      return {
+        ok: false,
+        error: `Not a store: ${storeText.issue}.`,
+        code: "unreadable",
+      };
     const storeJson = parseJson(storeText.text);
     if (!storeJson.ok)
       return {
         ok: false,
         error: `Not a store: store.json ${storeJson.issue}.`,
+        code: "unreadable",
       };
     const storeParsed = storeFileSchema.safeParse(storeJson.value);
     if (!storeParsed.success) {
@@ -232,6 +247,7 @@ export async function readStoreDirectory(dir: string): Promise<StoreSnapshot> {
         error: `Not a store: ${issuesOf(storeParsed.error)
           .map((l) => `store.json ${l}`)
           .join("; ")}.`,
+        code: "unreadable",
       };
     }
 
@@ -247,6 +263,7 @@ export async function readStoreDirectory(dir: string): Promise<StoreSnapshot> {
         return {
           ok: false,
           error: `The store's plugins cannot be read (${errorCode(error)}).`,
+          code: "unreadable",
         };
       }
     }
@@ -298,6 +315,7 @@ export async function readStoreDirectory(dir: string): Promise<StoreSnapshot> {
     return {
       ok: false,
       error: `The store could not be read: ${error instanceof Error ? error.message : String(error)}`,
+      code: "unreadable",
     };
   }
 }

@@ -59,10 +59,46 @@ The list is read fresh on every request; nothing is cached.
 What the server says when it refuses (the setting is off, the hash changed, a plugin needs another) is shown in
 the dialog, in the server's words. A change that was made with a warning (a hook failed) is shown above the list.
 
+## The store
+
+**Admin, Plugins, Store** (`/admin/plugins/store`), reached by the tabs on both pages. It is built after the store pages of the apps people
+know: a hero with the search, category chips with counts, a switch between *Discover* and *Installed*, a shelf of the most recently released
+plugins (the first big, with a picture of it joining Barynt), and a card for each plugin with its icon, name, author, description, where it
+applies, whether it has code, and one thing to do: install, update, or a reason it cannot be installed (already installed, every version
+withdrawn, not compatible with this Barynt). A card opens the plugin's details: description, store, version, licence, what it works with,
+links, what it asks for (a promise, not a limit), every version with its date, changelog and, if withdrawn, why.
+
+- **It shows what the stores that are on list**, read from their local clones ([Store format](store-format.md)). A store that has not been
+  fetched, cannot be read, or has entries that cannot be used says so above the list; it never looks like a store with nothing in it.
+  Fetching and updating a clone is the next step, so today the page shows what lies in `<plugins>/.stores/`. For development,
+  `bun run plugins:dev-store` writes a sample store there and connects it (`--remove` takes it away again).
+- **Installing** opens the consent (what it is, what it asks for, that installing switches nothing on and that code waits for approval)
+  and calls `installStorePlugin`. Until the download and the unpacking exist (BARY-107) that action says so and does nothing.
+- **Icons** are made from the name (its first letters on a colour that is the same for the same id): the catalog reads no files of the
+  plugin, so it has no picture. **Ratings, download counts and prices** do not exist in a store entry and are not shown.
+- **The shelf is "new and updated"**, not "recommended": a store entry has no such flag, so the most recently released compatible plugins go on top
+  (only when there are at least four).
+
+### Who gets the store
+
+On **Admin, Plugin stores**, three switches under *Where the store is shown* (`SystemSettings`, [Data model](data-model.md)):
+
+| Setting | Default | Means |
+| --- | --- | --- |
+| Show the store in workspaces | on | Workspace admins can add plugins from the stores that are on, without asking |
+| Show the store in projects | on | The same for project admins |
+| Only show plugins I released | off | Where the store is shown, only the plugins the admin released for it |
+
+Open by default, so the admin has to decide nothing. Releasing is done in the store, on a plugin's details (*Released for workspaces
+and projects*), per store and plugin, and it counts only while *only released* is on; the choice is kept when it is off. Each change is
+audited (`plugin.store.visibility`, `plugin.store.curated`, `plugin.store.uncurated`). **What this does not change:** approving a plugin's
+code stays with `plugin.manage`, for the exact files, whoever added the plugin ([Security](security.md#the-approval)). The store pages for
+workspaces and projects themselves are later steps.
+
 ## Deliberately not here
 
-- **The store tab** ([BARY-106](../../docs/plugins/stores.md)): the page has no tab header yet. Install and update take what
-  lies in the plugin directory; a store to fetch from is a later step.
+- **Fetching a store** (BARY-111, BARY-105) and **installing from one** (BARY-107): the store tab is built, its install button is not
+  connected yet. Install and update on the first tab take what lies in the plugin directory.
 - **"Keep or delete the data" on uninstall.** There is no storage yet (BARY-85).
 - **The switch per workspace.** That belongs to the workspace's own settings (BARY-64), where a workspace admin
   switches on what the platform installed.

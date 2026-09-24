@@ -37,6 +37,7 @@ import { Link } from "@/i18n/navigation";
 import { useModal } from "@/lib/context";
 import { adminPath } from "@/lib/nav";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
+import { PluginsTabs } from "../PluginsTabs/PluginsTabs";
 import { ApproveWarning } from "./ApproveWarning";
 import { PluginFacts } from "./PluginFacts";
 import styles from "./pluginsAdmin.module.scss";
@@ -414,7 +415,11 @@ export function PluginsAdmin({ overview }: Props) {
 
   return (
     <>
-      <PageHeader divider={false} title={t("pluginsAdmin.title")} />
+      <PageHeader
+        divider={false}
+        title={t("pluginsAdmin.title")}
+        actions={<PluginsTabs active="installed" />}
+      />
 
       <SettingsBody>
         {error && (
