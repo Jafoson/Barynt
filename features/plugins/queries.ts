@@ -54,6 +54,7 @@ export async function loadOverview(
   const [
     rows,
     counts,
+    projectCounts,
     snapshot,
     directory,
     activeStores,
@@ -79,6 +80,11 @@ export async function loadOverview(
       where: { enabled: true },
       _count: { _all: true },
     }),
+    db.pluginProject.groupBy({
+      by: ["pluginId"],
+      where: { enabled: true },
+      _count: { _all: true },
+    }),
     getPluginRegistry().get(),
     readPluginDirectory(),
     getActiveStoreUrls(),
@@ -91,6 +97,9 @@ export async function loadOverview(
     discovered: directory.ok ? directory.plugins : [],
     snapshot,
     workspaceCounts: new Map(counts.map((c) => [c.pluginId, c._count._all])),
+    projectCounts: new Map(
+      projectCounts.map((c) => [c.pluginId, c._count._all]),
+    ),
     activeStores,
     allowUnsigned: unsignedAllowed,
     storeUpdates: updates,

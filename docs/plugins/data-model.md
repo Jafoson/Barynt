@@ -43,6 +43,21 @@ constraint would need a trigger); the registry never creates such a row.
 There is an index on `workspaceId` for the most common question, which plugins are on
 in this workspace (every page that renders slots asks it).
 
+## `PluginProject`: a project plugin in one project
+
+Primary key `(pluginId, projectId)`, the same as `PluginWorkspace` one level down. Only for plugins with
+`scope = PROJECT`: a workspace plugin or a platform plugin has no rows here. The database does not enforce that either;
+the registry only counts a project's row for a plugin that applies per project (and a workspace's row for one that applies
+per workspace), so a row of the wrong kind would not get a plugin loaded, and the actions never create one.
+
+| Column | Meaning |
+| --- | --- |
+| `enabled` | on in this project. The row appears at the first switch-on and **stays when it is switched off**, so the settings are not lost. It is deleted with the plugin (uninstall), with the project, or when a switch-on that this call created is put back because the plugin could not run there |
+| `config` | the plugin's settings in this project, `{}` until something is set. The plugin defines the shape (BARY-66) |
+| `createdAt`, `updatedAt` | |
+
+There is an index on `projectId`, for which plugins are on in this project.
+
 ## `PluginStore`: a plugin store
 
 A store that is connected, on or off ([Plugin stores](stores.md)).

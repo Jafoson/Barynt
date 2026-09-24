@@ -154,6 +154,7 @@ function installed(more: Partial<InstalledPlugin> = {}): InstalledPlugin {
     approval: { kind: "approved" },
     integrity: H1,
     update: null,
+    projects: 0,
     previousVersion: null,
     storeUpdate: null,
     ...more,
@@ -293,6 +294,37 @@ describe("an installed plugin", () => {
     expect(html).not.toContain("pluginsAdmin.scopeWorkspace");
     expect(html).not.toContain("pluginsAdmin.scopePlatform");
     expect(html).not.toContain("pluginsAdmin.workspacesOn");
+  });
+
+  it("counts the projects a project plugin is on in, and not workspaces", () => {
+    const html = render(
+      overview({
+        installed: [
+          installed({ scope: "PROJECT", projects: 3, workspaces: 0 }),
+        ],
+      }),
+    );
+    expect(html).toContain("pluginsAdmin.projectsOn|{&quot;count&quot;:3}");
+    expect(html).not.toContain("pluginsAdmin.workspacesOn");
+  });
+
+  it("counts no projects for a plugin that applies per workspace", () => {
+    const html = render(overview({ installed: [installed({ projects: 4 })] }));
+    expect(html).toContain("pluginsAdmin.workspacesOn");
+    expect(html).not.toContain("pluginsAdmin.projectsOn");
+  });
+
+  it("says who has not switched an idle plugin on: a workspace or a project, as it applies", () => {
+    const idle = { kind: "idle" } as const;
+    const workspace = render(
+      overview({ installed: [installed({ state: idle })] }),
+    );
+    expect(workspace).toContain("pluginsAdmin.state.idle");
+    expect(workspace).not.toContain("pluginsAdmin.state.idleProject");
+    const project = render(
+      overview({ installed: [installed({ scope: "PROJECT", state: idle })] }),
+    );
+    expect(project).toContain("pluginsAdmin.state.idleProject");
   });
 
   it("does not count workspaces for a plugin of the whole platform", () => {

@@ -1156,11 +1156,13 @@
     "withCode": "Has code",
     "declarative": "No code",
     "workspacesOn": "{count, plural, =0 {In no workspace} one {On in # workspace} other {On in # workspaces}}",
+    "projectsOn": "{count, plural, =0 {In no project} one {On in # project} other {On in # projects}}",
     "version": "Version {version}",
     "state": {
       "runningDeclarative": "Running.",
       "runningInProcess": "Running. Its code runs in the app.",
       "idle": "No workspace has switched it on yet.",
+      "idleProject": "No project has switched it on yet.",
       "off": "Switched off for the whole platform.",
       "missing": "Its files are not in the plugin directory.",
       "invalid": "Its manifest is not valid: {issues}",

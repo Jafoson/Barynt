@@ -404,9 +404,10 @@ export async function uninstallPlugin(
     };
   }
 
-  const workspaces = await db.pluginWorkspace.count({
-    where: { pluginId, enabled: true },
-  });
+  const [workspaces, projects] = await Promise.all([
+    db.pluginWorkspace.count({ where: { pluginId, enabled: true } }),
+    db.pluginProject.count({ where: { pluginId, enabled: true } }),
+  ]);
   // The plugin as it runs now, taken before it is removed: its hook is still to run.
   const running = (await getPluginRegistry().get()).active.find(
     (p) => p.id === pluginId,
@@ -444,6 +445,7 @@ export async function uninstallPlugin(
       source: row.source,
       hash: row.integrity,
       workspacesThatHadItOn: workspaces,
+      projectsThatHadItOn: projects,
       hook: !outcome.ran ? "none" : outcome.ok ? "ran" : "failed",
       ...(outcome.ran && !outcome.ok ? { hookError: outcome.message } : {}),
     },

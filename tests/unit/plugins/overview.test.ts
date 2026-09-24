@@ -82,6 +82,7 @@ function input(more: Partial<OverviewInput> = {}): OverviewInput {
       plugins: [],
     },
     workspaceCounts: new Map(),
+    projectCounts: new Map(),
     activeStores: [OFFICIAL_STORE_URL],
     allowUnsigned: false,
     locale: "en",
@@ -399,6 +400,36 @@ describe("whether its code may be approved", () => {
     expect(
       one({ row: { source: "DIRECTORY", origin: null } }).approval,
     ).toEqual({ kind: "none" });
+  });
+});
+
+describe("in how many workspaces and projects a plugin is on", () => {
+  const counts = {
+    workspaceCounts: new Map([["calendar", 4]]),
+    projectCounts: new Map([["calendar", 7]]),
+  };
+
+  it("counts workspaces for a plugin that applies per workspace, and only those", () => {
+    const plugin = one({ row: { scope: "WORKSPACE" }, input: counts });
+    expect(plugin.workspaces).toBe(4);
+    expect(plugin.projects).toBe(0);
+  });
+
+  it("counts projects for a plugin that applies per project, and only those", () => {
+    const plugin = one({ row: { scope: "PROJECT" }, input: counts });
+    expect(plugin.projects).toBe(7);
+    expect(plugin.workspaces).toBe(0);
+  });
+
+  it("counts neither for a plugin of the whole platform", () => {
+    const plugin = one({ row: { scope: "PLATFORM" }, input: counts });
+    expect(plugin.workspaces).toBe(0);
+    expect(plugin.projects).toBe(0);
+  });
+
+  it("is none when nobody switched it on", () => {
+    expect(one({ row: { scope: "PROJECT" } }).projects).toBe(0);
+    expect(one({ row: { scope: "WORKSPACE" } }).workspaces).toBe(0);
   });
 });
 

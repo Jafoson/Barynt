@@ -335,9 +335,24 @@ export function activePluginsIn(
 ): ActivePlugin[] {
   // By what a plugin is, not by what it is not: one that applies per project is never a
   // workspace's, whatever ends up in `enabledInWorkspace`.
+  return activePluginsInProject(snapshot, enabledInWorkspace, new Set());
+}
+
+/**
+ * The plugins that apply in a project: what applies in its workspace (every platform plugin
+ * that is running and each workspace plugin switched on there), and each project plugin that
+ * is running and switched on in the project. A plugin that is loaded because another one
+ * needs it, but that this project did not switch on, is not among them.
+ */
+export function activePluginsInProject(
+  snapshot: RegistrySnapshot,
+  enabledInWorkspace: ReadonlySet<string>,
+  enabledInProject: ReadonlySet<string>,
+): ActivePlugin[] {
   return snapshot.active.filter(
     (plugin) =>
       plugin.scope === "PLATFORM" ||
-      (plugin.scope === "WORKSPACE" && enabledInWorkspace.has(plugin.id)),
+      (plugin.scope === "WORKSPACE" && enabledInWorkspace.has(plugin.id)) ||
+      (plugin.scope === "PROJECT" && enabledInProject.has(plugin.id)),
   );
 }

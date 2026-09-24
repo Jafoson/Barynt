@@ -160,7 +160,7 @@ is tested. For each installed plugin, in this order:
 | its manifest is on disk, in the installed version, and valid | `missing`, `invalid` (with the issues) |
 | `resolvePlugins()`: it can load with this Barynt and with the plugins it needs | `incompatible` (with the reasons) |
 | the platform has it switched on (`Plugin.status`) | `disabled` |
-| it is *wanted*: a platform plugin, or a workspace plugin that at least one workspace switched on, and whatever a wanted plugin needs | `idle` |
+| it is *wanted*: a platform plugin, a workspace plugin that at least one workspace switched on, or a project plugin that at least one project switched on, and whatever a wanted plugin needs | `idle` |
 | `decideExecution()` lets it run ([Security](security.md#decided-who-may-run-code-and-where)) | `blocked` (with the reason) |
 | the loader accepts it | `failed` (with the phase and the message) |
 
@@ -215,6 +215,11 @@ plugin and each running workspace plugin that workspace switched on. Each `Activ
 its lifecycle `hooks` ([Lifecycle](lifecycle.md#hooks)), bound to the plugin's definition and frozen. It waits if the registry is still building and fails
 closed, an empty list, if it cannot read. It does not ask whether the user may see the workspace; the workspace layout
 does that for everything under it.
+
+`getActivePluginsInProject(projectId)` is the same for a project: what applies in the project's workspace (every running platform plugin
+and each running workspace plugin that workspace switched on) and each running project plugin that project switched on. A workspace's
+page gets no project plugin (`activePluginsIn`), and a project plugin is only ever a project's. It fails closed too, and a project that
+is not there has none. The project's layout, not this function, asks whether the user may see it.
 
 ### Services
 

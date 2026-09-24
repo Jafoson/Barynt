@@ -348,10 +348,15 @@ export function PluginsAdmin({ overview }: Props) {
                 {t("pluginsAdmin.workspacesOn", { count: plugin.workspaces })}
               </span>
             )}
+            {plugin.scope === "PROJECT" && (
+              <span className={styles.metaText}>
+                {t("pluginsAdmin.projectsOn", { count: plugin.projects })}
+              </span>
+            )}
           </span>
           <span className={styles.state} data-tone={tone}>
             <Icon icon={TONE_ICON[tone]} width={14} />
-            {text.state(plugin.state)}
+            {text.state(plugin.state, plugin.scope)}
           </span>
           {approvalLine && (
             <span className={styles.approval}>

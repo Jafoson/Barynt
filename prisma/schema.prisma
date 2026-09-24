@@ -674,6 +674,8 @@ model Project {
   issueViewPreferences IssueViewPreference[]
   notifications Notification[]
   inviteLinks   InviteLink[]
+  // Welche der installierten Plugins hier eingeschaltet sind, samt Einstellungen.
+  plugins       PluginProject[]
 
   @@unique([workspaceId, prefix])
   @@unique([workspaceId, slug])
@@ -1605,6 +1607,7 @@ model Plugin {
   updatedAt   DateTime @updatedAt
 
   workspaces PluginWorkspace[]
+  projects   PluginProject[]
 }
 
 /// Ein Plugin in einem Workspace: ob es dort eingeschaltet ist und wie es dort
@@ -1633,6 +1636,34 @@ model PluginWorkspace {
   /// Für "welche Plugins sind in diesem Workspace eingeschaltet", die häufigste
   /// Frage (jede Seite, die Slots rendert).
   @@index([workspaceId])
+}
+
+/// Ein Plugin in einem Projekt: ob es dort eingeschaltet ist und wie es dort
+/// eingestellt ist. Wie `PluginWorkspace`, eine Ebene tiefer: die Zeile entsteht
+/// beim ersten Einschalten und bleibt beim Ausschalten bestehen, damit die
+/// Einstellungen nicht verloren gehen. Nur für Plugins mit `scope = PROJECT`;
+/// ein Workspace- oder Plattform-Plugin hat hier keine Zeilen.
+model PluginProject {
+  pluginId  String
+  projectId String
+
+  enabled Boolean @default(true)
+
+  /// Die Einstellungen des Plugins in diesem Projekt. Ihre Form legt das Plugin
+  /// selbst fest (BARY-66); leer, solange nichts eingestellt wurde.
+  config Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Mit dem Deinstallieren des Plugins fallen auch seine Einstellungen weg,
+  /// ebenso mit dem Löschen des Projekts.
+  plugin  Plugin  @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([pluginId, projectId])
+  /// Für "welche Plugins sind in diesem Projekt eingeschaltet".
+  @@index([projectId])
 }
 
 /// Ein Plugin-Store, den der Admin eingeschaltet oder eingetragen hat (BARY-112).

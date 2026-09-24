@@ -13,6 +13,8 @@ import { join } from "node:path";
 const mockAuth = mock();
 const mockPluginFindMany = mock();
 const mockWorkspaceRows = mock();
+const mockProjectRows = mock();
+const mockProjectFindUnique = mock();
 const mockStoreFindMany = mock();
 const mockSettingsFindUnique = mock();
 
@@ -22,13 +24,19 @@ mock.module("@/lib/db", () => ({
   db: {
     plugin: { findMany: mockPluginFindMany },
     pluginWorkspace: { findMany: mockWorkspaceRows },
+    pluginProject: { findMany: mockProjectRows },
+    project: { findUnique: mockProjectFindUnique },
     pluginStore: { findMany: mockStoreFindMany },
     systemSettings: { findUnique: mockSettingsFindUnique },
     workspace: { findUnique: mock() },
   },
 }));
 
-import { getActivePlugins, getPluginRegistry } from "@/lib/plugins/host";
+import {
+  getActivePlugins,
+  getActivePluginsInProject,
+  getPluginRegistry,
+} from "@/lib/plugins/host";
 import { hashPluginDirectory } from "@/lib/plugins/integrity";
 import { OFFICIAL_STORE_URL } from "@/lib/plugins/policy";
 import {
@@ -66,7 +74,7 @@ interface Row {
   version: string;
   status: "ENABLED" | "DISABLED";
   source: string;
-  scope: "WORKSPACE" | "PLATFORM";
+  scope: "WORKSPACE" | "PLATFORM" | "PROJECT";
   origin: string | null;
   integrity: string;
   codeApprovalHash: string | null;
@@ -139,6 +147,8 @@ beforeEach(async () => {
     mockAuth,
     mockPluginFindMany,
     mockWorkspaceRows,
+    mockProjectRows,
+    mockProjectFindUnique,
     mockStoreFindMany,
     mockSettingsFindUnique,
   ]) {
@@ -158,6 +168,8 @@ beforeEach(async () => {
       ),
   );
   mockWorkspaceRows.mockResolvedValue([]);
+  mockProjectRows.mockResolvedValue([]);
+  mockProjectFindUnique.mockResolvedValue({ workspaceId: "w1" });
   mockStoreFindMany.mockResolvedValue([{ url: OFFICIAL_STORE_URL }]);
   mockSettingsFindUnique.mockResolvedValue(null);
   state.snapshot = null;
@@ -345,5 +357,154 @@ describe("which plugins apply in a workspace", () => {
     } finally {
       console.error = log;
     }
+  });
+});
+
+describe("which plugins apply in a project", () => {
+  /** Three plugins that run, each approved: for the platform, per workspace and per project. */
+  async function threeLevels() {
+    for (const [id, scope] of [
+      ["everywhere", "PLATFORM"],
+      ["chosen", "WORKSPACE"],
+      ["board", "PROJECT"],
+    ] as const) {
+      const hash = await install(id, { scope });
+      rowOf(id).codeApprovalHash = hash;
+    }
+  }
+
+  it("is what applies in the workspace and each project plugin the project switched on", async () => {
+    await threeLevels();
+    const other = await install("other-board", { scope: "PROJECT" });
+    rowOf("other-board").codeApprovalHash = other;
+    mockWorkspaceRows.mockImplementation(async (args: { where: object }) =>
+      "workspaceId" in args.where
+        ? [{ pluginId: "chosen" }]
+        : [{ pluginId: "chosen" }],
+    );
+    mockProjectRows.mockImplementation(async (args: { where: object }) =>
+      "projectId" in args.where
+        ? [{ pluginId: "board" }]
+        : [{ pluginId: "board" }, { pluginId: "other-board" }],
+    );
+    const active = await getActivePluginsInProject("p1");
+    expect(active.map((p) => p.id).sort()).toEqual([
+      "board",
+      "chosen",
+      "everywhere",
+    ]);
+  });
+
+  it("asks for the project's own settings, and for the workspace the project is in", async () => {
+    await threeLevels();
+    mockProjectFindUnique.mockResolvedValue({ workspaceId: "w9" });
+    mockProjectRows.mockResolvedValue([{ pluginId: "board" }]);
+    await getActivePluginsInProject("p1");
+    expect(mockProjectFindUnique).toHaveBeenCalledWith({
+      where: { id: "p1" },
+      select: { workspaceId: true },
+    });
+    expect(mockWorkspaceRows).toHaveBeenLastCalledWith({
+      where: { workspaceId: "w9", enabled: true },
+      select: { pluginId: true },
+    });
+    expect(mockProjectRows).toHaveBeenLastCalledWith({
+      where: { projectId: "p1", enabled: true },
+      select: { pluginId: true },
+    });
+  });
+
+  it("is not a workspace's plugin that is on in another workspace, nor another project's plugin", async () => {
+    await threeLevels();
+    mockWorkspaceRows.mockImplementation(async (args: { where: object }) =>
+      "workspaceId" in args.where ? [] : [{ pluginId: "chosen" }],
+    );
+    mockProjectRows.mockImplementation(async (args: { where: object }) =>
+      "projectId" in args.where ? [] : [{ pluginId: "board" }],
+    );
+    const active = await getActivePluginsInProject("p1");
+    expect(active.map((p) => p.id)).toEqual(["everywhere"]);
+  });
+
+  it("is nothing for a project that is not there, and that is not an error", async () => {
+    await threeLevels();
+    mockProjectFindUnique.mockResolvedValue(null);
+    const log = console.error;
+    const logged: unknown[] = [];
+    console.error = (...args: unknown[]) => logged.push(args);
+    try {
+      expect(await getActivePluginsInProject("gone")).toEqual([]);
+    } finally {
+      console.error = log;
+    }
+    expect(logged).toEqual([]);
+  });
+
+  it("reads nothing of the project when no plugin runs", async () => {
+    await snapshot();
+    mockProjectFindUnique.mockClear();
+    mockProjectRows.mockClear();
+    expect(await getActivePluginsInProject("p3")).toEqual([]);
+    expect(mockProjectFindUnique).not.toHaveBeenCalled();
+    expect(mockProjectRows).not.toHaveBeenCalled();
+  });
+
+  it("is nothing, without an error, when the project's settings cannot be read", async () => {
+    await threeLevels();
+    mockProjectRows.mockResolvedValueOnce([{ pluginId: "board" }]);
+    await snapshot();
+    mockProjectRows.mockRejectedValue(new Error("connection lost"));
+    const log = console.error;
+    console.error = () => {};
+    try {
+      expect(await getActivePluginsInProject("p2")).toEqual([]);
+    } finally {
+      console.error = log;
+    }
+  });
+});
+
+describe("which plugins load because a workspace or a project switched them on", () => {
+  it("loads a project plugin when some project has it on, and leaves it idle when none has", async () => {
+    const hash = await install("board", { scope: "PROJECT" });
+    rowOf("board").codeApprovalHash = hash;
+    expect(await statusOf("board")).toEqual({ state: "idle" });
+    change(() => mockProjectRows.mockResolvedValue([{ pluginId: "board" }]));
+    expect(await statusOf("board")).toMatchObject({ state: "loaded" });
+  });
+
+  it("does not load a workspace plugin because a project row names it, nor a project plugin because a workspace row does", async () => {
+    const a = await install("chosen", { scope: "WORKSPACE" });
+    const b = await install("board", { scope: "PROJECT" });
+    rowOf("chosen").codeApprovalHash = a;
+    rowOf("board").codeApprovalHash = b;
+    // Rows of the other kind, as if some had been written by hand: the database filters by
+    // the plugin's scope, the way the registry asks for them.
+    mockWorkspaceRows.mockImplementation(async (args: { where: object }) =>
+      JSON.stringify(args.where).includes('"scope":"WORKSPACE"')
+        ? []
+        : [{ pluginId: "board" }],
+    );
+    mockProjectRows.mockImplementation(async (args: { where: object }) =>
+      JSON.stringify(args.where).includes('"scope":"PROJECT"')
+        ? []
+        : [{ pluginId: "chosen" }],
+    );
+    expect(await statusOf("chosen")).toEqual({ state: "idle" });
+    expect(await statusOf("board")).toEqual({ state: "idle" });
+  });
+
+  it("asks for the workspaces' rows of plugins that apply per workspace and the projects' rows of plugins that apply per project", async () => {
+    await snapshot();
+    expect(mockWorkspaceRows.mock.calls[0]?.[0]).toEqual({
+      where: { enabled: true, plugin: { scope: "WORKSPACE" } },
+      select: { pluginId: true },
+      distinct: ["pluginId"],
+    });
+    expect(mockProjectRows.mock.calls[0]?.[0]).toEqual({
+      where: { enabled: true, plugin: { scope: "PROJECT" } },
+      select: { pluginId: true },
+      distinct: ["pluginId"],
+    });
   });
 });
