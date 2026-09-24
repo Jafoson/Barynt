@@ -212,12 +212,18 @@ and measured (start at `docs/plugins/README.md`).
   `SystemSettings.allowUnsignedPlugins` is `true` (`lib/plugins/unsigned.ts`, fails closed, off by default), and even then
   only one without code runs; one with code stays blocked, unreviewed code does not run in the process. Switching the
   setting on needs the warning's tick, which `setAllowUnsignedPlugins` checks on the **server** (`plugin.manage`, audited),
-  and installing a plugin from an address entered by hand has to ask for it again every time (BARY-60).
+  and installing or updating a plugin from no store has to ask for it again every time (`installPlugin`/`updatePlugin` check it
+  on the server; an address entered by hand, BARY-111, is built to the same rule).
+- **The platform's lifecycle** (`features/plugins/lifecycleActions.ts`: `installPlugin`, `updatePlugin`, `uninstallPlugin`,
+  `setPluginStatus`; `docs/plugins/lifecycle.md`) installs what lies in the plugin directory, as `source` `DIRECTORY`: **the client
+  never says where a plugin came from**, and `source`, `origin`, `status` and the hash are not parameters. `disk.ts` reads the
+  directory (hash twice, valid manifest, `previewInstall`/`previewUninstall` before any change). Install approves no code, an update
+  withdraws the approval of the old version, uninstall leaves the files, and none of them runs plugin code (no `onInstall`).
 - **The registry** (`lib/plugins/registry.ts`, wired in `host.ts`) decides once per process which plugins run and keeps a
   snapshot: `planPlugins()` (pure, `plan.ts`) picks, the loader loads, `instrumentation.ts` starts it with the server (not
   awaited) so `boot` runs once per process outside a request. Its state lives on `global`
   (`registryState.ts`), because Next bundles a module once per layer; **anything that changes which code may run calls
-  `invalidatePluginRegistry()`** (the store, unsigned-setting and approval actions do; lifecycle actions must, BARY-60). A page asks
+  `invalidatePluginRegistry()`** (the store, unsigned-setting, approval and lifecycle actions do; the per-workspace ones must, BARY-60). A page asks
   `getActivePlugins(workspaceId)`. Request-scoped state seeded by `cache()` does not cross layers: the services find the
   workspace through the reader `setCurrentWorkspaceId` publishes on `global`. **Code runs in the process only with an approval
   for one plugin and its exact hash** (`Plugin.codeApprovalHash`, `features/plugins/actions.ts`: `plugin.manage`, the server asks for
@@ -529,6 +535,12 @@ tests/
       sdk.test.ts                 ← packages/plugin-sdk: definePlugin, version, contexts vs manifest points
       definition.test.ts          ← parsePluginModule: reads a plugin's server module, never throws
       resolve.test.ts             ← lib/plugins/resolve: host range, dependencies, cycles, load order
+    plugin-approval/
+      actions.test.ts             ← approve / withdraw the approval of a plugin's code (real plugin dirs)
+    plugin-lifecycle/
+      lifecycle.test.ts           ← install, update, uninstall, switch off (features/plugins/lifecycleActions)
+    plugin-staging/
+      stage.test.ts               ← features/plugins/disk (own process: it replaces the directory hash)
     notifications/
       notify.test.ts              ← lib/notify (also mocks `@/lib/mail`, own process)
       queries.test.ts             ← inbox query

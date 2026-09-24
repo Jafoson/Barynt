@@ -60,6 +60,13 @@ export const AUDIT_ACTIONS = {
   // The one that gives a plugin the full power of the app: the loud one.
   "plugin.code.approved": "Plugin code approved to run",
   "plugin.code.revoked": "Plugin code approval withdrawn",
+  // A plugin's life on the platform. Installing and updating bring new files into what
+  // may be approved to run, so they are marked; removing and switching off narrow it.
+  "plugin.installed": "Plugin installed",
+  "plugin.updated": "Plugin updated",
+  "plugin.uninstalled": "Plugin uninstalled",
+  "plugin.status.enabled": "Plugin switched on",
+  "plugin.status.disabled": "Plugin switched off",
 
   // ── Everyday events in project and workspace ───────────────────────────────
   //

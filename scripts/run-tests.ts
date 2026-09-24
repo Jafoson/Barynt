@@ -48,6 +48,7 @@ const SEGMENTS: string[][] = [
     "tests/unit/plugins",
     "tests/unit/plugin-stores",
     "tests/unit/plugin-approval",
+    "tests/unit/plugin-lifecycle",
     "tests/unit/secrets",
   ],
   ["tests/unit/permissions/resolver.test.ts"],
@@ -94,6 +95,10 @@ const SEGMENTS: string[][] = [
   // for the services the plugin host offers (`lib/plugins/services.ts`); other
   // files test the real permissions and session code, or mock them differently.
   ["tests/unit/plugin-host"],
+  // Replaces `hashPluginDirectory` (`@/lib/plugins/integrity`) to make the hash of a
+  // plugin's files differ between two reads; `tests/unit/plugins/integrity.test.ts`
+  // tests the real one.
+  ["tests/unit/plugin-staging"],
   // Mocks `@/lib/project-membership` away entirely — see CLAUDE.md.
   [
     "tests/unit/workspace/inviteLinks.test.ts",
