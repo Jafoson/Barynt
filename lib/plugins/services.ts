@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { canEnterWorkspace } from "@/lib/permissions";
 import type { BootServices } from "./loader";
+import { getRegistryState } from "./registryState";
 
 // The host's services for a plugin's `boot` (docs/plugins/sdk.md). `boot` runs
 // once per process, outside any request, so `user` and `workspace` are not "the
@@ -22,6 +23,10 @@ import type { BootServices } from "./loader";
 
 /** The signed-in user of the current request, or `null` outside one or when nobody is signed in. */
 async function sessionUser(): Promise<{ user: PluginUser } | null> {
+  // While plugins load, and so while one boots, nobody is asked. A plugin approved
+  // after the server started boots inside the request that built the registry, and
+  // must not see that request's user.
+  if (getRegistryState().loading > 0) return null;
   try {
     const session = await auth();
     const id = session?.user?.id;

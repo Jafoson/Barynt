@@ -171,6 +171,15 @@ export const AUDIT_ACTION_META = {
     icon: "lucide:shield-check",
     message: "pluginUnsignedDisallowed",
   },
+  "plugin.code.approved": {
+    icon: "lucide:shield-plus",
+    message: "pluginCodeApproved",
+    loud: true,
+  },
+  "plugin.code.revoked": {
+    icon: "lucide:shield-minus",
+    message: "pluginCodeRevoked",
+  },
   "project.created": { icon: "lucide:folder-plus", message: "projectCreated" },
   "project.visibility.changed": {
     icon: "lucide:eye",

@@ -1242,6 +1242,8 @@
       "pluginStoreCredentialCleared": "Zugang zu Plugin-Store entfernt",
       "pluginUnsignedAllowed": "Plugins ohne Store erlaubt",
       "pluginUnsignedDisallowed": "Plugins ohne Store nicht mehr erlaubt",
+      "pluginCodeApproved": "Plugin-Code zur Ausführung freigegeben",
+      "pluginCodeRevoked": "Freigabe für Plugin-Code zurückgezogen",
       "projectCreated": "Projekt angelegt",
       "projectVisibilityChanged": "Sichtbarkeit geändert",
       "memberAdded": "Mitglied hinzugefügt",

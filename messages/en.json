@@ -1242,6 +1242,8 @@
       "pluginStoreCredentialCleared": "Plugin store access removed",
       "pluginUnsignedAllowed": "Plugins from no store allowed",
       "pluginUnsignedDisallowed": "Plugins from no store not allowed",
+      "pluginCodeApproved": "Plugin code approved to run",
+      "pluginCodeRevoked": "Plugin code approval withdrawn",
       "projectCreated": "Project created",
       "projectVisibilityChanged": "Visibility changed",
       "memberAdded": "Member added",

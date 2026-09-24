@@ -147,14 +147,21 @@ async function buildSnapshot(
     hostVersion: deps.host.barynt,
   });
 
-  const report =
-    plan.candidates.length === 0
-      ? { loaded: [], failed: new Map() }
-      : await deps.load(plan.candidates, {
-          host: deps.host,
-          services: (plugin) => deps.services(plugin),
-          alreadyBooted: (candidate) => state.booted.has(bootKey(candidate)),
-        });
+  let report: LoadReport = { loaded: [], failed: new Map() };
+  if (plan.candidates.length > 0) {
+    // The host's services say `null` while plugins load, so a `boot` that runs
+    // inside a request never sees who made it.
+    state.loading += 1;
+    try {
+      report = await deps.load(plan.candidates, {
+        host: deps.host,
+        services: (plugin) => deps.services(plugin),
+        alreadyBooted: (candidate) => state.booted.has(bootKey(candidate)),
+      });
+    } finally {
+      state.loading -= 1;
+    }
+  }
 
   const loadedById = new Map(report.loaded.map((entry) => [entry.id, entry]));
   const scopeOf = new Map(installed.plugins.map((p) => [p.id, p.scope]));

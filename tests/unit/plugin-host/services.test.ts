@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 
 // The services a plugin's `boot` gets from the host. They answer for the request
 // they are asked in and say `null` outside one, and they never tell a plugin more
@@ -18,6 +18,7 @@ mock.module("@/lib/db", () => ({
   db: { workspace: { findUnique: mockWorkspaceFind } },
 }));
 
+import { getRegistryState } from "@/lib/plugins/registryState";
 import { createHostServices } from "@/lib/plugins/services";
 
 // Where `setCurrentWorkspaceId` publishes the reader of the request's workspace.
@@ -179,6 +180,53 @@ describe("workspace.current", () => {
     mockAuth.mockRejectedValue(new Error("outside a request"));
     mockWorkspaceId.mockReturnValue("w1");
     expect(await createHostServices(PLUGIN).workspace.current()).toBeNull();
+  });
+});
+
+describe("while plugins load", () => {
+  // A plugin approved after the server started boots inside whichever request built
+  // the registry, and must not see that request's user or workspace.
+  const loading = getRegistryState();
+  afterEach(() => {
+    loading.loading = 0;
+  });
+
+  it("does not say who is signed in, and does not even ask the session", async () => {
+    signedIn();
+    loading.loading = 1;
+    expect(await createHostServices(PLUGIN).user.current()).toBeNull();
+    expect(mockAuth).not.toHaveBeenCalled();
+  });
+
+  it("does not say which workspace, and does not ask the database or the permissions", async () => {
+    signedIn();
+    mockWorkspaceId.mockReturnValue("w1");
+    mockCanEnter.mockResolvedValue(true);
+    mockWorkspaceFind.mockResolvedValue({ id: "w1", name: "Nimbus" });
+    loading.loading = 1;
+    expect(await createHostServices(PLUGIN).workspace.current()).toBeNull();
+    expect(mockCanEnter).not.toHaveBeenCalled();
+    expect(mockWorkspaceFind).not.toHaveBeenCalled();
+  });
+
+  it("answers again as soon as the load is over, also for services made during it", async () => {
+    signedIn();
+    loading.loading = 1;
+    const services = createHostServices(PLUGIN);
+    expect(await services.user.current()).toBeNull();
+    loading.loading = 0;
+    expect(await services.user.current()).toEqual({
+      id: "u1",
+      name: "Mara Velez",
+    });
+  });
+
+  it("holds while more than one load runs", async () => {
+    signedIn();
+    loading.loading = 2;
+    expect(await createHostServices(PLUGIN).user.current()).toBeNull();
+    loading.loading = 1;
+    expect(await createHostServices(PLUGIN).user.current()).toBeNull();
   });
 });
 

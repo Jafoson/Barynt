@@ -47,6 +47,7 @@ const SEGMENTS: string[][] = [
     "tests/unit/webhooks",
     "tests/unit/plugins",
     "tests/unit/plugin-stores",
+    "tests/unit/plugin-approval",
     "tests/unit/secrets",
   ],
   ["tests/unit/permissions/resolver.test.ts"],
