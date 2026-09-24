@@ -188,6 +188,7 @@ export function archiveRequestFor(
 export async function fetchStoreArchive(
   source: StoreSource,
   deps?: DownloadDeps,
+  options: { timeoutMs?: number } = {},
 ): Promise<Download> {
   const made = archiveRequestFor(source);
   if (!made.ok) return { ok: false, error: made.error, code: "invalid-url" };
@@ -197,6 +198,9 @@ export async function fetchStoreArchive(
       maxBytes: MAX_STORE_ARCHIVE_BYTES,
       headers: made.request.headers,
       credentialHeaders: made.request.credentialHeaders,
+      ...(options.timeoutMs !== undefined
+        ? { timeoutMs: options.timeoutMs }
+        : {}),
     },
     deps,
   );

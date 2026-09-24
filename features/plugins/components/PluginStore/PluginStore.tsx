@@ -30,6 +30,7 @@ import { InstallFromStoreModal } from "./InstallFromStoreModal";
 import { PluginCard } from "./PluginCard";
 import styles from "./pluginStore.module.scss";
 import { StoreDetailModal } from "./StoreDetailModal";
+import { StoreSync } from "./StoreSync";
 
 interface Props {
   view: StoreCatalogView;
@@ -174,32 +175,12 @@ export function PluginStore({ view, initial }: Props) {
               </span>
             </p>
           )}
-          {catalog.stores.map((store) =>
-            store.errorCode === "not-fetched" ? (
-              <p key={store.id} className={styles.notice}>
-                <Icon icon="lucide:info" width={14} />
-                {t("pluginStore.storeNotFetched", { store: store.name })}
-              </p>
-            ) : store.error ? (
-              <p key={store.id} className={styles.error} role="alert">
-                <Icon icon="lucide:circle-alert" width={14} />
-                {t("pluginStore.storeError", {
-                  store: store.name,
-                  error: store.error,
-                })}
-              </p>
-            ) : store.problems.length > 0 ? (
-              <p key={store.id} className={styles.notice}>
-                <Icon icon="lucide:triangle-alert" width={14} />
-                {t("pluginStore.storeProblems", {
-                  count: store.problems.length,
-                  store: store.name,
-                })}
-              </p>
-            ) : null,
-          )}
-          {catalog.stores.some((store) => store.error) && (
-            <p className={styles.hint}>{t("pluginStore.notFetchedHint")}</p>
+          {!noStores && (
+            <div className={styles.syncList}>
+              {catalog.stores.map((store) => (
+                <StoreSync key={store.id} store={store} />
+              ))}
+            </div>
           )}
 
           {entries.length > 0 && (

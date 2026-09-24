@@ -56,6 +56,7 @@ export function view(
           error: null,
           errorCode: null,
           syncedAt: null,
+          syncError: null,
           problems: [],
         },
       ],

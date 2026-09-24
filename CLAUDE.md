@@ -232,7 +232,11 @@ and measured (start at `docs/plugins/README.md`).
   every redirect checked, size and time limited, **a token goes only to the host it was given for**, never in an address or an error), our own
   `readTar` (`tar.ts`) reads it, and `unpackStoreArchive` (`archive.ts`) writes **only** `store.json` and each plugin's `barynt-plugin.json` and
   `source.json`. New code that fetches from an address someone else wrote uses `safeDownload`, never `fetch` directly. Known gap: DNS rebinding
-  (needs the egress rules, BARY-97).
+  (needs the egress rules, BARY-97). **A clone is brought up to date by `syncStoreClone` (`sync.ts`)**: unpack into `.stores/.tmp-*`, read it as a store, and only
+  then move it into place, so any failure leaves the old clone as it was; how it went is on the store's row (`syncedAt`, `syncAttemptedAt`, `syncError`) and the
+  store page says so (`StoreSync`). `features/plugins/storeSync.ts` opens the sealed token and is what `syncPluginStores` (the button, `plugin.manage`) and opening the page
+  (`refreshStoresForPage`: a never-fetched store is waited for, an old one is fetched after the page is sent) call; `BARYNT_STORE_AUTO_SYNC` and
+  `BARYNT_STORE_MAX_AGE_HOURS` are read by `syncPolicy.ts`.
 - **The plugin store page** (`/admin/plugins/store`): `buildCatalog` output plus `features/plugins/storeView.ts` (search, categories, featured, avatars: pure) in
   `features/plugins/components/PluginStore/`. **Who gets the store** is `SystemSettings.pluginStoreInWorkspaces/InProjects/CuratedOnly` (open by default;
   `getStoreVisibility()` fails **closed**) plus `PluginStoreCurated` (a plugin of a store the admin released). Adding a plugin never changes who approves its
@@ -566,10 +570,13 @@ tests/
       stage.test.ts               ← features/plugins/disk (own process: it replaces the directory hash)
     store-catalog/
       format.test.ts / reader.test.ts / catalog.test.ts / paths.test.ts  ← what a store contains and how a clone is read (real hostile directories)
+      sync.test.ts / syncPolicy.test.ts  ← the sync (real temp dirs, the old clone stays on any failure) and when opening the page fetches
       address.test.ts / fetch.test.ts / transport.test.ts / tar.test.ts / archive.test.ts  ← how it gets there: the public-address guard, the safe download (`fetch` and DNS replaced), the host styles, the tar reader, the allowlist unpack (real temp dirs); archives are built by `tests/unit/store-support/tarBuilder.ts`
     store-settings/
       visibility.test.ts / installAction.test.ts  ← who gets the store, releasing a plugin, the install action's checks
     plugin-store-page/ · plugin-store-parts/ · plugin-store-support/  ← the store page (own processes: they stand in for parts of it)
+    store-sync/
+      storeSync.test.ts           ← features/plugins/storeSync and the sync action (own process: mocks the db, permissions, `after` and DNS)
     plugin-admin/
       queries.test.ts             ← what the plugins page reads (own process: it mocks the registry)
       pluginsAdmin.test.tsx       ← the page: what is offered where, which action a dialog runs with which arguments

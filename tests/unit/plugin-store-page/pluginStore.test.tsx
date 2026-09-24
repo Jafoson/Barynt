@@ -223,6 +223,7 @@ describe("what a store can be in", () => {
     error: null,
     errorCode: null,
     syncedAt: null,
+    syncError: null,
     problems: [],
     ...more,
   });
@@ -249,7 +250,6 @@ describe("what a store can be in", () => {
       "pluginStore.storeNotFetched|{&quot;store&quot;:&quot;Official&quot;}",
     );
     expect(html).not.toContain('role="alert"');
-    expect(html).toContain("pluginStore.notFetchedHint");
     expect(html).not.toContain("pluginStore.noEntries");
   });
 
@@ -266,7 +266,70 @@ describe("what a store can be in", () => {
     );
     expect(html).toContain('role="alert"');
     expect(html).toContain("Not a store: store.json is missing.");
-    expect(html).toContain("pluginStore.notFetchedHint");
+  });
+
+  it("has a row for each store with the time it was fetched, or that it was not", () => {
+    const at = new Date(Date.now() - 3 * 60 * 60 * 1000);
+    const html = render(
+      view({
+        stores: [
+          store({ syncedAt: at }),
+          store({ id: "store-2", name: "Acme", syncedAt: null }),
+        ],
+      }),
+    );
+    expect(html).toContain("Official");
+    expect(html).toContain("Acme");
+    expect(html).toContain("pluginStore.syncedAt");
+    expect(html).toContain("pluginStore.syncNever");
+    expect(html.match(/pluginStore\.syncLabel/g)).toHaveLength(2);
+  });
+
+  it("has no row for stores when none is on", () => {
+    const html = render(view({ stores: [] }));
+    expect(html).not.toContain("pluginStore.syncLabel");
+  });
+
+  it("says a store could not be updated, which state is shown, and the server's reason", () => {
+    const html = render(
+      view({
+        entries: four(),
+        stores: [
+          store({
+            syncedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+            syncError: "The server answered 404.",
+          }),
+        ],
+      }),
+    );
+    expect(html).toContain('role="alert"');
+    expect(html).toContain("pluginStore.syncFailed|");
+    expect(html).not.toContain("pluginStore.syncFailedNothing");
+    expect(html).toContain("The server answered 404.");
+  });
+
+  it("says a store could not be updated and that nothing is shown from it, when it never was", () => {
+    const html = render(
+      view({
+        stores: [
+          store({
+            error: "The store has not been fetched yet.",
+            errorCode: "not-fetched",
+            syncError: "The server answered 404.",
+          }),
+        ],
+      }),
+    );
+    expect(html).toContain("pluginStore.syncFailedNothing");
+    expect(html).toContain("The server answered 404.");
+    // The reason it was not fetched is the failure above, not a plain "not yet".
+    expect(html).not.toContain("pluginStore.storeNotFetched");
+  });
+
+  it("does not say a store failed when it did not", () => {
+    const html = render(view({ entries: four(), stores: [store()] }));
+    expect(html).not.toContain("pluginStore.syncFailed");
+    expect(html).not.toContain('role="alert"');
   });
 
   it("says how many entries of a store cannot be used", () => {

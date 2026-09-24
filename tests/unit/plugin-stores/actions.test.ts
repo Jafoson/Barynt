@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 // Which plugin stores are on. The list decides which code the platform can be
 // asked to approve, so: only `plugin.manage` may change it, every change is
@@ -51,6 +54,7 @@ import {
 } from "@/features/plugin-stores/constants";
 import { getPluginStores } from "@/features/plugin-stores/queries";
 import { getRegistryState } from "@/lib/plugins/registryState";
+import { storeCloneDir } from "@/lib/plugins/store/paths";
 
 const OWN = "https://git.example.com/team/plugins";
 
@@ -368,6 +372,54 @@ describe("removing a store", () => {
       targetLabel: "Our plugins (git.example.com/team/plugins)",
     });
     expect(mockRevalidate).toHaveBeenCalledTimes(1);
+  });
+
+  describe("and its clone", () => {
+    let dir: string;
+    const before = process.env.BARYNT_PLUGINS_DIR;
+    beforeEach(async () => {
+      dir = await mkdtemp(join(tmpdir(), "barynt-removestore-"));
+      process.env.BARYNT_PLUGINS_DIR = dir;
+    });
+    afterEach(async () => {
+      if (before === undefined) delete process.env.BARYNT_PLUGINS_DIR;
+      else process.env.BARYNT_PLUGINS_DIR = before;
+      await rm(dir, { recursive: true, force: true });
+    });
+    const clone = async (key: string) => {
+      const path = storeCloneDir(dir, key);
+      await mkdir(join(path, "plugins"), { recursive: true });
+      await writeFile(join(path, "store.json"), "{}");
+      return path.split("/").pop() as string;
+    };
+
+    it("goes with the store, and no other store's does", async () => {
+      const own = await clone("git.example.com/team/plugins");
+      const other = await clone("git.example.com/other/plugins");
+      mockStoreFindUnique.mockResolvedValue(CUSTOM);
+      expect(await removePluginStore("s2")).toEqual({ ok: true });
+      expect(await readdir(join(dir, ".stores"))).toEqual([other]);
+      expect(own).not.toBe(other);
+    });
+
+    it("is not missed when there is none", async () => {
+      mockStoreFindUnique.mockResolvedValue(CUSTOM);
+      expect(await removePluginStore("s2")).toEqual({ ok: true });
+    });
+
+    it("does not fail the removal when plugins are off", async () => {
+      process.env.BARYNT_PLUGINS_DIR = "relative/dir";
+      mockStoreFindUnique.mockResolvedValue(CUSTOM);
+      expect(await removePluginStore("s2")).toEqual({ ok: true });
+      expect(mockStoreDelete).toHaveBeenCalledTimes(1);
+    });
+
+    it("is not touched when the store is the official one, which stays", async () => {
+      const official = await clone("github.com/jafoson/barynt-plugin-store");
+      mockStoreFindUnique.mockResolvedValue(OFFICIAL);
+      await removePluginStore("s1");
+      expect(await readdir(join(dir, ".stores"))).toEqual([official]);
+    });
   });
 
   it("never removes the official store, and says to switch it off", async () => {

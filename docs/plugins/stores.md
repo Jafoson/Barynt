@@ -102,13 +102,13 @@ is the same limit as for everything an in-process plugin can reach ([Security](s
 a token that can do the least: read-only, limited to the store's repository (a deploy token or a fine-grained token),
 so that a leaked one costs as little as possible.
 
-**What the store client has to do** (BARY-105, BARY-111), because nothing uses the token yet:
+**What the store client does** (`features/plugins/storeSync.ts` and `lib/plugins/store/fetch.ts`, [ADR 0003](adr-0003-store-transport.md)):
 
-- read it only with `openStoreToken(store.key, credential)`, and treat `null` as "no token";
-- send it only to the store's own address, and **not** follow a redirect to another host with it;
-- never log it, never put it on a command line (visible to every process on the machine) or in a URL, and never
-  leave it in a `.git/config`; hand it to Git through an environment variable or a credential helper;
-- keep it out of every error it reports.
+- reads it only with `openStoreToken(store.key, credential)`, and treats `null` as "no token" (the fetch then goes on without one);
+- sends it only to the store's own host as one header (`Authorization` or `PRIVATE-TOKEN`, whatever the host knows), and **not** on
+  to another host after a redirect, and not back to the first one either once the request has left it;
+- never logs it, never puts it on a command line or in a URL, and there is no git and so no `.git/config` for it to end up in;
+- keeps it out of every error it reports and out of what it writes to the store's row (`syncError`); the tests check for it.
 
 ### What an address may look like
 
@@ -116,20 +116,20 @@ Only a plain `https://host/path`. Another scheme, credentials in the address, a 
 the `git@host:` form and an address that is only a host are refused. Two spellings of one store
 (`.../plugins`, `.../plugins.git`, upper case, a trailing slash) are the same store. This is deliberately
 strict: an address that cannot be compared exactly cannot be trusted exactly. It also means a self-hosted
-Git server on another port, or a store reached over SSH, cannot be connected yet; that is decided with the
-store client (BARY-105, BARY-111).
+Git server on another port, or a store reached over SSH, cannot be connected; the download takes the standard port
+only ([ADR 0003](adr-0003-store-transport.md)).
 
 Limits: a name of 1 to 80 characters, an address of at most 300, at most 20 stores.
 
 ## Not built yet
 
 - **Installing from a repository address entered by hand**: the setting exists, but there is no address field and no
-  installer yet (BARY-60, BARY-111, BARY-105). When there is, it needs the setting on **and** the same warning with a tick
+  installer yet (BARY-60, BARY-107). When there is, it needs the setting on **and** the same warning with a tick
   every time, and it installs a plugin without a store entry, so it is unsigned by definition.
-- **Using the token**: it is stored (above), but nothing reads it until the store client and the Git transport
-  exist (BARY-105, BARY-111). **SSH keys** are not supported; the address has to be `https://`.
+- **SSH keys** are not supported; the address has to be `https://`. The token is used by the store client (above).
 - **The general secrets storage for plugins** (BARY-85). `lib/secrets.ts` is the small part of it that this needed,
   and is meant to be what that ticket builds on.
-- **Branch, last sync, last error, head commit** of a store, which come with the store client (BARY-105).
-- **The same plugin id in two stores** is shown, not resolved silently. That belongs to the plugin
-  browser, which needs the store client first (BARY-105).
+- **A branch and the head commit** of a store: it is fetched from its default branch as an archive, which has no commit to record
+  ([ADR 0003](adr-0003-store-transport.md#still-open)). When it was last fetched, and why the last try failed, are on the row
+  ([Data model](data-model.md)).
+- **The same plugin id in two stores** is shown, not resolved silently.

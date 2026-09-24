@@ -23,6 +23,8 @@ export interface CatalogStoreInput {
   snapshot: StoreSnapshot;
   /** When the clone was last updated, or `null` if it never was. */
   syncedAt: Date | null;
+  /** Why the last attempt to update it failed, or `null` if it did not. */
+  syncError: string | null;
 }
 
 export interface InstalledInput {
@@ -82,7 +84,10 @@ export interface CatalogStoreState {
   error: string | null;
   /** `not-fetched` when there is no clone yet, which is not a fault of the store. */
   errorCode: "not-fetched" | "unreadable" | null;
+  /** When the clone was last updated, or `null` if it never was. */
   syncedAt: Date | null;
+  /** Why the last attempt to update it failed: the state shown is the one from `syncedAt`. */
+  syncError: string | null;
   problems: StoreProblem[];
 }
 
@@ -121,6 +126,7 @@ export function buildCatalog(input: CatalogInput): Catalog {
       error: snapshot.ok ? null : snapshot.error,
       errorCode: snapshot.ok ? null : snapshot.code,
       syncedAt: store.syncedAt,
+      syncError: store.syncError,
       problems: snapshot.ok ? snapshot.problems : [],
     });
     if (!snapshot.ok) continue;

@@ -1,8 +1,10 @@
 "use server";
 
+import { db } from "@/lib/db";
 import { PLATFORM, requirePermission } from "@/lib/permissions";
 import { pluginVersionSchema } from "@/lib/plugins/manifest";
 import { STORE_PLUGIN_ID } from "@/lib/plugins/store/format";
+import { syncStore } from "./storeSync";
 import type { PluginActionResult } from "./types";
 
 // Installing a plugin from a store: download the archive the entry names, check its
@@ -42,4 +44,34 @@ export async function installStorePlugin(
     error:
       "Installing from a store is not available yet: downloading and unpacking a plugin come with the next step.",
   };
+}
+
+/**
+ * Updates the clone of one store, or of every store that is on, when `storeId` is left out.
+ * Needs `plugin.manage`. However the fetch goes, the store's row says (`syncedAt`,
+ * `syncError`) and the page shows it; an `error` here is for a request that could not be
+ * tried at all.
+ */
+export async function syncPluginStores(
+  storeId?: string,
+): Promise<PluginActionResult> {
+  await requirePermission("plugin.manage", PLATFORM);
+  if (storeId !== undefined) {
+    if (
+      typeof storeId !== "string" ||
+      storeId.length === 0 ||
+      storeId.length > 100
+    ) {
+      return { error: "Invalid request." };
+    }
+    const outcome = await syncStore(storeId);
+    return "error" in outcome ? outcome : { ok: true };
+  }
+  const stores = await db.pluginStore.findMany({
+    where: { enabled: true },
+    select: { id: true },
+  });
+  const outcomes = await Promise.all(stores.map((s) => syncStore(s.id)));
+  const failed = outcomes.find((o) => "error" in o);
+  return failed ?? { ok: true };
 }

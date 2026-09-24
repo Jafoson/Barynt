@@ -75,11 +75,13 @@ function store(
     official: true,
     snapshot: more.snapshot ?? ok(more.entries ?? []),
     syncedAt: null,
+    syncError: null,
     ...(more.id ? { id: more.id } : {}),
     ...(more.key ? { key: more.key } : {}),
     ...(more.name ? { name: more.name } : {}),
     ...(more.official !== undefined ? { official: more.official } : {}),
     ...(more.syncedAt !== undefined ? { syncedAt: more.syncedAt } : {}),
+    ...(more.syncError !== undefined ? { syncError: more.syncError } : {}),
   };
 }
 
@@ -472,6 +474,7 @@ describe("the stores themselves", () => {
             key: OTHER,
             name: "Acme",
             official: false,
+            syncError: "The server answered 404.",
             snapshot: {
               ok: false,
               error: "The store has not been fetched yet.",
@@ -489,6 +492,7 @@ describe("the stores themselves", () => {
         error: null,
         errorCode: null,
         syncedAt: when,
+        syncError: null,
         problems: [{ id: "bad-one", issues: ["source.json is missing"] }],
       },
       {
@@ -498,6 +502,7 @@ describe("the stores themselves", () => {
         error: "The store has not been fetched yet.",
         errorCode: "not-fetched",
         syncedAt: null,
+        syncError: "The server answered 404.",
         problems: [],
       },
     ]);
