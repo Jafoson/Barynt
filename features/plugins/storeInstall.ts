@@ -37,6 +37,13 @@ export async function installFromStore(input: {
   storeId: string;
   pluginId: string;
   version: string;
+  /**
+   * Only a plugin that applies per workspace: for a workspace admin, who does not bring in
+   * what applies to the whole platform. Left out for the platform.
+   */
+  only?: "WORKSPACE";
+  /** The workspace that asked, when one did: it is in the audit entry. */
+  workspaceId?: string;
 }): Promise<PluginActionResult> {
   const { actorId, storeId, pluginId, version } = input;
 
@@ -91,6 +98,11 @@ export async function installFromStore(input: {
     );
   }
   const scope = entry.manifest.scope === "platform" ? "PLATFORM" : "WORKSPACE";
+  if (input.only === "WORKSPACE" && scope !== "WORKSPACE") {
+    return refuse(
+      `${pluginId} applies to the whole platform, so only the platform installs it.`,
+    );
+  }
 
   // What it needs and what it would break, as for any install, before anything is downloaded.
   const { plugins } = await discoverPlugins(setting.dir);
@@ -154,6 +166,7 @@ export async function installFromStore(input: {
       hash: placed.integrity,
       store: store.key,
       archive: verified.release.archiveSha512,
+      ...(input.workspaceId ? { workspace: input.workspaceId } : {}),
     },
   });
 

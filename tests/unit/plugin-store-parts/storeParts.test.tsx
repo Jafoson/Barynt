@@ -85,6 +85,11 @@ import { PluginAction } from "@/features/plugins/components/PluginStore/PluginAc
 import { PluginAvatar } from "@/features/plugins/components/PluginStore/PluginAvatar";
 import { PluginCard } from "@/features/plugins/components/PluginStore/PluginCard";
 import { StoreDetailModal } from "@/features/plugins/components/PluginStore/StoreDetailModal";
+import {
+  PLATFORM_MODE,
+  type StoreMode,
+  StoreModeContext,
+} from "@/features/plugins/components/PluginStore/storeMode";
 import { PluginsTabs } from "@/features/plugins/components/PluginsTabs/PluginsTabs";
 
 const render = (node: ReactElement): string => {
@@ -367,6 +372,22 @@ describe("the tabs", () => {
     expect(installedPage.match(/aria-current="page"/g)).toHaveLength(1);
     expect(installedPage.indexOf('aria-current="page"')).toBeLessThan(
       installedPage.indexOf('href="/admin/plugins/store"'),
+    );
+  });
+});
+
+describe("the tabs on a workspace's pages", () => {
+  it("are links to that workspace's own two pages, and none to the platform's", () => {
+    const html = render(<PluginsTabs active="store" workspaceId="ws-7" />);
+    expect(html).toContain('href="/ws-7/settings/plugins"');
+    expect(html).toContain('href="/ws-7/settings/plugins/store"');
+    expect(html).not.toContain("/admin");
+    expect(html.match(/aria-current="page"/g)).toHaveLength(1);
+    const installedPage = render(
+      <PluginsTabs active="installed" workspaceId="ws-7" />,
+    );
+    expect(installedPage.indexOf('aria-current="page"')).toBeLessThan(
+      installedPage.indexOf('href="/ws-7/settings/plugins/store"'),
     );
   });
 });
@@ -658,5 +679,169 @@ describe("the consent before installing", () => {
     }) as ReactElement<{ onConfirm: () => Promise<string | null> }>;
     expect(await element.props.onConfirm()).toBe("no");
     expect(seen).toEqual(["go"]);
+  });
+});
+
+describe("in a workspace's store", () => {
+  const mode = (more: Partial<StoreMode> = {}): StoreMode => ({
+    ...PLATFORM_MODE,
+    workspace: true,
+    ...more,
+  });
+  const inMode = (m: StoreMode, e: CatalogEntry, seen: string[] = []) =>
+    render(
+      <StoreModeContext.Provider value={m}>
+        <PluginAction
+          entry={e}
+          onInstall={(x, v) => seen.push(`add ${x.id}@${v}`)}
+        />
+      </StoreModeContext.Provider>,
+    );
+
+  it("says add where the platform's page says install", () => {
+    const html = inMode(mode(), entry("notes", { offered: "1.4.0" }));
+    expect(html).toContain("workspaceStore.add");
+    expect(html).not.toContain("pluginStore.install<");
+    const platform = inMode(
+      PLATFORM_MODE,
+      entry("notes", { offered: "1.4.0" }),
+    );
+    expect(platform).toContain("pluginStore.install");
+    expect(platform).not.toContain("workspaceStore.add");
+  });
+
+  it("adds what it was offered, with the version on offer", () => {
+    const seen: string[] = [];
+    inMode(mode(), entry("notes", { offered: "1.4.0" }), seen);
+    buttons[0]?.onClick?.();
+    expect(seen).toEqual(["add notes@1.4.0"]);
+  });
+
+  it("is a button to switch on for a plugin the platform has and this workspace has not, and nothing is added", () => {
+    const seen: string[] = [];
+    const switched: string[] = [];
+    const html = inMode(
+      mode({
+        switchOn: new Set(["notes"]),
+        onSwitchOn: (e) => switched.push(e.id),
+      }),
+      entry("notes"),
+      seen,
+    );
+    expect(html).toContain("workspaceStore.switchOn");
+    expect(html).not.toContain("workspaceStore.add");
+    buttons[0]?.onClick?.();
+    expect(switched).toEqual(["notes"]);
+    expect(seen).toEqual([]);
+  });
+
+  it("switches on a plugin whose store entry does not fit or was withdrawn, since nothing is downloaded", () => {
+    const withdrawn = inMode(
+      mode({ switchOn: new Set(["notes"]), onSwitchOn: () => {} }),
+      entry("notes", { offered: null }),
+    );
+    expect(withdrawn).toContain("workspaceStore.switchOn");
+    const unfit = inMode(
+      mode({ switchOn: new Set(["notes"]), onSwitchOn: () => {} }),
+      entry("notes", { compatible: false }),
+    );
+    expect(unfit).toContain("workspaceStore.switchOn");
+  });
+
+  it("does not offer the switch for another plugin, or on the platform's page, or without a way to run it", () => {
+    expect(
+      inMode(
+        mode({ switchOn: new Set(["wiki"]), onSwitchOn: () => {} }),
+        entry("notes"),
+      ),
+    ).toContain("workspaceStore.add");
+    expect(
+      inMode(
+        {
+          ...PLATFORM_MODE,
+          switchOn: new Set(["notes"]),
+          onSwitchOn: () => {},
+        },
+        entry("notes"),
+      ),
+    ).toContain("pluginStore.install");
+    expect(
+      inMode(mode({ switchOn: new Set(["notes"]) }), entry("notes")),
+    ).toContain("workspaceStore.add");
+  });
+
+  it("says a plugin that is on here is installed, and never offers an update", () => {
+    const html = inMode(
+      mode({ switchOn: new Set(["notes"]), onSwitchOn: () => {} }),
+      entry("notes", { installed: installed(null) }),
+    );
+    expect(html).toContain("pluginStore.installed");
+    expect(html).not.toContain("workspaceStore.switchOn");
+    expect(html).not.toContain("workspaceStore.add");
+  });
+
+  it("has a consent in its own words: adding for the whole platform, and switching on here", () => {
+    const element = InstallFromStoreModal({
+      entry: entry("notes", { name: "Notes", hasCode: true }),
+      version: "2.0.0",
+      onConfirm: async () => null,
+      close: noop,
+      workspace: true,
+    }) as ReactElement<{
+      title: string;
+      confirmLabel: string;
+      notice: (s: {
+        checked: boolean;
+        onChange: (c: boolean) => void;
+        disabled: boolean;
+      }) => ReactNode;
+    }>;
+    expect(element.props.title).toBe(
+      'workspaceStore.installTitle|{"name":"Notes","version":"2.0.0"}',
+    );
+    expect(element.props.confirmLabel).toBe("workspaceStore.installConfirm");
+    const html = renderToStaticMarkup(
+      element.props.notice({
+        checked: false,
+        onChange: noop,
+        disabled: false,
+      }),
+    );
+    expect(html).toContain("workspaceStore.installCodeNote");
+    expect(html).toContain("workspaceStore.installWarnBody");
+    expect(html).toContain("workspaceStore.installCheck");
+    expect(html).not.toContain("pluginStore.installWarnBody");
+    expect(html).not.toContain("pluginStore.installCheck");
+    const none = InstallFromStoreModal({
+      entry: entry("notes"),
+      version: "1.0.0",
+      onConfirm: async () => null,
+      close: noop,
+      workspace: true,
+    }) as typeof element;
+    expect(
+      renderToStaticMarkup(
+        none.props.notice({
+          checked: false,
+          onChange: noop,
+          disabled: false,
+        }),
+      ),
+    ).toContain("workspaceStore.installNoCodeNote");
+  });
+
+  it("has details without the release block when there is no way to release", () => {
+    const html = render(
+      <StoreDetailModal
+        entry={entry("notes")}
+        released={false}
+        curatedOnly={false}
+        onInstall={noop}
+        close={noop}
+      />,
+    );
+    expect(html).not.toContain("pluginStore.curationTitle");
+    expect(switches).toEqual([]);
+    expect(html).toContain("pluginStore.versions");
   });
 });

@@ -25,6 +25,7 @@ import type {
 } from "@/features/plugins/workspacePlugins";
 import styles from "../PluginsAdmin/pluginsAdmin.module.scss";
 import { type Tone, useRuntimeText } from "../PluginsAdmin/runtimeText";
+import { PluginsTabs } from "../PluginsTabs/PluginsTabs";
 
 interface Props {
   workspaceId: string;
@@ -175,7 +176,15 @@ export function WorkspacePlugins({ workspaceId, view }: Props) {
 
   return (
     <>
-      <PageHeader divider={false} title={t("workspacePlugins.title")} />
+      <PageHeader
+        divider={false}
+        title={t("workspacePlugins.title")}
+        actions={
+          view.storeAvailable ? (
+            <PluginsTabs active="installed" workspaceId={workspaceId} />
+          ) : undefined
+        }
+      />
 
       <SettingsBody>
         {error && (

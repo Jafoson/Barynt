@@ -38,8 +38,26 @@ action is the protection and refuses the same way if it is called anyway.
 of it. What is the platform's is not passed on: the plugin directory's path, why plugins are off, the hash of a plugin's files, where it came
 from, in how many workspaces it is on, what is approved.
 
+## The store of a workspace
+
+**Workspace settings, Plugins, Store** (`/<workspace>/settings/plugins/store`) is the same store page as the platform's ([The store](admin.md#the-store)), for the
+workspace. It is there when the platform gave workspaces the store (*Show the store in workspaces*, on by default; a setting that cannot be read
+means off) and someone with `plugin.enable` opens it; otherwise the tab is missing and the address is a 404. What differs:
+
+- **Only plugins that apply per workspace** are listed, and where the platform asked for *only released plugins* only the ones it released.
+  A plugin for the whole platform is the platform's to install.
+- **A card says what this workspace can do**: *Add* for a plugin the platform does not have yet, *Switch on* for one it has and this workspace has
+  not (no download), *Installed* for one that is on here. There is no update button and no release switch: those are the platform's.
+- **Add** (`addStorePluginToWorkspace`, `plugin.enable` in that workspace) is the platform's install ([Release](release.md),
+  [Lifecycle](lifecycle.md)) for a workspace admin, followed by the switch in that workspace: the same checks before anything is downloaded, the same
+  hash and manifest, the same record (`source` STORE), audited as `plugin.installed` with the workspace that asked. The consent says that it is added
+  for the whole platform and switched on here. **What it does not change:** a plugin with code is added and **waits for the platform to approve its
+  code**; the page then says it was added and is not switched on yet, and offers *Switch on* once the platform has approved it.
+- **What a workspace admin is told of the stores** is their names, when they were fetched and that one could not be read or updated; not why, which
+  can hold a path or an address (`getWorkspaceStore` blanks it on the server).
+
 ## Not here
 
-- **Installing, updating and removing.** Those are the platform's ([The plugins page](admin.md)). The store for a workspace is the next step.
+- **Updating and removing.** Those are the platform's ([The plugins page](admin.md)).
 - **A plugin's own settings** (`PluginWorkspace.config`, BARY-66).
 - **Project level**: a project opts out of what the workspace switched on, and project-scoped plugins, are later steps.

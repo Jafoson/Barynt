@@ -2,9 +2,11 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
+import { useContext } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import type { CatalogEntry } from "@/lib/plugins/store/catalog";
 import styles from "./pluginStore.module.scss";
+import { StoreModeContext } from "./storeMode";
 
 interface Props {
   entry: CatalogEntry;
@@ -25,6 +27,7 @@ export function PluginAction({
   onInstall,
 }: Props) {
   const t = useTranslations();
+  const mode = useContext(StoreModeContext);
 
   if (entry.installed?.update) {
     const version = entry.installed.update;
@@ -46,6 +49,20 @@ export function PluginAction({
         <Icon icon="lucide:check" width={12} />
         {t("pluginStore.installed")}
       </span>
+    );
+  }
+  // On the platform already and off in this workspace: nothing to download, only to switch on.
+  if (mode.workspace && mode.switchOn.has(entry.id) && mode.onSwitchOn) {
+    const switchOn = mode.onSwitchOn;
+    return (
+      <Button
+        variant="outline"
+        size={size}
+        disabled={disabled}
+        onClick={() => switchOn(entry)}
+      >
+        {t("workspaceStore.switchOn")}
+      </Button>
     );
   }
   if (entry.offered === null) {
@@ -73,7 +90,7 @@ export function PluginAction({
       disabled={disabled}
       onClick={() => onInstall(entry, version)}
     >
-      {t("pluginStore.install")}
+      {mode.workspace ? t("workspaceStore.add") : t("pluginStore.install")}
     </Button>
   );
 }

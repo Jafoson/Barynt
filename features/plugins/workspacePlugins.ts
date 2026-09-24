@@ -45,6 +45,8 @@ export interface PlatformPlugin {
 }
 
 export interface WorkspacePluginsView {
+  /** The platform has given workspaces the plugin store, so the page has a Store tab. */
+  storeAvailable: boolean;
   /**
    * Whether the platform reads plugins at all. Why not (a path, an environment variable) is the
    * platform's and is not passed on.
@@ -92,6 +94,7 @@ export function blockerOf(
 export function buildWorkspacePlugins(
   overview: PluginsOverview,
   enabledHere: ReadonlySet<string>,
+  storeAvailable: boolean,
 ): WorkspacePluginsView {
   const plugins: WorkspacePlugin[] = [];
   const platform: PlatformPlugin[] = [];
@@ -127,6 +130,7 @@ export function buildWorkspacePlugins(
     });
   }
   return {
+    storeAvailable: storeAvailable && overview.dir !== null,
     available: overview.dir !== null,
     plugins,
     platform,

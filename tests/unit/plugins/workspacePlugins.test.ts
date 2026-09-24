@@ -64,7 +64,8 @@ const build = (
   list: InstalledPlugin[],
   on: string[] = [],
   more: Partial<PluginsOverview> = {},
-) => buildWorkspacePlugins(overview(list, more), new Set(on));
+  storeAvailable = false,
+) => buildWorkspacePlugins(overview(list, more), new Set(on), storeAvailable);
 
 describe("what keeps a plugin from being switched on, or from running", () => {
   const blocker = (
@@ -283,6 +284,7 @@ describe("the plugins of a workspace", () => {
       "available",
       "platform",
       "plugins",
+      "storeAvailable",
     ]);
   });
 
@@ -294,5 +296,11 @@ describe("the plugins of a workspace", () => {
     });
     expect(off.available).toBe(false);
     expect(JSON.stringify(off)).not.toContain("/secret");
+  });
+
+  it("has a store when the platform gave workspaces one, and plugins are on", () => {
+    expect(build([], [], {}, true).storeAvailable).toBe(true);
+    expect(build([], [], {}, false).storeAvailable).toBe(false);
+    expect(build([], [], { dir: null }, true).storeAvailable).toBe(false);
   });
 });

@@ -12,6 +12,11 @@ import styles from "./pluginStore.module.scss";
 
 interface Props {
   store: CatalogStoreState;
+  /**
+   * A workspace's page: when the store was fetched, and that it could not be read or updated;
+   * no button and not the reason, which is the platform's to see.
+   */
+  readOnly?: boolean;
 }
 
 /**
@@ -21,7 +26,7 @@ interface Props {
  * (`syncPluginStores`, which needs `plugin.manage`); how it went is on the store's row, and
  * the page reads it from there.
  */
-export function StoreSync({ store }: Props) {
+export function StoreSync({ store, readOnly }: Props) {
   const t = useTranslations();
   const timeAgo = useTimeAgo();
   const router = useRouter();
@@ -47,69 +52,84 @@ export function StoreSync({ store }: Props) {
             ? t("pluginStore.syncedAt", { time: since })
             : t("pluginStore.syncNever")}
         </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={styles.syncButton}
-          icon={
-            <Icon
-              icon="lucide:refresh-cw"
-              width={14}
-              className={pending ? styles.spin : undefined}
-            />
-          }
-          disabled={pending}
-          aria-busy={pending}
-          aria-label={t("pluginStore.syncLabel", { store: store.name })}
-          onClick={update}
-        >
-          {pending ? t("pluginStore.syncing") : t("pluginStore.sync")}
-        </Button>
+        {!readOnly && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className={styles.syncButton}
+            icon={
+              <Icon
+                icon="lucide:refresh-cw"
+                width={14}
+                className={pending ? styles.spin : undefined}
+              />
+            }
+            disabled={pending}
+            aria-busy={pending}
+            aria-label={t("pluginStore.syncLabel", { store: store.name })}
+            onClick={update}
+          >
+            {pending ? t("pluginStore.syncing") : t("pluginStore.sync")}
+          </Button>
+        )}
       </div>
 
-      {problem && (
-        <p className={styles.error} role="alert">
-          <Icon icon="lucide:circle-alert" width={14} />
-          {problem}
-        </p>
-      )}
-      {store.syncError && (
-        <p className={styles.error} role="alert">
-          <Icon icon="lucide:circle-alert" width={14} />
-          <span>
-            {since
-              ? t("pluginStore.syncFailed", {
-                  store: store.name,
-                  time: since,
-                })
-              : t("pluginStore.syncFailedNothing", { store: store.name })}{" "}
-            <span className={styles.reason}>{store.syncError}</span>
-          </span>
-        </p>
-      )}
-      {!store.syncError && store.errorCode === "not-fetched" && (
-        <p className={styles.notice}>
-          <Icon icon="lucide:info" width={14} />
-          {t("pluginStore.storeNotFetched", { store: store.name })}
-        </p>
-      )}
-      {store.error && store.errorCode === "unreadable" && (
-        <p className={styles.error} role="alert">
-          <Icon icon="lucide:circle-alert" width={14} />
-          {t("pluginStore.storeError", {
-            store: store.name,
-            error: store.error,
-          })}
-        </p>
-      )}
-      {store.problems.length > 0 && (
-        <p className={styles.notice}>
-          <Icon icon="lucide:triangle-alert" width={14} />
-          {t("pluginStore.storeProblems", {
-            count: store.problems.length,
-            store: store.name,
-          })}
-        </p>
+      {readOnly ? (
+        (store.error || store.syncError) && (
+          <p className={styles.notice}>
+            <Icon icon="lucide:triangle-alert" width={14} />
+            {t("workspaceStore.storeUnavailable")}
+          </p>
+        )
+      ) : (
+        <>
+          {problem && (
+            <p className={styles.error} role="alert">
+              <Icon icon="lucide:circle-alert" width={14} />
+              {problem}
+            </p>
+          )}
+          {store.syncError && (
+            <p className={styles.error} role="alert">
+              <Icon icon="lucide:circle-alert" width={14} />
+              <span>
+                {since
+                  ? t("pluginStore.syncFailed", {
+                      store: store.name,
+                      time: since,
+                    })
+                  : t("pluginStore.syncFailedNothing", {
+                      store: store.name,
+                    })}{" "}
+                <span className={styles.reason}>{store.syncError}</span>
+              </span>
+            </p>
+          )}
+          {!store.syncError && store.errorCode === "not-fetched" && (
+            <p className={styles.notice}>
+              <Icon icon="lucide:info" width={14} />
+              {t("pluginStore.storeNotFetched", { store: store.name })}
+            </p>
+          )}
+          {store.error && store.errorCode === "unreadable" && (
+            <p className={styles.error} role="alert">
+              <Icon icon="lucide:circle-alert" width={14} />
+              {t("pluginStore.storeError", {
+                store: store.name,
+                error: store.error,
+              })}
+            </p>
+          )}
+          {store.problems.length > 0 && (
+            <p className={styles.notice}>
+              <Icon icon="lucide:triangle-alert" width={14} />
+              {t("pluginStore.storeProblems", {
+                count: store.problems.length,
+                store: store.name,
+              })}
+            </p>
+          )}
+        </>
       )}
     </div>
   );

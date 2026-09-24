@@ -116,13 +116,21 @@ async function clone(
 }
 
 const install = (
-  more: { pluginId?: string; version?: string; storeId?: string } = {},
+  more: {
+    pluginId?: string;
+    version?: string;
+    storeId?: string;
+    only?: "WORKSPACE";
+    workspaceId?: string;
+  } = {},
 ) =>
   installFromStore({
     actorId: "admin1",
     storeId: more.storeId ?? "store-1",
     pluginId: more.pluginId ?? "notes",
     version: more.version ?? "1.0.0",
+    ...(more.only ? { only: more.only } : {}),
+    ...(more.workspaceId ? { workspaceId: more.workspaceId } : {}),
   });
 const at = (...parts: string[]) => join(root, ...parts);
 const noWork = () => {
@@ -285,6 +293,38 @@ describe("a plugin that is installed", () => {
       "codeApprovalHash",
     );
     expect(pluginCreate.mock.calls[0]?.[0].data.status).toBe("ENABLED");
+  });
+});
+
+describe("an install for a workspace", () => {
+  it("takes a plugin that applies per workspace, and says in the audit entry which workspace asked", async () => {
+    await clone();
+    expect(await install({ only: "WORKSPACE", workspaceId: "ws-7" })).toEqual({
+      ok: true,
+    });
+    expect(auditCreate.mock.calls[0]?.[0].data.meta).toMatchObject({
+      workspace: "ws-7",
+      source: "STORE",
+      scope: "WORKSPACE",
+    });
+    expect(auditCreate.mock.calls[0]?.[0].data.actorId).toBe("admin1");
+  });
+
+  it("does not take one that applies to the whole platform, which is not a workspace's to bring in, and downloads nothing", async () => {
+    await clone({ manifest: { scope: "platform" } });
+    expect(await install({ only: "WORKSPACE", workspaceId: "ws-7" })).toEqual({
+      error:
+        "notes applies to the whole platform, so only the platform installs it.",
+    });
+    noWork();
+  });
+
+  it("is the platform's install when nobody asks for a workspace: a platform plugin goes in, and the audit says no workspace", async () => {
+    await clone({ manifest: { scope: "platform" } });
+    expect(await install()).toEqual({ ok: true });
+    expect(auditCreate.mock.calls[0]?.[0].data.meta).not.toHaveProperty(
+      "workspace",
+    );
   });
 });
 

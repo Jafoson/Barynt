@@ -133,6 +133,23 @@ describe("the button", () => {
 });
 
 describe("what the row says", () => {
+  it("says a store could not be updated when only that went wrong, and one that could not be read when only that did", () => {
+    const updated = render(
+      <StoreSync
+        readOnly
+        store={state({ syncedAt: new Date(), syncError: "failed" })}
+      />,
+    );
+    expect(updated).toContain("workspaceStore.storeUnavailable");
+    const read = render(
+      <StoreSync
+        readOnly
+        store={state({ error: "unavailable", errorCode: "unreadable" })}
+      />,
+    );
+    expect(read).toContain("workspaceStore.storeUnavailable");
+  });
+
   it("says nothing is wrong when nothing is", () => {
     const html = render(<StoreSync store={state({ syncedAt: new Date() })} />);
     for (const word of [
@@ -192,5 +209,68 @@ describe("what the row says", () => {
     );
     expect(html).toContain("The server answered 404.");
     expect(html).toContain("Not a store: store.json is missing.");
+  });
+});
+
+describe("a workspace's row", () => {
+  it("says when the store was fetched, and has no button to fetch it", () => {
+    const html = render(
+      <StoreSync
+        readOnly
+        store={state({ syncedAt: new Date(Date.now() - 3 * 3600 * 1000) })}
+      />,
+    );
+    expect(html).toContain("Acme");
+    expect(html).toContain("pluginStore.syncedAt");
+    expect(buttons).toHaveLength(0);
+    expect(html).not.toContain("pluginStore.syncLabel");
+  });
+
+  it("says a store cannot be read or updated, once, and not why: the reason is the platform's", () => {
+    const html = render(
+      <StoreSync
+        readOnly
+        store={state({
+          syncedAt: new Date(),
+          syncError: "failed",
+          error: "unavailable",
+          errorCode: "unreadable",
+          problems: [{ id: "x", issues: ["y"] }],
+        })}
+      />,
+    );
+    expect(html.match(/workspaceStore\.storeUnavailable/g)).toHaveLength(1);
+    for (const word of [
+      "syncFailed",
+      "storeError",
+      "storeProblems",
+      "storeNotFetched",
+      'role="alert"',
+    ]) {
+      expect(html).not.toContain(word);
+    }
+  });
+
+  it("says nothing is wrong when nothing is", () => {
+    const html = render(
+      <StoreSync readOnly store={state({ syncedAt: new Date() })} />,
+    );
+    expect(html).not.toContain("storeUnavailable");
+  });
+
+  it("says a store that was not fetched yet is unavailable, since the plain notice is the platform's", () => {
+    const html = render(
+      <StoreSync
+        readOnly
+        store={state({ error: "unavailable", errorCode: "not-fetched" })}
+      />,
+    );
+    expect(html).toContain("workspaceStore.storeUnavailable");
+    expect(html).not.toContain("pluginStore.storeNotFetched");
+  });
+
+  it("does not reach the server for the store, whatever the button was", () => {
+    render(<StoreSync readOnly store={state()} />);
+    expect(mockSync).not.toHaveBeenCalled();
   });
 });

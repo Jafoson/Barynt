@@ -253,7 +253,10 @@ and measured (start at `docs/plugins/README.md`).
 - **The plugins of a workspace** (`/<workspace>/settings/plugins`, `docs/plugins/workspace.md`, `plugin.enable` in that workspace, asked by the query itself; a page for someone
   who may not is a 404): `getWorkspacePlugins` (`workspaceQueries.ts`) reads the platform's overview (`loadOverview`) and `buildWorkspacePlugins` (pure) **selects** from it: **nothing that is
   the platform's** (the plugin directory's path, why plugins are off, hashes, origin, counts) reaches a workspace admin. The switch is `enablePlugin`/`disablePlugin`; one that cannot run is
-  disabled with the reason (`blockerOf`), the action refuses the same way.
+  disabled with the reason (`blockerOf`), the action refuses the same way. **The store for a workspace** (`/settings/plugins/store`, the same `PluginStore` with a `workspace` prop and a
+  `StoreModeContext`): `getWorkspaceStore` is a selection too (workspace-scope plugins, released ones where the platform asked, what is on here as installed, a store's state only as
+  "unavailable"), null where `getStoreVisibility()` (fails closed) says no. `addStorePluginToWorkspace` (`plugin.enable` in the workspace) checks visibility and release itself and runs
+  `installFromStore` with `only: "WORKSPACE"` and the workspace, then `enablePlugin`; a plugin with code is added and waits for the platform's approval (a warning, not a failure).
 - **The registry** (`lib/plugins/registry.ts`, wired in `host.ts`) decides once per process which plugins run and keeps a
   snapshot: `planPlugins()` (pure, `plan.ts`) picks, the loader loads, `instrumentation.ts` starts it with the server (not
   awaited) so `boot` runs once per process outside a request. Its state lives on `global`

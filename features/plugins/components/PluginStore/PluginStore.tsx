@@ -3,7 +3,7 @@
 import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { Chip } from "@/components/ui/atoms/Chip/Chip";
 import { Input } from "@/components/ui/atoms/Input/Input";
@@ -19,6 +19,8 @@ import {
   pickFeatured,
   type StoreView,
 } from "@/features/plugins/storeView";
+import { enablePlugin } from "@/features/plugins/workspaceActions";
+import { addStorePluginToWorkspace } from "@/features/plugins/workspaceStoreActions";
 import { Link } from "@/i18n/navigation";
 import { useModal } from "@/lib/context";
 import { adminPath } from "@/lib/nav";
@@ -31,9 +33,16 @@ import { PluginCard } from "./PluginCard";
 import styles from "./pluginStore.module.scss";
 import { StoreDetailModal } from "./StoreDetailModal";
 import { StoreSync } from "./StoreSync";
+import { PLATFORM_MODE, StoreModeContext } from "./storeMode";
 
 interface Props {
   view: StoreCatalogView;
+  /**
+   * Set on a workspace's page: the store there **adds** a plugin for the workspace and can
+   * switch on one the platform has already, and has no release switch and no update button
+   * (those are the platform's).
+   */
+  workspace?: { id: string; switchOn: string[] };
   /** Where the page starts: what is typed, the category and the view. All empty by default. */
   initial?: { query?: string; category?: string | null; view?: StoreView };
 }
@@ -48,11 +57,12 @@ interface Props {
  * Installing asks the server for the same yes the dialog asks for; releasing a plugin for
  * workspaces and projects is the platform admin's choice, here, in the details.
  */
-export function PluginStore({ view, initial }: Props) {
+export function PluginStore({ view, workspace, initial }: Props) {
   const t = useTranslations();
   const router = useRouter();
   const { openModal } = useModal();
   const isPhone = useMediaQuery(PHONE_QUERY);
+  const [, startTransition] = useTransition();
   const [query, setQuery] = useState(initial?.query ?? "");
   const [category, setCategory] = useState<string | null>(
     initial?.category ?? null,
@@ -60,6 +70,8 @@ export function PluginStore({ view, initial }: Props) {
   const [storeView, setStoreView] = useState<StoreView>(
     initial?.view ?? "discover",
   );
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const { catalog, visibility } = view;
   const entries = catalog.entries;
@@ -87,14 +99,26 @@ export function PluginStore({ view, initial }: Props) {
           version={version}
           close={close}
           sheet={isPhone}
+          workspace={Boolean(workspace)}
           onConfirm={async () => {
-            const result = await installStorePlugin(
-              entry.storeId,
-              entry.id,
-              version,
-              { acknowledged: true },
-            );
+            const result = workspace
+              ? await addStorePluginToWorkspace(
+                  workspace.id,
+                  entry.storeId,
+                  entry.id,
+                  version,
+                  { acknowledged: true },
+                )
+              : await installStorePlugin(entry.storeId, entry.id, version, {
+                  acknowledged: true,
+                });
             if ("error" in result) return result.error;
+            // Done, and something on the way was not: the page says so once the dialog is gone.
+            setNotice(
+              result.warning
+                ? t("workspaceStore.addedNotOn", { message: result.warning })
+                : "",
+            );
             router.refresh();
             return null;
           }}
@@ -102,6 +126,25 @@ export function PluginStore({ view, initial }: Props) {
       ),
       modalOptions(entry.name),
     );
+
+  /** Switches on, in this workspace, a plugin the platform has installed already. */
+  const switchOn = workspace
+    ? (entry: CatalogEntry) =>
+        startTransition(async () => {
+          const result = await enablePlugin(workspace.id, entry.id);
+          if ("error" in result) {
+            setError(result.error);
+            return;
+          }
+          setError("");
+          setNotice(
+            result.warning
+              ? t("workspaceStore.addedNotOn", { message: result.warning })
+              : "",
+          );
+          router.refresh();
+        })
+    : null;
 
   const openDetails = (entry: CatalogEntry) =>
     openModal(
@@ -113,16 +156,20 @@ export function PluginStore({ view, initial }: Props) {
           close={close}
           sheet={isPhone}
           onInstall={openInstall}
-          onRelease={async (next) => {
-            const result = await setPluginCurated(
-              entry.storeId,
-              entry.id,
-              next,
-            );
-            if ("error" in result) return result.error;
-            router.refresh();
-            return null;
-          }}
+          {...(workspace
+            ? {}
+            : {
+                onRelease: async (next: boolean) => {
+                  const result = await setPluginCurated(
+                    entry.storeId,
+                    entry.id,
+                    next,
+                  );
+                  if ("error" in result) return result.error;
+                  router.refresh();
+                  return null;
+                },
+              })}
         />
       ),
       modalOptions(entry.name),
@@ -131,12 +178,20 @@ export function PluginStore({ view, initial }: Props) {
   const noStores = catalog.stores.length === 0;
   const listEmpty = shown.length === 0;
 
+  const mode = workspace
+    ? {
+        workspace: true,
+        switchOn: new Set(workspace.switchOn),
+        onSwitchOn: switchOn,
+      }
+    : PLATFORM_MODE;
+
   return (
-    <>
+    <StoreModeContext.Provider value={mode}>
       <PageHeader
         divider={false}
         title={t("pluginStore.title")}
-        actions={<PluginsTabs active="store" />}
+        actions={<PluginsTabs active="store" workspaceId={workspace?.id} />}
       />
 
       <SettingsBody>
@@ -158,6 +213,18 @@ export function PluginStore({ view, initial }: Props) {
             </div>
           </section>
 
+          {error && (
+            <p className={styles.error} role="alert">
+              <Icon icon="lucide:circle-alert" width={14} />
+              {error}
+            </p>
+          )}
+          {notice && (
+            <output className={styles.notice}>
+              <Icon icon="lucide:triangle-alert" width={14} />
+              {notice}
+            </output>
+          )}
           {view.problem && (
             <p className={styles.error} role="alert">
               <Icon icon="lucide:circle-alert" width={14} />
@@ -167,18 +234,26 @@ export function PluginStore({ view, initial }: Props) {
           {noStores && !view.problem && (
             <p className={styles.notice}>
               <Icon icon="lucide:info" width={14} />
-              <span>
-                {t("pluginStore.noStores")}{" "}
-                <Link href={adminPath("plugin-stores")}>
-                  {t("pluginStore.noStoresLink")}
-                </Link>
-              </span>
+              {workspace ? (
+                t("workspaceStore.noStores")
+              ) : (
+                <span>
+                  {t("pluginStore.noStores")}{" "}
+                  <Link href={adminPath("plugin-stores")}>
+                    {t("pluginStore.noStoresLink")}
+                  </Link>
+                </span>
+              )}
             </p>
           )}
           {!noStores && (
             <div className={styles.syncList}>
               {catalog.stores.map((store) => (
-                <StoreSync key={store.id} store={store} />
+                <StoreSync
+                  key={store.id}
+                  store={store}
+                  readOnly={Boolean(workspace)}
+                />
               ))}
             </div>
           )}
@@ -267,10 +342,14 @@ export function PluginStore({ view, initial }: Props) {
           {entries.length === 0 &&
             !noStores &&
             !catalog.stores.some((s) => s.error) && (
-              <p className={styles.empty}>{t("pluginStore.noEntries")}</p>
+              <p className={styles.empty}>
+                {workspace && visibility.curatedOnly
+                  ? t("workspaceStore.nothingReleased")
+                  : t("pluginStore.noEntries")}
+              </p>
             )}
         </div>
       </SettingsBody>
-    </>
+    </StoreModeContext.Provider>
   );
 }
