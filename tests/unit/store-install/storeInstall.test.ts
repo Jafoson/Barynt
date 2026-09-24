@@ -128,7 +128,7 @@ const install = (
     pluginId?: string;
     version?: string;
     storeId?: string;
-    only?: "WORKSPACE";
+    only?: "WORKSPACE" | "PROJECT";
     workspaceId?: string;
   } = {},
 ) =>
@@ -236,6 +236,13 @@ describe("a plugin that is installed", () => {
     expect(pluginCreate.mock.calls[0]?.[0].data.scope).toBe("PLATFORM");
   });
 
+  it("is per project when the manifest says so", async () => {
+    await clone({ manifest: { scope: "project" } });
+    await install();
+    expect(pluginCreate.mock.calls[0]?.[0].data.scope).toBe("PROJECT");
+    expect(auditCreate.mock.calls[0]?.[0].data.meta.scope).toBe("PROJECT");
+  });
+
   it("is audited, with who, which store, which version, the hash of the files and of the archive", async () => {
     await clone();
     await install();
@@ -323,6 +330,36 @@ describe("an install for a workspace", () => {
   it("does not take one that applies to the whole platform, which is not a workspace's to bring in, and downloads nothing", async () => {
     await clone({ manifest: { scope: "platform" } });
     expect(await install({ only: "WORKSPACE", workspaceId: "ws-7" })).toEqual({
+      error:
+        "notes applies to the whole platform, so only the platform installs it.",
+    });
+    noWork();
+  });
+
+  it("does not take one that applies per project either, for a workspace: that is added in a project", async () => {
+    await clone({ manifest: { scope: "project" } });
+    expect(await install({ only: "WORKSPACE", workspaceId: "ws-7" })).toEqual({
+      error:
+        "notes applies per project, not per workspace, so it is added in a project.",
+    });
+    noWork();
+  });
+
+  it("takes only what applies per project, for a project", async () => {
+    await clone({ manifest: { scope: "project" } });
+    expect(await install({ only: "PROJECT" })).toEqual({ ok: true });
+    expect(pluginCreate.mock.calls[0]?.[0].data.scope).toBe("PROJECT");
+  });
+
+  it("does not take what applies per workspace or to the whole platform, for a project", async () => {
+    await clone();
+    expect(await install({ only: "PROJECT" })).toEqual({
+      error:
+        "notes applies per workspace, not per project, so it is added in a workspace.",
+    });
+    noWork();
+    await clone({ manifest: { scope: "platform" } });
+    expect(await install({ only: "PROJECT" })).toEqual({
       error:
         "notes applies to the whole platform, so only the platform installs it.",
     });
@@ -967,6 +1004,8 @@ describe("updating from the store the plugin came from", () => {
 
     it("is a plugin that would apply somewhere else than the installed one", async () => {
       await installedThenListed({ manifest: { scope: "platform" } });
+      await refused(/cannot change where the plugin applies/);
+      await installedThenListed({ manifest: { scope: "project" } });
       await refused(/cannot change where the plugin applies/);
     });
 

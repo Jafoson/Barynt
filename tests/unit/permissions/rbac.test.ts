@@ -142,15 +142,17 @@ describe("Permission registry (lib/rbac/permissions.ts)", () => {
 
   // Installing plugin code changes what runs in the whole app; enabling it only
   // decides where it applies. The two must not be grantable at the other level.
-  it("keeps installing plugins on the platform and enabling them in the workspace", () => {
+  it("keeps installing plugins on the platform and enabling them in a workspace or a project", () => {
     expect(PERMISSIONS["plugin.manage"].scopes).toEqual(["PLATFORM"]);
-    expect(PERMISSIONS["plugin.enable"].scopes).toEqual(["WORKSPACE"]);
+    expect(PERMISSIONS["plugin.enable"].scopes).toEqual([
+      "WORKSPACE",
+      "PROJECT",
+    ]);
     for (const scope of ["WORKSPACE", "PROJECT"] as const) {
       expect(isPermissionAllowedIn("plugin.manage", scope)).toBe(false);
+      expect(isPermissionAllowedIn("plugin.enable", scope)).toBe(true);
     }
-    for (const scope of ["PLATFORM", "PROJECT"] as const) {
-      expect(isPermissionAllowedIn("plugin.enable", scope)).toBe(false);
-    }
+    expect(isPermissionAllowedIn("plugin.enable", "PLATFORM")).toBe(false);
   });
 
   it("safely narrows arbitrary strings", () => {
@@ -276,6 +278,13 @@ describe("System roles (lib/rbac/roles.ts)", () => {
         .map((r) => r.key);
       expect(holders).toEqual(["owner", "admin"]);
       expect(role("manager").allow).toContain("webhook.manage");
+    });
+
+    it("lets only the project admin enable plugins in a project", () => {
+      const holders = systemRolesIn("PROJECT")
+        .filter((r) => r.allow.includes("plugin.enable"))
+        .map((r) => r.key);
+      expect(holders).toEqual(["project_admin"]);
     });
 
     it("grants the master key only to the workspace's leadership", () => {

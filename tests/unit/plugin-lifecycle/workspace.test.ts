@@ -132,7 +132,7 @@ const FAKE = {
 let root: string;
 let savedDir: string | undefined;
 
-type Scope = "WORKSPACE" | "PLATFORM";
+type Scope = "WORKSPACE" | "PLATFORM" | "PROJECT";
 interface Installed {
   id: string;
   version: string;
@@ -228,7 +228,7 @@ async function installed(
         license: "MIT",
         categories: ["other"],
         barynt: "^0.1.0",
-        scope: scope === "PLATFORM" ? "platform" : "workspace",
+        scope: scope.toLowerCase(),
         dependencies: more.dependencies ?? {},
       }),
     );
@@ -342,6 +342,15 @@ describe("which plugins have a switch per workspace", () => {
         ? "This plugin applies to the whole platform. Only the platform switches it on or off."
         : "Unknown plugin.",
     );
+    expect(untouched()).toBe(true);
+  });
+
+  it("refuses a plugin that applies per project, which a project switches on and a workspace does not", async () => {
+    await installed("board", { scope: "PROJECT" });
+    const message =
+      "This plugin applies per project. A project switches it on or off, not a workspace.";
+    expect(await enablePlugin("w1", "board")).toEqual({ error: message });
+    expect(await disablePlugin("w1", "board")).toEqual({ error: message });
     expect(untouched()).toBe(true);
   });
 

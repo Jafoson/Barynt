@@ -1,6 +1,7 @@
 import { gt } from "semver";
 import { authorName, resolveText } from "../localized";
 import { satisfiesHost } from "../resolve";
+import { type PluginRowScope, rowScopeOf } from "../scope";
 import { normalizeStoreUrl } from "../storeUrl";
 import type { StoreProblem, StoreSnapshot, StoreVersion } from "./reader";
 
@@ -63,7 +64,7 @@ export interface CatalogEntry {
   keywords: string[];
   /** What it asks to be allowed. A promise, not a fence (docs/plugins/security.md). */
   capabilities: string[];
-  scope: "WORKSPACE" | "PLATFORM";
+  scope: PluginRowScope;
   hasCode: boolean;
   /** The Barynt versions it works with, as the manifest says. */
   barynt: string;
@@ -173,7 +174,7 @@ export function buildCatalog(input: CatalogInput): Catalog {
         categories: [...m.categories],
         keywords: [...m.keywords],
         capabilities: [...m.capabilities],
-        scope: m.scope === "platform" ? "PLATFORM" : "WORKSPACE",
+        scope: rowScopeOf(m.scope),
         hasCode: Boolean(m.server || m.client),
         barynt: m.barynt,
         compatible: satisfiesHost(m.barynt, input.hostVersion),

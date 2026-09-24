@@ -33,10 +33,12 @@ import type {
   InstalledPlugin,
   PluginsOverview,
 } from "@/features/plugins/overview";
+import { scopeMessageKey } from "@/features/plugins/scopeText";
 import type { PluginActionResult } from "@/features/plugins/types";
 import { Link } from "@/i18n/navigation";
 import { useModal } from "@/lib/context";
 import { adminPath } from "@/lib/nav";
+import type { PluginRowScope } from "@/lib/plugins/scope";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { PluginsTabs } from "../PluginsTabs/PluginsTabs";
 import { ApproveWarning } from "./ApproveWarning";
@@ -291,10 +293,8 @@ export function PluginsAdmin({ overview }: Props) {
     if (ok) run(() => setPluginStatus(plugin.id, false));
   };
 
-  const scopeLabel = (scope: "WORKSPACE" | "PLATFORM") =>
-    scope === "PLATFORM"
-      ? t("pluginsAdmin.scopePlatform")
-      : t("pluginsAdmin.scopeWorkspace");
+  const scopeLabel = (scope: PluginRowScope) =>
+    t(`pluginsAdmin.${scopeMessageKey(scope)}`);
 
   const installedColumns: SettingsColumn[] = [
     { id: "on", header: t("pluginsAdmin.colOn"), width: "70px" },

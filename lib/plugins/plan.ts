@@ -7,6 +7,7 @@ import {
   type ExecutionInput,
 } from "./policy";
 import { type Problem, resolvePlugins } from "./resolve";
+import { manifestScopeOf, type PluginRowScope } from "./scope";
 
 // Which installed plugins the registry hands to the loader, and why the others
 // are not. Pure logic on plain values, no database, disk or `server-only`: the
@@ -39,7 +40,7 @@ export interface InstalledPlugin {
   /** `Plugin.status`: the platform's switch for the whole plugin. */
   status: "ENABLED" | "DISABLED";
   source: string;
-  scope: "WORKSPACE" | "PLATFORM";
+  scope: PluginRowScope;
   origin: string | null;
   /** The hash of the plugin directory approved at install. */
   integrity: string;
@@ -124,10 +125,7 @@ export function planPlugins(input: PlanInput): Plan {
       dependencies: manifest.dependencies,
       // The database says where a plugin applies, taken from the manifest at
       // install; the file on disk has not been checked against its hash yet.
-      scope:
-        installed.get(id)?.scope === "PLATFORM"
-          ? ("platform" as const)
-          : ("workspace" as const),
+      scope: manifestScopeOf(installed.get(id)?.scope ?? "WORKSPACE"),
     })),
     input.hostVersion,
   );

@@ -1522,10 +1522,12 @@ enum PluginSource {
 /// installiert, ein Workspace schaltet es ein (`plugin.enable`), gespeichert in
 /// `PluginWorkspace`. `PLATFORM`: gilt für die ganze Instanz, sobald es
 /// installiert und `ENABLED` ist; es gibt keinen Schalter je Workspace, und nur
-/// die Plattform (`plugin.manage`) stellt es ein (`Plugin.config`).
+/// die Plattform (`plugin.manage`) stellt es ein (`Plugin.config`). `PROJECT`: die
+/// Plattform installiert, ein Projekt schaltet es ein (`plugin.enable` im Projekt).
 enum PluginScope {
   WORKSPACE
   PLATFORM
+  PROJECT
 }
 
 /// Schalter der Plattform für das ganze Plugin, unabhängig von den Workspaces.

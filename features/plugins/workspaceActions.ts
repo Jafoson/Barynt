@@ -34,8 +34,12 @@ import type { PluginActionResult } from "./types";
 // way in that workspace: a plugin that applies per workspace needs the ones it
 // depends on switched on in the same workspace.
 
-const PLATFORM_PLUGIN =
-  "This plugin applies to the whole platform. Only the platform switches it on or off.";
+/** Why a workspace does not switch on or off a plugin that applies elsewhere. */
+function notSwitchedHere(scope: "PLATFORM" | "PROJECT" | "WORKSPACE"): string {
+  return scope === "PROJECT"
+    ? "This plugin applies per project. A project switches it on or off, not a workspace."
+    : "This plugin applies to the whole platform. Only the platform switches it on or off.";
+}
 
 function validWorkspaceId(id: unknown): id is string {
   return typeof id === "string" && id.length > 0 && id.length <= 100;
@@ -57,7 +61,8 @@ export async function enablePlugin(
   });
   const plugin = rows.find((row) => row.id === pluginId);
   if (!plugin) return { error: "Unknown plugin." };
-  if (plugin.scope === "PLATFORM") return { error: PLATFORM_PLUGIN };
+  if (plugin.scope !== "WORKSPACE")
+    return { error: notSwitchedHere(plugin.scope) };
   if (plugin.status !== "ENABLED") {
     return { error: "The platform has switched this plugin off." };
   }
@@ -202,7 +207,8 @@ export async function disablePlugin(
   });
   const plugin = rows.find((row) => row.id === pluginId);
   if (!plugin) return { error: "Unknown plugin." };
-  if (plugin.scope === "PLATFORM") return { error: PLATFORM_PLUGIN };
+  if (plugin.scope !== "WORKSPACE")
+    return { error: notSwitchedHere(plugin.scope) };
 
   const workspace = await db.workspace.findUnique({
     where: { id: workspaceId },

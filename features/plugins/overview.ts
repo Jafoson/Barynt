@@ -6,6 +6,7 @@ import type { PluginManifest } from "@/lib/plugins/manifest";
 import { type BlockedReason, decideExecution } from "@/lib/plugins/policy";
 import type { PluginStatus } from "@/lib/plugins/registry";
 import type { Problem } from "@/lib/plugins/resolve";
+import { type PluginRowScope, rowScopeOf } from "@/lib/plugins/scope";
 
 // What the admin page for plugins shows, put together from what is installed (the
 // database), what lies in the plugin directory (the disk) and what the registry
@@ -19,7 +20,7 @@ export interface InstalledRow {
   version: string;
   status: "ENABLED" | "DISABLED";
   source: "STORE" | "UPLOAD" | "DIRECTORY";
-  scope: "WORKSPACE" | "PLATFORM";
+  scope: PluginRowScope;
   origin: string | null;
   integrity: string;
   codeApprovalHash: string | null;
@@ -69,7 +70,7 @@ export interface InstalledPlugin {
   categories: string[];
   /** What it asks to be allowed. A promise, not a fence (docs/plugins/security.md). */
   capabilities: string[];
-  scope: "WORKSPACE" | "PLATFORM";
+  scope: PluginRowScope;
   source: "STORE" | "UPLOAD" | "DIRECTORY";
   origin: string | null;
   /** Comes from no store: nothing pins its files and nobody reviewed it. */
@@ -108,7 +109,7 @@ export interface AvailablePlugin {
   license: string;
   categories: string[];
   capabilities: string[];
-  scope: "WORKSPACE" | "PLATFORM";
+  scope: PluginRowScope;
   hasCode: boolean;
 }
 
@@ -246,7 +247,7 @@ export function buildOverview(input: OverviewInput): PluginsOverview {
       row.source === "DIRECTORY" &&
       newer &&
       gt(newer.manifest.version, row.version) &&
-      (newer.manifest.scope === "platform") === (row.scope === "PLATFORM")
+      rowScopeOf(newer.manifest.scope) === row.scope
         ? newer.manifest.version
         : null;
     return {
@@ -307,7 +308,7 @@ export function buildOverview(input: OverviewInput): PluginsOverview {
       license: m.license,
       categories: [...m.categories],
       capabilities: [...m.capabilities],
-      scope: m.scope === "platform" ? "PLATFORM" : "WORKSPACE",
+      scope: rowScopeOf(m.scope),
       hasCode: hasCode(m),
     });
   }

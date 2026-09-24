@@ -1,5 +1,6 @@
 import { parse, satisfies } from "semver";
 import type { PluginManifest, PluginScope } from "./manifest";
+import { dependencyScopeFits } from "./scope";
 
 // Which installed plugins can load, and in what order.
 //
@@ -40,7 +41,13 @@ export type Problem =
    * A platform plugin needs a workspace plugin. A platform plugin applies
    * everywhere, a workspace plugin only where a workspace switched it on.
    */
-  | { code: "dependency-scope"; dependency: string }
+  | {
+      code: "dependency-scope";
+      dependency: string;
+      /** Where the plugin applies, and where the one it needs does. */
+      scope: PluginScope;
+      dependencyScope: PluginScope;
+    }
   /** A plugin it needs is installed in a fitting version but cannot load itself. */
   | { code: "dependency-unavailable"; dependency: string }
   /** It depends on itself through other plugins; `members` are all of them. */
@@ -137,13 +144,15 @@ export function resolvePlugins(
         });
         fits = false;
       }
-      // A platform plugin runs everywhere, so it may only lean on plugins that
-      // are on everywhere too. A workspace plugin may lean on either kind.
-      if (
-        plugin.scope === "platform" &&
-        (target.scope ?? "workspace") !== "platform"
-      ) {
-        add(id, { code: "dependency-scope", dependency });
+      // A plugin may only lean on plugins that are on wherever it is: those for
+      // the whole platform, or those that apply at its own level (`scope.ts`).
+      if (!dependencyScopeFits(plugin.scope, target.scope)) {
+        add(id, {
+          code: "dependency-scope",
+          dependency,
+          scope: plugin.scope ?? "workspace",
+          dependencyScope: target.scope ?? "workspace",
+        });
         fits = false;
       }
       if (fits) usableDeps.push(dependency);
@@ -324,6 +333,18 @@ export function previewUninstall(
 
 // ─── Text ───────────────────────────────────────────────────────────────────
 
+const APPLIES: Record<PluginScope, string> = {
+  platform: "applies to the whole platform",
+  workspace: "applies per workspace",
+  project: "applies per project",
+};
+
+const SWITCHED_ON: Record<PluginScope, string> = {
+  platform: "on for the whole platform",
+  workspace: "switched on per workspace",
+  project: "switched on per project",
+};
+
 /** English text for logs and errors. The admin UI builds its own from the code. */
 export function describeProblem(problem: Problem): string {
   switch (problem.code) {
@@ -334,7 +355,7 @@ export function describeProblem(problem: Problem): string {
     case "dependency-version":
       return `needs ${problem.dependency} ${problem.range}, but ${problem.installed} is installed`;
     case "dependency-scope":
-      return `applies to the whole platform but needs ${problem.dependency}, which is switched on per workspace`;
+      return `${APPLIES[problem.scope]} but needs ${problem.dependency}, which is ${SWITCHED_ON[problem.dependencyScope]}`;
     case "dependency-unavailable":
       return `needs ${problem.dependency}, which cannot load`;
     case "dependency-cycle":

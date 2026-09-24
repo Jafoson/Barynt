@@ -275,6 +275,87 @@ describe("scope", () => {
     plugin(id, { scope: "platform", ...more });
   const needs = (id: string) => ({ dependencies: { [id]: "^1.0.0" } });
 
+  const project = (id: string, more: Partial<PluginCandidate> = {}) =>
+    plugin(id, { scope: "project", ...more });
+
+  it("lets a project plugin depend on a project plugin and on a platform plugin", () => {
+    const { order, problems } = resolvePlugins(
+      [
+        project("board", needs("gantt")),
+        project("gantt", needs("sso")),
+        platform("sso"),
+      ],
+      HOST,
+    );
+    expect(order).toEqual(["sso", "gantt", "board"]);
+    expect(problems.size).toBe(0);
+  });
+
+  it("leaves out a project plugin that needs a workspace plugin, and says where each applies", () => {
+    const { order, problems } = resolvePlugins(
+      [project("board", needs("tracking")), plugin("tracking")],
+      HOST,
+    );
+    expect(order).toEqual(["tracking"]);
+    expect(problems.get("board")).toEqual([
+      {
+        code: "dependency-scope",
+        dependency: "tracking",
+        scope: "project",
+        dependencyScope: "workspace",
+      },
+    ]);
+  });
+
+  it("leaves out a workspace plugin that needs a project plugin", () => {
+    const { order, problems } = resolvePlugins(
+      [plugin("tracking", needs("board")), project("board")],
+      HOST,
+    );
+    expect(order).toEqual(["board"]);
+    expect(problems.get("tracking")).toEqual([
+      {
+        code: "dependency-scope",
+        dependency: "board",
+        scope: "workspace",
+        dependencyScope: "project",
+      },
+    ]);
+  });
+
+  it("leaves out a platform plugin that needs a project plugin", () => {
+    const { problems } = resolvePlugins(
+      [platform("audit", needs("board")), project("board")],
+      HOST,
+    );
+    expect(problems.get("audit")).toEqual([
+      {
+        code: "dependency-scope",
+        dependency: "board",
+        scope: "platform",
+        dependencyScope: "project",
+      },
+    ]);
+  });
+
+  it("says where the plugin applies even when its manifest leaves the scope out", () => {
+    const withoutScope: PluginCandidate = {
+      id: "tracking",
+      version: "1.0.0",
+      barynt: ">=1.0.0 <2.0.0",
+      dependencies: { board: "^1.0.0" },
+    };
+    const { problems } = resolvePlugins([withoutScope, project("board")], HOST);
+    expect(problems.get("tracking")).toEqual([
+      {
+        code: "dependency-scope",
+        dependency: "board",
+        scope: "workspace",
+        dependencyScope: "project",
+      },
+    ]);
+  });
+
   it("lets a platform plugin depend on a platform plugin", () => {
     const { order, problems } = resolvePlugins(
       [platform("audit", needs("sso")), platform("sso")],
@@ -308,7 +389,12 @@ describe("scope", () => {
     // The workspace plugin itself is fine and loads.
     expect(order).toEqual(["tracking"]);
     expect(problems.get("audit")).toEqual([
-      { code: "dependency-scope", dependency: "tracking" },
+      {
+        code: "dependency-scope",
+        dependency: "tracking",
+        scope: "platform",
+        dependencyScope: "workspace",
+      },
     ]);
   });
 
@@ -323,7 +409,12 @@ describe("scope", () => {
       HOST,
     );
     expect(problems.get("audit")).toEqual([
-      { code: "dependency-scope", dependency: "tracking" },
+      {
+        code: "dependency-scope",
+        dependency: "tracking",
+        scope: "platform",
+        dependencyScope: "workspace",
+      },
     ]);
   });
 
@@ -545,10 +636,50 @@ describe("the English text of a problem", () => {
       range: "^2.0.0",
       installed: "1.2.0",
     },
-    { code: "dependency-scope", dependency: "tracking" },
+    {
+      code: "dependency-scope",
+      dependency: "tracking",
+      scope: "platform",
+      dependencyScope: "workspace",
+    },
     { code: "dependency-unavailable", dependency: "tracking" },
     { code: "dependency-cycle", members: ["a", "b"] },
   ];
+
+  it.each([
+    [
+      "platform",
+      "workspace",
+      "applies to the whole platform but needs tracking, which is switched on per workspace",
+    ],
+    [
+      "platform",
+      "project",
+      "applies to the whole platform but needs tracking, which is switched on per project",
+    ],
+    [
+      "workspace",
+      "project",
+      "applies per workspace but needs tracking, which is switched on per project",
+    ],
+    [
+      "project",
+      "workspace",
+      "applies per project but needs tracking, which is switched on per workspace",
+    ],
+  ] as const)(
+    "says where a %s plugin and the %s plugin it needs apply",
+    (scope, dependencyScope, text) => {
+      expect(
+        describeProblem({
+          code: "dependency-scope",
+          dependency: "tracking",
+          scope,
+          dependencyScope,
+        }),
+      ).toBe(text);
+    },
+  );
 
   it.each(all)("says something specific for $code", (problem) => {
     const text = describeProblem(problem);

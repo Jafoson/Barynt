@@ -124,17 +124,19 @@ export const PERMISSIONS = {
   // Two keys because two different acts. *Installing* changes what runs in the
   // whole app: plugin code has full trust in the process (see
   // docs/plugins/adr-0001-runtime-loading.md), so it is a platform matter.
-  // *Enabling* only decides in which workspace an installed plugin applies.
-  // A workspace admin can switch on what the platform has installed, but can
-  // never bring new code in: `plugin.enable` is not grantable on the platform
-  // and `plugin.manage` is not grantable in a workspace.
+  // *Enabling* only decides where an installed plugin applies: in which
+  // workspace (on a workspace role) or in which project (on a project role, the
+  // same key, because the role says where, as with labels and members).
+  // A workspace or project admin can switch on what the platform has
+  // installed, but can never bring new code in: `plugin.enable` is not grantable
+  // on the platform and `plugin.manage` is not grantable below it.
   "plugin.manage": {
     desc: "Use the plugin store and install, update, and uninstall plugins; allow plugins that come from no store",
     scopes: PLATFORM_ONLY,
   },
   "plugin.enable": {
-    desc: "Enable, disable, and configure the installed plugins in the workspace",
-    scopes: WORKSPACE_ONLY,
+    desc: "Enable, disable, and configure the installed plugins in the workspace or project",
+    scopes: WORKSPACE_AND_PROJECT,
   },
 
   // ── Workspace ────────────────────────────────────────────────────────────────

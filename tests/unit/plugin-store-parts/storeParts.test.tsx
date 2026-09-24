@@ -276,6 +276,13 @@ describe("a plugin's card", () => {
     expect(html).toContain("pluginStore.noCode");
   });
 
+  it("says when it applies per project", () => {
+    const html = card(entry("notes", { scope: "PROJECT" }));
+    expect(html).toContain("pluginStore.scopeProject");
+    expect(html).not.toContain("pluginStore.scopeWorkspace");
+    expect(html).not.toContain("pluginStore.scopePlatform");
+  });
+
   it("shows that the admin released it, only when told to", () => {
     expect(card(entry("notes"), { released: true })).toContain(
       'title="pluginStore.releasedFor"',

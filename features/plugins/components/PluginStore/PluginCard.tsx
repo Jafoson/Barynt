@@ -2,6 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
+import { scopeMessageKey } from "@/features/plugins/scopeText";
 import type { CatalogEntry } from "@/lib/plugins/store/catalog";
 import { PluginAction } from "./PluginAction";
 import { PluginAvatar } from "./PluginAvatar";
@@ -62,11 +63,7 @@ export function PluginCard({
       <p className={styles.desc}>{entry.description}</p>
       <div className={styles.cardFoot}>
         <span className={styles.meta}>
-          <span>
-            {entry.scope === "PLATFORM"
-              ? t("pluginStore.scopePlatform")
-              : t("pluginStore.scopeWorkspace")}
-          </span>
+          <span>{t(`pluginStore.${scopeMessageKey(entry.scope)}`)}</span>
           <span aria-hidden>·</span>
           <span>
             {entry.hasCode

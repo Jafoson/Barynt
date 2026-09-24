@@ -110,6 +110,8 @@ export function buildWorkspacePlugins(
       }
       continue;
     }
+    // What applies per project is a project's to switch on (its own settings), not the workspace's.
+    if (plugin.scope !== "WORKSPACE") continue;
     const on = enabledHere.has(plugin.id);
     // A plugin the platform switched off is only shown where it is on here, to say why it is not
     // running; one that is off everywhere is nobody's business.

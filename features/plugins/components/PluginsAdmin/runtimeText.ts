@@ -46,6 +46,8 @@ export function useRuntimeText() {
       case "dependency-scope":
         return t("pluginsAdmin.problem.dependency-scope", {
           dependency: value.dependency,
+          scope: value.scope,
+          dependencyScope: value.dependencyScope,
         });
       case "dependency-unavailable":
         return t("pluginsAdmin.problem.dependency-unavailable", {
