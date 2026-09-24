@@ -5,7 +5,10 @@ import { gt } from "semver";
 import { recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { PLATFORM, requirePermission } from "@/lib/permissions";
-import { pluginIdSchema, pluginVersionSchema } from "@/lib/plugins/manifest";
+import { runHook, uninstallHookContext } from "@/lib/plugins/hooks";
+import { getPluginRegistry } from "@/lib/plugins/host";
+import { HOST_INFO } from "@/lib/plugins/hostInfo";
+import { pluginVersionSchema } from "@/lib/plugins/manifest";
 import { invalidatePluginRegistry } from "@/lib/plugins/registryState";
 import { previewInstall, previewUninstall } from "@/lib/plugins/resolve";
 import { getAllowUnsignedPlugins } from "@/lib/plugins/unsigned";
@@ -17,6 +20,7 @@ import {
   stagePlugin,
   toCandidate,
 } from "./disk";
+import { isNotFound, isPluginId, isUniqueViolation } from "./guards";
 import type { PluginActionResult } from "./types";
 
 // The platform's part of a plugin's life: install, update, uninstall, and the switch
@@ -49,10 +53,6 @@ const UNSIGNED_OFF =
 const UNSIGNED_NOT_ACKNOWLEDGED =
   "Confirm that you understand the risk: this plugin comes from no store, nobody has reviewed or tested it, and you use it at your own risk.";
 
-function isUniqueViolation(error: unknown): boolean {
-  return (error as { code?: unknown } | null)?.code === "P2002";
-}
-
 /**
  * The rule for a plugin that comes from no store: the platform has allowed such
  * plugins, and the risk is acknowledged for this one, now. `null` if both hold.
@@ -62,10 +62,6 @@ async function unsignedRefusal(acknowledged: unknown): Promise<string | null> {
   if (acknowledged !== true) return UNSIGNED_NOT_ACKNOWLEDGED;
   return null;
 }
-
-// What a client sends is not typed by what the function says it is: the schemas
-// refuse anything that is not text, and anything that is not an id or a version.
-const validId = (id: unknown): boolean => pluginIdSchema.safeParse(id).success;
 
 const validVersion = (version: unknown): boolean =>
   pluginVersionSchema.safeParse(version).success;
@@ -82,7 +78,7 @@ export async function installPlugin(
   input?: { acknowledged?: boolean },
 ): Promise<PluginActionResult> {
   const actorId = await requirePermission("plugin.manage", PLATFORM);
-  if (!validId(pluginId) || !validVersion(version)) {
+  if (!isPluginId(pluginId) || !validVersion(version)) {
     return { error: "Invalid request." };
   }
 
@@ -162,7 +158,7 @@ export async function updatePlugin(
   input?: { acknowledged?: boolean },
 ): Promise<PluginActionResult> {
   const actorId = await requirePermission("plugin.manage", PLATFORM);
-  if (!validId(pluginId) || !validVersion(version)) {
+  if (!isPluginId(pluginId) || !validVersion(version)) {
     return { error: "Invalid request." };
   }
 
@@ -251,12 +247,13 @@ export async function updatePlugin(
 /**
  * Removes an installed plugin, and with it the workspaces' settings for it. Refused
  * while another installed plugin needs it. The plugin's files stay in the directory.
+ * If the plugin is running, its `onUninstall` runs after the removal and cannot undo it.
  */
 export async function uninstallPlugin(
   pluginId: string,
 ): Promise<PluginActionResult> {
   const actorId = await requirePermission("plugin.manage", PLATFORM);
-  if (!validId(pluginId)) return { error: "Invalid request." };
+  if (!isPluginId(pluginId)) return { error: "Invalid request." };
 
   const row = await db.plugin.findUnique({
     where: { id: pluginId },
@@ -285,15 +282,29 @@ export async function uninstallPlugin(
   const workspaces = await db.pluginWorkspace.count({
     where: { pluginId, enabled: true },
   });
+  // The plugin as it runs now, taken before it is removed: its hook is still to run.
+  const running = (await getPluginRegistry().get()).active.find(
+    (p) => p.id === pluginId,
+  );
   try {
     await db.plugin.delete({ where: { id: pluginId } });
   } catch (error) {
     // Gone already, another admin was faster.
-    if ((error as { code?: unknown } | null)?.code === "P2025") {
+    if (isNotFound(error)) {
       return { error: "Unknown plugin." };
     }
     throw error;
   }
+
+  // From here the plugin is gone, and nothing hands it out. Its hook runs after, on
+  // the code that is still in memory: what is uninstalled must not depend on plugin
+  // code, so a hook that fails or hangs is a warning, not a reason to keep it.
+  invalidatePluginRegistry();
+  const outcome = await runHook(
+    running,
+    "onUninstall",
+    uninstallHookContext({ id: pluginId, version: row.version }, HOST_INFO),
+  );
 
   await recordAudit({
     action: "plugin.uninstalled",
@@ -308,12 +319,18 @@ export async function uninstallPlugin(
       source: row.source,
       hash: row.integrity,
       workspacesThatHadItOn: workspaces,
+      hook: !outcome.ran ? "none" : outcome.ok ? "ran" : "failed",
+      ...(outcome.ran && !outcome.ok ? { hookError: outcome.message } : {}),
     },
   });
 
-  invalidatePluginRegistry();
   revalidatePath("/", "layout");
-  return { ok: true };
+  return outcome.ran && !outcome.ok
+    ? {
+        ok: true,
+        warning: `${pluginId} is uninstalled, but its onUninstall failed: ${outcome.message}`,
+      }
+    : { ok: true };
 }
 
 /**
@@ -325,7 +342,7 @@ export async function setPluginStatus(
   enabled: boolean,
 ): Promise<PluginActionResult> {
   const actorId = await requirePermission("plugin.manage", PLATFORM);
-  if (!validId(pluginId) || typeof enabled !== "boolean") {
+  if (!isPluginId(pluginId) || typeof enabled !== "boolean") {
     return { error: "Invalid request." };
   }
 

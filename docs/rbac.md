@@ -393,8 +393,9 @@ permissions at different levels (the plugin system is described in
   `plugin.enable` does not apply to it: only `plugin.manage` switches it on and
   configures it, and a workspace cannot turn it off for itself.
 - `plugin.manage` is checked by the actions for the stores, the approval of a plugin's code
-  and the platform's lifecycle (install, update, uninstall, switching off). Nothing checks
-  `plugin.enable` yet: enabling and disabling in a workspace comes with BARY-60, second part.
+  and the platform's lifecycle (install, update, uninstall, switching off).
+  `plugin.enable` is checked, for the workspace of the request, by `enablePlugin` and
+  `disablePlugin`, and only for a plugin that applies per workspace.
 
 ---
 

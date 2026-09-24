@@ -5,4 +5,4 @@
  * Before 1.0 anything may change. From 1.0 on only additive changes: a name is
  * removed only after it was deprecated for at least one release.
  */
-export const SDK_VERSION = "0.1.0";
+export const SDK_VERSION = "0.2.0";

@@ -586,7 +586,7 @@ describe("importing the module", () => {
       `export default { register() {}, bot() {} };`,
       "not a known hook",
     ],
-    ["nothing at all", `export default {};`, "neither register nor boot"],
+    ["nothing at all", `export default {};`, "defines no hook"],
   ])("reports %s as a module failure", async (_name, code, text) => {
     const a = await plugin("calendar", { code });
     const failure = why(await loadPlugins([a], options()), "calendar");
@@ -838,5 +838,79 @@ describe("the message of a failure", () => {
     expect(message.endsWith("…")).toBe(true);
     expect(message).not.toContain("\n");
     expect(message).not.toContain("    at ");
+  });
+});
+
+describe("lifecycle hooks", () => {
+  const ctx = { workspace: { id: "w1", name: "W" } } as never;
+
+  it("hands out the ones the plugin has, and only those", async () => {
+    const a = await plugin("calendar", {
+      code: `export default { onEnable() {}, onUninstall() {} };`,
+    });
+    const report = await loadPlugins([a], options());
+    expect(Object.keys(report.loaded[0]?.hooks ?? {}).sort()).toEqual([
+      "onEnable",
+      "onUninstall",
+    ]);
+  });
+
+  it("gives a plugin with the phases only no hooks at all", async () => {
+    const a = await plugin("calendar", {
+      code: `export default { register() {}, async boot() {} };`,
+    });
+    expect((await loadPlugins([a], options())).loaded[0]?.hooks).toEqual({});
+  });
+
+  it("gives a plugin without server code no hooks", async () => {
+    const a = await plugin("plain");
+    expect((await loadPlugins([a], options())).loaded[0]?.hooks).toEqual({});
+  });
+
+  it("does not run any of them: they wait for the event", async () => {
+    const a = await plugin("calendar", {
+      code: `export default { onEnable() { ${T}.push("onEnable"); }, onDisable() { ${T}.push("onDisable"); }, onUninstall() { ${T}.push("onUninstall"); } };`,
+    });
+    await loadPlugins([a], options());
+    expect(trace()).toEqual([]);
+  });
+
+  it("calls a hook on the definition, so `this` is what it is in `boot`", async () => {
+    const a = await plugin("calendar", {
+      code: `const definition = { onEnable(ctx) { ${T}.push("this " + (this === definition) + " " + ctx.workspace.id); } };
+export default definition;`,
+    });
+    const report = await loadPlugins([a], options());
+    await report.loaded[0]?.hooks.onEnable?.(ctx);
+    expect(trace()).toEqual(["this true w1"]);
+  });
+
+  it("holds the hook that was there at load, not whatever the definition says later", async () => {
+    const a = await plugin("calendar", {
+      code: `const definition = { onEnable() { ${T}.push("original"); } };
+globalThis.__barynt_definition = definition;
+export default definition;`,
+    });
+    const report = await loadPlugins([a], options());
+    (
+      globalThis as unknown as { __barynt_definition: { onEnable: () => void } }
+    ).__barynt_definition.onEnable = () => trace().push("swapped");
+    await report.loaded[0]?.hooks.onEnable?.(ctx);
+    expect(trace()).toEqual(["original"]);
+  });
+
+  it("cannot be changed by whoever holds them", async () => {
+    const a = await plugin("calendar", {
+      code: `export default { onEnable() {} };`,
+    });
+    const hooks = (await loadPlugins([a], options())).loaded[0]?.hooks;
+    expect(Object.isFrozen(hooks)).toBe(true);
+  });
+
+  it("does not hand out the hooks of a plugin that failed", async () => {
+    const a = await plugin("calendar", {
+      code: `export default { register() { throw new Error("no"); }, onEnable() {} };`,
+    });
+    expect((await loadPlugins([a], options())).loaded).toEqual([]);
   });
 });

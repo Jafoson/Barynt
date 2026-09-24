@@ -5,8 +5,20 @@ import type { PluginDefinition } from "@barynt/plugin-sdk";
 // like the manifest validator it reports every problem and never throws, even
 // for a module made of getters or a proxy that throws on access.
 
-/** The hooks a definition may have. Anything else is most likely a typo. */
-const HOOKS = ["register", "boot"] as const;
+/** The two phases and the three lifecycle hooks. Anything else is most likely a typo. */
+export const PHASE_HOOKS = ["register", "boot"] as const;
+export const LIFECYCLE_HOOKS = [
+  "onEnable",
+  "onDisable",
+  "onUninstall",
+] as const;
+const HOOKS = [...PHASE_HOOKS, ...LIFECYCLE_HOOKS] as const;
+
+/** `a, b or c`. */
+const list = (names: readonly string[]): string =>
+  names.length < 2
+    ? names.join("")
+    : `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}`;
 
 export type PluginModuleResult =
   | { ok: true; definition: PluginDefinition }
@@ -44,7 +56,7 @@ export function parsePluginModule(mod: unknown): PluginModuleResult {
     const known: readonly string[] = HOOKS;
     for (const key of Object.keys(definition)) {
       if (!known.includes(key)) {
-        issues.push(`${key}: is not a known hook (use ${HOOKS.join(" or ")})`);
+        issues.push(`${key}: is not a known hook (use ${list(HOOKS)})`);
       }
     }
     for (const hook of HOOKS) {
@@ -57,7 +69,7 @@ export function parsePluginModule(mod: unknown): PluginModuleResult {
       (hook) => (definition as Record<string, unknown>)[hook] !== undefined,
     );
     if (defined.length === 0 && issues.length === 0) {
-      issues.push(`the plugin defines neither ${HOOKS.join(" nor ")}`);
+      issues.push(`the plugin defines no hook (${list(HOOKS)})`);
     }
     return issues.length > 0
       ? { ok: false, issues }

@@ -1,9 +1,8 @@
 import "server-only";
-import { SDK_VERSION } from "@barynt/plugin-sdk";
 import { cache } from "react";
 import { db } from "@/lib/db";
-import { BARYNT_VERSION } from "@/lib/version";
 import { discoverPlugins, pluginsDirSetting } from "./discovery";
+import { HOST_INFO } from "./hostInfo";
 import { loadPlugins } from "./loader";
 import {
   type ActivePlugin,
@@ -55,7 +54,7 @@ const deps: RegistryDeps = {
   activeStores: getActiveStoreUrls,
   allowUnsigned: getAllowUnsignedPlugins,
   load: loadPlugins,
-  host: { barynt: BARYNT_VERSION, sdk: SDK_VERSION },
+  host: HOST_INFO,
   services: createHostServices,
   now: () => Date.now(),
   log: (message) => console.error(`[plugins] ${message}`),

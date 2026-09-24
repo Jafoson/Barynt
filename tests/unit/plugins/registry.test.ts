@@ -187,6 +187,7 @@ function harness(
             id: candidate.id,
             version: candidate.version,
             registrations: [],
+            hooks: {},
           });
         }
       }
@@ -348,8 +349,29 @@ describe("building the snapshot", () => {
         scope: "WORKSPACE",
         mode: "declarative",
         registrations: [],
+        hooks: {},
       },
     ]);
+  });
+
+  it("keeps the lifecycle hooks a plugin has, the very ones the loader reported", async () => {
+    const onEnable = () => {};
+    const hooks = Object.freeze({ onEnable });
+    h = harness({
+      load: async (candidates) =>
+        ({
+          loaded: candidates.map((c) => ({
+            id: c.id,
+            version: c.version,
+            registrations: [],
+            hooks,
+          })),
+          failed: new Map(),
+        }) as unknown as LoadReport,
+    });
+    const active = (await registry().get()).active;
+    expect(active[0]?.hooks).toBe(hooks);
+    expect(active[0]?.hooks.onEnable).toBe(onEnable);
   });
 
   it("gives the loader the host's versions and only the plugins the plan let through", async () => {
@@ -473,6 +495,7 @@ describe("while plugins load", () => {
             id: c.id,
             version: c.version,
             registrations: [],
+            hooks: {},
           })),
           failed: new Map(),
         };
@@ -869,6 +892,7 @@ describe("which plugins apply in a workspace", () => {
     scope,
     mode: "declarative" as const,
     registrations: [],
+    hooks: {},
   });
 
   it("is every platform plugin and each workspace plugin the workspace switched on", () => {

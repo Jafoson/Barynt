@@ -178,6 +178,10 @@ anything ([Lifecycle](lifecycle.md#install)); an update withdraws the approval o
 **What it does not do.** It does not make code safe. Approved code that is malicious is malicious, and it has the power of the app. The
 approval is a decision about *whose* code and *which* files, made by someone who was told what it means.
 
+**Hooks are that code too.** The lifecycle hooks (`onEnable`, `onDisable`, `onUninstall`, [Lifecycle](lifecycle.md#hooks)) run only for a plugin
+that is loaded in the process, so only with this approval; nothing is woken up for a lifecycle event that the policy would not run at all. A
+workspace admin switching a plugin on therefore cannot make unapproved code run: if the plugin does not run, the switch is put back.
+
 ### Stores
 
 The **official store** is the Git repository the project owner manages (the store repository). It is

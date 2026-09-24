@@ -31,6 +31,26 @@ describe("a plugin module", () => {
     expect(result.ok).toBe(true);
   });
 
+  it.each(["onEnable", "onDisable", "onUninstall"])(
+    "is accepted with only %s: a plugin may only care about the event",
+    (hook) => {
+      expect(parsePluginModule({ default: { [hook]() {} } }).ok).toBe(true);
+    },
+  );
+
+  it("is accepted with everything at once", () => {
+    const result = parsePluginModule({
+      default: definePlugin({
+        register() {},
+        boot() {},
+        onEnable() {},
+        onDisable() {},
+        onUninstall() {},
+      }),
+    });
+    expect(result.ok).toBe(true);
+  });
+
   it("is accepted when frozen", () => {
     const definition = Object.freeze({ register() {} });
     expect(parsePluginModule({ default: definition }).ok).toBe(true);
@@ -67,7 +87,9 @@ describe("a module that is not a plugin", () => {
 
   it("names a misspelled hook, a typo must not silently do nothing", () => {
     const issues = issuesOf({ default: { register() {}, bot() {} } });
-    expect(issues).toEqual(["bot: is not a known hook (use register or boot)"]);
+    expect(issues).toEqual([
+      "bot: is not a known hook (use register, boot, onEnable, onDisable or onUninstall)",
+    ]);
   });
 
   it("refuses a hook that is not a function", () => {
@@ -83,13 +105,38 @@ describe("a module that is not a plugin", () => {
 
   it("refuses a plugin that does nothing", () => {
     expect(issuesOf({ default: {} })).toEqual([
-      "the plugin defines neither register nor boot",
+      "the plugin defines no hook (register, boot, onEnable, onDisable or onUninstall)",
     ]);
   });
 
   it("does not take a promise for a plugin", () => {
     expect(issuesOf({ default: Promise.resolve({ register() {} }) })).toEqual([
-      "the plugin defines neither register nor boot",
+      "the plugin defines no hook (register, boot, onEnable, onDisable or onUninstall)",
+    ]);
+  });
+
+  it.each(["onEnable", "onDisable", "onUninstall"])(
+    "refuses %s when it is not a function",
+    (hook) => {
+      expect(issuesOf({ default: { [hook]: true } })).toEqual([
+        `${hook}: must be a function`,
+      ]);
+    },
+  );
+
+  it.each([
+    [
+      "onInstall",
+      "there is no such hook: the code of a new plugin is not approved yet",
+    ],
+    [
+      "onUpdate",
+      "there is no such hook: the code of a new version is not approved yet",
+    ],
+    ["onenable", "a typo must not silently do nothing"],
+  ])("names %s as unknown (%s)", (hook) => {
+    expect(issuesOf({ default: { register() {}, [hook]() {} } })).toEqual([
+      `${hook}: is not a known hook (use register, boot, onEnable, onDisable or onUninstall)`,
     ]);
   });
 });

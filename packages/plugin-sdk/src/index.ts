@@ -3,6 +3,8 @@ export type {
   HostInfo,
   PluginInfo,
   RegistrationContext,
+  UninstallContext,
+  WorkspaceLifecycleContext,
 } from "./context";
 export type {
   CustomFieldDefinition,

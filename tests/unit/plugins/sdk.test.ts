@@ -27,6 +27,36 @@ describe("definePlugin", () => {
     expect(definePlugin({ register() {} })).toBeDefined();
     expect(definePlugin({ boot() {} })).toBeDefined();
   });
+
+  it("takes the lifecycle hooks with the contexts the docs promise, and returns them unchanged", () => {
+    const seen: string[] = [];
+    const definition = definePlugin({
+      onEnable(ctx) {
+        seen.push(
+          `enable ${ctx.plugin.id} ${ctx.host.sdk} ${ctx.workspace.id}`,
+        );
+      },
+      async onDisable(ctx) {
+        seen.push(`disable ${ctx.workspace.name}`);
+      },
+      onUninstall(ctx) {
+        seen.push(`uninstall ${ctx.plugin.version}`);
+      },
+    });
+    const workspace = { id: "w1", name: "W" };
+    const base = {
+      plugin: { id: "demo", version: "1.0.0" },
+      host: { barynt: "1.0.0", sdk: SDK_VERSION },
+    };
+    definition.onEnable?.({ ...base, workspace });
+    definition.onDisable?.({ ...base, workspace });
+    definition.onUninstall?.(base);
+    expect(seen).toEqual([
+      `enable demo ${SDK_VERSION} w1`,
+      "disable W",
+      "uninstall 1.0.0",
+    ]);
+  });
 });
 
 describe("SDK version", () => {

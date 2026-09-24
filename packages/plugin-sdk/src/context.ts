@@ -11,6 +11,7 @@ import type {
   JobService,
   PluginEvents,
   PluginStorage,
+  PluginWorkspace,
   UserService,
   WorkspaceService,
 } from "./services";
@@ -64,4 +65,23 @@ export interface BootContext {
   readonly jobs: JobService;
   readonly user: UserService;
   readonly workspace: WorkspaceService;
+}
+
+/**
+ * What `onEnable` and `onDisable` get: the plugin is switched on or off in one
+ * workspace. Plain values, no services: what the hook needs to know is which
+ * workspace it is about, and the services (storage, events) are provisional until
+ * their tickets are built (BARY-85, BARY-84), when they arrive here additively.
+ */
+export interface WorkspaceLifecycleContext {
+  readonly plugin: PluginInfo;
+  readonly host: HostInfo;
+  /** The workspace the plugin is switched on or off in. */
+  readonly workspace: PluginWorkspace;
+}
+
+/** What `onUninstall` gets: the plugin is removed from the whole platform. */
+export interface UninstallContext {
+  readonly plugin: PluginInfo;
+  readonly host: HostInfo;
 }

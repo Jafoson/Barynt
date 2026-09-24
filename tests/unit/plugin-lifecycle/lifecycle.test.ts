@@ -20,6 +20,7 @@ const mockWorkspaceCount = mock();
 const mockSettingsFindUnique = mock();
 const mockAuditCreate = mock();
 const mockRevalidate = mock();
+const mockRegistryGet = mock();
 
 mock.module("@/lib/db", () => ({
   db: {
@@ -47,6 +48,11 @@ mock.module("@/lib/permissions", () => ({
   PLATFORM: { scope: "platform" },
 }));
 mock.module("react", () => ({ cache: <T>(fn: T) => fn }));
+// The real registry has its own tests (`tests/unit/plugin-host`), and this file's
+// process is not theirs: what it needs is the running plugins, as the registry says.
+mock.module("@/lib/plugins/host", () => ({
+  getPluginRegistry: () => ({ get: mockRegistryGet }),
+}));
 
 import {
   installPlugin,
@@ -100,9 +106,11 @@ beforeEach(async () => {
     mockAuditCreate,
     mockRevalidate,
     mockRequirePermission,
+    mockRegistryGet,
   ]) {
     m.mockReset();
   }
+  mockRegistryGet.mockResolvedValue({ plugins: [], active: [], problem: null });
   mockRequirePermission.mockResolvedValue("admin1");
   mockPluginFindUnique.mockResolvedValue(null);
   mockPluginFindMany.mockImplementation(async () => installedRows);
@@ -941,6 +949,142 @@ describe("uninstalling", () => {
       "connection lost",
     );
     expect(mockAuditCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe("uninstalling a plugin that is running", () => {
+  const running = (hooks: Record<string, unknown>, id = "calendar") => ({
+    plugins: [],
+    problem: null,
+    active: [{ id, version: "1.0.0", hooks }],
+  });
+
+  it("runs its onUninstall after it is removed, with the plugin and the host", async () => {
+    await installed("calendar", "1.0.0");
+    const events: string[] = [];
+    const contexts: unknown[] = [];
+    mockRegistryGet.mockImplementation(async () => {
+      events.push("registry read");
+      return running({
+        onUninstall: (ctx: unknown) => {
+          contexts.push(ctx);
+          events.push(
+            `hook, plugin gone: ${mockPluginDelete.mock.calls.length === 1}, registry told: ${state.generation === 1}`,
+          );
+        },
+      });
+    });
+    mockPluginDelete.mockImplementation(async () => {
+      events.push("deleted");
+      return {};
+    });
+    expect(await uninstallPlugin("calendar")).toEqual({ ok: true });
+    expect(events).toEqual([
+      "registry read",
+      "deleted",
+      "hook, plugin gone: true, registry told: true",
+    ]);
+    expect(contexts).toEqual([
+      {
+        plugin: { id: "calendar", version: "1.0.0" },
+        host: { barynt: expect.any(String), sdk: expect.any(String) },
+      },
+    ]);
+  });
+
+  it("uses the plugin as it ran before, even if the registry no longer lists it", async () => {
+    await installed("calendar", "1.0.0");
+    const ran = mock();
+    mockRegistryGet.mockResolvedValueOnce(running({ onUninstall: ran }));
+    mockRegistryGet.mockResolvedValue({
+      plugins: [],
+      active: [],
+      problem: null,
+    });
+    await uninstallPlugin("calendar");
+    expect(ran).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not run the hook of another plugin", async () => {
+    await installed("calendar", "1.0.0");
+    const ran = mock();
+    mockRegistryGet.mockResolvedValue(running({ onUninstall: ran }, "another"));
+    await uninstallPlugin("calendar");
+    expect(ran).toHaveBeenCalledTimes(0);
+  });
+
+  it("says in the audit entry that the hook ran, or that there was none", async () => {
+    await installed("calendar", "1.0.0");
+    mockRegistryGet.mockResolvedValue(running({ onUninstall: () => {} }));
+    await uninstallPlugin("calendar");
+    expect(mockAuditCreate.mock.calls[0]?.[0].data.meta.hook).toBe("ran");
+    mockAuditCreate.mockClear();
+    await installed("notes", "1.0.0");
+    mockRegistryGet.mockResolvedValue(running({}, "notes"));
+    await uninstallPlugin("notes");
+    expect(mockAuditCreate.mock.calls[0]?.[0].data.meta.hook).toBe("none");
+    expect(mockAuditCreate.mock.calls[0]?.[0].data.meta).not.toHaveProperty(
+      "hookError",
+    );
+  });
+
+  it.each([
+    [
+      "throws",
+      () => {
+        throw new Error("cleanup failed");
+      },
+    ],
+    [
+      "rejects",
+      async () => {
+        throw new Error("cleanup failed");
+      },
+    ],
+  ])(
+    "is uninstalled all the same when the hook %s, with a warning",
+    async (_n, hook) => {
+      await installed("calendar", "1.0.0");
+      mockRegistryGet.mockResolvedValue(running({ onUninstall: hook }));
+      const result = await uninstallPlugin("calendar");
+      expect(result).toEqual({
+        ok: true,
+        warning:
+          "calendar is uninstalled, but its onUninstall failed: cleanup failed",
+      });
+      expect(mockPluginDelete).toHaveBeenCalledTimes(1);
+      expect(mockAuditCreate.mock.calls[0]?.[0].data.meta).toMatchObject({
+        hook: "failed",
+        hookError: "cleanup failed",
+      });
+      expect(state.snapshot).toBeNull();
+      expect(mockRevalidate).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("does not run it, or even ask the registry, when the uninstall is refused", async () => {
+    await installed("notes", "1.0.0");
+    await installed("board", "1.0.0", {
+      manifest: { dependencies: { notes: "^1" } },
+    });
+    const ran = mock();
+    mockRegistryGet.mockResolvedValue(running({ onUninstall: ran }, "notes"));
+    expect(errorOf(await uninstallPlugin("notes"))).toContain("Not done.");
+    expect(ran).toHaveBeenCalledTimes(0);
+    expect(mockRegistryGet).not.toHaveBeenCalled();
+  });
+
+  it("does not run it when the plugin was already gone", async () => {
+    await installed("calendar", "1.0.0");
+    const ran = mock();
+    mockRegistryGet.mockResolvedValue(running({ onUninstall: ran }));
+    mockPluginDelete.mockRejectedValue(
+      Object.assign(new Error("Record not found"), { code: "P2025" }),
+    );
+    expect(await uninstallPlugin("calendar")).toEqual({
+      error: "Unknown plugin.",
+    });
+    expect(ran).toHaveBeenCalledTimes(0);
   });
 });
 
