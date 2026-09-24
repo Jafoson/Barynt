@@ -23,6 +23,7 @@ import {
 } from "@/features/plugins/actions";
 import {
   installPlugin,
+  rollbackPlugin,
   setPluginStatus,
   uninstallPlugin,
   updatePlugin,
@@ -219,6 +220,51 @@ export function PluginsAdmin({ overview }: Props) {
       ),
     );
 
+  /**
+   * Goes back to the version before the last update. A plugin from a store asks for a plain
+   * confirmation; one from no store asks for the same yes as installing or updating it does, and
+   * the server asks for it too.
+   */
+  const openRollback = async (plugin: InstalledPlugin, version: string) => {
+    const title = t("pluginsAdmin.rollbackTitle", {
+      name: plugin.name,
+      version,
+    });
+    if (!plugin.unsigned) {
+      const ok = await confirm({
+        title,
+        description: t("pluginsAdmin.rollbackDesc", { version }),
+        confirmLabel: t("pluginsAdmin.rollbackConfirm"),
+        cancelLabel: t("actions.cancel"),
+      });
+      if (ok) run(() => rollbackPlugin(plugin.id));
+      return;
+    }
+    openModal(
+      ({ close }) => (
+        <AcknowledgeModal
+          close={close}
+          sheet={isPhone}
+          title={title}
+          confirmLabel={t("pluginsAdmin.rollbackConfirm")}
+          notice={(state) => (
+            <>
+              <p className={styles.notice}>
+                <Icon icon="lucide:info" width={14} />
+                {t("pluginsAdmin.rollbackDesc", { version })}
+              </p>
+              <UnsignedNotice {...state} />
+            </>
+          )}
+          onConfirm={async () =>
+            settle(await rollbackPlugin(plugin.id, { acknowledged: true }))
+          }
+        />
+      ),
+      modalOptions(title),
+    );
+  };
+
   const uninstall = async (plugin: InstalledPlugin) => {
     const ok = await confirm({
       title: t("pluginsAdmin.uninstallTitle", { name: plugin.name }),
@@ -313,6 +359,16 @@ export function PluginsAdmin({ overview }: Props) {
               {approvalLine}
             </span>
           )}
+          {plugin.storeUpdate && (
+            <span className={styles.approval}>
+              <Icon icon="lucide:refresh-cw" width={14} />
+              <Link
+                href={`${adminPath("plugins/store")}?q=${encodeURIComponent(plugin.id)}`}
+              >
+                {t("pluginsAdmin.storeUpdate", { version: plugin.storeUpdate })}
+              </Link>
+            </span>
+          )}
         </span>
       ),
       cells: {
@@ -360,6 +416,21 @@ export function PluginsAdmin({ overview }: Props) {
                 onClick={() => openUpdate(plugin, plugin.update as string)}
               >
                 {t("pluginsAdmin.update", { version: plugin.update })}
+              </Button>
+            )}
+            {plugin.previousVersion && (
+              <Button
+                variant="text"
+                size="sm"
+                icon={<Icon icon="lucide:undo-2" width={14} />}
+                disabled={isPending}
+                onClick={() =>
+                  void openRollback(plugin, plugin.previousVersion as string)
+                }
+              >
+                {t("pluginsAdmin.rollback", {
+                  version: plugin.previousVersion,
+                })}
               </Button>
             )}
             <Button

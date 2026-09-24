@@ -40,6 +40,8 @@ function installed(more: Partial<InstalledPlugin> = {}): InstalledPlugin {
     approval: { kind: "none" },
     integrity: H,
     update: null,
+    previousVersion: null,
+    storeUpdate: null,
     ...more,
   };
 }

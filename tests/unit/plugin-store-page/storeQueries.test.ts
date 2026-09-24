@@ -75,7 +75,7 @@ const store = (more: object = {}) => ({
 });
 
 /** A clone of a store with the given plugins, where the page looks for it. */
-async function clone(key: string, ids: string[]) {
+async function clone(key: string, ids: string[], capabilities: string[] = []) {
   const dir = storeCloneDir(root, key);
   await mkdir(join(dir, "plugins"), { recursive: true });
   await writeFile(
@@ -97,6 +97,7 @@ async function clone(key: string, ids: string[]) {
         license: "MIT",
         categories: ["other"],
         barynt: "^0.1.0",
+        capabilities,
       }),
     );
     await writeFile(
@@ -210,9 +211,102 @@ describe("what is put together", () => {
       version: "0.9.0",
       fromThisStore: true,
       update: "1.0.0",
+      addedCapabilities: [],
     });
     expect(mockPluginFindMany.mock.calls[0]?.[0]).toEqual({
       select: { id: true, version: true, origin: true },
+    });
+  });
+
+  describe("what an update asks for that the installed version did not", () => {
+    /** notes is installed in 0.9.0 and its files are in the plugin directory, asking for `capabilities`. */
+    async function installedOnDisk(version: string, capabilities: string[]) {
+      const dir = join(root, "notes", version);
+      await mkdir(dir, { recursive: true });
+      await writeFile(
+        join(dir, "barynt-plugin.json"),
+        JSON.stringify({
+          manifestVersion: 1,
+          id: "notes",
+          name: "notes",
+          version,
+          description: "A test plugin",
+          author: "Someone",
+          license: "MIT",
+          categories: ["other"],
+          barynt: "^0.1.0",
+          capabilities,
+        }),
+      );
+    }
+    const installed = {
+      id: "notes",
+      version: "0.9.0",
+      origin: `https://${KEY}`,
+    };
+    const addedFor = async () =>
+      (await getStoreCatalogView("en")).catalog.entries[0]?.installed
+        ?.addedCapabilities;
+
+    beforeEach(() => {
+      mockStoreFindMany.mockResolvedValue([store()]);
+      mockPluginFindMany.mockResolvedValue([installed]);
+    });
+
+    it("is only the new ones, read from the files that are installed", async () => {
+      await clone(KEY, ["notes"], ["issues:read", "issues:write"]);
+      await installedOnDisk("0.9.0", ["issues:read"]);
+      expect(await addedFor()).toEqual(["issues:write"]);
+    });
+
+    it("is nothing when it asks for no more", async () => {
+      await clone(KEY, ["notes"], ["issues:read"]);
+      await installedOnDisk("0.9.0", ["issues:read", "issues:write"]);
+      expect(await addedFor()).toEqual([]);
+    });
+
+    it("is all of them when the installed files cannot be read, and when only another version's are there", async () => {
+      await clone(KEY, ["notes"], ["issues:read"]);
+      expect(await addedFor()).toEqual(["issues:read"]);
+      await installedOnDisk("0.8.0", ["issues:read"]);
+      expect(await addedFor()).toEqual(["issues:read"]);
+    });
+
+    it("is all of them when only another plugin's files of that version are there", async () => {
+      await clone(KEY, ["notes"], ["issues:read"]);
+      const other = join(root, "wiki", "0.9.0");
+      await mkdir(other, { recursive: true });
+      await writeFile(
+        join(other, "barynt-plugin.json"),
+        JSON.stringify({
+          manifestVersion: 1,
+          id: "wiki",
+          name: "wiki",
+          version: "0.9.0",
+          description: "A test plugin",
+          author: "Someone",
+          license: "MIT",
+          categories: ["other"],
+          barynt: "^0.1.0",
+          capabilities: ["issues:read"],
+        }),
+      );
+      expect(await addedFor()).toEqual(["issues:read"]);
+    });
+
+    it("is all of them when the manifest of the installed files is not valid", async () => {
+      await clone(KEY, ["notes"], ["issues:read"]);
+      await installedOnDisk("0.9.0", ["issues:read"]);
+      await writeFile(join(root, "notes", "0.9.0", "barynt-plugin.json"), "{");
+      expect(await addedFor()).toEqual(["issues:read"]);
+    });
+
+    it("is nothing without an update, whatever the store asks for", async () => {
+      await clone(KEY, ["notes"], ["issues:write"]);
+      mockPluginFindMany.mockResolvedValue([
+        { ...installed, version: "1.0.0" },
+      ]);
+      expect(await addedFor()).toEqual([]);
     });
   });
 

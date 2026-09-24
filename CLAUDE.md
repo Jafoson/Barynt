@@ -249,7 +249,10 @@ and measured (start at `docs/plugins/README.md`).
 - **The plugins page** (`/admin/plugins`, `docs/plugins/admin.md`): `features/plugins/overview.ts` is a pure function that puts the
   page together from the rows, the plugin directory and the registry (states and approval as codes; the words are in
   `PluginsAdmin/runtimeText.ts`, so they are translated). `getPluginsOverview` asks for `plugin.manage` itself. Its dialogs use the shared
-  `WarningBox` and `AcknowledgeModal` (also used by the plugin stores page); they are the question, the actions are the protection.
+  `WarningBox` and `AcknowledgeModal` (also used by the plugin stores page); they are the question, the actions are the protection. It also says which version a rollback goes back to (`previousVersion`: needs both `previousVersion` and `previousIntegrity`) and, for a plugin from a store, which
+  version its store offers (`storeUpdate`, from `loadStoreCatalog`, only what fits this Barynt): a pointer to the store page (`?q=<id>` starts the search), where the
+  update is made (`UpdateFromStoreModal`, which sets apart `installed.addedCapabilities`, what the new manifest asks for that the installed files did not). A workspace's
+  page is a selection of this and passes none of it on.
 - **The plugins of a workspace** (`/<workspace>/settings/plugins`, `docs/plugins/workspace.md`, `plugin.enable` in that workspace, asked by the query itself; a page for someone
   who may not is a 404): `getWorkspacePlugins` (`workspaceQueries.ts`) reads the platform's overview (`loadOverview`) and `buildWorkspacePlugins` (pure) **selects** from it: **nothing that is
   the platform's** (the plugin directory's path, why plugins are off, hashes, origin, counts) reaches a workspace admin. The switch is `enablePlugin`/`disablePlugin`; one that cannot run is

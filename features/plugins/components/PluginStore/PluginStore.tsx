@@ -11,7 +11,10 @@ import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/Segment
 import { PageHeader } from "@/components/ui/layout/PageHeader/PageHeader";
 import { SettingsBody } from "@/components/ui/layout/SettingsList/SettingsList";
 import { setPluginCurated } from "@/features/plugin-stores/visibilityActions";
-import { installStorePlugin } from "@/features/plugins/storeActions";
+import {
+  installStorePlugin,
+  updateStorePlugin,
+} from "@/features/plugins/storeActions";
 import type { StoreCatalogView } from "@/features/plugins/storeQueries";
 import {
   categoryCounts,
@@ -34,6 +37,7 @@ import styles from "./pluginStore.module.scss";
 import { StoreDetailModal } from "./StoreDetailModal";
 import { StoreSync } from "./StoreSync";
 import { PLATFORM_MODE, StoreModeContext } from "./storeMode";
+import { UpdateFromStoreModal } from "./UpdateFromStoreModal";
 
 interface Props {
   view: StoreCatalogView;
@@ -91,7 +95,7 @@ export function PluginStore({ view, workspace, initial }: Props) {
     label,
   });
 
-  const openInstall = (entry: CatalogEntry, version: string) =>
+  const openInstallDialog = (entry: CatalogEntry, version: string) =>
     openModal(
       ({ close }) => (
         <InstallFromStoreModal
@@ -126,6 +130,38 @@ export function PluginStore({ view, workspace, initial }: Props) {
       ),
       modalOptions(entry.name),
     );
+
+  /** Updates an installed plugin, from the store it came from: the server finds that store itself. */
+  const openUpdateDialog = (entry: CatalogEntry, version: string) =>
+    openModal(
+      ({ close }) => (
+        <UpdateFromStoreModal
+          entry={entry}
+          version={version}
+          close={close}
+          sheet={isPhone}
+          onConfirm={async () => {
+            const result = await updateStorePlugin(entry.id, version, {
+              acknowledged: true,
+            });
+            if ("error" in result) return result.error;
+            setNotice("");
+            router.refresh();
+            return null;
+          }}
+        />
+      ),
+      modalOptions(entry.name),
+    );
+
+  /**
+   * What the button on a plugin does: an installed one is updated (the button is only there
+   * when there is an update, and only on the platform's page), any other is installed.
+   */
+  const openInstall = (entry: CatalogEntry, version: string) =>
+    entry.installed
+      ? openUpdateDialog(entry, version)
+      : openInstallDialog(entry, version);
 
   /** Switches on, in this workspace, a plugin the platform has installed already. */
   const switchOn = workspace

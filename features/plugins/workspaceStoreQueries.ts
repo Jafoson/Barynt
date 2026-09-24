@@ -61,7 +61,9 @@ export async function getWorkspaceStore(
     entries.push({
       ...entry,
       installed:
-        here && entry.installed ? { ...entry.installed, update: null } : null,
+        here && entry.installed
+          ? { ...entry.installed, update: null, addedCapabilities: [] }
+          : null,
     });
   }
 

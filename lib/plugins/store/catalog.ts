@@ -31,6 +31,11 @@ export interface InstalledInput {
   id: string;
   version: string;
   origin: string | null;
+  /**
+   * What the installed files ask for, from their manifest on disk. Left out or `null` when that
+   * cannot be read: an update then counts everything it asks for as new.
+   */
+  capabilities?: readonly string[] | null;
 }
 
 export interface CatalogVersion {
@@ -73,6 +78,8 @@ export interface CatalogEntry {
     version: string;
     fromThisStore: boolean;
     update: string | null;
+    /** What the update asks for that the installed version does not. Empty without an update. */
+    addedCapabilities: string[];
   } | null;
 }
 
@@ -144,6 +151,13 @@ export function buildCatalog(input: CatalogInput): Catalog {
       // address, which is never a store's key.
       const fromThisStore =
         installed !== null && normalizeStoreUrl(installed.origin) === store.key;
+      const update =
+        installed !== null &&
+        fromThisStore &&
+        offered &&
+        gt(offered.version, installed.version)
+          ? offered.version
+          : null;
       entries.push({
         key: `${store.id}/${entry.id}`,
         storeId: store.id,
@@ -169,12 +183,13 @@ export function buildCatalog(input: CatalogInput): Catalog {
           ? {
               version: installed.version,
               fromThisStore,
-              update:
-                fromThisStore &&
-                offered &&
-                gt(offered.version, installed.version)
-                  ? offered.version
-                  : null,
+              update,
+              addedCapabilities:
+                update === null
+                  ? []
+                  : m.capabilities.filter(
+                      (c) => !(installed.capabilities ?? []).includes(c),
+                    ),
             }
           : null,
       });

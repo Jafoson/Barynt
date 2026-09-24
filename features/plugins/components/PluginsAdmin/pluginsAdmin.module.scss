@@ -78,6 +78,11 @@
 
 .approval {
   color: var(--on-surface-variant);
+
+  a {
+    color: var(--primary);
+    font-weight: 550;
+  }
 }
 
 .rowActions {

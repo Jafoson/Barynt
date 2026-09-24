@@ -13,6 +13,7 @@ import { join } from "node:path";
 const mockPluginFindMany = mock();
 const mockGroupBy = mock();
 const mockStoreFindMany = mock();
+const mockCuratedFindMany = mock();
 const mockSettingsFindUnique = mock();
 const mockRegistryGet = mock();
 const mockRequirePermission = mock(
@@ -24,6 +25,7 @@ mock.module("@/lib/db", () => ({
     plugin: { findMany: mockPluginFindMany },
     pluginWorkspace: { groupBy: mockGroupBy },
     pluginStore: { findMany: mockStoreFindMany },
+    pluginStoreCurated: { findMany: mockCuratedFindMany },
     systemSettings: { findUnique: mockSettingsFindUnique },
   },
 }));
@@ -38,6 +40,7 @@ mock.module("@/lib/plugins/host", () => ({
 import { getPluginsOverview } from "@/features/plugins/queries";
 import { hashPluginDirectory } from "@/lib/plugins/integrity";
 import { OFFICIAL_STORE_URL } from "@/lib/plugins/policy";
+import { storeCloneDir } from "@/lib/plugins/store/paths";
 
 let root: string;
 let savedDir: string | undefined;
@@ -50,6 +53,7 @@ beforeEach(async () => {
     mockPluginFindMany,
     mockGroupBy,
     mockStoreFindMany,
+    mockCuratedFindMany,
     mockSettingsFindUnique,
     mockRegistryGet,
     mockRequirePermission,
@@ -59,7 +63,8 @@ beforeEach(async () => {
   mockRequirePermission.mockResolvedValue("admin1");
   mockPluginFindMany.mockResolvedValue([]);
   mockGroupBy.mockResolvedValue([]);
-  mockStoreFindMany.mockResolvedValue([{ url: OFFICIAL_STORE_URL }]);
+  mockStoreFindMany.mockResolvedValue([officialStore()]);
+  mockCuratedFindMany.mockResolvedValue([]);
   mockSettingsFindUnique.mockResolvedValue({ allowUnsignedPlugins: false });
   mockRegistryGet.mockResolvedValue({
     dir: root,
@@ -74,6 +79,18 @@ afterEach(async () => {
   if (savedDir === undefined) delete process.env.BARYNT_PLUGINS_DIR;
   else process.env.BARYNT_PLUGINS_DIR = savedDir;
   await rm(root, { recursive: true, force: true });
+});
+
+const OFFICIAL_KEY = "github.com/jafoson/barynt-plugin-store";
+/** A row of `PluginStore`, with what both the list of active stores and the catalog read from it. */
+const officialStore = () => ({
+  id: "store-1",
+  key: OFFICIAL_KEY,
+  url: OFFICIAL_STORE_URL,
+  name: "Official",
+  official: true,
+  syncedAt: null,
+  syncError: null,
 });
 
 async function put(id: string, version: string, more: object = {}) {
@@ -115,6 +132,7 @@ describe("who may look", () => {
       mockPluginFindMany,
       mockGroupBy,
       mockStoreFindMany,
+      mockCuratedFindMany,
       mockSettingsFindUnique,
       mockRegistryGet,
     ]) {
@@ -179,6 +197,8 @@ describe("what is put together", () => {
       origin: true,
       integrity: true,
       codeApprovalHash: true,
+      previousVersion: true,
+      previousIntegrity: true,
     });
     expect(mockGroupBy.mock.calls[0]?.[0]).toEqual({
       by: ["pluginId"],
@@ -215,6 +235,115 @@ describe("what is put together", () => {
     const overview = await getPluginsOverview("en");
     expect(overview.installed[0]?.update).toBe("1.1.0");
     expect(overview.available).toEqual([]);
+  });
+
+  describe("the version to go back to, and the update in the store", () => {
+    const row = (more: object = {}) => ({
+      id: "notes",
+      version: "1.0.0",
+      status: "ENABLED",
+      source: "STORE",
+      scope: "WORKSPACE",
+      origin: OFFICIAL_STORE_URL,
+      integrity: "x",
+      codeApprovalHash: null,
+      previousVersion: null,
+      previousIntegrity: null,
+      ...more,
+    });
+    /** The official store's clone lists notes, described in `version`. */
+    async function storeLists(version: string, more: object = {}) {
+      const dir = join(storeCloneDir(root, OFFICIAL_KEY), "plugins", "notes");
+      await mkdir(dir, { recursive: true });
+      await writeFile(
+        join(storeCloneDir(root, OFFICIAL_KEY), "store.json"),
+        JSON.stringify({ schemaVersion: 1, id: "official", name: "Official" }),
+      );
+      await writeFile(
+        join(dir, "barynt-plugin.json"),
+        JSON.stringify({
+          manifestVersion: 1,
+          id: "notes",
+          name: "notes",
+          version,
+          description: "A test plugin",
+          author: "Someone",
+          license: "MIT",
+          categories: ["other"],
+          barynt: "^0.1.0",
+          ...more,
+        }),
+      );
+      await writeFile(
+        join(dir, "source.json"),
+        JSON.stringify({
+          versions: [
+            {
+              version,
+              download: `https://x.com/${version}.tgz`,
+              sha512: "e".repeat(128),
+            },
+          ],
+        }),
+      );
+    }
+    const overviewOf = async () =>
+      (await getPluginsOverview("en")).installed[0];
+
+    it("says which version a rollback goes back to, when the last update left one", async () => {
+      mockPluginFindMany.mockResolvedValue([
+        row({ previousVersion: "0.9.0", previousIntegrity: "sha512-old" }),
+      ]);
+      expect((await overviewOf())?.previousVersion).toBe("0.9.0");
+    });
+
+    it("says nothing of one when only half of what a rollback needs is known", async () => {
+      mockPluginFindMany.mockResolvedValue([row({ previousVersion: "0.9.0" })]);
+      expect((await overviewOf())?.previousVersion).toBeNull();
+      mockPluginFindMany.mockResolvedValue([
+        row({ previousIntegrity: "sha512-old" }),
+      ]);
+      expect((await overviewOf())?.previousVersion).toBeNull();
+    });
+
+    it("points at a newer version in the store the plugin came from", async () => {
+      await storeLists("1.1.0");
+      mockPluginFindMany.mockResolvedValue([row()]);
+      expect((await overviewOf())?.storeUpdate).toBe("1.1.0");
+    });
+
+    it("does not point at one the store does not have, or one that does not fit this Barynt", async () => {
+      mockPluginFindMany.mockResolvedValue([row()]);
+      expect((await overviewOf())?.storeUpdate).toBeNull();
+      await storeLists("1.1.0", { barynt: "^9.0.0" });
+      expect((await overviewOf())?.storeUpdate).toBeNull();
+    });
+
+    it("does not point at one for a plugin that did not come from a store, or came from another one", async () => {
+      await storeLists("1.1.0");
+      mockPluginFindMany.mockResolvedValue([
+        row({ source: "DIRECTORY", origin: null }),
+      ]);
+      expect((await overviewOf())?.storeUpdate).toBeNull();
+      mockPluginFindMany.mockResolvedValue([
+        row({ origin: "https://example.com/acme/plugins" }),
+      ]);
+      expect((await overviewOf())?.storeUpdate).toBeNull();
+    });
+
+    it("is not thrown by a plugin the store lists that is not installed", async () => {
+      await storeLists("1.1.0");
+      mockPluginFindMany.mockResolvedValue([]);
+      expect((await getPluginsOverview("en")).installed).toEqual([]);
+    });
+
+    it("does not read the stores for a workspace's page, which is not told of updates", async () => {
+      const { loadOverview } = await import("@/features/plugins/queries");
+      await storeLists("1.1.0");
+      mockPluginFindMany.mockResolvedValue([row()]);
+      const overview = await loadOverview("en", async () => false);
+      expect(overview.installed[0]?.storeUpdate).toBeNull();
+    });
   });
 
   it("says whether plugins from no store are allowed", async () => {

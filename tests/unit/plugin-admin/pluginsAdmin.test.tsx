@@ -31,17 +31,25 @@ const mockRevoke = mock();
 const mockInstall = mock();
 const mockUpdate = mock();
 const mockUninstall = mock();
+const mockRollback = mock();
 const mockSetStatus = mock();
 
 // `startTransition` cannot be called after a server render, and the actions are called
 // from it: here it runs what it is given at once and waits for it, like the browser does.
 const actualReact = await import("react");
 let started: Promise<unknown>[] = [];
+/** What `useTransition` says about whether an action is running, and whether this is a phone. */
+const running = { pending: false, phone: false };
+mock.module("@/lib/utils/useMediaQuery", () => ({
+  useMediaQuery: () => running.phone,
+  PHONE_QUERY: "(max-width: 640px)",
+  COMPACT_QUERY: "(max-width: 1024px)",
+}));
 mock.module("react", () => ({
   ...actualReact,
   default: actualReact,
   useTransition: () => [
-    false,
+    running.pending,
     (callback: () => unknown) => {
       started.push(Promise.resolve(callback()));
     },
@@ -110,6 +118,7 @@ mock.module("@/features/plugins/lifecycleActions", () => ({
   installPlugin: mockInstall,
   updatePlugin: mockUpdate,
   uninstallPlugin: mockUninstall,
+  rollbackPlugin: mockRollback,
   setPluginStatus: mockSetStatus,
 }));
 
@@ -145,6 +154,8 @@ function installed(more: Partial<InstalledPlugin> = {}): InstalledPlugin {
     approval: { kind: "approved" },
     integrity: H1,
     update: null,
+    previousVersion: null,
+    storeUpdate: null,
     ...more,
   };
 }
@@ -240,17 +251,21 @@ beforeEach(() => {
     mockInstall,
     mockUpdate,
     mockUninstall,
+    mockRollback,
     mockSetStatus,
   ]) {
     m.mockClear();
   }
   confirm.mockResolvedValue(true);
+  running.pending = false;
+  running.phone = false;
   for (const m of [
     mockApprove,
     mockRevoke,
     mockInstall,
     mockUpdate,
     mockUninstall,
+    mockRollback,
     mockSetStatus,
   ]) {
     m.mockResolvedValue({ ok: true });
@@ -729,6 +744,138 @@ describe("an update", () => {
     expect(await lastModal().props.onConfirm()).toBe(
       "Confirm that you understand the risk.",
     );
+  });
+});
+
+describe("going back to the version before the last update", () => {
+  const rolled = (more: Partial<InstalledPlugin> = {}) =>
+    render(
+      overview({
+        installed: [installed({ previousVersion: "0.9.0", ...more })],
+      }),
+    );
+  const BUTTON = 'pluginsAdmin.rollback|{"version":"0.9.0"}';
+
+  it("is offered with the version it goes back to, when the last update left one", () => {
+    rolled();
+    expect(labels()).toContain(BUTTON);
+  });
+
+  it("is not offered when there is nothing to go back to", () => {
+    render(overview({ installed: [installed()] }));
+    expect(labels().some((l) => l.startsWith("pluginsAdmin.rollback"))).toBe(
+      false,
+    );
+  });
+
+  it("asks first for a plugin from a store, naming the plugin and the version, and then goes back", async () => {
+    rolled();
+    await press(BUTTON);
+    expect(confirm.mock.calls[0]?.[0]).toMatchObject({
+      title: 'pluginsAdmin.rollbackTitle|{"name":"Calendar","version":"0.9.0"}',
+      description: 'pluginsAdmin.rollbackDesc|{"version":"0.9.0"}',
+      confirmLabel: "pluginsAdmin.rollbackConfirm",
+    });
+    expect(mockRollback.mock.calls).toEqual([["calendar"]]);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(openModal).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when the admin says no", async () => {
+    rolled();
+    confirm.mockResolvedValue(false);
+    await press(BUTTON);
+    expect(mockRollback).not.toHaveBeenCalled();
+  });
+
+  it("shows the reason and does not reload when the server refuses", async () => {
+    rolled();
+    mockRollback.mockResolvedValue({
+      error: "1.0.0 was withdrawn by Acme, so it is not brought back.",
+    });
+    await press(BUTTON);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("opens the warning for a plugin from no store instead, and goes back with the yes", async () => {
+    rolled({ source: "DIRECTORY", origin: null, unsigned: true });
+    await press(BUTTON);
+    expect(confirm).not.toHaveBeenCalled();
+    const { props, options } = lastModal();
+    expect(props.title).toBe(
+      'pluginsAdmin.rollbackTitle|{"name":"Calendar","version":"0.9.0"}',
+    );
+    expect(props.confirmLabel).toBe("pluginsAdmin.rollbackConfirm");
+    expect(options.label).toBe(props.title);
+    const html = noticeMarkup();
+    expect(html).toContain(
+      "pluginsAdmin.rollbackDesc|{&quot;version&quot;:&quot;0.9.0&quot;}",
+    );
+    expect(html).toContain("pluginStores.unsignedWarnTitle");
+    expect(mockRollback).not.toHaveBeenCalled();
+    expect(await props.onConfirm()).toBeNull();
+    expect(mockRollback.mock.calls).toEqual([
+      ["calendar", { acknowledged: true }],
+    ]);
+  });
+
+  it("is a bottom sheet on a phone, and a dialog from a tablet up", async () => {
+    rolled({ source: "DIRECTORY", origin: null, unsigned: true });
+    await press(BUTTON);
+    expect(lastModal().props.sheet).toBe(false);
+    expect(lastModal().options.placement).toBeUndefined();
+    running.phone = true;
+    rolled({ source: "DIRECTORY", origin: null, unsigned: true });
+    await press(BUTTON);
+    expect(lastModal().props.sheet).toBe(true);
+    expect(lastModal().options.placement).toBe("bottom");
+  });
+
+  it("cannot be pressed while another action is running", () => {
+    running.pending = true;
+    rolled();
+    expect(buttons.find((b) => b.label === BUTTON)?.disabled).toBe(true);
+    running.pending = false;
+    rolled();
+    expect(buttons.find((b) => b.label === BUTTON)?.disabled).toBe(false);
+  });
+
+  it("gives back the server's reason from that dialog", async () => {
+    rolled({ source: "DIRECTORY", origin: null, unsigned: true });
+    await press(BUTTON);
+    mockRollback.mockResolvedValue({ error: "Confirm that you understand." });
+    expect(await lastModal().props.onConfirm()).toBe(
+      "Confirm that you understand.",
+    );
+  });
+});
+
+describe("an update in the store", () => {
+  it("is pointed at, with its version, by a link to the store that starts the search for that plugin", () => {
+    const html = render(
+      overview({ installed: [installed({ storeUpdate: "1.1.0" })] }),
+    );
+    expect(html).toContain('href="/admin/plugins/store?q=calendar"');
+    expect(html).toContain(
+      "pluginsAdmin.storeUpdate|{&quot;version&quot;:&quot;1.1.0&quot;}",
+    );
+  });
+
+  it("is not pointed at when there is none, and is not a button: it is updated where its consent is", () => {
+    const none = render(overview({ installed: [installed()] }));
+    expect(none).not.toContain("pluginsAdmin.storeUpdate");
+    expect(none).not.toContain("?q=");
+    render(overview({ installed: [installed({ storeUpdate: "1.1.0" })] }));
+    expect(labels().some((l) => l.includes("storeUpdate"))).toBe(false);
+  });
+
+  it("puts the id in the address as text, whatever it holds", () => {
+    const html = render(
+      overview({
+        installed: [installed({ id: "a b&c", storeUpdate: "1.1.0" })],
+      }),
+    );
+    expect(html).toContain("q=a%20b%26c");
   });
 });
 

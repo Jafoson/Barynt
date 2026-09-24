@@ -90,6 +90,7 @@ import {
   type StoreMode,
   StoreModeContext,
 } from "@/features/plugins/components/PluginStore/storeMode";
+import { UpdateFromStoreModal } from "@/features/plugins/components/PluginStore/UpdateFromStoreModal";
 import { PluginsTabs } from "@/features/plugins/components/PluginsTabs/PluginsTabs";
 
 const render = (node: ReactElement): string => {
@@ -98,10 +99,14 @@ const render = (node: ReactElement): string => {
   resetStarted();
   return renderToStaticMarkup(node);
 };
-const installed = (update: string | null = null) => ({
+const installed = (
+  update: string | null = null,
+  addedCapabilities: string[] = [],
+) => ({
   version: "1.0.0",
   fromThisStore: true,
   update,
+  addedCapabilities,
 });
 const noop = () => {};
 
@@ -677,6 +682,146 @@ describe("the consent before installing", () => {
       },
       close: noop,
     }) as ReactElement<{ onConfirm: () => Promise<string | null> }>;
+    expect(await element.props.onConfirm()).toBe("no");
+    expect(seen).toEqual(["go"]);
+  });
+});
+
+describe("the consent before updating", () => {
+  type Element = ReactElement<{
+    title: string;
+    confirmLabel: string;
+    sheet?: boolean;
+    notice: (s: {
+      checked: boolean;
+      onChange: (c: boolean) => void;
+      disabled: boolean;
+    }) => ReactNode;
+    onConfirm: () => Promise<string | null>;
+  }>;
+  const consent = (e: CatalogEntry, version = "1.1.0"): Element =>
+    UpdateFromStoreModal({
+      entry: e,
+      version,
+      onConfirm: async () => null,
+      close: noop,
+      sheet: true,
+    }) as Element;
+  const noticeOf = (e: CatalogEntry) =>
+    renderToStaticMarkup(
+      <>
+        {consent(e).props.notice({
+          checked: false,
+          onChange: noop,
+          disabled: false,
+        })}
+      </>,
+    );
+  const updating = (more: Partial<CatalogEntry> = {}, added: string[] = []) =>
+    entry("notes", {
+      name: "Notes",
+      storeName: "Acme",
+      installed: installed("1.1.0", added),
+      ...more,
+    });
+
+  it("is named for the plugin and the version, and confirms with update", () => {
+    const { props } = consent(updating(), "1.1.0");
+    expect(props.title).toBe(
+      'pluginStore.updateTitle|{"name":"Notes","version":"1.1.0"}',
+    );
+    expect(props.confirmLabel).toBe("pluginStore.updateConfirm");
+    expect(props.sheet).toBe(true);
+  });
+
+  it("shows the store, the new version and the version that is installed", () => {
+    const html = noticeOf(updating());
+    expect(html).toContain("Acme");
+    expect(html).toContain("1.1.0");
+    expect(html).toContain("pluginStore.detailInstalled");
+  });
+
+  it("names what it asks for in addition, set apart from everything it asks for", () => {
+    const html = noticeOf(
+      updating({ capabilities: ["issues:read", "issues:write"] }, [
+        "issues:write",
+      ]),
+    );
+    const [before, after] = html.split("pluginStore.updateAdded");
+    expect(after).toBeDefined();
+    const added = (after ?? "").split("pluginStore.capabilities")[0] ?? "";
+    expect(added).toContain("issues:write");
+    expect(added).not.toContain("issues:read");
+    expect(before).not.toContain("issues:write");
+    // The whole list follows, so what it asks for altogether is seen too.
+    expect(html.split("pluginStore.capabilities")[1]).toContain("issues:read");
+    expect(html).not.toContain("pluginStore.updateAddedNone");
+  });
+
+  it("says so when it asks for nothing more", () => {
+    const html = noticeOf(updating({ capabilities: ["issues:read"] }));
+    expect(html).toContain("pluginStore.updateAddedNone");
+    expect(html).not.toMatch(/pluginStore\.updateAdded(?!None)/);
+  });
+
+  it("says that the approval of a plugin with code does not carry over, and what an update of one without changes", () => {
+    expect(noticeOf(updating({ hasCode: true }))).toContain(
+      "pluginStore.updateCodeNote",
+    );
+    expect(noticeOf(updating({ hasCode: true }))).not.toContain(
+      "pluginStore.updateNoCodeNote",
+    );
+    expect(noticeOf(updating())).toContain("pluginStore.updateNoCodeNote");
+    expect(noticeOf(updating())).not.toContain("pluginStore.updateCodeNote");
+  });
+
+  it("says that the old files stay so that it can be undone", () => {
+    expect(noticeOf(updating())).toContain("pluginStore.updateBackNote");
+  });
+
+  it("has the box that says it was read, and says whose files replace the installed ones", () => {
+    const html = noticeOf(updating());
+    expect(html).toContain("pluginStore.updateWarnTitle");
+    expect(html).toContain(
+      "pluginStore.updateWarnBody|{&quot;store&quot;:&quot;Acme&quot;}",
+    );
+    expect(html).toContain("pluginStore.updateCheck");
+    expect(html).toContain('type="checkbox"');
+  });
+
+  it("hands the box its state: ticked and locked as the dialog says", () => {
+    const markup = (checked: boolean, disabled: boolean) =>
+      renderToStaticMarkup(
+        <>
+          {consent(updating()).props.notice({
+            checked,
+            onChange: noop,
+            disabled,
+          })}
+        </>,
+      );
+    expect(markup(false, false)).not.toContain("checked");
+    expect(markup(false, false)).not.toContain("disabled");
+    expect(markup(true, false)).toContain("checked");
+    expect(markup(false, true)).toContain("disabled");
+  });
+
+  it("is for a plugin that has no update record too: nothing is added then", () => {
+    const html = noticeOf(entry("notes"));
+    expect(html).toContain("pluginStore.updateAddedNone");
+  });
+
+  it("passes on what updating does, unchanged", async () => {
+    const seen: string[] = [];
+    const element = UpdateFromStoreModal({
+      entry: updating(),
+      version: "1.1.0",
+      onConfirm: async () => {
+        seen.push("go");
+        return "no";
+      },
+      close: noop,
+    }) as Element;
     expect(await element.props.onConfirm()).toBe("no");
     expect(seen).toEqual(["go"]);
   });
