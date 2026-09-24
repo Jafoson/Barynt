@@ -1,5 +1,6 @@
 import "server-only";
 import { lstat, readdir, readFile } from "node:fs/promises";
+import { homedir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import { compare } from "semver";
 import {
@@ -24,33 +25,73 @@ import { formatIssues, parseManifest } from "./validate";
 // `/* turbopackIgnore: true */`. Without it Turbopack traces the whole project
 // into the standalone output (+10 MB and a build warning), see ADR 0001.
 
-/** The environment variable that names the plugin directory. */
+/** The environment variable that moves the plugin directory. Nobody has to set it. */
 export const PLUGINS_DIR_ENV = "BARYNT_PLUGINS_DIR";
 
 /** A manifest is a few kilobytes; this only keeps a hostile file from being read whole. */
 export const MAX_MANIFEST_BYTES = 256 * 1024;
 
 export type PluginsDirSetting =
-  | { dir: string }
+  | {
+      dir: string;
+      /**
+       * Nobody named the directory, this is the default. It need not exist:
+       * there are simply no plugins yet. A directory that *was* named and is
+       * missing is a problem, one that is not was never asked for.
+       */
+      implicit: boolean;
+    }
   | { dir: null; problem?: string };
 
 /**
- * The plugin directory from the environment. Without the variable plugins are
- * off, no problem; with a relative path they are off too, because "relative to
- * what" changes with where the process was started.
+ * Where plugins live when nobody says otherwise: `~/.barynt/plugins`. The image
+ * sets `BARYNT_PLUGINS_DIR=/plugins` itself, outside the app directory (ADR 0001),
+ * so this is what a run outside a container uses. It is under the home directory
+ * and not in the working directory because the working directory changes with how
+ * the app is started (a standalone build runs from inside `.next`, which a rebuild
+ * wipes). `null` when there is no usable home directory.
+ */
+export function defaultPluginsDir(home: string | null): string | null {
+  if (!home || !isAbsolute(home)) return null;
+  return join(/* turbopackIgnore: true */ home, ".barynt", "plugins");
+}
+
+function homeDirectory(): string | null {
+  try {
+    return homedir() || null;
+  } catch {
+    // No home directory for this user.
+    return null;
+  }
+}
+
+/**
+ * The plugin directory. `BARYNT_PLUGINS_DIR` moves it; without it there is a
+ * default, so plugins work without anything being set. A path that is set and
+ * relative is refused and does **not** fall back to the default: "relative to what"
+ * changes with where the process was started, and a value that was meant to say
+ * something must not be quietly replaced by one that says something else.
  */
 export function pluginsDirSetting(
   env: Record<string, string | undefined> = process.env,
+  home: string | null = homeDirectory(),
 ): PluginsDirSetting {
   const value = env[PLUGINS_DIR_ENV]?.trim();
-  if (!value) return { dir: null };
-  if (!isAbsolute(value)) {
-    return {
-      dir: null,
-      problem: `${PLUGINS_DIR_ENV} must be an absolute path, got "${value}"`,
-    };
+  if (value) {
+    if (!isAbsolute(value)) {
+      return {
+        dir: null,
+        problem: `${PLUGINS_DIR_ENV} must be an absolute path, got "${value}"`,
+      };
+    }
+    return { dir: value, implicit: false };
   }
-  return { dir: value };
+  const dir = defaultPluginsDir(home);
+  if (dir) return { dir, implicit: true };
+  return {
+    dir: null,
+    problem: `There is no home directory for the default plugin directory, set ${PLUGINS_DIR_ENV}`,
+  };
 }
 
 export type DiscoveredPlugin = {
@@ -66,6 +107,8 @@ export interface Discovery {
   plugins: DiscoveredPlugin[];
   /** Problems with the directory itself or with entries that are no plugin. */
   issues: string[];
+  /** The directory itself does not exist, which is also in `issues`. */
+  rootMissing: boolean;
 }
 
 /** Hidden and `_` entries are staging areas and switched-off plugins: ignored, not reported. */
@@ -87,6 +130,7 @@ async function subdirectories(
   isValid: (name: string) => boolean,
   what: string,
   issues: string[],
+  onMissing?: () => void,
 ): Promise<string[]> {
   let entries: import("node:fs").Dirent[];
   try {
@@ -94,6 +138,7 @@ async function subdirectories(
       withFileTypes: true,
     });
   } catch (error) {
+    if (errorCode(error) === "ENOENT") onMissing?.();
     issues.push(`${dir}: cannot be read (${errorCode(error)})`);
     return [];
   }
@@ -182,8 +227,17 @@ async function readManifest(
 export async function discoverPlugins(root: string): Promise<Discovery> {
   const issues: string[] = [];
   const plugins: DiscoveredPlugin[] = [];
+  let rootMissing = false;
 
-  for (const id of await subdirectories(root, isValidId, "plugin id", issues)) {
+  for (const id of await subdirectories(
+    root,
+    isValidId,
+    "plugin id",
+    issues,
+    () => {
+      rootMissing = true;
+    },
+  )) {
     const idDir = join(/* turbopackIgnore: true */ root, id);
     const versions = (
       await subdirectories(idDir, isValidVersion, "plugin version", issues)
@@ -198,5 +252,5 @@ export async function discoverPlugins(root: string): Promise<Discovery> {
       });
     }
   }
-  return { plugins, issues };
+  return { plugins, issues, rootMissing };
 }

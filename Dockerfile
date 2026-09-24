@@ -108,9 +108,14 @@ WORKDIR /app
 # itself, which silently broke this image's own HEALTHCHECK and anything
 # depending on it (e.g. Caddy's `depends_on: condition: service_healthy`)
 # until caught here. Must be set explicitly.
+# BARYNT_PLUGINS_DIR: where plugins live (docs/plugins/loading.md). Outside /app on
+# purpose (docs/plugins/adr-0001-runtime-loading.md): plugin code is not part of the
+# image and has to survive an image update, so docker-compose.yml puts a volume on it.
+# Set here so that nobody has to set it; the variable only moves the directory.
 ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
-    PORT=3000
+    PORT=3000 \
+    BARYNT_PLUGINS_DIR=/plugins
 
 # oven/bun:*-slim pins a Debian snapshot at publish time, so it drifts
 # behind Debian's own security updates (gzip, perl-base, libsqlite3-0,
@@ -127,7 +132,7 @@ RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 # in: a `RUN chown -R` after the fact would force an overlayfs copy-up of
 # every file already in the image onto a new layer, silently doubling the
 # image size for no reason. `--chown` on each COPY avoids that.
-RUN chown bun:bun /app
+RUN chown bun:bun /app && mkdir /plugins && chown bun:bun /plugins
 USER bun
 
 COPY --chown=bun:bun --from=builder /app/.next/standalone ./

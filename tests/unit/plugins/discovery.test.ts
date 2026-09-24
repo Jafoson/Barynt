@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   type DiscoveredPlugin,
+  defaultPluginsDir,
   discoverPlugins,
   MAX_MANIFEST_BYTES,
   PLUGINS_DIR_ENV,
@@ -58,24 +59,75 @@ function issuesOf(plugin: DiscoveredPlugin | undefined): string[] {
 }
 
 describe("the plugin directory setting", () => {
-  it("is off when the variable is not set or empty, and that is not a problem", () => {
-    expect(pluginsDirSetting({})).toEqual({ dir: null });
-    expect(pluginsDirSetting({ [PLUGINS_DIR_ENV]: "" })).toEqual({ dir: null });
-    expect(pluginsDirSetting({ [PLUGINS_DIR_ENV]: "   " })).toEqual({
-      dir: null,
+  const HOME = "/home/barynt";
+
+  it("has a default, so nothing has to be set: under the home directory", () => {
+    expect(pluginsDirSetting({}, HOME)).toEqual({
+      dir: "/home/barynt/.barynt/plugins",
+      implicit: true,
     });
   });
 
-  it("takes an absolute path", () => {
-    expect(pluginsDirSetting({ [PLUGINS_DIR_ENV]: " /data/plugins " })).toEqual(
-      { dir: "/data/plugins" },
-    );
+  it("uses the default too for a variable that is empty or only spaces", () => {
+    for (const value of ["", "   ", "\n"]) {
+      expect(pluginsDirSetting({ [PLUGINS_DIR_ENV]: value }, HOME)).toEqual({
+        dir: "/home/barynt/.barynt/plugins",
+        implicit: true,
+      });
+    }
   });
 
-  it("refuses a relative path, it would change with where the process started", () => {
-    const setting = pluginsDirSetting({ [PLUGINS_DIR_ENV]: "plugins" });
+  it("takes an absolute path as named, not as the default", () => {
+    expect(
+      pluginsDirSetting({ [PLUGINS_DIR_ENV]: " /data/plugins " }, HOME),
+    ).toEqual({ dir: "/data/plugins", implicit: false });
+    expect(pluginsDirSetting({ [PLUGINS_DIR_ENV]: "/plugins" }, null)).toEqual({
+      dir: "/plugins",
+      implicit: false,
+    });
+  });
+
+  it("refuses a relative path, and does not fall back to the default: a value meant to say something is not quietly replaced", () => {
+    const setting = pluginsDirSetting({ [PLUGINS_DIR_ENV]: "plugins" }, HOME);
     expect(setting.dir).toBeNull();
     expect("problem" in setting && setting.problem).toContain("absolute");
+    expect("problem" in setting && setting.problem).toContain('"plugins"');
+  });
+
+  it.each([
+    ["no home directory", null],
+    ["an empty one", ""],
+    ["a relative one", "home/barynt"],
+  ])(
+    "is off, with the reason, when there is %s to put a default under",
+    (_name, home) => {
+      const setting = pluginsDirSetting({}, home);
+      expect(setting.dir).toBeNull();
+      expect("problem" in setting && setting.problem).toContain(
+        PLUGINS_DIR_ENV,
+      );
+    },
+  );
+
+  it("does not need the default when the directory is named, even without a home", () => {
+    expect(
+      pluginsDirSetting({ [PLUGINS_DIR_ENV]: "/data/plugins" }, null),
+    ).toEqual({ dir: "/data/plugins", implicit: false });
+  });
+
+  it("reads the real environment and home directory when nothing is passed", () => {
+    const setting = pluginsDirSetting();
+    // Whatever this machine has: an absolute directory, or off with a reason.
+    if (setting.dir === null) expect("problem" in setting).toBe(true);
+    else expect(setting.dir.startsWith("/")).toBe(true);
+  });
+
+  it("puts the default under the home directory, not the working directory", () => {
+    expect(defaultPluginsDir("/home/x")).toBe("/home/x/.barynt/plugins");
+    expect(defaultPluginsDir("/root")).toBe("/root/.barynt/plugins");
+    expect(defaultPluginsDir(null)).toBeNull();
+    expect(defaultPluginsDir("")).toBeNull();
+    expect(defaultPluginsDir(".")).toBeNull();
   });
 });
 
@@ -96,11 +148,33 @@ describe("finding plugins", () => {
   });
 
   it("finds an empty or missing directory without a plugin", async () => {
-    expect(await discoverPlugins(root)).toEqual({ plugins: [], issues: [] });
+    expect(await discoverPlugins(root)).toEqual({
+      plugins: [],
+      issues: [],
+      rootMissing: false,
+    });
     const missing = await discoverPlugins(join(root, "nope"));
     expect(missing.plugins).toEqual([]);
     expect(missing.issues).toHaveLength(1);
     expect(missing.issues[0]).toContain("ENOENT");
+  });
+
+  it("says when the directory itself does not exist, and not for anything else", async () => {
+    expect((await discoverPlugins(join(root, "nope"))).rootMissing).toBe(true);
+    expect((await discoverPlugins(root)).rootMissing).toBe(false);
+    // A file where the directory should be is a different problem: it exists.
+    const file = join(root, "a-file");
+    await writeFile(file, "x");
+    const notADirectory = await discoverPlugins(file);
+    expect(notADirectory.rootMissing).toBe(false);
+    expect(notADirectory.issues).toHaveLength(1);
+  });
+
+  it("does not call a missing plugin directory inside the root a missing root", async () => {
+    await install("calendar", "1.0.0");
+    await rm(join(root, "calendar", "1.0.0"), { recursive: true });
+    const found = await discoverPlugins(root);
+    expect(found.rootMissing).toBe(false);
   });
 
   it("sorts by id and then by version as SemVer, not as text", async () => {

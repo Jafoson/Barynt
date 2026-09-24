@@ -96,6 +96,10 @@ interface Harness {
     allowUnsigned: boolean;
     dir: string | null;
     dirProblem?: string;
+    /** The directory is the default, nobody named it. */
+    implicit: boolean;
+    /** The directory does not exist. */
+    rootMissing: boolean;
     /** Ids the fake loader refuses. */
     refuse: Map<string, { phase: "import" | "boot"; message: string }>;
   };
@@ -126,6 +130,8 @@ function harness(
     stores: [OFFICIAL_STORE_URL],
     allowUnsigned: false,
     dir: "/plugins",
+    implicit: false,
+    rootMissing: false,
     refuse: new Map(),
     ...data,
   };
@@ -133,7 +139,7 @@ function harness(
     pluginsDir: () =>
       d.dir === null
         ? { dir: null, ...(d.dirProblem ? { problem: d.dirProblem } : {}) }
-        : { dir: d.dir },
+        : { dir: d.dir, implicit: d.implicit },
     installed: async () => {
       calls.installed += 1;
       return {
@@ -143,7 +149,11 @@ function harness(
     },
     discover: async (): Promise<Discovery> => {
       calls.discover += 1;
-      return { plugins: [...d.discovered], issues: [...d.issues] };
+      return {
+        plugins: [...d.discovered],
+        issues: [...d.issues],
+        rootMissing: d.rootMissing,
+      };
     },
     activeStores: async () => {
       calls.activeStores += 1;
@@ -242,6 +252,83 @@ describe("plugins are off", () => {
     expect(snapshot.problem).toContain("absolute");
     expect(snapshot.active).toEqual([]);
     expect(h.calls.installed).toBe(0);
+  });
+});
+
+describe("a plugin directory nobody named", () => {
+  const MISSING = "/home/barynt/.barynt/plugins: cannot be read (ENOENT)";
+
+  it("is fine when it is not there: no plugins yet, and nothing to report", async () => {
+    h = harness(
+      {},
+      {
+        dir: "/home/barynt/.barynt/plugins",
+        implicit: true,
+        rootMissing: true,
+        issues: [MISSING],
+        installed: [],
+        discovered: [],
+      },
+    );
+    const snapshot = await registry().get();
+    expect(snapshot.dir).toBe("/home/barynt/.barynt/plugins");
+    expect(snapshot.problem).toBeNull();
+    expect(snapshot.discoveryIssues).toEqual([]);
+    expect(snapshot.plugins).toEqual([]);
+  });
+
+  it("is a problem when it was named and is not there", async () => {
+    h = harness(
+      {},
+      {
+        dir: "/data/plugins",
+        implicit: false,
+        rootMissing: true,
+        issues: ["/data/plugins: cannot be read (ENOENT)"],
+        installed: [],
+        discovered: [],
+      },
+    );
+    expect((await registry().get()).discoveryIssues).toEqual([
+      "/data/plugins: cannot be read (ENOENT)",
+    ]);
+  });
+
+  it("still shows plugins that are installed but lost with the directory, as missing", async () => {
+    h = harness(
+      {},
+      {
+        dir: "/home/barynt/.barynt/plugins",
+        implicit: true,
+        rootMissing: true,
+        issues: [MISSING],
+        installed: [row("calendar")],
+        discovered: [],
+      },
+    );
+    const snapshot = await registry().get();
+    expect(statusOf(snapshot, "calendar")).toEqual({ state: "missing" });
+    expect(snapshot.discoveryIssues).toEqual([]);
+  });
+
+  it("keeps what discovery found wrong inside a default directory that exists", async () => {
+    h = harness(
+      {},
+      {
+        dir: "/home/barynt/.barynt/plugins",
+        implicit: true,
+        rootMissing: false,
+        issues: ["/home/barynt/.barynt/plugins/Foo: not a valid plugin id"],
+      },
+    );
+    expect((await registry().get()).discoveryIssues).toHaveLength(1);
+  });
+
+  it("loads plugins from it like from any other", async () => {
+    h = harness({}, { dir: "/home/barynt/.barynt/plugins", implicit: true });
+    expect(statusOf(await registry().get(), "calendar")).toMatchObject({
+      state: "loaded",
+    });
   });
 });
 
