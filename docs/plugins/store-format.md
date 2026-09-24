@@ -3,8 +3,8 @@
 A plugin store is a Git repository ([barynt-plugin-store](https://github.com/Jafoson/barynt-plugin-store) is the official one;
 the format is defined there and checked by its CI). The instance keeps a **local clone** of each store that is on, and reads the
 catalog from it, so the store page also works offline with the last state. This page is about the reading: BARY-104 (the format)
-and the reader from BARY-105. How the clone gets there and is kept fresh (the transport) and how a plugin is installed from an
-entry come in later steps.
+and the reader from BARY-105. How the clone gets there (the transport, BARY-111) is [ADR 0003](adr-0003-store-transport.md); how it is
+kept fresh (BARY-105) and how a plugin is installed from an entry (BARY-107) come in later steps.
 
 ## The layout
 
@@ -33,6 +33,11 @@ plugins/_example/                 directories that start with _ or . are reserve
 | `reader.ts` | `readStoreDirectory(dir)`: reads a clone. Never throws. |
 | `catalog.ts` | `buildCatalog(...)`: puts the entries of the stores that are on together for the store page. Pure. |
 | `paths.ts` | `storeCloneDir(pluginsDir, key)`: `<plugins>/.stores/<name>`, where the name is one safe path segment made from the address and a hash. |
+| `transport.ts` | `fetchStoreArchive(source)`: the address of the default branch's archive for GitHub, GitLab, Bitbucket and Gitea/Forgejo, the token as a header for that host only, and the download. |
+| `fetch.ts` | `safeDownload(address, limits)`: https only, public addresses only (checked for every redirect, too), limits on size and time, credentials never sent on to another host. Never throws. |
+| `address.ts` | `isPublicAddress(address)`: pure, IPv4 and IPv6, including an IPv4 address inside an IPv6 one. |
+| `tar.ts` | `readTar(bytes, limits)`: reads a tar archive without writing anything and refuses what it does not understand. Pure. |
+| `archive.ts` | `unpackStoreArchive(bytes, dir)`: writes only `store.json` and each plugin's `barynt-plugin.json` and `source.json`. |
 
 **The clone is data, never code, and never trusted.** The reader only parses JSON; it runs nothing from the clone. What it repeats
 from the store's CI, because a clone can be anything (a maintainer's mistake, an attacker in a store the admin trusted, a
@@ -60,7 +65,8 @@ and the update (only from the store it came from, only to a higher version that 
 
 ## Deliberately not here
 
-- **Fetching and updating a clone** (BARY-111 transport, BARY-105 sync).
+- **Keeping a clone fresh** (BARY-105 sync): when to fetch, unpack into a temporary directory, read it with `readStoreDirectory`, and
+  move it into place only if it is a store. The transport that does the fetching and unpacking is in place (BARY-111).
 - **Installing** from an entry: download, hash check, unpacking, atomic placement (BARY-107).
 - **Signed commits** (`maintainerKeys` is read and ignored).
 - **A check against the store's published JSON Schemas.** The schemas are a copy; a script that compares them with the store's

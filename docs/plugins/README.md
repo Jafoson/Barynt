@@ -50,5 +50,6 @@ start, and an install / enable / disable / uninstall lifecycle.
 | [Data model](data-model.md) | The two tables (`Plugin`, `PluginWorkspace`): what each column means, what happens on delete, what is deliberately left out. |
 | [ADR 0001](adr-0001-runtime-loading.md) | Can plugin server code load at runtime in the built image? Yes, with rules for the loader. |
 | [ADR 0002](adr-0002-client-bundles.md) | How plugin UI loads in the browser with one shared React: import map, shims, and where the map has to live. |
+| [ADR 0003](adr-0003-store-transport.md) | How a store's repository gets onto the instance: the archive of the default branch over https, no git binary, what the download refuses (nothing but the public internet), what is unpacked (only the store's own files) and the DNS rebinding gap that is left for BARY-97. |
 | [spike/](spike/README.md) | The server-side experiment behind ADR 0001, reproducible with one script. |
 | [spike-client/](spike-client/README.md) | The browser experiment behind ADR 0002. |
