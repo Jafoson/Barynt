@@ -97,6 +97,9 @@ const SEGMENTS: string[][] = [
   // Mocks `@/lib/plugins/host` (the registry) for the actions that switch plugins on and
   // off and remove them; `tests/unit/plugin-host` tests the real one.
   ["tests/unit/plugin-lifecycle"],
+  // Mocks the plugin actions and the registry for the plugins page (`features/plugins/queries`,
+  // `PluginsAdmin`); `tests/unit/plugin-approval` and `plugin-lifecycle` test the real ones.
+  ["tests/unit/plugin-admin"],
   // Replaces `hashPluginDirectory` (`@/lib/plugins/integrity`) to make the hash of a
   // plugin's files differ between two reads; `tests/unit/plugins/integrity.test.ts`
   // tests the real one.

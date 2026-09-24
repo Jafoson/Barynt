@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { AcknowledgeModal } from "./AcknowledgeModal";
+import { AcknowledgeModal } from "@/components/ui/layout/AcknowledgeModal/AcknowledgeModal";
 import { TrustNotice } from "./TrustNotice";
 
 interface Props {

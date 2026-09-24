@@ -223,6 +223,10 @@ and measured (start at `docs/plugins/README.md`).
   (`features/plugins/workspaceActions.ts`, `plugin.enable`): **switching on has to end with the plugin running there**, otherwise
   the row is put back and the reason given; `onEnable` may refuse, `onDisable` and `onUninstall` cannot (a failure is a `warning`).
   Hooks (`lib/plugins/hooks.ts`) run only for a plugin loaded in the process, on the plugin as it ran *before* the change.
+- **The plugins page** (`/admin/plugins`, `docs/plugins/admin.md`): `features/plugins/overview.ts` is a pure function that puts the
+  page together from the rows, the plugin directory and the registry (states and approval as codes; the words are in
+  `PluginsAdmin/runtimeText.ts`, so they are translated). `getPluginsOverview` asks for `plugin.manage` itself. Its dialogs use the shared
+  `WarningBox` and `AcknowledgeModal` (also used by the plugin stores page); they are the question, the actions are the protection.
 - **The registry** (`lib/plugins/registry.ts`, wired in `host.ts`) decides once per process which plugins run and keeps a
   snapshot: `planPlugins()` (pure, `plan.ts`) picks, the loader loads, `instrumentation.ts` starts it with the server (not
   awaited) so `boot` runs once per process outside a request. Its state lives on `global`
@@ -546,6 +550,9 @@ tests/
       workspace.test.ts           ← switch on/off per workspace, onEnable/onDisable (own process: mocks `@/lib/plugins/host`)
     plugin-staging/
       stage.test.ts               ← features/plugins/disk (own process: it replaces the directory hash)
+    plugin-admin/
+      queries.test.ts             ← what the plugins page reads (own process: it mocks the registry)
+      pluginsAdmin.test.tsx       ← the page: what is offered where, which action a dialog runs with which arguments
     notifications/
       notify.test.ts              ← lib/notify (also mocks `@/lib/mail`, own process)
       queries.test.ts             ← inbox query

@@ -41,6 +41,7 @@ export type NavLabelKey =
   | "audit"
   | "activity"
   | "mailTemplates"
+  | "plugins"
   | "pluginStores"
   | "invitations"
   | "adminSettings";
@@ -253,6 +254,14 @@ export const ADMIN_NAV: NavEntry[] = [
     icon: "lucide:mail",
     labelKey: "mailTemplates",
     permission: "mail.template.manage",
+  },
+  {
+    // What is installed, and whether its code may run. Managing plugins is a
+    // platform matter, like the stores.
+    section: "plugins",
+    icon: "lucide:puzzle",
+    labelKey: "plugins",
+    permission: "plugin.manage",
   },
   {
     // Which plugin stores are on. It decides which code the platform can be

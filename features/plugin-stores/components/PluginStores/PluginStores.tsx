@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
+import { AcknowledgeModal } from "@/components/ui/layout/AcknowledgeModal/AcknowledgeModal";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import { PageHeader } from "@/components/ui/layout/PageHeader/PageHeader";
 import {
@@ -26,7 +27,6 @@ import type { PluginStoreRow } from "@/features/plugin-stores/queries";
 import { setAllowUnsignedPlugins } from "@/features/plugin-stores/unsignedActions";
 import { useModal } from "@/lib/context";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
-import { AcknowledgeModal } from "./AcknowledgeModal";
 import {
   type NewPluginStoreInput,
   NewPluginStoreModal,

@@ -1,0 +1,73 @@
+/* A warning that has to be answered: what it is about, then the box that says it
+   was read. Used where a click would give something a power that is hard to take
+   back, so the box has to be ticked before the button works. */
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--warning) 10%, var(--surface));
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--on-surface);
+
+  svg {
+    flex: none;
+    color: var(--warning);
+  }
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--on-surface-variant);
+
+  p {
+    margin: 0;
+  }
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  margin-top: 0.25rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  /* A touch target, not just the box. */
+  min-height: var(--touch-min, 44px);
+
+  input[type="checkbox"] {
+    flex: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    margin-top: 0.125rem;
+    accent-color: var(--primary);
+  }
+
+  span {
+    font-size: var(--text-sm);
+    font-weight: 550;
+    color: var(--on-surface);
+  }
+
+  &:has(input:focus-visible) {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}
