@@ -37,7 +37,7 @@ plugins that use the context.
 | Threat | Control | Status |
 | --- | --- | --- |
 | **A plugin with code that is not from an active store, or not approved** | **It does not run in the app's process: `decideExecution()` blocks it, fail closed** | **built (the rule); the approval is planned (BARY-122)** |
-| Someone uploads or drops in a plugin | Blocked unless the platform allows plugins from no store; the setting is off by default (BARY-110) | planned |
+| Someone uploads or drops in a plugin, or enters a repository address by hand | Not loaded at all unless the platform allows plugins from no store. The setting is off by default, only `plugin.manage` can switch it on, and only after a warning that the server checks itself. Even then one with code stays blocked ([below](#plugins-from-no-store-unsigned)) | the setting and the rule are built; the installer that enters an address is planned (BARY-60, BARY-111) |
 | A store's plugin was changed after review | The store entry pins a hash of the release archive; the installer verifies it before it extracts anything | store repository built; installer planned (BARY-60, BARY-105) |
 | **Files on disk changed after install** | **The hash of the plugin directory is checked before every load; a plugin whose files differ, or that contains a symlink or another odd file, does not load** | **built** |
 | A different plugin version than the one approved gets loaded | The approval is of one exact hash; a new version needs a new approval | planned (BARY-60, BARY-95) |
@@ -98,23 +98,51 @@ A, B and C in the [overview](README.md#trust-tiers):
 
 **The rule today.** `sandbox` and `service` do not exist yet, so a plugin with `server` or `client`
 code counts as `in-process`, and is therefore **blocked** unless it is from an active store and
-approved. A plugin without code runs. This is what
-[`lib/plugins/policy.ts`](../../lib/plugins/policy.ts) decides, for every installed plugin, before the
-loader sees it:
+approved. A plugin without code runs, if it comes from a store or the platform allows plugins from no
+store. This is what [`lib/plugins/policy.ts`](../../lib/plugins/policy.ts) decides, for every installed
+plugin, before the loader sees it (`decideExecution(input, activeStores, { allowUnsigned })`):
 
-1. Input that is missing or malformed: blocked (`invalid`). Not knowing whether a plugin has code is
-   not the same as it having none.
-2. No `server` and no `client` (a value that is there counts, even an empty one): `declarative`, it runs.
-3. Not from an active store, that is `source` is not `STORE`, or its store is not in the list of
-   active stores it is given: blocked (`store-not-active`). Addresses are compared in one normalised
+1. Input that is missing or malformed, or a `source` that is not text: blocked (`invalid`). Not
+   knowing whether a plugin has code is not the same as it having none.
+2. Not from a store, that is `source` is not `STORE`: blocked (`unsigned-not-allowed`) unless
+   `allowUnsigned` is exactly `true`. With it, a plugin without code is `declarative` and runs, and one
+   with code is blocked (`unsigned-code`). See [Plugins from no store](#plugins-from-no-store-unsigned).
+3. No `server` and no `client` (a value that is there counts, even an empty one): `declarative`, it runs.
+4. Its store is not in the list of active stores it is given: blocked (`store-not-active`). Addresses are compared in one normalised
    form; anything that is not a plain `https://host/path` (another scheme, credentials, a port, a
    query, the `git@host:` form, a look-alike host or repository, a sub-path) matches no store, and an
    entry in the list that is no address matches nothing. A missing, non-list or empty list means no
    store is on, so no code.
-4. No valid hash on record, or no approval: blocked (`not-approved`).
-5. The approval is for another hash than the installed one, as after an update:
+5. No valid hash on record, or no approval: blocked (`not-approved`).
+6. The approval is for another hash than the installed one, as after an update:
    blocked (`approval-outdated`). A new version needs a new approval.
-6. Otherwise `in-process`.
+7. Otherwise `in-process`.
+
+### Plugins from no store (unsigned)
+
+A plugin that comes from **no store** (an upload, a directory, later a repository address entered by hand) is
+**unsigned**: nothing pins its files and nobody reviewed it. A store entry with its hash is what makes a plugin
+"verified" here, so a plugin without one is not.
+
+- **Off by default.** `SystemSettings.allowUnsignedPlugins` is `false`. A plugin from no store is then not loaded
+  at all, code or not, and shows as blocked because it is unsigned. A missing settings row, or a database that cannot
+  be read, means off; only a row that says `true` allows it ([`lib/plugins/unsigned.ts`](../../lib/plugins/unsigned.ts)).
+- **Only `plugin.manage` switches it on, after a warning.** The switch is on the Plugin stores page. Switching it on
+  always opens a dialog that says these plugins are untested and used at the admin's own risk, and asks for a tick.
+  The **server** asks for the same tick (`setAllowUnsignedPlugins(true, true)`), so calling the action directly does not
+  skip it. Switching it off asks nothing. Both are audited (`plugin.unsigned.allowed`, `plugin.unsigned.disallowed`).
+- **It asks again for each plugin.** Allowing unsigned plugins once is not consent for every one: installing one from
+  an address entered by hand has to show the same warning and refuse without the tick, every time. That installer does
+  not exist yet (BARY-60, BARY-111); this is the requirement it is built to.
+- **What it allows.** A plugin without code runs. **A plugin with code stays blocked** (`unsigned-code`), with the setting
+  on as well: unreviewed code does not get to run in the app's process, which has the power of the whole app (decided
+  in BARY-120). It will run isolated, in a sandbox or as a service of its own, when those exist (BARY-123, BARY-124).
+  This is deliberately not "on your own risk, in the process": that would give code nobody looked at the keys to
+  every tenant, and a warning does not change what that code can do.
+- **Switching it off** does not delete anything. The plugins stay installed and are not loaded until it is switched on
+  again.
+- **What it does not protect against.** An admin who ticks the box and installs a plugin has decided to run
+  something nobody checked. The warning says so; it cannot make the plugin safe.
 
 ### Stores
 

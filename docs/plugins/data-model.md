@@ -15,7 +15,7 @@ tables, one row per installation and one per plugin and workspace.
 | `id` | the manifest's `id`, also the directory name. It is the primary key: two plugins with one id cannot exist, and paths, permissions and routes derive from it |
 | `version` | the installed version. Only one version is installed at a time; an update replaces it |
 | `status` | `ENABLED` or `DISABLED`, the platform's switch for the whole plugin. `DISABLED` stops it loading without uninstalling it; the workspaces' settings stay |
-| `source` | `STORE`, `UPLOAD` or `DIRECTORY`. `STORE` means it came from a plugin store and its hash is pinned in the store entry; the other two have no store entry and load only if the platform allows unsigned plugins (BARY-110) |
+| `source` | `STORE`, `UPLOAD` or `DIRECTORY`. `STORE` means it came from a plugin store and its hash is pinned in the store entry; the other two have no store entry and are not loaded unless the platform allows plugins from no store, and even then only one without code runs ([`allowUnsignedPlugins`](#systemsettingsallowunsignedplugins)) |
 | `scope` | `WORKSPACE` or `PLATFORM`, taken from the manifest's `scope` at install and at every update. `WORKSPACE`: switched on per workspace (`PluginWorkspace`). `PLATFORM`: applies to the whole instance as soon as it is installed and `ENABLED`, with no switch per workspace. Stored so that "which plugins apply in this workspace" is one query and not a walk over the manifests on disk |
 | `config` | the platform's settings for a `PLATFORM` plugin, `{}` until something is set. Unused for `WORKSPACE` plugins, whose settings are per workspace in `PluginWorkspace.config` |
 | `origin` | for `STORE` the address of the store (the official one or a custom one), otherwise empty |
@@ -56,6 +56,12 @@ A store that is connected, on or off ([Plugin stores](stores.md)).
 | `credentialUser` | the user name that goes with the token, if the host wants one. Not a secret |
 
 The main store is put in by `prisma/bootstrap.ts` on every deploy. Branch and sync state are not here yet.
+
+## `SystemSettings.allowUnsignedPlugins`
+
+A column on the singleton `SystemSettings` row, `false` by default. Whether plugins that come from no store (`source`
+is not `STORE`) are loaded at all. Read for the policy by `getAllowUnsignedPlugins()`, which treats a missing row and any
+read error as `false`; written only by `setAllowUnsignedPlugins()` ([Security](security.md#plugins-from-no-store-unsigned)).
 
 ## What happens when something is deleted
 

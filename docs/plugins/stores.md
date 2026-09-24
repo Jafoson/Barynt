@@ -29,6 +29,8 @@ the main store off and use **only their own**.
 | `PluginStore` (table) | `url` as entered, `key` (the address normalised, unique: the same store is there once, with or without `.git`), `name`, `official`, `enabled`. See [Data model](data-model.md) |
 | `prisma/bootstrap.ts` | Puts the main store in on every deploy. It never touches `enabled`: a store an admin switched off stays off |
 | [`features/plugin-stores/actions.ts`](../../features/plugin-stores/actions.ts) | `addPluginStore`, `setPluginStoreEnabled`, `removePluginStore`, `setPluginStoreCredential`, `clearPluginStoreCredential`: permission, validation, audit |
+| [`features/plugin-stores/unsignedActions.ts`](../../features/plugin-stores/unsignedActions.ts) | `setAllowUnsignedPlugins`: allow or forbid plugins from no store, with the warning the server checks |
+| [`lib/plugins/unsigned.ts`](../../lib/plugins/unsigned.ts) | `getAllowUnsignedPlugins()`: the setting the policy is given. Fails closed |
 | [`features/plugin-stores/credential.ts`](../../features/plugin-stores/credential.ts) | What may be entered as a token and a user name |
 | [`lib/plugins/storeCredentials.ts`](../../lib/plugins/storeCredentials.ts) | `sealStoreToken` / `openStoreToken`: a token sealed for one store's address |
 | [`lib/secrets.ts`](../../lib/secrets.ts) | `sealSecret` / `openSecret`: AES-256-GCM with a key from the environment, bound to a context |
@@ -50,6 +52,10 @@ the main store off and use **only their own**.
   button on every row to set, replace or remove it later. The stored token is never shown: the field says one
   is stored, and entering a new one replaces it. A lock and "Access set" mark such a store in the list.
 - **Remove** is there for every store but the main one, and asks first.
+- **Unsigned plugins**: below the list, one switch, "Allow unsigned plugins", for plugins that come from no store.
+  Switching it on always opens a warning (untested, at your own risk) with a tick that must be set; the server checks
+  it as well. Switching it off asks first. What it allows, and what it does not, is in
+  [Security](security.md#plugins-from-no-store-unsigned).
 - **No store on** shows a notice above the list: no plugin with code can run.
 
 The page does not decide anything itself. Every change goes through the three actions above, so what a button shows
@@ -112,6 +118,9 @@ Limits: a name of 1 to 80 characters, an address of at most 300, at most 20 stor
 
 ## Not built yet
 
+- **Installing from a repository address entered by hand**: the setting exists, but there is no address field and no
+  installer yet (BARY-60, BARY-111, BARY-105). When there is, it needs the setting on **and** the same warning with a tick
+  every time, and it installs a plugin without a store entry, so it is unsigned by definition.
 - **Using the token**: it is stored (above), but nothing reads it until the store client and the Git transport
   exist (BARY-105, BARY-111). **SSH keys** are not supported; the address has to be `https://`.
 - **The general secrets storage for plugins** (BARY-85). `lib/secrets.ts` is the small part of it that this needed,
