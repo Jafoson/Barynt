@@ -108,9 +108,14 @@ WORKDIR /app
 # itself, which silently broke this image's own HEALTHCHECK and anything
 # depending on it (e.g. Caddy's `depends_on: condition: service_healthy`)
 # until caught here. Must be set explicitly.
+# BARYNT_PLUGINS_DIR: where plugins live (docs/plugins/loading.md). Outside /app on
+# purpose (docs/plugins/adr-0001-runtime-loading.md): plugin code is not part of the
+# image and has to survive an image update, so docker-compose.yml puts a volume on it.
+# Set here so that nobody has to set it; the variable only moves the directory.
 ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
-    PORT=3000
+    PORT=3000 \
+    BARYNT_PLUGINS_DIR=/plugins
 
 # oven/bun:*-slim pins a Debian snapshot at publish time, so it drifts
 # behind Debian's own security updates (gzip, perl-base, libsqlite3-0,
@@ -127,7 +132,7 @@ RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 # in: a `RUN chown -R` after the fact would force an overlayfs copy-up of
 # every file already in the image onto a new layer, silently doubling the
 # image size for no reason. `--chown` on each COPY avoids that.
-RUN chown bun:bun /app
+RUN chown bun:bun /app && mkdir /plugins && chown bun:bun /plugins
 USER bun
 
 COPY --chown=bun:bun --from=builder /app/.next/standalone ./
@@ -139,7 +144,13 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD bun -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000),{redirect:'manual'}).then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
 
-CMD ["bun", "server.js"]
+# `--no-install` turns off Bun's auto-install. Without it, a bare import that
+# finds no node_modules on its way up the directory tree makes Bun download the
+# package from npm at request time. The app never needs that (its node_modules
+# is complete), but plugin code loaded from a directory outside /app would: the
+# BARY-50 experiment fetched zod@4.6.5 this way while the app ships 4.6.0. See
+# docs/plugins/adr-0001-runtime-loading.md.
+CMD ["bun", "--no-install", "server.js"]
 
 # ---------------------------------------------------------------------------
 # migrate-deps: isolated install for the one-shot migration image — its own
@@ -179,6 +190,8 @@ COPY prisma.config.ts tsconfig.json ./
 COPY prisma ./prisma
 COPY lib/rbac-provision.ts lib/workspace-defaults.ts ./lib/
 COPY lib/rbac ./lib/rbac
+# The official plugin store the bootstrap seeds; no imports of its own.
+COPY lib/plugins/storeUrl.ts ./lib/plugins/storeUrl.ts
 
 # Same build-time-only placeholder as the `builder` stage above — `prisma
 # generate` reads the schema, not a live database.

@@ -1,0 +1,44 @@
+// SPIKE (BARY-51), throwaway: serves plugin files (client bundle, css) from the
+// plugin directory. Versioned paths never change, so the response is immutable.
+// Reference copy: docs/plugins/spike-client/. Removed after the experiment.
+import { readFile } from "node:fs/promises";
+import { join, sep } from "node:path";
+import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+
+const TYPES: Record<string, string> = {
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".map": "application/json",
+};
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
+  const { path: segments } = await params;
+  const root = process.env.PLUGINS_DIR ?? "/tmp/barynt-plugin-spike";
+
+  if (segments.some((s) => s.startsWith(".") || s.includes("\\") || s.includes("\0"))) {
+    return new NextResponse("bad path", { status: 400 });
+  }
+  const file = join(/* turbopackIgnore: true */ root, ...segments);
+  const type = TYPES[file.slice(file.lastIndexOf("."))];
+  if (!type || !file.startsWith(root + sep)) {
+    return new NextResponse("not found", { status: 404 });
+  }
+  try {
+    const body = await readFile(/* turbopackIgnore: true */ file);
+    return new NextResponse(new Uint8Array(body), {
+      headers: {
+        "Content-Type": type,
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch {
+    return new NextResponse("not found", { status: 404 });
+  }
+}

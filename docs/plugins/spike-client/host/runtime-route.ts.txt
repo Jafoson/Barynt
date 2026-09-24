@@ -1,0 +1,54 @@
+// SPIKE (BARY-51), throwaway: the modules an import map points a plugin's bare
+// imports at. Each one re-exports what the host page put on `globalThis.__BARYNT__`,
+// so plugin and host share one React instance. Reference copy:
+// docs/plugins/spike-client/. Removed after the experiment.
+import { NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
+
+// Object.keys(require("react")) of the installed React, without internals. A test
+// has to keep this list in sync once it is real; a missing name breaks importers.
+const REACT_EXPORTS = [
+  "Activity", "Children", "Component", "Fragment", "Profiler", "PureComponent",
+  "StrictMode", "Suspense", "act", "cache", "cacheSignal", "captureOwnerStack",
+  "cloneElement", "createContext", "createElement", "createRef", "forwardRef",
+  "isValidElement", "lazy", "memo", "startTransition", "unstable_useCacheRefresh",
+  "use", "useActionState", "useCallback", "useContext", "useDebugValue",
+  "useDeferredValue", "useEffect", "useEffectEvent", "useId", "useImperativeHandle",
+  "useInsertionEffect", "useLayoutEffect", "useMemo", "useOptimistic", "useReducer",
+  "useRef", "useState", "useSyncExternalStore", "useTransition", "version",
+];
+
+function shim(name: string): string | null {
+  switch (name) {
+    case "react.js":
+      return `const R = globalThis.__BARYNT__.React;\nexport default R;\nexport const { ${REACT_EXPORTS.join(", ")} } = R;\n`;
+    case "jsx-runtime.js":
+      return "const J = globalThis.__BARYNT__.jsxRuntime;\nexport const Fragment = J.Fragment;\nexport const jsx = J.jsx;\nexport const jsxs = J.jsxs;\n";
+    // Tolerance for a plugin built in development mode: React's production
+    // jsx-dev-runtime has no jsxDEV, so map it onto jsx/jsxs.
+    case "jsx-dev-runtime.js":
+      return "const J = globalThis.__BARYNT__.jsxRuntime;\nexport const Fragment = J.Fragment;\nexport const jsxDEV = (type, props, key, isStatic) => (isStatic ? J.jsxs : J.jsx)(type, props, key);\n";
+    case "react-dom.js":
+      return "const D = globalThis.__BARYNT__.ReactDOM;\nexport default D;\nexport const { createPortal, flushSync } = D;\n";
+    case "sdk.js":
+      return "const S = globalThis.__BARYNT__.sdk;\nexport const useHostContext = S.useHostContext;\nexport const version = S.version;\n";
+    default:
+      return null;
+  }
+}
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ name: string }> },
+) {
+  const { name } = await params;
+  const source = shim(name);
+  if (!source) return new NextResponse("not found", { status: 404 });
+  return new NextResponse(source, {
+    headers: {
+      "Content-Type": "text/javascript; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
+}

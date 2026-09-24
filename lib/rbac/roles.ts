@@ -146,12 +146,15 @@ const WORKSPACE_ROLES: SystemRole[] = [
     key: "manager",
     scope: "WORKSPACE",
     name: "Manager",
-    desc: "Manages settings, members, teams, and configuration. No role management, no reach-through into the projects.",
+    desc: "Manages settings, members, teams, and configuration. No role management, no plugins, no reach-through into the projects.",
     rank: 4,
+    // No `plugin.enable`: switching on a plugin lets its code work with the
+    // workspace's data, which is the leadership's call, not configuration.
     allow: WORKSPACE_PERMS.filter(
       (p) =>
         p !== "workspace.delete" &&
         p !== "role.manage" &&
+        p !== "plugin.enable" &&
         p !== "project.view.all" &&
         p !== "project.admin.all",
     ),

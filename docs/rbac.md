@@ -138,7 +138,7 @@ side effect of being an admin.
 |---|:---:|---|
 | `owner` | 6 | everything; the only one with `workspace.delete` |
 | `admin` | 5 | everything except `workspace.delete` |
-| `manager` | 4 | without `role.manage`, without `project.view.all` |
+| `manager` | 4 | without `role.manage`, `plugin.enable`, `project.view.all` |
 | `project_lead` | 3 | full project permissions, no workspace administration |
 | `member` | 2 | own issues, commenting, labels |
 | `viewer` | 1 | read and comment |
@@ -366,6 +366,34 @@ The shared system roles show up in every view too, but locked.
 
 A role that's still assigned to someone can't be deleted (foreign key set to
 `RESTRICT`, plus a readable error message ahead of that).
+
+---
+
+## Plugins: two permissions, not one
+
+Installing a plugin and switching it on are different acts, so they are different
+permissions at different levels (the plugin system is described in
+[`docs/plugins/`](plugins/README.md)).
+
+| Key | Scope | Holders | What it allows |
+|---|---|---|---|
+| `plugin.manage` | PLATFORM | `platform_admin` | use the plugin store and choose which stores are on; install, update and uninstall plugins; allow plugins that come from no store |
+| `plugin.enable` | WORKSPACE | `owner`, `admin` | enable, disable and configure the installed plugins in the workspace |
+
+- **Installing is a platform matter.** Plugin code runs with full trust inside the
+  app, so what may be installed is decided once for the whole instance, by the
+  platform. A workspace admin can switch on what the platform has installed, but can
+  never bring new code in: `plugin.manage` is not grantable in a workspace, and
+  `plugin.enable` is not grantable on the platform.
+- **`manager` does not have `plugin.enable`.** Switching a plugin on lets its code work
+  with the workspace's data, which is the leadership's call rather than
+  configuration. A workspace can still give the permission to a custom role
+  (`role.manage`).
+- **A platform plugin** (manifest `scope: platform`) applies to the whole instance, so
+  `plugin.enable` does not apply to it: only `plugin.manage` switches it on and
+  configures it, and a workspace cannot turn it off for itself.
+- Nothing in the app checks either key yet: the actions that install and enable come
+  with BARY-60.
 
 ---
 

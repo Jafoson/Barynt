@@ -1,0 +1,17 @@
+"use client";
+
+// SPIKE (BARY-51), throwaway: lands on a page WITHOUT an import map, then
+// navigates client-side (soft navigation) to the page that has one.
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
+export default function PluginSpikeEntry() {
+  const router = useRouter();
+  useEffect(() => {
+    // Survives a soft navigation, is lost on a full page load.
+    (window as unknown as Record<string, unknown>).__spikeEntry = true;
+    const timer = setTimeout(() => router.push("/en/login/plugin-spike"), 300);
+    return () => clearTimeout(timer);
+  }, [router]);
+  return <p data-entry>entry page, no import map here</p>;
+}

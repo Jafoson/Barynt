@@ -1,0 +1,121 @@
+"use client";
+
+// SPIKE (BARY-51), throwaway: the host side of loading a plugin's client bundle
+// at runtime. Reference copy: docs/plugins/spike-client/.
+import {
+  Component,
+  type ComponentType,
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import * as ReactDOM from "react-dom";
+import * as React from "react";
+import * as jsxRuntime from "react/jsx-runtime";
+
+const HostContext = createContext({ user: "spike-user", workspace: "spike-workspace" });
+function useHostContext() {
+  return useContext(HostContext);
+}
+
+// What a plugin's imports resolve to through the import map. Set at module
+// evaluation, so it exists before any child effect starts loading a plugin.
+if (typeof window !== "undefined") {
+  (window as unknown as Record<string, unknown>).__BARYNT__ = {
+    React,
+    ReactDOM,
+    jsxRuntime,
+    sdk: { useHostContext, version: "0.0.0-spike" },
+  };
+}
+
+const CASES = [
+  { id: "hello-client", css: true },
+  { id: "hello-client-dev", css: false },
+  { id: "bundled-react", css: false },
+  { id: "throws-client", css: false },
+  { id: "bare-import", css: false },
+  { id: "missing-plugin", css: false },
+];
+
+type Status = "loading" | "ready" | "import-error" | "render-error";
+
+class Boundary extends Component<
+  { onError: (message: string) => void; children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(error: Error) {
+    this.props.onError(error.message);
+  }
+  render() {
+    return this.state.failed ? <em>contained by the host's error boundary</em> : this.props.children;
+  }
+}
+
+function PluginCase({ id, css }: { id: string; css: boolean }) {
+  const [Comp, setComp] = useState<ComponentType | null>(null);
+  const [status, setStatus] = useState<Status>("loading");
+  const [detail, setDetail] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    const base = `/api/plugin-spike/asset/${id}/1.0.0`;
+    if (css) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = `${base}/client.css`;
+      document.head.appendChild(link);
+    }
+    // Both magic comments: the browser, not the bundler, resolves this URL.
+    import(/* webpackIgnore: true */ /* turbopackIgnore: true */ `${base}/client.js`).then(
+      (mod) => {
+        if (!alive) return;
+        setComp(() => mod.default);
+        setStatus("ready");
+      },
+      (error: unknown) => {
+        if (!alive) return;
+        setStatus("import-error");
+        setDetail(String(error));
+      },
+    );
+    return () => {
+      alive = false;
+    };
+  }, [id, css]);
+
+  return (
+    <div data-case={id} data-status={status} data-detail={detail} style={{ margin: "0.5rem 0" }}>
+      <code>{id}</code>: {status}
+      {detail ? ` (${detail})` : ""}
+      <div data-slot>
+        {Comp && (
+          <Boundary
+            onError={(message) => {
+              setStatus("render-error");
+              setDetail(message);
+            }}
+          >
+            <Comp />
+          </Boundary>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function PluginSpikeHost() {
+  return (
+    <HostContext.Provider value={{ user: "spike-user", workspace: "spike-workspace" }}>
+      {CASES.map((c) => (
+        <PluginCase key={c.id} id={c.id} css={c.css} />
+      ))}
+    </HostContext.Provider>
+  );
+}

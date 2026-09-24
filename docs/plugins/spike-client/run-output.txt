@@ -1,0 +1,66 @@
+# Results of docs/plugins/spike-client/run-browser.sh, 2026-09-22
+# Assembled by hand from five runs, in the configurations named below. Chromium
+# (headless, DevTools protocol). Dev server = next dev 16.3.4 on Node 20.20.2,
+# production = runner image on Bun 1.4.2. Console output shortened.
+
+=== 1. dev server, direct load, import map in the page's own body
+page: /en/login/plugin-spike   ready within 1243 ms: true
+import map in document: true   arrived by soft navigation: false
+plugin css applied (hello-client border colour): rgb(107, 214, 228)
+
+case               status        rendered text / error
+hello-client       ready         Hello from a runtime plugin count:1 user:spike-user workspace:spike-workspace
+hello-client-dev   ready         Hello from a runtime plugin count:1 user:spike-user workspace:spike-workspace
+bundled-react      render-error  contained by the host's error boundary   (Cannot read properties of null (reading 'useState'))
+throws-client      render-error  contained by the host's error boundary   (plugin exploded while rendering)
+bare-import        import-error  TypeError: Failed to resolve module specifier "lodash-es". Relative references must start with either "/", "./", or "../".
+missing-plugin     import-error  TypeError: Failed to fetch dynamically imported module: http://localhost:3000/api/plugin-spike/asset/missing-plugin/1.0.0/client.js
+
+=== 2. dev server, soft navigation (entry page -> plugin page), import map ONLY in the plugin page's body
+page: /en/login/plugin-spike   ready within 1456 ms: true
+import map in document: true   arrived by soft navigation: true
+plugin css applied (hello-client border colour): no element
+
+hello-client       import-error  TypeError: Failed to resolve module specifier "@barynt/plugin-sdk". Relative references must start with either "/", "./", or "../".
+hello-client-dev   import-error  TypeError: Failed to resolve module specifier "@barynt/plugin-sdk". ...
+bundled-react      import-error  TypeError: Failed to resolve module specifier "@barynt/plugin-sdk". ...
+throws-client      render-error  contained by the host's error boundary
+bare-import        import-error  TypeError: Failed to resolve module specifier "lodash-es". ...
+missing-plugin     import-error  TypeError: Failed to fetch dynamically imported module: ...
+
+console errors and warnings:
+  error: Encountered a script tag while rendering React component. Scripts inside React components are never executed when rendering on the client. ...
+
+=== 3. dev server, soft navigation, import map in the ROOT LAYOUT's <head>
+page: /en/login/plugin-spike   ready within 1644 ms: true
+import map in document: true   arrived by soft navigation: true
+plugin css applied (hello-client border colour): rgb(107, 214, 228)
+
+hello-client       ready         Hello from a runtime plugin count:1 user:spike-user workspace:spike-workspace
+hello-client-dev   ready         Hello from a runtime plugin count:1 user:spike-user workspace:spike-workspace
+bundled-react      render-error  contained by the host's error boundary
+throws-client      render-error  contained by the host's error boundary
+bare-import        import-error  TypeError: Failed to resolve module specifier "lodash-es". ...
+missing-plugin     import-error  TypeError: Failed to fetch dynamically imported module: ...
+
+=== 4. production build (runner image, Bun 1.4.2), direct load, import map in the root layout
+page: /en/login/plugin-spike   ready within 851 ms: true
+import map in document: true   arrived by soft navigation: false
+plugin css applied (hello-client border colour): rgb(107, 214, 228)
+(all six cases as in 3.)
+
+=== 5. production build, soft navigation, import map in the root layout
+page: /en/login/plugin-spike   ready within 1028 ms: true
+import map in document: true   arrived by soft navigation: true
+plugin css applied (hello-client border colour): rgb(107, 214, 228)
+(all six cases as in 3.)
+
+=== asset route (dev and production)
+GET .../asset/hello-client/1.0.0/client.js   200  cache-control: public, max-age=31536000, immutable
+                                                   content-type: text/javascript; charset=utf-8
+                                                   x-content-type-options: nosniff
+GET .../asset/..%2f..%2fetc%2fpasswd           400
+GET .../asset/hello-client/1.0.0/%2e%2e/%2e%2e/x.js   404
+GET .../asset/hello-client/1.0.0/client.ts    404
+GET .../asset/hello-client/1.0.0/.hidden.js   400
+server-rendered HTML of the plugin page contains the plugin's text: no (0 matches)

@@ -134,6 +134,52 @@ export const AUDIT_ACTION_META = {
     icon: "lucide:settings",
     message: "systemSettingsUpdated",
   },
+  // Connecting or switching on a store widens what code the platform can be asked
+  // to approve, so those two stand out; switching off or removing narrows it.
+  "plugin.store.added": {
+    icon: "lucide:package-plus",
+    message: "pluginStoreAdded",
+    loud: true,
+  },
+  "plugin.store.enabled": {
+    icon: "lucide:power",
+    message: "pluginStoreEnabled",
+    loud: true,
+  },
+  "plugin.store.disabled": {
+    icon: "lucide:power-off",
+    message: "pluginStoreDisabled",
+  },
+  "plugin.store.removed": {
+    icon: "lucide:package-x",
+    message: "pluginStoreRemoved",
+  },
+  "plugin.store.credentialSet": {
+    icon: "lucide:key-round",
+    message: "pluginStoreCredentialSet",
+  },
+  "plugin.store.credentialCleared": {
+    icon: "lucide:lock-open",
+    message: "pluginStoreCredentialCleared",
+  },
+  "plugin.unsigned.allowed": {
+    icon: "lucide:shield-alert",
+    message: "pluginUnsignedAllowed",
+    loud: true,
+  },
+  "plugin.unsigned.disallowed": {
+    icon: "lucide:shield-check",
+    message: "pluginUnsignedDisallowed",
+  },
+  "plugin.code.approved": {
+    icon: "lucide:shield-plus",
+    message: "pluginCodeApproved",
+    loud: true,
+  },
+  "plugin.code.revoked": {
+    icon: "lucide:shield-minus",
+    message: "pluginCodeRevoked",
+  },
   "project.created": { icon: "lucide:folder-plus", message: "projectCreated" },
   "project.visibility.changed": {
     icon: "lucide:eye",

@@ -45,6 +45,10 @@ const SEGMENTS: string[][] = [
     "tests/unit/api-keys/cursor.test.ts",
     "tests/unit/api-keys/rateLimit.test.ts",
     "tests/unit/webhooks",
+    "tests/unit/plugins",
+    "tests/unit/plugin-stores",
+    "tests/unit/plugin-approval",
+    "tests/unit/secrets",
   ],
   ["tests/unit/permissions/resolver.test.ts"],
   // Own invocation: sharing segment 0 with tests/unit/projects made
@@ -86,6 +90,10 @@ const SEGMENTS: string[][] = [
   ["tests/unit/oauth"],
   // Real `next/server` import — patches process-wide globals, see CLAUDE.md.
   ["tests/unit/proxy"],
+  // Mocks `@/auth`, `@/lib/permissions`, `@/lib/current-workspace` and `@/lib/db`
+  // for the services the plugin host offers (`lib/plugins/services.ts`); other
+  // files test the real permissions and session code, or mock them differently.
+  ["tests/unit/plugin-host"],
   // Mocks `@/lib/project-membership` away entirely — see CLAUDE.md.
   [
     "tests/unit/workspace/inviteLinks.test.ts",

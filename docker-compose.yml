@@ -278,6 +278,12 @@ services:
       SMTP_HOST: "${COMPOSE_SMTP_HOST:-${SMTP_HOST-}}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # Installed plugins (the image looks in /plugins, see BARYNT_PLUGINS_DIR in the
+    # Dockerfile). A named volume so they survive the container being replaced, as
+    # with an image update; it takes the owner of the directory in the image, the
+    # unprivileged "bun" user. Nothing to configure.
+    volumes:
+      - orbit-plugins:/plugins
     depends_on:
       postgres:
         condition: service_healthy
@@ -317,5 +323,6 @@ volumes:
   orbit-db:
   orbit-redis:
   orbit-storage:
+  orbit-plugins:
   orbit-caddy-data:
   orbit-caddy-config:

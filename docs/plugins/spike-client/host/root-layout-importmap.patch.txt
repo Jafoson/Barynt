@@ -1,0 +1,29 @@
+diff --git a/app/[locale]/layout.tsx b/app/[locale]/layout.tsx
+index 57cdb1d..8c2309a 100644
+--- a/app/[locale]/layout.tsx
++++ b/app/[locale]/layout.tsx
+@@ -77,6 +77,24 @@ export default async function LocaleLayout({
+       data-theme={theme}
+       className={`${hankenGrotesk.variable} ${jetbrainsMono.variable}`}
+     >
++      {/* SPIKE (BARY-51), temporary */}
++      <head>
++        <script
++          type="importmap"
++          // biome-ignore lint/security/noDangerouslySetInnerHtml: spike
++          dangerouslySetInnerHTML={{
++            __html: JSON.stringify({
++              imports: {
++                react: "/api/plugin-spike/runtime/react.js",
++                "react/jsx-runtime": "/api/plugin-spike/runtime/jsx-runtime.js",
++                "react/jsx-dev-runtime": "/api/plugin-spike/runtime/jsx-dev-runtime.js",
++                "react-dom": "/api/plugin-spike/runtime/react-dom.js",
++                "@barynt/plugin-sdk": "/api/plugin-spike/runtime/sdk.js",
++              },
++            }),
++          }}
++        />
++      </head>
+       <body>
+         <IconBundle />
+         {/* Messages/locale are picked up automatically from the server configuration. */}

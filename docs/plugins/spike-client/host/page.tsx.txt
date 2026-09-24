@@ -1,0 +1,25 @@
+// SPIKE (BARY-51), throwaway. Under /login so the auth proxy lets it through
+// without a session. Reference copy: docs/plugins/spike-client/.
+import { PluginSpikeHost } from "./PluginSpikeHost";
+
+export const dynamic = "force-dynamic";
+
+const RUNTIME = "/api/plugin-spike/runtime";
+const IMPORT_MAP = {
+  imports: {
+    react: `${RUNTIME}/react.js`,
+    "react/jsx-runtime": `${RUNTIME}/jsx-runtime.js`,
+    "react/jsx-dev-runtime": `${RUNTIME}/jsx-dev-runtime.js`,
+    "react-dom": `${RUNTIME}/react-dom.js`,
+    "@barynt/plugin-sdk": `${RUNTIME}/sdk.js`,
+  },
+};
+
+export default function PluginSpikePage() {
+  return (
+    <main>
+      <h1>Plugin client spike</h1>
+      <PluginSpikeHost />
+    </main>
+  );
+}

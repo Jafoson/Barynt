@@ -41,6 +41,7 @@ export type NavLabelKey =
   | "audit"
   | "activity"
   | "mailTemplates"
+  | "pluginStores"
   | "invitations"
   | "adminSettings";
 
@@ -252,6 +253,14 @@ export const ADMIN_NAV: NavEntry[] = [
     icon: "lucide:mail",
     labelKey: "mailTemplates",
     permission: "mail.template.manage",
+  },
+  {
+    // Which plugin stores are on. It decides which code the platform can be
+    // asked to approve, so it needs `plugin.manage`, not the general settings.
+    section: "plugin-stores",
+    icon: "lucide:package",
+    labelKey: "pluginStores",
+    permission: "plugin.manage",
   },
   {
     section: "settings",

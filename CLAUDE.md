@@ -151,6 +151,94 @@ leaves every icon empty (BARY-45).
 - A new icon *set* (a prefix other than lucide/logos/material-symbols/mdi)
   needs its `@iconify-json/<prefix>` as a devDependency.
 
+## Plugins (`lib/plugins`)
+
+The plugin system is built step by step; `docs/plugins/` records what is decided
+and measured (start at `docs/plugins/README.md`).
+
+- `lib/plugins/manifest.ts` is the single source of truth for the plugin manifest
+  (`barynt-plugin.json`): a zod schema with no database, `server-only` or React,
+  so the host, tests and tooling all read the same one. `lib/plugins/validate.ts`
+  turns it into `validateManifest()` / `parseManifest()`, which report one issue
+  per problem and **never throw**: a manifest is untrusted input.
+- Change the manifest schema → **`bun run plugin-schema:build`** and commit
+  `public/schemas/barynt-plugin.schema.json`. `tests/unit/plugins` (and
+  `bun run plugin-schema:check`) fail while it is out of date.
+- `packages/plugin-sdk` (`@barynt/plugin-sdk`) is what plugin authors and the host
+  both import: `definePlugin`, `RegistrationContext`, `BootContext`, `SDK_VERSION`.
+  It is **not** a Bun workspace: `tsconfig.json` maps the name to its `src/index.ts`,
+  which keeps `bun.lock` and the Docker build untouched. It must import nothing
+  from the host, because a plugin bundles it. Change its version in `SDK_VERSION`
+  **and** `package.json` (a test compares them). A plugin's server module is read
+  with `parsePluginModule()` (`lib/plugins/definition.ts`), which never throws.
+- `lib/plugins/resolve.ts` decides which installed plugins can load and in what
+  order (`barynt` range against `BARYNT_VERSION` from `lib/version.ts`, i.e.
+  `package.json`; dependencies, their scope, cycles). A plugin that cannot load comes back with
+  reasons as codes, which the admin UI turns into text. The registry asks it on
+  start, install/update (`previewInstall`) and uninstall (`previewUninstall`).
+- Plugin code is loaded at runtime, so the loader rules in
+  `docs/plugins/adr-0001-runtime-loading.md` and `adr-0002-client-bundles.md`
+  apply to anything that imports plugin code (absolute path outside `/app`,
+  `/* turbopackIgnore: true */` on dynamic fs/path calls, one directory per
+  version, built JavaScript only).
+- `docs/` is excluded from `tsconfig.json`: fixtures and examples there may import
+  packages that only exist at runtime.
+- Two permissions govern plugins (`docs/rbac.md`): **`plugin.manage`** (PLATFORM,
+  `platform_admin`: store, install, update, uninstall, allow unsigned plugins) and
+  **`plugin.enable`** (WORKSPACE, `owner` and `admin`: enable, disable, configure).
+  Installing is a platform matter, so neither key is grantable at the other level.
+  Production and Helm provision new permissions on every deploy (`prisma/bootstrap.ts`);
+  on an existing dev database run the `provisionSystemRbac` snippet from "New
+  permission" below.
+- Plugins are read from a directory with a **default**, so nothing has to be set: `/plugins` in the image (a volume in
+  Compose), `~/.barynt/plugins` elsewhere; a default that does not exist is fine. `BARYNT_PLUGINS_DIR` only *moves* it
+  (absolute path, ideally outside the app directory; a relative one is refused, not ignored):
+  `<dir>/<id>/<version>/barynt-plugin.json`. `lib/plugins/discovery.ts` lists
+  and checks them and **never throws**: the directory is outside the host's control
+  (symlinks are not followed, names and manifests are validated). Every fs call with a
+  variable path needs `/* turbopackIgnore: true */` (ADR 0001). `lib/plugins/loader.ts`
+  imports the server modules and runs `register` for all plugins, then `boot`; a failing
+  plugin is recorded with its phase and dropped, never thrown, and its dependents do not
+  load. It is not isolation: plugin code runs in the process. Before anything of a plugin
+  is read or run, `lib/plugins/integrity.ts` checks its directory against the hash approved at
+  install (`Plugin.integrity`): no hash, no load; a symlink or odd file inside is refused.
+  Read `docs/plugins/security.md` before touching any of this: tier B code has the power of the
+  app, and capabilities are not a fence for it. **Who may run code in-process is decided by
+  `lib/plugins/policy.ts` (`decideExecution(input, activeStores, { allowUnsigned })`): only a plugin with code from a
+  store the platform switched on (the official one by default) that the platform approved for its
+  exact hash; everything else with `server` or `client` is blocked, and any doubt, a missing or empty
+  store list included, means blocked.** The loader is only ever given plugins that policy lets through.
+  A plugin from no store (`source` is not `STORE`) is unsigned: not loaded at all unless
+  `SystemSettings.allowUnsignedPlugins` is `true` (`lib/plugins/unsigned.ts`, fails closed, off by default), and even then
+  only one without code runs; one with code stays blocked, unreviewed code does not run in the process. Switching the
+  setting on needs the warning's tick, which `setAllowUnsignedPlugins` checks on the **server** (`plugin.manage`, audited),
+  and installing a plugin from an address entered by hand has to ask for it again every time (BARY-60).
+- **The registry** (`lib/plugins/registry.ts`, wired in `host.ts`) decides once per process which plugins run and keeps a
+  snapshot: `planPlugins()` (pure, `plan.ts`) picks, the loader loads, `instrumentation.ts` starts it with the server (not
+  awaited) so `boot` runs once per process outside a request. Its state lives on `global`
+  (`registryState.ts`), because Next bundles a module once per layer; **anything that changes which code may run calls
+  `invalidatePluginRegistry()`** (the store, unsigned-setting and approval actions do; lifecycle actions must, BARY-60). A page asks
+  `getActivePlugins(workspaceId)`. Request-scoped state seeded by `cache()` does not cross layers: the services find the
+  workspace through the reader `setCurrentWorkspaceId` publishes on `global`. **Code runs in the process only with an approval
+  for one plugin and its exact hash** (`Plugin.codeApprovalHash`, `features/plugins/actions.ts`: `plugin.manage`, the server asks for
+  the yes itself, refuses what the policy would not run, checks the files on disk); the registry reads it from the row, and while
+  plugins load the services answer `null`, so a `boot` that runs inside a request never sees that request's user. Verify anything that touches this in a production build in an isolated copy, never
+  in the dev folder (`docs/plugins/loading.md#the-registry`).
+- Which stores are on is the `PluginStore` table (`docs/plugins/stores.md`): the official store is put in by
+  `prisma/bootstrap.ts` (which never touches `enabled`), only `plugin.manage` changes the list, connecting or
+  switching on a store needs an explicit "I trust it" that the **server** checks, and every change is audited.
+  `lib/plugins/stores.ts#getActiveStoreUrls()` gives the policy its list and fails closed. `lib/plugins/storeUrl.ts`
+  has no imports on purpose: the migrate image copies only the files the bootstrap needs (see the Dockerfile).
+  A `"use server"` file may only export async functions, so limits live in `features/plugin-stores/constants.ts`.
+  The admin page is `app/[locale]/(default)/admin/plugin-stores` (`features/plugin-stores/components/PluginStores`);
+  it only calls the actions, so the trust check stays on the server, not in the dialog.
+- Access to a private store is a token in `PluginStore.credential`, **sealed** by `lib/secrets.ts` (AES-256-GCM, key from
+  `SECRETS_KEY` else `AUTH_SECRET`, bound to the store's address by `lib/plugins/storeCredentials.ts`). **Never pass the
+  column to a page or an audit entry, never log it, never return it from an action**: the list query maps it to
+  `hasCredential`, and `tests/unit/plugin-stores/credentials.test.ts` pins the exact fields. A value that does not open is
+  `null`, "no token", never a fallback. Secrets that have to be read back later use `sealSecret`/`openSecret`; passwords
+  are hashed, not sealed.
+
 ## Email (`lib/mail`)
 
 SMTP, configured exclusively through the environment (`SMTP_HOST`, `SMTP_PORT`,
@@ -435,6 +523,12 @@ tests/
       richText.test.tsx           ← PM-JSON renderer (components/ui/atoms/RichText)
       fromMarkdown.test.ts        ← Markdown → PM-JSON (migration + seed)
       text.test.ts                ← toPlainText / toPreview / isEmptyDoc
+    plugins/
+      manifest.test.ts            ← plugin manifest schema and validator (lib/plugins)
+      manifestSchemaFile.test.ts  ← generated JSON Schema is current, docs examples are valid
+      sdk.test.ts                 ← packages/plugin-sdk: definePlugin, version, contexts vs manifest points
+      definition.test.ts          ← parsePluginModule: reads a plugin's server module, never throws
+      resolve.test.ts             ← lib/plugins/resolve: host range, dependencies, cycles, load order
     notifications/
       notify.test.ts              ← lib/notify (also mocks `@/lib/mail`, own process)
       queries.test.ts             ← inbox query

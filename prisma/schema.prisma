@@ -67,6 +67,8 @@ model Workspace {
   // Zeigt hierher, wenn dieser Workspace als globaler Default eingetragen ist
   // (SystemSettings.defaultWorkspaceId) — siehe dort.
   defaultForSystemSettings SystemSettings[]
+  // Welche der installierten Plugins hier eingeschaltet sind, samt Einstellungen.
+  plugins       PluginWorkspace[]
 }
 
 /// Eine E-Mail-Domain, über die neue Konten automatisch in diesen Workspace
@@ -1465,7 +1467,196 @@ model SystemSettings {
   defaultWorkspaceId String?
   defaultWorkspace   Workspace? @relation(fields: [defaultWorkspaceId], references: [id], onDelete: SetNull)
 
+  /// Erlaubt Plugins, die aus keinem Store kommen (Upload, Verzeichnis, von Hand
+  /// eingegebene Repository-Adresse). Aus (Standard): solche Plugins werden nicht
+  /// geladen. An: eines ohne Code läuft; eines mit Code bleibt blockiert, weil
+  /// ungeprüfter Code nicht im Prozess der App läuft (`lib/plugins/policy.ts`).
+  /// Nur mit `plugin.manage` änderbar und nur nach einer Warnung, die der Server
+  /// selbst einfordert (`features/plugin-stores/unsignedActions.ts`). Fehlt die
+  /// Zeile oder lässt sich die Einstellung nicht lesen, gilt "aus"
+  /// (`lib/plugins/unsigned.ts`).
+  allowUnsignedPlugins Boolean @default(false)
+
   updatedAt DateTime @updatedAt
 
   @@index([defaultWorkspaceId])
+}
+
+// ─── Plugins ────────────────────────────────────────────────────────────────
+//
+// Die Plattform installiert (`plugin.manage`), ein Workspace schaltet ein
+// (`plugin.enable`). Deshalb zwei Tabellen: `Plugin` gibt es einmal je
+// Installation, `PluginWorkspace` einmal je Plugin und Workspace, in dem es
+// schon einmal eingeschaltet war. Der Code selbst liegt nicht in der Datenbank,
+// sondern im Plugin-Verzeichnis (`<id>/<version>/`, docs/plugins/adr-0001).
+//
+// Bewusst nicht Teil von v1: eigene Tabellen je Plugin (Plugin-Daten laufen über
+// den generischen Storage, BARY-85) und ein Opt-out je Projekt (kommt mit dem
+// Slot-Framework, BARY-65, das es als Erstes braucht).
+
+/// Woher ein installiertes Plugin stammt. `STORE`: aus einem Plugin-Store, der
+/// gepinnte Hash steht im Store-Eintrag. `UPLOAD` und `DIRECTORY`: ohne
+/// Store-Eintrag; solche Plugins laden nur, wenn die Plattform unsignierte
+/// Plugins erlaubt (BARY-110).
+enum PluginSource {
+  STORE
+  UPLOAD
+  DIRECTORY
+}
+
+/// Wo ein Plugin gilt (das `scope` aus dem Manifest). `WORKSPACE`: die Plattform
+/// installiert, ein Workspace schaltet es ein (`plugin.enable`), gespeichert in
+/// `PluginWorkspace`. `PLATFORM`: gilt für die ganze Instanz, sobald es
+/// installiert und `ENABLED` ist; es gibt keinen Schalter je Workspace, und nur
+/// die Plattform (`plugin.manage`) stellt es ein (`Plugin.config`).
+enum PluginScope {
+  WORKSPACE
+  PLATFORM
+}
+
+/// Schalter der Plattform für das ganze Plugin, unabhängig von den Workspaces.
+/// `DISABLED` lädt es nicht mehr, ohne es zu deinstallieren; die Einstellungen
+/// der Workspaces bleiben dabei erhalten.
+enum PluginStatus {
+  ENABLED
+  DISABLED
+}
+
+/// Ein auf der Plattform installiertes Plugin.
+///
+/// Ob es *lädt*, steht hier nicht: das entscheidet beim Start die Prüfung in
+/// `lib/plugins/resolve.ts` (passende Barynt-Version, Abhängigkeiten) und wird
+/// nicht gespeichert, damit ein Host-Upgrade nichts nachziehen muss.
+model Plugin {
+  /// Die `id` aus dem Manifest, zugleich Verzeichnisname. Der Primärschlüssel
+  /// ist die Id selbst: zwei Plugins mit derselben Id kann es nicht geben, und
+  /// Pfade, Berechtigungen und Routen leiten sich von ihr ab.
+  id      String @id
+  /// Die installierte Version (SemVer, ohne Build-Metadaten). Es liegt immer nur
+  /// eine Version installiert; ein Update ersetzt sie.
+  version String
+
+  status PluginStatus @default(ENABLED)
+  source PluginSource
+
+  /// Aus dem Manifest beim Installieren und bei jedem Update übernommen, damit
+  /// "welche Plugins gelten in diesem Workspace" eine Abfrage ist und kein
+  /// Durchgang über die Manifeste auf der Platte.
+  scope PluginScope @default(WORKSPACE)
+
+  /// Die Einstellungen der Plattform für ein `PLATFORM`-Plugin; leer, solange
+  /// nichts eingestellt wurde, und bei `WORKSPACE`-Plugins ungenutzt (deren
+  /// Einstellungen stehen je Workspace in `PluginWorkspace.config`).
+  config Json @default("{}")
+
+  /// Bei `STORE` die Adresse des Stores (der offizielle oder ein eigener), aus
+  /// dem es kam. Sonst leer.
+  origin String?
+
+  /// Hash des Plugin-*Verzeichnisses* im Format `sha512-<base64>`, bei der
+  /// Installation von `hashPluginDirectory()` berechnet und vom Admin freigegeben.
+  /// Vor jedem Laden geprüft (`lib/plugins/integrity.ts`): passen die Dateien
+  /// nicht dazu, lädt das Plugin nicht. Den im Store-Eintrag gepinnten Hash des
+  /// Release-Archivs prüft der Installer vor dem Entpacken; gespeichert wird der
+  /// Verzeichnis-Hash.
+  integrity String
+
+  /// Der Hash, für den die Plattform ausdrücklich freigegeben hat, dass der Code
+  /// dieses Plugins im Prozess der App läuft (`features/plugins/actions.ts`,
+  /// `plugin.manage`). Leer: nicht freigegeben, ein Plugin mit `server` oder
+  /// `client` läuft dann nicht. Immer je Plugin und je Hash, nie für einen Store
+  /// als Ganzes. Passt er nicht mehr zu `integrity` (nach einem Update), läuft der
+  /// Code nicht, bis die neue Version freigegeben ist (`approval-outdated` in
+  /// `lib/plugins/policy.ts`). Ein Plugin ohne Code braucht keine Freigabe.
+  codeApprovalHash String?
+
+  /// Wann die Freigabe erteilt wurde. Gesetzt und gelöscht zusammen mit
+  /// `codeApprovalHash`. Wer sie erteilt hat, steht im Audit-Protokoll.
+  codeApprovedAt DateTime?
+
+  installedAt DateTime @default(now())
+  /// Ändert sich bei jedem Update, jedem Umschalten von `status` und jeder
+  /// Änderung von `config`.
+  updatedAt   DateTime @updatedAt
+
+  workspaces PluginWorkspace[]
+}
+
+/// Ein Plugin in einem Workspace: ob es dort eingeschaltet ist und wie es dort
+/// eingestellt ist. Die Zeile entsteht beim ersten Einschalten und bleibt beim
+/// Ausschalten bestehen, damit die Einstellungen nicht verloren gehen. Nur für
+/// Plugins mit `scope = WORKSPACE`: ein Plattform-Plugin gilt überall und hat
+/// hier keine Zeilen.
+model PluginWorkspace {
+  pluginId    String
+  workspaceId String
+
+  enabled Boolean @default(true)
+
+  /// Die Einstellungen des Plugins in diesem Workspace. Ihre Form legt das
+  /// Plugin selbst fest (BARY-66); leer, solange nichts eingestellt wurde.
+  config Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Mit dem Deinstallieren des Plugins fallen auch seine Einstellungen weg.
+  plugin    Plugin    @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@id([pluginId, workspaceId])
+  /// Für "welche Plugins sind in diesem Workspace eingeschaltet", die häufigste
+  /// Frage (jede Seite, die Slots rendert).
+  @@index([workspaceId])
+}
+
+/// Ein Plugin-Store, den der Admin eingeschaltet oder eingetragen hat (BARY-112).
+///
+/// Es gibt einen Hauptstore, das Store-Repository des Projekts, das der
+/// Bootstrap (`prisma/bootstrap.ts`) einträgt und das standardmäßig an ist. Der
+/// Admin kann ihn ausschalten, weitere Stores anbinden oder nur eigene verwenden.
+/// Die eingeschalteten Stores sind die Liste, die die Richtlinie bekommt
+/// (`lib/plugins/policy.ts`, `lib/plugins/stores.ts`): Code aus einem Store, der
+/// hier fehlt oder aus ist, läuft nicht im Prozess. Einen Store einzuschalten
+/// gibt selbst nichts frei; jedes Plugin mit Code braucht weiter seine eigene
+/// Freigabe (BARY-122).
+///
+/// Zweig und Sync-Stand kommen mit dem Store-Client (BARY-105, BARY-111), nicht
+/// hierher.
+model PluginStore {
+  id String @id @default(cuid())
+
+  /// Die Adresse, wie sie eingetragen wurde: ein einfaches `https://host/pfad`
+  /// (`normalizeStoreUrl()` lehnt alles andere ab). Daraus wird geklont.
+  url String
+
+  /// Die Adresse in einheitlicher Form (klein geschrieben, ohne `.git` und
+  /// Schrägstrich am Ende). Eindeutig: derselbe Store steht nur einmal da, auch
+  /// wenn er einmal mit und einmal ohne `.git` eingegeben wird.
+  key String @unique
+
+  name String
+
+  /// Der Hauptstore des Projekts. Er lässt sich ausschalten, aber weder löschen
+  /// noch anders eintragen.
+  official Boolean @default(false)
+
+  /// Eingeschaltet: Plugins daraus dürfen freigegeben werden und laufen. Aus: der
+  /// Store steht nicht in der Liste, die die Richtlinie bekommt.
+  enabled Boolean @default(true)
+
+  /// Das Zugangs-Token für ein privates Repository, versiegelt
+  /// (`lib/secrets.ts`, AES-256-GCM) und an die Adresse `key` gebunden: ein Wert,
+  /// der in eine andere Zeile kopiert wird, lässt sich dort nicht öffnen. Nie im
+  /// Klartext, nie in einer Antwort an den Browser, nie in einem Log und nicht im
+  /// Audit-Eintrag. Null: das Repository ist öffentlich. Wird nur über
+  /// `features/plugin-stores/actions.ts` geschrieben.
+  credential String?
+
+  /// Der Benutzername dazu, falls der Hoster einen verlangt (Bitbucket, Azure
+  /// DevOps). Kein Geheimnis. Nur sinnvoll, wenn `credential` gesetzt ist.
+  credentialUser String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
