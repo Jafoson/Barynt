@@ -211,6 +211,15 @@ and measured (start at `docs/plugins/README.md`).
   only one without code runs; one with code stays blocked, unreviewed code does not run in the process. Switching the
   setting on needs the warning's tick, which `setAllowUnsignedPlugins` checks on the **server** (`plugin.manage`, audited),
   and installing a plugin from an address entered by hand has to ask for it again every time (BARY-60).
+- **The registry** (`lib/plugins/registry.ts`, wired in `host.ts`) decides once per process which plugins run and keeps a
+  snapshot: `planPlugins()` (pure, `plan.ts`) picks, the loader loads, `instrumentation.ts` starts it with the server (only
+  with `BARYNT_PLUGINS_DIR`, not awaited) so `boot` runs once per process outside a request. Its state lives on `global`
+  (`registryState.ts`), because Next bundles a module once per layer; **anything that changes which code may run calls
+  `invalidatePluginRegistry()`** (the store and unsigned-setting actions do; lifecycle actions must, BARY-60). A page asks
+  `getActivePlugins(workspaceId)`. Request-scoped state seeded by `cache()` does not cross layers: the services find the
+  workspace through the reader `setCurrentWorkspaceId` publishes on `global`. No approval exists yet (BARY-122), so no
+  plugin with code runs in the process. Verify anything that touches this in a production build in an isolated copy, never
+  in the dev folder (`docs/plugins/loading.md#the-registry`).
 - Which stores are on is the `PluginStore` table (`docs/plugins/stores.md`): the official store is put in by
   `prisma/bootstrap.ts` (which never touches `enabled`), only `plugin.manage` changes the list, connecting or
   switching on a store needs an explicit "I trust it" that the **server** checks, and every change is audited.

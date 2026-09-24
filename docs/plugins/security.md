@@ -96,7 +96,8 @@ A, B and C in the [overview](README.md#trust-tiers):
 | `service` | The plugin's server logic as a service of its own, with no secrets and no database access, calling Barynt only through its REST and MCP APIs with a token of narrow scopes | a plugin that needs server logic | planned (BARY-124) |
 | `in-process` | A server module in the app's process, a client bundle in the page, with the full power of the app | **only** a plugin from a store that is **switched on**, that the platform has **approved**, for the **exact hash** | the rule is built (below), the approval is planned (BARY-122) |
 
-**The rule today.** `sandbox` and `service` do not exist yet, so a plugin with `server` or `client`
+**The rule today.** Until the approval exists (BARY-122) the registry gives the policy none, so **no plugin with
+code runs in the app's process at all**; only plugins without code do. `sandbox` and `service` do not exist yet, so a plugin with `server` or `client`
 code counts as `in-process`, and is therefore **blocked** unless it is from an active store and
 approved. A plugin without code runs, if it comes from a store or the platform allows plugins from no
 store. This is what [`lib/plugins/policy.ts`](../../lib/plugins/policy.ts) decides, for every installed
@@ -155,7 +156,9 @@ the registry reads the list, it passes the default, the official store alone (`D
 Connecting a store means trusting what its authors publish, and the dialog has to say so. But it runs
 **nothing by itself**: every plugin with code from any store, the official one included, still needs its own
 approval for its exact hash (BARY-122). A store that is switched off keeps nothing running: its plugins with
-code stop being allowed in-process, and the ones already running are blocked at the next start.
+code stop being allowed in-process **from the next request**, because the registry is built again
+([Loading](loading.md#when-it-is-built-again)). What a plugin already started, such as a timer or a listener in its
+`boot`, keeps running until the process restarts: JavaScript cannot unload it, so a restart is what ends the code.
 
 The policy itself has no store of its own and no default: it is given the list, so a missing or empty list
 blocks everything with code. The official store's address is a constant only as the default entry of that list.

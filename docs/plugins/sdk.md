@@ -86,15 +86,17 @@ inside the manifest's `CONTRIBUTION_POINTS`.
 
 | Service | What it does today |
 | --- | --- |
-| `ctx.jobs` | `enqueue(id, payload?)` queues a run of a job declared with `registerJob` |
-| `ctx.user` | `current()`: the signed-in user of the current request, or `null` |
-| `ctx.workspace` | `current()`: the workspace of the current request, or `null` |
+| `ctx.jobs` | `enqueue(id, payload?)`: **rejects for now**, background jobs do not exist yet (BARY-90) |
+| `ctx.user` | `current()`: the signed-in user (`id`, `name`) of the current request, or `null` |
+| `ctx.workspace` | `current()`: the workspace (`id`, `name`) of the current request if the signed-in user may enter it, or `null` |
 | `ctx.storage` | provisional, arrives with BARY-85 |
 | `ctx.events` | provisional, arrives with BARY-84 |
 
-`boot` runs once per process, before any request. So `ctx.user` and
-`ctx.workspace` are **services that answer when asked**, from inside a request, and
-not values fixed at boot.
+`boot` runs once per process, when the server starts (`instrumentation.ts`), before the first
+request and outside any. So `ctx.user` and `ctx.workspace` are **services that answer when asked**,
+from inside a request, and not values fixed at boot: in `boot` itself both answer `null`. When the
+plugins change while the app runs, a plugin that booted is registered again and **not booted a
+second time** ([Loading](loading.md#the-registry)).
 
 ## How the host reads a plugin module
 

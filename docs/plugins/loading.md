@@ -1,10 +1,12 @@
 # Loading plugins
 
 How the host gets from a directory on disk to running plugins. Built in three steps
-(BARY-59): **discovery** (this page), the **loader** and the **registry**.
+(BARY-59): **discovery**, the **loader** and the **registry**.
 
-> **Status: early.** Discovery and the loader are built. The registry (what is active where)
-> follows, and nothing in the app calls the loader yet.
+> **Status: early.** Discovery, the loader and the registry are built, and the registry starts
+> with the server when `BARYNT_PLUGINS_DIR` is set. Nothing in the app asks it for a workspace's
+> plugins yet (`getActivePlugins`), and no plugin with code runs in the process, because nothing
+> records the approval that would allow it (BARY-122).
 
 ## Where plugins live
 
@@ -117,11 +119,104 @@ not that it is safe. Read [Security](security.md) for what that means. A timeout
 That is why plugins come from a reviewed store with a pinned hash, and why unsigned ones are
 blocked by default.
 
+## The registry
+
+[`lib/plugins/registry.ts`](../../lib/plugins/registry.ts), wired to the database, the disk and the
+real services in [`lib/plugins/host.ts`](../../lib/plugins/host.ts). It decides **once per process**
+which plugins are running and keeps the answer, a *snapshot*, until something that decides it changes.
+
+### Starting
+
+`instrumentation.ts` starts it when the server starts, before the first request and outside any. Only on
+the Node.js server, and only if `BARYNT_PLUGINS_DIR` is set: without it nothing is imported and the database
+is not touched. It is **not awaited**, so plugins never delay the app coming up, and a request that needs them
+waits for the build that is running.
+
+That is what makes `boot` run **once per process, outside a request**, as the SDK promises. Started from a
+request instead, a plugin's `boot` would see that request's session.
+
+### What is decided
+
+[`planPlugins()`](../../lib/plugins/plan.ts) is pure logic on plain values (no database, no disk), so every case
+is tested. For each installed plugin, in this order:
+
+| Step | Result if it fails |
+| --- | --- |
+| its manifest is on disk, in the installed version, and valid | `missing`, `invalid` (with the issues) |
+| `resolvePlugins()`: it can load with this Barynt and with the plugins it needs | `incompatible` (with the reasons) |
+| the platform has it switched on (`Plugin.status`) | `disabled` |
+| it is *wanted*: a platform plugin, or a workspace plugin that at least one workspace switched on, and whatever a wanted plugin needs | `idle` |
+| `decideExecution()` lets it run ([Security](security.md#decided-who-may-run-code-and-where)) | `blocked` (with the reason) |
+| the loader accepts it | `failed` (with the phase and the message) |
+
+What is left is `loaded`, as `declarative` or `in-process`. Code nobody asked for is not run, which is why a
+workspace plugin that no workspace switched on stays `idle`. A plugin the platform switched off is not loaded
+even when another needs it; the one that needs it then fails in the loader with `dependency`. Where a plugin
+applies (`scope`), where it came from (`source`, `origin`) and its hash come **from the database**, not from the
+manifest on disk, which has not been checked against the hash when it is read.
+
+Until the approval exists (BARY-122) the registry gives the policy none, so **no plugin with code runs in the
+process**; a plugin without code runs, and a plugin from no store runs only if the platform allowed it
+([Security](security.md#plugins-from-no-store-unsigned)).
+
+### One state for the whole process
+
+Next.js can bundle a shared module separately for each layer (Server Components, Route Handlers, Server Actions,
+the instrumentation hook) although they run in one process. The registry's state therefore hangs on `global`
+([`registryState.ts`](../../lib/plugins/registryState.ts)), like `lib/realtime/store.ts`. This was **checked in
+a production build** (`next build`, the standalone server started as the image does, with Bun): a change made from
+one Route Handler and from a Server Action reached a second Route Handler, a Server Component and the instrumentation
+hook's build.
+
+### When it is built again
+
+`invalidatePluginRegistry()` says that what decides it has changed. It is called by everything that changes which
+code may run: connecting, switching and removing a store, and the setting for plugins from no store. The next request
+builds again, and **nothing old is served in between**: a plugin that is no longer allowed is no longer handed out from
+that moment. A change that happens while a build runs discards that build.
+
+- **`boot` runs once per process.** A plugin that booted is registered again (that only declares) and not booted a
+  second time; a new version boots. A plugin whose `boot` failed is tried again.
+- **Failing closed.** A build that fails as a whole, such as the database being down, is a snapshot with no plugins and
+  the reason, tried again after 10 seconds. It is never the last good snapshot: a plugin allowed a moment ago may not be
+  now. (Checked: the app starts, other routes answer, the reason is in the log.)
+- **What it cannot do** is stop code that already runs. A timer or a listener a plugin started in `boot` keeps going until
+  the process restarts, because JavaScript cannot unload a module. The host stops *handing the plugin out*, which is what
+  changes at once. Switching a store off therefore ends a plugin's use in the app, but a restart is what ends its code.
+- It applies to **this process**. With several replicas each has to be told; today the app is one process.
+
+### For a page
+
+`getActivePlugins(workspaceId)` in [`host.ts`](../../lib/plugins/host.ts), once per request: every running platform
+plugin and each running workspace plugin that workspace switched on. It waits if the registry is still building and fails
+closed, an empty list, if it cannot read. It does not ask whether the user may see the workspace; the workspace layout
+does that for everything under it.
+
+### Services
+
+[`lib/plugins/services.ts`](../../lib/plugins/services.ts), one set per plugin, frozen:
+
+| Service | What it does |
+| --- | --- |
+| `user.current()` | the signed-in user (`id`, `name`) of the request, `null` outside one. Nothing else about them |
+| `workspace.current()` | the workspace of the request (`id`, `name`), only for a user who may enter it, `null` otherwise and outside a request |
+| `jobs.enqueue()` | rejects: background jobs do not exist yet (BARY-90). A job that never runs must not look queued |
+| `storage`, `events` | no members until BARY-85 and BARY-84 |
+
+The workspace of a request is kept in a request-scoped store that the workspace routes seed, and the services run from
+another layer, with their own copy of that module. So `setCurrentWorkspaceId()` also publishes the reader of the copy that
+was seeded on `global`, and the service calls that. The production build found this: without it the service answered
+`null` inside a request that had a workspace.
+
 ## Not built yet
 
-- **The registry**: a process-wide singleton bridged through `global` (like
-  `lib/realtime/store.ts`), the real services behind `jobs`, `user` and `workspace`, and
-  `getActivePlugins(workspaceId)` for server components. It is what calls the loader, and
-  building it includes checking that a production build handles the dynamic import.
-- **Reload** after enable and disable without a restart, as far as the module cache allows.
+- **The approval** to run code in the process (BARY-122). Until then nothing with code runs.
+- **Calling `invalidatePluginRegistry()` from the lifecycle actions** (install, update, uninstall, enable, disable;
+  BARY-60). Only the store and unsigned-plugin settings call it today.
 - **The volume** in Docker Compose and Helm (BARY-117).
+- **Jobs** (BARY-90), **storage** (BARY-85), **events** (BARY-84): the services exist, without members or, for jobs, an
+  honest refusal.
+- **A retry at start.** If the database is not reachable when the server starts, the registry is empty until a request
+  that needs plugins finds it past the 10 seconds; nothing retries in the background.
+- **The Node.js runtime.** The production build was checked with Bun, as the image runs it. Development (`next dev`)
+  runs on Node.js, where the same code is used; that was not run against plugins.
