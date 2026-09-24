@@ -202,10 +202,15 @@ and measured (start at `docs/plugins/README.md`).
   install (`Plugin.integrity`): no hash, no load; a symlink or odd file inside is refused.
   Read `docs/plugins/security.md` before touching any of this: tier B code has the power of the
   app, and capabilities are not a fence for it. **Who may run code in-process is decided by
-  `lib/plugins/policy.ts` (`decideExecution(input, activeStores)`): only a plugin with code from a
+  `lib/plugins/policy.ts` (`decideExecution(input, activeStores, { allowUnsigned })`): only a plugin with code from a
   store the platform switched on (the official one by default) that the platform approved for its
   exact hash; everything else with `server` or `client` is blocked, and any doubt, a missing or empty
   store list included, means blocked.** The loader is only ever given plugins that policy lets through.
+  A plugin from no store (`source` is not `STORE`) is unsigned: not loaded at all unless
+  `SystemSettings.allowUnsignedPlugins` is `true` (`lib/plugins/unsigned.ts`, fails closed, off by default), and even then
+  only one without code runs; one with code stays blocked, unreviewed code does not run in the process. Switching the
+  setting on needs the warning's tick, which `setAllowUnsignedPlugins` checks on the **server** (`plugin.manage`, audited),
+  and installing a plugin from an address entered by hand has to ask for it again every time (BARY-60).
 - Which stores are on is the `PluginStore` table (`docs/plugins/stores.md`): the official store is put in by
   `prisma/bootstrap.ts` (which never touches `enabled`), only `plugin.manage` changes the list, connecting or
   switching on a store needs an explicit "I trust it" that the **server** checks, and every change is audited.

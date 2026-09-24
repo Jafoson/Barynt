@@ -23,8 +23,10 @@ import {
   setPluginStoreEnabled,
 } from "@/features/plugin-stores/actions";
 import type { PluginStoreRow } from "@/features/plugin-stores/queries";
+import { setAllowUnsignedPlugins } from "@/features/plugin-stores/unsignedActions";
 import { useModal } from "@/lib/context";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
+import { AcknowledgeModal } from "./AcknowledgeModal";
 import {
   type NewPluginStoreInput,
   NewPluginStoreModal,
@@ -32,9 +34,12 @@ import {
 import styles from "./pluginStores.module.scss";
 import { StoreAccessModal } from "./StoreAccessModal";
 import { SwitchOnStoreModal } from "./SwitchOnStoreModal";
+import { UnsignedNotice } from "./UnsignedNotice";
 
 interface Props {
   stores: PluginStoreRow[];
+  /** Plugins that come from no store are allowed. Off by default. */
+  allowUnsigned: boolean;
 }
 
 /**
@@ -42,8 +47,12 @@ interface Props {
  * the admin connected. Switching a store on or connecting one asks whether the
  * admin trusts it; the server checks the answer too. Nothing here approves a
  * plugin: each plugin with code needs its own approval.
+ *
+ * Below the list, whether plugins from no store are allowed. Allowing them always
+ * opens a warning that has to be answered with a yes, and the server asks for it
+ * as well.
  */
-export function PluginStores({ stores }: Props) {
+export function PluginStores({ stores, allowUnsigned }: Props) {
   const t = useTranslations();
   const router = useRouter();
   const confirm = useConfirm();
@@ -129,6 +138,34 @@ export function PluginStores({ stores }: Props) {
       ),
       modalOptions(t("pluginStores.accessTitle", { name: store.name })),
     );
+
+  const openAllowUnsigned = () =>
+    openModal(
+      ({ close }) => (
+        <AcknowledgeModal
+          close={close}
+          sheet={isPhone}
+          title={t("pluginStores.unsignedAllowTitle")}
+          confirmLabel={t("pluginStores.unsignedAllow")}
+          notice={(state) => <UnsignedNotice {...state} />}
+          onConfirm={async () =>
+            settle(await setAllowUnsignedPlugins(true, true))
+          }
+        />
+      ),
+      modalOptions(t("pluginStores.unsignedAllowTitle")),
+    );
+
+  const disallowUnsigned = async () => {
+    const ok = await confirm({
+      title: t("pluginStores.unsignedOffTitle"),
+      description: t("pluginStores.unsignedOffDesc"),
+      confirmLabel: t("pluginStores.unsignedOff"),
+      cancelLabel: t("actions.cancel"),
+      danger: true,
+    });
+    if (ok) run(() => setAllowUnsignedPlugins(false));
+  };
 
   const switchOff = async (store: PluginStoreRow) => {
     const ok = await confirm({
@@ -220,6 +257,26 @@ export function PluginStores({ stores }: Props) {
     },
   }));
 
+  const unsignedRows: SettingsRow[] = [
+    {
+      id: "allow-unsigned",
+      label: t("pluginStores.unsignedLabel"),
+      desc: t("pluginStores.unsignedDesc"),
+      control: (
+        <Switch
+          id="plugin-unsigned-allowed"
+          label={t("pluginStores.unsignedLabel")}
+          labelHidden
+          checked={allowUnsigned}
+          disabled={isPending}
+          onChange={(checked) =>
+            checked ? openAllowUnsigned() : void disallowUnsigned()
+          }
+        />
+      ),
+    },
+  ];
+
   return (
     <>
       <PageHeader
@@ -262,6 +319,11 @@ export function PluginStores({ stores }: Props) {
         )}
 
         <p className={styles.footnote}>{t("pluginStores.footnote")}</p>
+
+        <SettingsList
+          rows={unsignedRows}
+          title={t("pluginStores.unsignedTitle")}
+        />
       </SettingsBody>
     </>
   );

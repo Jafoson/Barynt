@@ -12,6 +12,14 @@ export { normalizeStoreUrl, OFFICIAL_STORE_URL };
 // now.** Everything else with code is blocked, whatever else is true of it. A
 // plugin without code runs, because nothing of it does.
 //
+// A plugin that comes from no store (an upload, a directory, a repository address
+// entered by hand) is "unsigned": nobody has reviewed it. It is not loaded at all
+// unless the platform has allowed such plugins, a setting that is off by default
+// and that an admin can only switch on after a warning. Allowing them lets one
+// without code run; one with code stays blocked, because unreviewed code does not
+// get to run in the app's process, whatever the setting says (BARY-120). It will
+// run isolated, in a sandbox or as a service of its own, when those exist.
+//
 // Which stores are on is the platform admin's choice: the official store is on by
 // default, and the admin can add stores, or switch the official one off and use
 // only their own. Connecting a store means trusting what its authors publish, but
@@ -49,7 +57,11 @@ export function isOfficialStore(origin: unknown): boolean {
 export type BlockedReason =
   /** The input is missing or malformed, so it cannot be known whether the plugin has code. */
   | "invalid"
-  /** It has code, and it is not from a store that is switched on (or not from a store at all). */
+  /** It comes from no store, and the platform has not allowed plugins that do. */
+  | "unsigned-not-allowed"
+  /** It comes from no store and has code. Allowing such plugins does not let unreviewed code run in the process. */
+  | "unsigned-code"
+  /** It has code, and it is from a store that is not switched on. */
   | "store-not-active"
   /** It has code, and the platform has not approved running it (or there is no valid hash to approve). */
   | "not-approved"
@@ -76,27 +88,39 @@ export interface ExecutionInput {
   codeApprovalHash: string | null;
 }
 
+export interface ExecutionOptions {
+  /**
+   * The platform's setting for plugins from no store. Only the value `true`
+   * allows them; anything else, or leaving it out, does not.
+   */
+  allowUnsigned?: boolean;
+}
+
 /**
  * What may become of an installed plugin. Rules, in this order:
  *
- * 0. input that is missing or malformed: blocked, invalid. Not knowing whether a
- *    plugin has code is not the same as it having none.
- * 1. no `server` and no `client`: declarative, it runs. A value that is there
+ * 0. input that is missing or malformed, or a source that is not text: blocked,
+ *    invalid. Not knowing whether a plugin has code is not the same as it
+ *    having none.
+ * 1. not from a store (`source` is not `STORE`, whatever else it says): blocked,
+ *    unsigned, unless `allowUnsigned` is `true`. With it, a plugin without code
+ *    is declarative and runs, and one with code is blocked, unsigned code.
+ * 2. no `server` and no `client`: declarative, it runs. A value that is there
  *    counts as code, even an empty one.
- * 2. not from an active store (source is not `STORE`, or its store is not among
- *    `activeStores`): blocked.
- * 3. no valid hash on record, or no approval: blocked, not approved.
- * 4. the approval is for another hash than the installed one: blocked, outdated.
- * 5. otherwise in-process.
+ * 3. from a store that is not among `activeStores`: blocked.
+ * 4. no valid hash on record, or no approval: blocked, not approved.
+ * 5. the approval is for another hash than the installed one: blocked, outdated.
+ * 6. otherwise in-process.
  *
  * It never throws.
  */
 export function decideExecution(
   input: ExecutionInput,
   activeStores: readonly string[],
+  options: ExecutionOptions = {},
 ): ExecutionDecision {
   try {
-    return decide(input, activeStores);
+    return decide(input, activeStores, options);
   } catch {
     // A getter that throws, or anything else nobody expected: not allowed.
     return { mode: "blocked", reason: "invalid" };
@@ -106,21 +130,34 @@ export function decideExecution(
 function decide(
   input: ExecutionInput,
   activeStores: readonly string[],
+  options: ExecutionOptions | null | undefined,
 ): ExecutionDecision {
   const manifest = (input as ExecutionInput | null | undefined)?.manifest;
   if (
     typeof input !== "object" ||
     input === null ||
     typeof manifest !== "object" ||
-    manifest === null
+    manifest === null ||
+    typeof input.source !== "string"
   ) {
     return { mode: "blocked", reason: "invalid" };
   }
-  if (manifest.server == null && manifest.client == null) {
-    return { mode: "declarative" };
+  const hasCode = manifest.server != null || manifest.client != null;
+
+  // From no store: unreviewed. Only the literal `true` allows these plugins, so a
+  // setting that is missing, misread or a text such as "true" never does.
+  if (input.source !== "STORE") {
+    if (options?.allowUnsigned !== true) {
+      return { mode: "blocked", reason: "unsigned-not-allowed" };
+    }
+    return hasCode
+      ? { mode: "blocked", reason: "unsigned-code" }
+      : { mode: "declarative" };
   }
 
-  if (input.source !== "STORE" || !isActiveStore(input.origin, activeStores)) {
+  if (!hasCode) return { mode: "declarative" };
+
+  if (!isActiveStore(input.origin, activeStores)) {
     return { mode: "blocked", reason: "store-not-active" };
   }
   if (!isIntegrityHash(input.integrity) || !input.codeApprovalHash) {
@@ -142,6 +179,10 @@ export function describeDecision(decision: ExecutionDecision): string {
   switch (decision.reason) {
     case "invalid":
       return "could not be checked, so it is blocked";
+    case "unsigned-not-allowed":
+      return "comes from no store, and the platform has not allowed plugins that do";
+    case "unsigned-code":
+      return "comes from no store and has code, which stays blocked: unreviewed code does not run in the app's process";
     case "store-not-active":
       return "has code, and code only runs for plugins from a store that is switched on";
     case "not-approved":
