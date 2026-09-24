@@ -31,17 +31,26 @@ Every action:
 
 ## Where the files come from
 
-Nothing fetches a plugin yet: stores are fetched (BARY-105, BARY-111), but the download of a plugin from an entry is BARY-107. So install and update
-take what already lies in the plugin directory, `<dir>/<id>/<version>/` ([Loading](loading.md#where-plugins-live)).
-Someone put it there, and the action registers it.
+There are two ways a plugin gets to be installed, and the `source` of the row says which.
 
-Such a plugin comes from **no store**, so its `source` is `DIRECTORY` and its `origin` is empty. **The client is never
+- **From a store** (`installStorePlugin` in `features/plugins/storeActions.ts`, the work in `storeInstall.ts`, [Release](release.md)). The
+  entry is read from the store's clone, the release is downloaded and checked against the hash the store pinned and the manifest it lists,
+  put in the plugin directory in one rename, and recorded with `source` `STORE` and `origin` the store's address. It checks, before it
+  downloads anything, that plugins have a directory, the store is on, the plugin is not installed already, the store lists this plugin
+  and version, the version was not withdrawn and is the one the store describes, and that it fits this Barynt and what is installed
+  (`previewInstall`); a request that cannot succeed asks nobody for anything. Nothing runs and nothing is switched on: code needs its own
+  approval, and a per-workspace plugin applies nowhere until a workspace switches it on. It is audited as `plugin.installed` with the
+  store, the hash of the files and the hash of the archive. If the row cannot be made, what the call put in place is taken away again
+  and what was there before is not touched. **Updating** a plugin that came from a store is the next step (BARY-108); today it says so.
+- **From the plugin directory** (`installPlugin`, `updatePlugin`), for what already lies in `<dir>/<id>/<version>/`
+  ([Loading](loading.md#where-plugins-live)): someone put it there, and the action registers it.
+
+A plugin from the directory comes from **no store**, so its `source` is `DIRECTORY` and its `origin` is empty. **The client is never
 asked where a plugin came from**: `source`, `origin`, `status` and the hash are not parameters, and a caller that passes them
 anyway is ignored. Otherwise an admin, or anything that can call the action, could pass any directory off as a plugin from
-the official store. When the store client exists, it will be another installer that sets `STORE` and the store's address
-after it checked the entry, and these actions stay the way for a plugin from the directory.
+the official store. `STORE` and the store's address are set by the installer from the store's row and clone, after it checked the entry.
 
-### The rule for a plugin from no store
+## The rule for a plugin from no store
 
 Installing or updating a plugin that comes from no store is the case [the unsigned setting](security.md#plugins-from-no-store-unsigned)
 is for, and the rule that goes with it applies to each action:
@@ -200,4 +209,3 @@ Three optional hooks in the SDK ([SDK](sdk.md#lifecycle-hooks)), run by `runHook
 
 - **The switch per workspace on the workspace's own settings page** (BARY-64). The platform's page for these actions exists ([The plugins page](admin.md)).
 - **The plugin's own settings per workspace** (`PluginWorkspace.config`, BARY-66): the actions keep what is there, nothing writes it yet.
-- **Install from a store** (BARY-107). It will call the same checks and set `source` and `origin` itself.

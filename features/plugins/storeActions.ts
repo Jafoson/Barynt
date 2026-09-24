@@ -4,14 +4,15 @@ import { db } from "@/lib/db";
 import { PLATFORM, requirePermission } from "@/lib/permissions";
 import { pluginVersionSchema } from "@/lib/plugins/manifest";
 import { STORE_PLUGIN_ID } from "@/lib/plugins/store/format";
+import { installFromStore } from "./storeInstall";
 import { syncStore } from "./storeSync";
 import type { PluginActionResult } from "./types";
 
-// Installing a plugin from a store: download the archive the entry names, check its
-// SHA-512 against the entry, unpack it safely, check the manifest against the entry's,
-// and put it into the plugin directory in one step (BARY-107). The store page and its
-// dialog are built; this is the action they call. Until the download and the unpacking
-// exist it says so instead of pretending, and it does nothing.
+// Installing a plugin from a store: read the entry from the store's clone, download the release
+// and check it against the hash the store pinned and the manifest it lists, put it in the plugin
+// directory in one step, record it as a plugin from that store (`storeInstall.ts`). The store page
+// and its dialog are the question; this is the protection: who may, what is asked for, and that
+// the risk is confirmed are all checked here.
 
 /**
  * Installs the plugin `pluginId` in `version` from the store `storeId`. Needs
@@ -23,7 +24,7 @@ export async function installStorePlugin(
   version: string,
   input?: { acknowledged?: boolean },
 ): Promise<PluginActionResult> {
-  await requirePermission("plugin.manage", PLATFORM);
+  const actorId = await requirePermission("plugin.manage", PLATFORM);
   if (
     typeof storeId !== "string" ||
     storeId.length === 0 ||
@@ -40,10 +41,7 @@ export async function installStorePlugin(
         "Confirm that you have read what the plugin asks for before it is installed.",
     };
   }
-  return {
-    error:
-      "Installing from a store is not available yet: downloading and unpacking a plugin come with the next step.",
-  };
+  return installFromStore({ actorId, storeId, pluginId, version });
 }
 
 /**

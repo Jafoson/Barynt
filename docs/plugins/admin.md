@@ -77,7 +77,7 @@ links, what it asks for (a promise, not a limit), every version with its date, c
   ([how it is kept up to date](store-format.md#keeping-the-clone-up-to-date)). For development, `bun run plugins:dev-store` writes a sample
   store into `<plugins>/.stores/` and connects it (`--remove` takes it away again); its address does not exist, so fetching it fails and says so.
 - **Installing** opens the consent (what it is, what it asks for, that installing switches nothing on and that code waits for approval)
-  and calls `installStorePlugin`. Until the download and the unpacking exist (BARY-107) that action says so and does nothing.
+  and calls `installStorePlugin` ([Lifecycle](lifecycle.md#where-the-files-come-from)): the release is downloaded, checked against the hash and the manifest the store pins and lists, and installed; the plugin then shows as installed, and its code, if it has any, waits for approval on the plugins page. An error (the store withdrew it, the hash does not match, ...) is shown in the dialog in the server's words. An *Update* button is there, but updating from a store is the next step (BARY-108).
 - **Icons** are made from the name (its first letters on a colour that is the same for the same id): the catalog reads no files of the
   plugin, so it has no picture. **Ratings, download counts and prices** do not exist in a store entry and are not shown.
 - **The shelf is "new and updated"**, not "recommended": a store entry has no such flag, so the most recently released compatible plugins go on top
@@ -101,8 +101,7 @@ workspaces and projects themselves are later steps.
 
 ## Deliberately not here
 
-- **Installing from a store** (BARY-107): the store tab is built and fetches its stores, its install button is not
-  connected yet. Install and update on the first tab take what lies in the plugin directory.
+- **Updating from a store** (BARY-108): the store tab installs, but its update button says it is not there yet. Install and update on the first tab take what lies in the plugin directory.
 - **"Keep or delete the data" on uninstall.** There is no storage yet (BARY-85).
 - **The switch per workspace.** That belongs to the workspace's own settings (BARY-64), where a workspace admin
   switches on what the platform installed.

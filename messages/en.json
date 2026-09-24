@@ -1139,7 +1139,7 @@
     "unusableDesc": "These versions in the plugin directory have no valid manifest.",
     "emptyInstalled": "No plugin is installed yet.",
     "emptyAvailable": "No other plugin lies in the plugin directory.",
-    "dirNote": "Plugins are read from <code>{dir}</code>. Installing and updating take what already lies there; a plugin store to fetch from comes later.",
+    "dirNote": "Plugins are read from <code>{dir}</code>. The Store tab installs from the stores that are on; installing and updating here take what you put in this directory yourself.",
     "noDir": "Plugins are off: there is no plugin directory to read from.",
     "problemTitle": "The plugins could not be loaded",
     "dirIssuesTitle": "Problems in the plugin directory",

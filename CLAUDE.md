@@ -245,7 +245,7 @@ and measured (start at `docs/plugins/README.md`).
 - **The plugin store page** (`/admin/plugins/store`): `buildCatalog` output plus `features/plugins/storeView.ts` (search, categories, featured, avatars: pure) in
   `features/plugins/components/PluginStore/`. **Who gets the store** is `SystemSettings.pluginStoreInWorkspaces/InProjects/CuratedOnly` (open by default;
   `getStoreVisibility()` fails **closed**) plus `PluginStoreCurated` (a plugin of a store the admin released). Adding a plugin never changes who approves its
-  code (`plugin.manage`). `installStorePlugin` is a placeholder until BARY-107. `bun run plugins:dev-store` writes a sample store clone for development.
+  code (`plugin.manage`). `installStorePlugin` (`storeActions.ts`, the work in `storeInstall.ts`) reads the entry from the store's clone itself, checks everything that needs no download before downloading, then `verifyRelease`/`placeRelease`, and sets `source` `STORE` and `origin` from the store's row: **the client passes no store address, hash or source**. Installing approves no code; updating a store plugin is BARY-108. `bun run plugins:dev-store` writes a sample store clone for development.
 - **The plugins page** (`/admin/plugins`, `docs/plugins/admin.md`): `features/plugins/overview.ts` is a pure function that puts the
   page together from the rows, the plugin directory and the registry (states and approval as codes; the words are in
   `PluginsAdmin/runtimeText.ts`, so they are translated). `getPluginsOverview` asks for `plugin.manage` itself. Its dialogs use the shared
@@ -583,6 +583,8 @@ tests/
     plugin-store-page/ · plugin-store-parts/ · plugin-store-support/  ← the store page (own processes: they stand in for parts of it)
     store-sync/
       storeSync.test.ts           ← features/plugins/storeSync and the sync action (own process: mocks the db, permissions, `after` and DNS)
+    store-install/
+      storeInstall.test.ts        ← installing from a store (own process: mocks the db and DNS; the clone, the release and the plugin directory are real)
     plugin-admin/
       queries.test.ts             ← what the plugins page reads (own process: it mocks the registry)
       pluginsAdmin.test.tsx       ← the page: what is offered where, which action a dialog runs with which arguments

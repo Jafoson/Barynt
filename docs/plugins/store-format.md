@@ -4,7 +4,7 @@ A plugin store is a Git repository ([barynt-plugin-store](https://github.com/Jaf
 the format is defined there and checked by its CI). The instance keeps a **local clone** of each store that is on, and reads the
 catalog from it, so the store page also works offline with the last state. This page is about the reading (BARY-104, the format and the
 reader), how the clone is [kept up to date](#keeping-the-clone-up-to-date) (BARY-105) and, in [ADR 0003](adr-0003-store-transport.md),
-how it gets there (BARY-111). How a plugin is installed from an entry comes in a later step (BARY-107).
+how it gets there (BARY-111). How a plugin is installed from an entry is [Release](release.md) (BARY-107).
 
 ## The layout
 
@@ -100,7 +100,6 @@ and the update (only from the store it came from, only to a higher version that 
 ## Deliberately not here
 
 - **A scheduled sync** (BARY-90): today a store is fetched when someone presses *Update* and when the store page is opened and the state is old.
-- **Installing** from an entry: download, hash check, unpacking, atomic placement (BARY-107).
 - **Signed commits** (`maintainerKeys` is read and ignored).
 - **A check against the store's published JSON Schemas.** The schemas are a copy; a script that compares them with the store's
   `schemas/*.json` can be added when the format moves.
