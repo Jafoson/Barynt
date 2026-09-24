@@ -1588,6 +1588,15 @@ model Plugin {
   /// `codeApprovalHash`. Wer sie erteilt hat, steht im Audit-Protokoll.
   codeApprovedAt DateTime?
 
+  /// Die Version, die vor dem letzten Update installiert war, und der Hash ihres
+  /// Verzeichnisses. Ihre Dateien bleiben liegen (eine Version je Verzeichnis), sodass die
+  /// Plattform mit einem Klick zurückgehen kann (`rollbackPlugin`): der Hash sagt, ob die
+  /// Dateien noch die von damals sind. Ein Rücksprung tauscht beide gegen die aktuellen,
+  /// sodass man auch wieder vorwärts kann. Leer: es gab kein Update. Die Freigabe des
+  /// Codes gilt nach einem Update und nach einem Rücksprung nicht mehr, sie wird neu erteilt.
+  previousVersion   String?
+  previousIntegrity String?
+
   installedAt DateTime @default(now())
   /// Ändert sich bei jedem Update, jedem Umschalten von `status` und jeder
   /// Änderung von `config`.

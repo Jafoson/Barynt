@@ -14,6 +14,7 @@ tables, one row per installation and one per plugin and workspace.
 | --- | --- |
 | `id` | the manifest's `id`, also the directory name. It is the primary key: two plugins with one id cannot exist, and paths, permissions and routes derive from it |
 | `version` | the installed version. Only one version is installed at a time; an update replaces it |
+| `previousVersion`, `previousIntegrity` | the version that was installed before the last update or rollback, and the hash of its directory at that time. Both or neither. Its files stay on disk, and `rollbackPlugin` goes back to it only if the files still hash to `previousIntegrity`. A rollback swaps them with `version`/`integrity`, so it can be undone |
 | `status` | `ENABLED` or `DISABLED`, the platform's switch for the whole plugin. `DISABLED` stops it loading without uninstalling it; the workspaces' settings stay |
 | `source` | `STORE`, `UPLOAD` or `DIRECTORY`. `STORE` means it came from a plugin store and its hash is pinned in the store entry; the other two have no store entry and are not loaded unless the platform allows plugins from no store, and even then only one without code runs ([`allowUnsignedPlugins`](#systemsettingsallowunsignedplugins)) |
 | `scope` | `WORKSPACE` or `PLATFORM`, taken from the manifest's `scope` at install and at every update. `WORKSPACE`: switched on per workspace (`PluginWorkspace`). `PLATFORM`: applies to the whole instance as soon as it is installed and `ENABLED`, with no switch per workspace. Stored so that "which plugins apply in this workspace" is one query and not a walk over the manifests on disk |
@@ -95,7 +96,7 @@ storage (BARY-85), which is a separate table with no foreign key to `Plugin`.
 - **Tables of a plugin's own.** Plugin data goes through the generic storage (BARY-85).
 - **An opt-out per project.** It arrives with the slot framework (BARY-65), the first
   thing that needs it.
-- **Who installed it.** The audit log records that (`plugin.installed`, `plugin.updated`, `plugin.uninstalled`, see
+- **Who installed it.** The audit log records that (`plugin.installed`, `plugin.updated`, `plugin.rolledBack`, `plugin.uninstalled`, see
   [Lifecycle](lifecycle.md)); the row has no column for it.
 
 ## Working with the schema

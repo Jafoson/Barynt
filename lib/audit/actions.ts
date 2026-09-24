@@ -70,6 +70,7 @@ export const AUDIT_ACTIONS = {
   // may be approved to run, so they are marked; removing and switching off narrow it.
   "plugin.installed": "Plugin installed",
   "plugin.updated": "Plugin updated",
+  "plugin.rolledBack": "Plugin rolled back",
   "plugin.uninstalled": "Plugin uninstalled",
   "plugin.status.enabled": "Plugin switched on",
   "plugin.status.disabled": "Plugin switched off",

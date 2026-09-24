@@ -56,12 +56,15 @@ mock.module("@/lib/plugins/host", () => ({
 
 import {
   installPlugin,
+  rollbackPlugin,
   setPluginStatus,
   uninstallPlugin,
   updatePlugin,
 } from "@/features/plugins/lifecycleActions";
 import { hashPluginDirectory } from "@/lib/plugins/integrity";
 import { getRegistryState } from "@/lib/plugins/registryState";
+import { storeCloneDir } from "@/lib/plugins/store/paths";
+import { manifestOf } from "../store-support/storeArchive";
 
 const state = getRegistryState();
 const FAKE = {
@@ -82,6 +85,7 @@ interface Row {
   version: string;
   scope: Scope;
   source?: string;
+  origin?: string | null;
   integrity?: string;
   codeApprovalHash?: string | null;
   status?: string;
@@ -178,6 +182,7 @@ async function installed(
   more: {
     scope?: Scope;
     source?: string;
+    origin?: string | null;
     codeApprovalHash?: string | null;
     manifest?: Record<string, unknown>;
   } = {},
@@ -194,6 +199,7 @@ async function installed(
     version,
     scope,
     source: more.source ?? "DIRECTORY",
+    origin: more.origin,
     integrity,
     codeApprovalHash: more.codeApprovalHash ?? null,
     status: "ENABLED",
@@ -639,6 +645,9 @@ describe("updating", () => {
       data: {
         version: "1.1.0",
         integrity: hash,
+        // What is replaced stays on disk, and this is how to get back to it.
+        previousVersion: "1.0.0",
+        previousIntegrity: row.integrity,
         codeApprovalHash: null,
         codeApprovedAt: null,
       },
@@ -662,6 +671,8 @@ describe("updating", () => {
       "codeApprovalHash",
       "codeApprovedAt",
       "integrity",
+      "previousIntegrity",
+      "previousVersion",
       "version",
     ]);
   });
@@ -831,6 +842,435 @@ describe("updating", () => {
     expect(errorOf(await updatePlugin("calendar", "1.1.0", yes))).toContain(
       "no store",
     );
+  });
+});
+
+describe("rolling back", () => {
+  /** A plugin that was updated from 1.0.0 to 1.1.0: both are on disk, the row is at 1.1.0. */
+  async function updated(
+    more: {
+      codeApprovalHash?: string | null;
+      source?: string;
+      origin?: string | null;
+    } = {},
+  ) {
+    const old = await installed("calendar", "1.0.0", more);
+    const oldHash = old.integrity as string;
+    const newHash = await put("calendar", "1.1.0");
+    Object.assign(old, {
+      version: "1.1.0",
+      integrity: newHash,
+      previousVersion: "1.0.0",
+      previousIntegrity: oldHash,
+    });
+    return { row: old, oldHash, newHash };
+  }
+
+  it("brings back the earlier version, and the two swap places so it can be undone", async () => {
+    const { row, oldHash, newHash } = await updated();
+    expect(await rollbackPlugin("calendar", yes)).toEqual({ ok: true });
+    expect(mockPluginUpdateMany.mock.calls).toEqual([
+      [
+        {
+          where: { id: "calendar", version: "1.1.0", integrity: row.integrity },
+          data: {
+            version: "1.0.0",
+            integrity: oldHash,
+            previousVersion: "1.1.0",
+            previousIntegrity: newHash,
+            codeApprovalHash: null,
+            codeApprovedAt: null,
+          },
+        },
+      ],
+    ]);
+  });
+
+  it("reads the plugin by its id, with what it needs to decide and nothing else", async () => {
+    await updated();
+    await rollbackPlugin("calendar", yes);
+    expect(mockPluginFindUnique.mock.calls).toEqual([
+      [
+        {
+          where: { id: "calendar" },
+          select: {
+            id: true,
+            version: true,
+            source: true,
+            origin: true,
+            scope: true,
+            integrity: true,
+            codeApprovalHash: true,
+            previousVersion: true,
+            previousIntegrity: true,
+          },
+        },
+      ],
+    ]);
+  });
+
+  it("withdraws the approval, which was for other files, and says so", async () => {
+    await updated({ codeApprovalHash: "approved" });
+    await rollbackPlugin("calendar", yes);
+    expect(
+      mockPluginUpdateMany.mock.calls[0]?.[0].data.codeApprovalHash,
+    ).toBeNull();
+    expect(mockAuditCreate.mock.calls[0]?.[0].data.meta.approvalWithdrawn).toBe(
+      true,
+    );
+  });
+
+  it("audits from and to, and the files that are in use again", async () => {
+    const { oldHash } = await updated();
+    await rollbackPlugin("calendar", yes);
+    expect(mockAuditCreate.mock.calls).toHaveLength(1);
+    expect(mockAuditCreate.mock.calls[0]?.[0].data).toMatchObject({
+      action: "plugin.rolledBack",
+      actorId: "admin1",
+      targetType: "plugin",
+      targetId: "calendar",
+      targetLabel: "calendar@1.0.0",
+      meta: {
+        from: "1.1.0",
+        to: "1.0.0",
+        hash: oldHash,
+        approvalWithdrawn: false,
+      },
+    });
+  });
+
+  it("tells the registry and the cache", async () => {
+    await updated();
+    await rollbackPlugin("calendar", yes);
+    expect(state.snapshot).toBeNull();
+    expect(state.generation).toBe(1);
+    expect(mockRevalidate).toHaveBeenCalledWith("/", "layout");
+  });
+
+  it("asks for plugin.manage in the platform context, first, and does nothing when it is refused", async () => {
+    await updated();
+    await rollbackPlugin("calendar", yes);
+    expect(mockRequirePermission.mock.calls[0]).toEqual([
+      "plugin.manage",
+      { scope: "platform" },
+    ]);
+    mockRequirePermission.mockRejectedValue(new Error("not allowed"));
+    mockPluginFindUnique.mockClear();
+    await expect(rollbackPlugin("calendar", yes)).rejects.toThrow(
+      "not allowed",
+    );
+    expect(mockPluginFindUnique).not.toHaveBeenCalled();
+  });
+
+  it.each(["", "../x", "Calendar", 7])(
+    "is refused for a plugin id like %j",
+    async (id) => {
+      expect(await rollbackPlugin(id as string, yes)).toEqual({
+        error: "Invalid request.",
+      });
+      expect(untouched()).toBe(true);
+    },
+  );
+
+  it("is refused for a plugin that is not installed", async () => {
+    expect(await rollbackPlugin("calendar", yes)).toEqual({
+      error: "Unknown plugin.",
+    });
+    expect(untouched()).toBe(true);
+  });
+
+  it("is refused when there was no update, and when only half of it is known", async () => {
+    await installed("calendar", "1.0.0");
+    const message = { error: "There is no earlier version to go back to." };
+    expect(await rollbackPlugin("calendar", yes)).toEqual(message);
+    Object.assign(installedRows[0] as object, { previousVersion: "0.9.0" });
+    expect(await rollbackPlugin("calendar", yes)).toEqual(message);
+    Object.assign(installedRows[0] as object, {
+      previousVersion: null,
+      previousIntegrity: "x",
+    });
+    expect(await rollbackPlugin("calendar", yes)).toEqual(message);
+    expect(untouched()).toBe(true);
+  });
+
+  it("is refused when the files of the earlier version are not the ones that were replaced", async () => {
+    await updated();
+    await writeFile(
+      join(root, "calendar", "1.0.0", "server.js"),
+      "export default { evil: true };",
+    );
+    const result = await rollbackPlugin("calendar", yes);
+    expect(errorOf(result)).toBe(
+      "The files of 1.0.0 are not the ones that were replaced, so it is not brought back.",
+    );
+    expect(untouched()).toBe(true);
+  });
+
+  it("is refused when a file was added to the earlier version's directory, or its files are gone", async () => {
+    await updated();
+    await writeFile(join(root, "calendar", "1.0.0", "extra.js"), "1");
+    expect(errorOf(await rollbackPlugin("calendar", yes))).toContain(
+      "not the ones that were replaced",
+    );
+    await rm(join(root, "calendar", "1.0.0"), { recursive: true });
+    expect(errorOf(await rollbackPlugin("calendar", yes))).toContain(
+      "no calendar 1.0.0",
+    );
+    expect(untouched()).toBe(true);
+  });
+
+  it("is refused when the directory holds a link, which no plugin's files may", async () => {
+    await updated();
+    await symlink("/etc/passwd", join(root, "calendar", "1.0.0", "link"));
+    expect(errorOf(await rollbackPlugin("calendar", yes))).toContain(
+      "not acceptable",
+    );
+    expect(untouched()).toBe(true);
+  });
+
+  it("is refused when the earlier version applied somewhere else", async () => {
+    await updated();
+    Object.assign(installedRows[0] as object, { scope: "PLATFORM" });
+    expect(errorOf(await rollbackPlugin("calendar", yes))).toContain(
+      "cannot change where the plugin applies",
+    );
+    expect(untouched()).toBe(true);
+  });
+
+  it("is refused when the earlier version would break what is installed now", async () => {
+    await updated();
+    await put("wiki", "1.0.0", {
+      manifest: { dependencies: { calendar: "^1.1.0" } },
+    });
+    installedRows.push({
+      id: "wiki",
+      version: "1.0.0",
+      scope: "WORKSPACE",
+      source: "DIRECTORY",
+    });
+    expect(errorOf(await rollbackPlugin("calendar", yes))).toContain("wiki");
+    expect(untouched()).toBe(true);
+  });
+
+  it("is refused when the earlier version does not fit this Barynt", async () => {
+    await updated();
+    await writeFile(
+      join(root, "calendar", "1.0.0", "barynt-plugin.json"),
+      JSON.stringify({
+        manifestVersion: 1,
+        id: "calendar",
+        name: "calendar",
+        version: "1.0.0",
+        description: "A test plugin",
+        author: "Someone",
+        license: "MIT",
+        categories: ["other"],
+        barynt: "^9.0.0",
+        server: "server.js",
+      }),
+    );
+    const result = await rollbackPlugin("calendar", yes);
+    expect(errorOf(result)).toContain("not the ones that were replaced");
+    expect(untouched()).toBe(true);
+  });
+
+  it("needs the setting and a yes for a plugin from no store, as an update does, and neither for one from a store", async () => {
+    await updated();
+    mockSettingsFindUnique.mockResolvedValue({ allowUnsignedPlugins: false });
+    expect(errorOf(await rollbackPlugin("calendar", yes))).toContain(
+      "no store",
+    );
+    mockSettingsFindUnique.mockResolvedValue({ allowUnsignedPlugins: true });
+    expect(errorOf(await rollbackPlugin("calendar"))).toContain("Confirm");
+    expect(
+      errorOf(
+        await rollbackPlugin("calendar", { acknowledged: "yes" as never }),
+      ),
+    ).toContain("Confirm");
+    expect(untouched()).toBe(true);
+    installedRows.length = 0;
+    await updated({ source: "STORE" });
+    mockSettingsFindUnique.mockResolvedValue({ allowUnsignedPlugins: false });
+    expect(await rollbackPlugin("calendar")).toEqual({ ok: true });
+  });
+
+  describe("to a version the store has withdrawn", () => {
+    const ORIGIN = "https://github.com/acme/plugins";
+    const KEY = "github.com/acme/plugins";
+    /** The clone of the store the plugin came from, listing calendar's versions as given. */
+    async function storeLists(versions: object[], key = KEY) {
+      const dir = join(storeCloneDir(root, key), "plugins", "calendar");
+      await mkdir(dir, { recursive: true });
+      await writeFile(
+        join(storeCloneDir(root, key), "store.json"),
+        JSON.stringify({ schemaVersion: 1, id: "acme", name: "Acme" }),
+      );
+      await writeFile(
+        join(dir, "barynt-plugin.json"),
+        manifestOf("calendar", "1.1.0"),
+      );
+      await writeFile(join(dir, "source.json"), JSON.stringify({ versions }));
+    }
+    const version = (v: string, more: object = {}) => ({
+      version: v,
+      download: `https://example.com/${v}.tgz`,
+      sha512: "a".repeat(128),
+      ...more,
+    });
+    const fromStore = () => updated({ source: "STORE", origin: ORIGIN });
+
+    it("is refused, with the store's reason, and nothing is written", async () => {
+      await fromStore();
+      await storeLists([
+        version("1.1.0"),
+        version("1.0.0", { revoked: "it deletes events" }),
+      ]);
+      expect(errorOf(await rollbackPlugin("calendar"))).toBe(
+        "1.0.0 was withdrawn by Acme: it deletes events, so it is not brought back.",
+      );
+      expect(untouched()).toBe(true);
+    });
+
+    it("is refused without a reason when the store gave none", async () => {
+      await fromStore();
+      await storeLists([version("1.1.0"), version("1.0.0", { revoked: true })]);
+      expect(errorOf(await rollbackPlugin("calendar"))).toBe(
+        "1.0.0 was withdrawn by Acme, so it is not brought back.",
+      );
+    });
+
+    it("is not stopped by a store that lists the version and did not withdraw it, or withdrew another one", async () => {
+      await fromStore();
+      await storeLists([
+        version("1.1.0", { revoked: "too new" }),
+        version("1.0.0"),
+      ]);
+      expect(await rollbackPlugin("calendar")).toEqual({ ok: true });
+    });
+
+    it.each([
+      ["a clone that is gone", null],
+      ["a clone that cannot be read", "not json"],
+    ])(
+      "is not stopped by %s: going back is for when something is wrong",
+      async (_n, storeJson) => {
+        await fromStore();
+        if (storeJson !== null) {
+          await storeLists([version("1.0.0", { revoked: true })]);
+          await writeFile(
+            join(storeCloneDir(root, KEY), "store.json"),
+            storeJson,
+          );
+        }
+        expect(await rollbackPlugin("calendar")).toEqual({ ok: true });
+      },
+    );
+
+    it("goes by what the store says of this plugin, not of another one it lists", async () => {
+      await fromStore();
+      await storeLists([version("1.1.0"), version("1.0.0")]);
+      const other = join(storeCloneDir(root, KEY), "plugins", "alpha");
+      await mkdir(other, { recursive: true });
+      await writeFile(
+        join(other, "barynt-plugin.json"),
+        manifestOf("alpha", "1.1.0"),
+      );
+      await writeFile(
+        join(other, "source.json"),
+        JSON.stringify({
+          versions: [version("1.1.0"), version("1.0.0", { revoked: true })],
+        }),
+      );
+      expect(await rollbackPlugin("calendar")).toEqual({ ok: true });
+    });
+
+    it("asks the store the plugin came from and no other", async () => {
+      await updated({
+        source: "STORE",
+        origin: "https://github.com/other/store",
+      });
+      await storeLists([version("1.1.0"), version("1.0.0", { revoked: true })]);
+      expect(await rollbackPlugin("calendar")).toEqual({ ok: true });
+    });
+
+    it("finds the store by where the plugin says it came from, however that is written", async () => {
+      await updated({
+        source: "STORE",
+        origin: "https://GitHub.com/Acme/Plugins.git",
+      });
+      await storeLists([version("1.1.0"), version("1.0.0", { revoked: true })]);
+      expect(errorOf(await rollbackPlugin("calendar"))).toContain("withdrawn");
+    });
+
+    it.each([null, "not an address", "http://github.com/acme/plugins"])(
+      "is not stopped by a plugin whose origin is %j",
+      async (origin) => {
+        await updated({ source: "STORE", origin });
+        await storeLists([
+          version("1.1.0"),
+          version("1.0.0", { revoked: true }),
+        ]);
+        expect(await rollbackPlugin("calendar")).toEqual({ ok: true });
+      },
+    );
+
+    it("is not looked up for a plugin that came from no store", async () => {
+      await updated({ origin: ORIGIN });
+      await storeLists([version("1.1.0"), version("1.0.0", { revoked: true })]);
+      expect(await rollbackPlugin("calendar", yes)).toEqual({ ok: true });
+    });
+  });
+
+  it("does not read the directory for someone who may not, or for a plugin with nothing to go back to", async () => {
+    await installed("calendar", "1.0.0");
+    await rm(root, { recursive: true, force: true });
+    expect(errorOf(await rollbackPlugin("calendar", yes))).toBe(
+      "There is no earlier version to go back to.",
+    );
+  });
+
+  it("writes nothing when another change got there first, and says so", async () => {
+    await updated();
+    mockPluginUpdateMany.mockResolvedValue({ count: 0 });
+    expect(errorOf(await rollbackPlugin("calendar", yes))).toContain(
+      "changed while it was being rolled back",
+    );
+    expect(mockAuditCreate).not.toHaveBeenCalled();
+    expect(mockRevalidate).not.toHaveBeenCalled();
+    expect(state.snapshot).toBe(FAKE);
+  });
+
+  it("can be undone: going back twice is the way forward again", async () => {
+    const { oldHash, newHash } = await updated();
+    await rollbackPlugin("calendar", yes);
+    const data = mockPluginUpdateMany.mock.calls[0]?.[0].data;
+    Object.assign(installedRows[0] as object, data);
+    expect(await rollbackPlugin("calendar", yes)).toEqual({ ok: true });
+    expect(mockPluginUpdateMany.mock.calls[1]?.[0].data).toMatchObject({
+      version: "1.1.0",
+      integrity: newHash,
+      previousVersion: "1.0.0",
+      previousIntegrity: oldHash,
+    });
+  });
+
+  it("never touches where the plugin came from, that it is on, or where it applies", async () => {
+    await updated();
+    await rollbackPlugin("calendar", {
+      acknowledged: true,
+      source: "STORE",
+      scope: "PLATFORM",
+    } as never);
+    expect(
+      Object.keys(mockPluginUpdateMany.mock.calls[0]?.[0].data).sort(),
+    ).toEqual([
+      "codeApprovalHash",
+      "codeApprovedAt",
+      "integrity",
+      "previousIntegrity",
+      "previousVersion",
+      "version",
+    ]);
   });
 });
 

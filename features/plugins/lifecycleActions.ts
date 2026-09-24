@@ -5,6 +5,7 @@ import { gt } from "semver";
 import { recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { PLATFORM, requirePermission } from "@/lib/permissions";
+import { pluginsDirSetting } from "@/lib/plugins/discovery";
 import { runHook, uninstallHookContext } from "@/lib/plugins/hooks";
 import { getPluginRegistry } from "@/lib/plugins/host";
 import { HOST_INFO } from "@/lib/plugins/hostInfo";
@@ -21,6 +22,7 @@ import {
   toCandidate,
 } from "./disk";
 import { isNotFound, isPluginId, isUniqueViolation } from "./guards";
+import { withdrawnByItsStore } from "./storeWithdrawn";
 import type { PluginActionResult } from "./types";
 
 // The platform's part of a plugin's life: install, update, uninstall, and the switch
@@ -219,6 +221,9 @@ export async function updatePlugin(
     data: {
       version,
       integrity: staged.integrity,
+      // What was installed before stays on disk, and this is how to get back to it.
+      previousVersion: row.version,
+      previousIntegrity: row.integrity,
       codeApprovalHash: null,
       codeApprovedAt: null,
     },
@@ -235,6 +240,125 @@ export async function updatePlugin(
       from: row.version,
       to: version,
       hash: staged.integrity,
+      approvalWithdrawn: row.codeApprovalHash !== null,
+    },
+  });
+
+  invalidatePluginRegistry();
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/**
+ * Goes back to the version that was installed before the last update (or the last rollback,
+ * which makes it a way forward again). Its files were never removed; what says they are still
+ * the ones that were replaced is the hash of their directory, kept on the row. The code
+ * approval does **not** come back: it was for other files, so what runs again has to be approved
+ * again. A plugin that comes from no store needs the same setting and yes as an update does.
+ */
+export async function rollbackPlugin(
+  pluginId: string,
+  input?: { acknowledged?: boolean },
+): Promise<PluginActionResult> {
+  const actorId = await requirePermission("plugin.manage", PLATFORM);
+  if (!isPluginId(pluginId)) return { error: "Invalid request." };
+
+  const row = await db.plugin.findUnique({
+    where: { id: pluginId },
+    select: {
+      id: true,
+      version: true,
+      source: true,
+      origin: true,
+      scope: true,
+      integrity: true,
+      codeApprovalHash: true,
+      previousVersion: true,
+      previousIntegrity: true,
+    },
+  });
+  if (!row) return { error: "Unknown plugin." };
+  // Both are set together; without either there is nothing that can be verified to go back to.
+  if (!row.previousVersion || !row.previousIntegrity) {
+    return { error: "There is no earlier version to go back to." };
+  }
+
+  if (row.source !== "STORE") {
+    const refusal = await unsignedRefusal(input?.acknowledged);
+    if (refusal) return { error: refusal };
+  }
+
+  const directory = await readPluginDirectory();
+  if (!directory.ok) return { error: directory.error };
+  // The directory was read, so it is set.
+  const { dir } = pluginsDirSetting();
+  if (row.source === "STORE" && dir !== null) {
+    const withdrawn = await withdrawnByItsStore({
+      dir,
+      origin: row.origin,
+      pluginId,
+      version: row.previousVersion,
+    });
+    if (withdrawn) return { error: withdrawn };
+  }
+  const staged = await stagePlugin(
+    directory.plugins,
+    pluginId,
+    row.previousVersion,
+  );
+  if (!staged.ok) return { error: staged.error };
+  if (staged.integrity !== row.previousIntegrity) {
+    return {
+      error: `The files of ${row.previousVersion} are not the ones that were replaced, so it is not brought back.`,
+    };
+  }
+  if ((staged.manifest.scope === "platform") !== (row.scope === "PLATFORM")) {
+    return {
+      error:
+        "An earlier version cannot change where the plugin applies, to the whole platform or per workspace.",
+    };
+  }
+
+  const rows = await db.plugin.findMany({
+    select: { id: true, version: true, scope: true },
+  });
+  const notDone = refuseChange(
+    previewInstall(
+      installedCandidates(rows, directory.plugins),
+      toCandidate(staged.manifest, row.scope),
+      BARYNT_VERSION,
+    ),
+  );
+  if (notDone) return { error: notDone };
+
+  // Tied to what was read, like an update. The two swap places, so it can be undone.
+  const written = await db.plugin.updateMany({
+    where: { id: pluginId, version: row.version, integrity: row.integrity },
+    data: {
+      version: row.previousVersion,
+      integrity: row.previousIntegrity,
+      previousVersion: row.version,
+      previousIntegrity: row.integrity,
+      codeApprovalHash: null,
+      codeApprovedAt: null,
+    },
+  });
+  if (written.count !== 1) {
+    return { error: "The plugin changed while it was being rolled back." };
+  }
+
+  await recordAudit({
+    action: "plugin.rolledBack",
+    actorId,
+    target: {
+      type: "plugin",
+      id: pluginId,
+      label: `${pluginId}@${row.previousVersion}`,
+    },
+    meta: {
+      from: row.version,
+      to: row.previousVersion,
+      hash: row.previousIntegrity,
       approvalWithdrawn: row.codeApprovalHash !== null,
     },
   });
