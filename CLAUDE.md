@@ -175,15 +175,18 @@ and measured (start at `docs/plugins/README.md`).
   from the installed files (never from the client), a workspace's or project's plugin has to be on there, the values are the whole form, and the audit entry
   (`plugin.settings.changed`) names the changed keys, **never the values**. The registry is not told: settings decide neither code nor dependencies.
   **The form** is one form for all three levels (`features/plugins/components/PluginSettings/`: `usePluginSettingsForm` = state and save, `SettingsFields` = rendering,
-  `formState.ts` = the pure conversions and `saveForm`). It is a **page** for a workspace's plugins and a **window** for the platform's and a project's
+  `formState.ts` = the pure conversions and `saveForm`). It is a **page** for a workspace's and a project's plugins and a **window** for the platform's
   (`PluginSettingsPage` / `PluginSettingsModal`, the latter opened by `useOpenPluginSettings`: a dialog from a tablet up, a sheet on a phone).
   A yes/no is a checkbox there, not a `Switch` (it takes effect with Save); an empty box means the default, so a setting with one is never "required"
   (`mustFill`); Save is a `type="submit"` button of the form, so the browser checks its limits first. New form controls are the atoms `Field`, `Textarea` and
   `Select` (`components/ui/atoms`), and `Input` has the `email` and `url` variants.
-  **A workspace's plugin settings are their own area of the settings** (`/<workspace>/plugin/settings[/<pluginId>]`, `pluginSettingsPath` in `lib/nav.ts`): the fourth choice of
-  the switcher (`SettingsScopeKey` `"plugin"`, offered with `plugin.enable` in the workspace, resolved by each of the four settings layouts), listing the plugins that are
-  on there. What it shows is `settingsAreaOf` (pure) asked through `getPluginSettingsArea` (`null` = 404); a plugin that is off, has no settings or does not exist is a 404, never an
-  empty form. A link that should look like a button is a `LinkButton` (`buttonClassName` is shared with `Button`), never a `Button` that navigates.
+  **The plugins' settings are their own area of the settings** (`/<workspace>/plugin/settings[/<pluginId>[/<projectSlug>]]`, `pluginSettingsPath` in `lib/nav.ts`): the
+  fourth choice of the switcher (`SettingsScopeKey` `"plugin"`), offered to whoever holds `plugin.enable` in the workspace **or in a project of it** (`canOpenPluginSettings`,
+  resolved by each of the four settings layouts). It shows what **this person** may set up: `getPluginSettingsArea` asks `plugin.enable` in the workspace for the workspace's
+  own plugins and `projectIdsWith` (`lib/permissions.ts`, all projects at once, the same rules as the resolver) for a project's, and returns `null` (a 404) for someone who may
+  set nothing up. What it shows is `settingsAreaOf` (pure); `pluginPageOf`/`projectPageOf` decide what an address shows, and a plugin that is off, has no settings, is not the
+  person's to set up or does not exist is a 404, never an empty form. The rows of its navigation are `settingsNavItems` (`SettingsNavItem.activeHref` = `<href>/*` for a row whose
+  pages have pages beneath it). A link that should look like a button is a `LinkButton` (`buttonClassName` is shared with `Button`), never a `Button` that navigates.
 - Change the manifest schema → **`bun run plugin-schema:build`** and commit
   `public/schemas/barynt-plugin.schema.json`. `tests/unit/plugins` (and
   `bun run plugin-schema:check`) fail while it is out of date.
@@ -609,7 +612,7 @@ tests/
       manifestSchemaFile.test.ts  ← generated JSON Schema is current, docs examples are valid
       sdk.test.ts                 ← packages/plugin-sdk: definePlugin, version, contexts vs manifest points
       definition.test.ts          ← parsePluginModule: reads a plugin's server module, never throws
-      settingsArea.test.ts / pluginSettingsNav.test.ts  ← the plugins' settings area (pure) and its place in the settings switcher (`lib/nav.ts`)
+      settingsArea.test.ts / settingsAreaNav.test.ts / pluginSettingsNav.test.ts  ← the plugins' settings area and its navigation rows (pure), and its place in the settings switcher (`lib/nav.ts`)
       resolve.test.ts             ← lib/plugins/resolve: host range, dependencies, cycles, load order
     plugin-approval/
       actions.test.ts             ← approve / withdraw the approval of a plugin's code (real plugin dirs)
@@ -621,11 +624,11 @@ tests/
       settingsActions.test.ts     ← saving a plugin's settings per level (real plugin dirs, mocked db; own process: mocks `@/lib/permissions` and `next/cache`)
     plugin-settings-ui/
       formState.test.ts           ← the form's state, what the action is given, `saveForm` (pure)
-      settingsFields.test.tsx / settingsModal.test.tsx / settingsOverview.test.tsx / settingsHeader.test.tsx / linkButton.test.tsx  ← the controls, the window, the area's overview, the switcher and the link button as markup (mocks `next-intl`, `@iconify/react`, the router's `Link`)
+      settingsFields.test.tsx / settingsModal.test.tsx / settingsOverview.test.tsx / settingsProjects.test.tsx / settingsHeader.test.tsx / settingsNav.test.tsx / linkButton.test.tsx  ← the controls, the window, the area's overview and project chooser, the switcher, the nav rows and the link button as markup (mocks `next-intl`, `@iconify/react`, the router's `Link`)
     plugin-settings-modal/
       settingsModalFlow.test.tsx  ← the window and the page at work: Save gating, problems under a setting (own process: replaces `react`'s hooks with a list)
     plugin-settings-area/
-      settingsAreaQueries.test.ts ← what the plugins' settings area reads (own process: replaces `workspaceQueries`, which `plugin-workspace` tests for real)
+      settingsAreaQueries.test.ts ← what the plugins' settings area reads, as this person, and who is offered it (own process: replaces the database, the permissions and the overview)
     plugin-staging/
       stage.test.ts               ← features/plugins/disk (own process: it replaces the directory hash)
     store-catalog/

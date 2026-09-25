@@ -263,10 +263,10 @@ first:
 ### The form
 
 One form for all three levels ([`features/plugins/components/PluginSettings/`](../../features/plugins/components/PluginSettings)), in two settings: as a
-**page** (`PluginSettingsPage`) for a workspace's plugins ([The plugins of a workspace](workspace.md#a-plugins-settings)), and as a **window** (a dialog from a
-tablet up, a bottom sheet on a phone, `PluginSettingsModal`, opened by `useOpenPluginSettings`) from the **Settings** button of a row for the platform's and a
-project's. Both are the same `usePluginSettingsForm` and `SettingsFields`, so a value is typed, checked and refused the same way. It draws what the manifest
-declared and nothing else, from the same field the server checks:
+**page** (`PluginSettingsPage`) for a workspace's and a project's plugins ([The plugins' settings](workspace.md#a-plugins-settings)), and as a **window** (a dialog from a
+tablet up, a bottom sheet on a phone, `PluginSettingsModal`, opened by `useOpenPluginSettings`) from the **Settings** button of a row on the platform's plugins page.
+Both are the same `usePluginSettingsForm` and `SettingsFields`, so a value is typed, checked and refused the same way. It draws what the manifest declared and
+nothing else, from the same field the server checks:
 
 | Type | Control | What the browser is given |
 | --- | --- | --- |

@@ -62,19 +62,23 @@ mock.module("next-intl", () => {
 const refresh = mock();
 const toast = mock();
 const mockSaveWorkspace = mock();
+const mockSaveProject = mock();
 mock.module("@/features/plugins/settingsActions", () => ({
   saveWorkspacePluginSettings: mockSaveWorkspace,
+  saveProjectPluginSettings: mockSaveProject,
 }));
 mock.module("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 mock.module("@/lib/ui-store", () => ({ useUI: () => ({ toast }) }));
 
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { Button } from "@/components/ui/atoms/Button/Button";
+import { LinkButton } from "@/components/ui/atoms/LinkButton/LinkButton";
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
 import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { PageHeader } from "@/components/ui/layout/PageHeader/PageHeader";
 import { PluginSettingsModal } from "@/features/plugins/components/PluginSettings/PluginSettingsModal";
 import { PluginSettingsPage } from "@/features/plugins/components/PluginSettings/PluginSettingsPage";
+import { ProjectPluginSettings } from "@/features/plugins/components/PluginSettings/ProjectPluginSettings";
 import { SettingsFields } from "@/features/plugins/components/PluginSettings/SettingsFields";
 import { WorkspacePluginSettings } from "@/features/plugins/components/PluginSettings/WorkspacePluginSettings";
 import type { SettingsSaveResult } from "@/features/plugins/types";
@@ -187,6 +191,8 @@ beforeEach(() => {
   toast.mockReset();
   mockSaveWorkspace.mockReset();
   mockSaveWorkspace.mockResolvedValue({ ok: true });
+  mockSaveProject.mockReset();
+  mockSaveProject.mockResolvedValue({ ok: true });
 });
 
 describe("a plugin's settings window at work", () => {
@@ -434,6 +440,7 @@ describe("a plugin's settings page at work", () => {
       name: "Notes",
       description: "Takes notes",
       version: "1.2.0",
+      note: "Applies to the whole workspace.",
       form,
       save,
     }) as Node;
@@ -486,7 +493,8 @@ describe("a plugin's settings page at work", () => {
     expect(
       elements(meta?.props.children as ReactNode).some(
         (e) =>
-          e.type === "span" && e.props.children === "pluginSettings.pageScope",
+          e.type === "span" &&
+          e.props.children === "Applies to the whole workspace.",
       ),
     ).toBe(true);
   });
@@ -497,6 +505,7 @@ describe("a plugin's settings page at work", () => {
       name: "Notes",
       description: "",
       version: "1.2.0",
+      note: "Applies to the whole workspace.",
       form,
       save,
     }) as Node;
@@ -505,6 +514,32 @@ describe("a plugin's settings page at work", () => {
         (e) => e.type === "p" && e.props.className === "pageDescription",
       ),
     ).toBe(false);
+  });
+
+  it("has no way back where the plugin's settings were not chosen from a list", () => {
+    expect(pageElements().some((e) => e.type === LinkButton)).toBe(false);
+  });
+
+  it("has a way back, above the intro, where they were: the projects to choose from", () => {
+    hooks.cursor = 0;
+    const tree = PluginSettingsPage({
+      name: "Notes",
+      description: "Takes notes",
+      version: "1.2.0",
+      note: "Applies to the project Web App.",
+      back: { href: "/ws/plugin/settings/notes", label: "All projects" },
+      form,
+      save,
+    }) as Node;
+    const nodes = elements(tree);
+    const back = nodes.find((e) => e.type === LinkButton);
+    expect(back?.props.href).toBe("/ws/plugin/settings/notes");
+    expect(back?.props.children).toBe("All projects");
+    expect(back?.props.variant).toBe("text");
+    const intro = nodes.find(
+      (e) => e.type === "div" && e.props.className === "pageIntro",
+    );
+    expect(elements(intro?.props.children as ReactNode)[0] === back).toBe(true);
   });
 
   it("gives its fields the plugin's settings, and its Save button the look of the primary action", () => {
@@ -612,6 +647,12 @@ describe("a workspace plugin's settings page", () => {
     expect(tree.props.form).toBe(form);
   });
 
+  it("says whose the settings are: the whole workspace's, and has no way back", () => {
+    const tree = wrapper();
+    expect(tree.props.note).toBe("pluginSettings.pageScope");
+    expect(tree.props.back).toBeUndefined();
+  });
+
   it("saves through the workspace's action, with this workspace and this plugin and the whole form", async () => {
     const save = wrapper().props.save as (
       values: Record<string, unknown>,
@@ -629,6 +670,67 @@ describe("a workspace plugin's settings page", () => {
       issues: [{ id: "title", message: "is required" }],
     };
     mockSaveWorkspace.mockResolvedValue(refused);
+    const save = wrapper().props.save as (
+      values: Record<string, unknown>,
+    ) => Promise<unknown>;
+    expect(await save({ title: "" })).toEqual(refused);
+  });
+});
+
+describe("a project plugin's settings page", () => {
+  const wrapper = () =>
+    ProjectPluginSettings({
+      workspaceId: "ws-7",
+      plugin: {
+        id: "roadmap",
+        name: "Roadmap",
+        description: "Plans a project",
+        version: "0.4.0",
+      },
+      project: { id: "p-9", name: "Web App" },
+      form,
+    }) as Node;
+
+  it("is the settings page of the plugin, with what it is and its form", () => {
+    const tree = wrapper();
+    expect(tree.type).toBe(PluginSettingsPage);
+    expect(tree.props.name).toBe("Roadmap");
+    expect(tree.props.description).toBe("Plans a project");
+    expect(tree.props.version).toBe("0.4.0");
+    expect(tree.props.form).toBe(form);
+  });
+
+  it("says whose the settings are: this project's, by name", () => {
+    expect(wrapper().props.note).toBe(
+      "pluginSettings.pageScopeProject:Web App",
+    );
+  });
+
+  it("has a way back to the projects of the plugin, in this workspace", () => {
+    expect(wrapper().props.back).toEqual({
+      href: "/ws-7/plugin/settings/roadmap",
+      label: "pluginSettings.allProjects",
+    });
+  });
+
+  it("saves through the project's action, with this project and this plugin and the whole form", async () => {
+    const save = wrapper().props.save as (
+      values: Record<string, unknown>,
+    ) => Promise<unknown>;
+    const answer = await save({ title: "Q3" });
+    expect(mockSaveProject.mock.calls).toEqual([
+      ["p-9", "roadmap", { title: "Q3" }],
+    ]);
+    expect(mockSaveWorkspace).not.toHaveBeenCalled();
+    expect(answer).toEqual({ ok: true });
+  });
+
+  it("gives the page what the server said, the problems included", async () => {
+    const refused = {
+      error: "Some settings are not valid.",
+      issues: [{ id: "title", message: "is required" }],
+    };
+    mockSaveProject.mockResolvedValue(refused);
     const save = wrapper().props.save as (
       values: Record<string, unknown>,
     ) => Promise<unknown>;

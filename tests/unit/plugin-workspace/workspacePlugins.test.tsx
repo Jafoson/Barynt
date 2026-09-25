@@ -16,10 +16,6 @@ interface Flip {
   label: string;
 }
 let switches: Flip[] = [];
-const openModal = mock((_render: unknown, _options: unknown) => "modal");
-const toast = mock();
-/** Whether this is a phone (a sheet instead of a dialog), and whether an action is running. */
-const running = { phone: false, pending: false };
 const confirm = mock(async (_options: unknown) => true);
 const refresh = mock();
 const mockEnable = mock();
@@ -31,7 +27,7 @@ mock.module("react", () => ({
   ...actualReact,
   default: actualReact,
   useTransition: () => [
-    running.pending,
+    false,
     (callback: () => unknown) => {
       started.push(Promise.resolve(callback()));
     },
@@ -62,13 +58,6 @@ mock.module("@/i18n/navigation", () => ({
     </a>
   ),
 }));
-mock.module("@/lib/utils/useMediaQuery", () => ({
-  useMediaQuery: () => running.phone,
-  PHONE_QUERY: "(max-width: 640px)",
-  COMPACT_QUERY: "(max-width: 1024px)",
-}));
-mock.module("@/lib/context", () => ({ useModal: () => ({ openModal }) }));
-mock.module("@/lib/ui-store", () => ({ useUI: () => ({ toast }) }));
 mock.module("@/components/ui/layout/ConfirmDialog/ConfirmDialog", () => ({
   useConfirm: () => confirm,
 }));
@@ -85,7 +74,6 @@ mock.module("@/features/plugins/workspaceActions", () => ({
   disablePlugin: mockDisable,
 }));
 
-import { LevelPlugins } from "@/features/plugins/components/LevelPlugins/LevelPlugins";
 import { WorkspacePlugins } from "@/features/plugins/components/WorkspacePlugins/WorkspacePlugins";
 import type {
   WorkspacePlugin,
@@ -138,10 +126,6 @@ const switchOf = (id: string) =>
   switches.find((s) => s.id === `workspace-plugin-${id}`);
 
 beforeEach(() => {
-  openModal.mockReset();
-  toast.mockReset();
-  running.phone = false;
-  running.pending = false;
   confirm.mockReset();
   confirm.mockResolvedValue(true);
   refresh.mockReset();
@@ -474,7 +458,6 @@ describe("a plugin's settings, a workspace's", () => {
     expect(settingLinks(html)).toEqual([
       { href: "/ws-7/plugin/settings/notes", text: "pluginSettings.open" },
     ]);
-    expect(openModal).not.toHaveBeenCalled();
   });
 
   it("are offered for a plugin that is on here and has settings, and only for it", () => {
@@ -525,6 +508,20 @@ describe("a plugin's settings, a workspace's", () => {
     expect(html).not.toContain("/project/");
   });
 
+  it("look like a quiet text button, with the settings icon", () => {
+    const html = render(
+      view({ plugins: [plugin({ on: true, settings: settingsForm })] }),
+    );
+    const link =
+      html.match(/<a [^>]*href="[^"]*\/plugin\/settings[^"]*"[^>]*>/)?.[0] ??
+      "";
+    const tokens = (link.match(/class="([^"]*)"/)?.[1] ?? "").split(" ");
+    expect(tokens).toContain("text");
+    expect(tokens).toContain("sm");
+    expect(tokens).not.toContain("outline");
+    expect(html).toContain('data-icon="lucide:sliders-horizontal"');
+  });
+
   it("offer nothing when no plugin has settings", () => {
     const html = render(view({ plugins: [plugin({ on: true })] }));
     expect(settingLinks(html)).toEqual([]);
@@ -535,20 +532,5 @@ describe("a plugin's settings, a workspace's", () => {
       view({ plugins: [plugin({ on: false, settings: null })] }),
     );
     expect(settingLinks(html)).toEqual([]);
-  });
-});
-
-describe("a level that gives no way to set the settings", () => {
-  it("has a button that cannot be pressed, not a link that goes nowhere", () => {
-    const html = renderToStaticMarkup(
-      <LevelPlugins
-        level="workspace"
-        view={view({ plugins: [plugin({ on: true, settings: settingsForm })] })}
-        enable={async () => ({ ok: true })}
-        disable={async () => ({ ok: true })}
-      />,
-    );
-    expect(settingLinks(html)).toEqual([]);
-    expect(html).toMatch(/<button[^>]*disabled[^>]*>/);
   });
 });

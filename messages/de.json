@@ -1729,6 +1729,14 @@
     "empty": "In diesem Workspace ist noch kein Plugin eingeschaltet.",
     "emptyLink": "Plugins einschalten",
     "pageScope": "Gilt für den ganzen Workspace.",
-    "version": "Version {version}"
+    "version": "Version {version}",
+    "projectListTitle": "In Projekten eingeschaltet",
+    "projectListIntro": "Diese Plugins werden je Projekt eingestellt. Wähle ein Plugin, um das Projekt zu wählen.",
+    "inProjects": "In {projects}",
+    "pageScopeProject": "Gilt für das Projekt {project}.",
+    "allProjects": "Alle Projekte",
+    "chooseProject": "Wähle das Projekt, dessen Einstellungen du ändern willst.",
+    "projectsTitle": "Projekte",
+    "emptyProjects": "In deinen Projekten ist noch kein Plugin eingeschaltet."
   }
 }

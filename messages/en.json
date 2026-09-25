@@ -1729,6 +1729,14 @@
     "empty": "No plugin is switched on in this workspace yet.",
     "emptyLink": "Switch plugins on",
     "pageScope": "Applies to the whole workspace.",
-    "version": "Version {version}"
+    "version": "Version {version}",
+    "projectListTitle": "Switched on in projects",
+    "projectListIntro": "These plugins are set for each project. Choose a plugin to pick the project.",
+    "inProjects": "In {projects}",
+    "pageScopeProject": "Applies to the project {project}.",
+    "allProjects": "All projects",
+    "chooseProject": "Choose the project whose settings you want to change.",
+    "projectsTitle": "Projects",
+    "emptyProjects": "No plugin is switched on in your projects yet."
   }
 }

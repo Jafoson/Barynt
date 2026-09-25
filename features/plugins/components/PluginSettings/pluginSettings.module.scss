@@ -71,6 +71,12 @@
   max-width: 40rem;
 }
 
+/* Left with the words of the intro, not pushed in by the button's own padding. */
+.back {
+  align-self: flex-start;
+  margin-left: -0.5rem;
+}
+
 .pageDescription {
   margin: 0;
   font-size: var(--text-base);

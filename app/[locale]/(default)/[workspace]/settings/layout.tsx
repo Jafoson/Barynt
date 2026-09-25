@@ -7,6 +7,7 @@ import {
   type SettingsNavItem,
   type SettingsNavSubject,
 } from "@/components/ui/layout/SettingsNav/SettingsNav";
+import { canOpenPluginSettings } from "@/features/plugins/settingsAreaQueries";
 import {
   getCurrentWorkspace,
   getMyWorkspaces,
@@ -78,6 +79,8 @@ export default async function WorkspaceSettingsLayout({
     ? await getAccess({ projectId: firstProject.id })
     : null;
 
+  const pluginsOpen = await canOpenPluginSettings(workspace, access);
+
   const scope = visibleSettingsScope(
     settingsScopeItems({
       workspaceId: workspace,
@@ -94,8 +97,8 @@ export default async function WorkspaceSettingsLayout({
       project: projectAccess
         ? PROJECT_SETTINGS_PERMISSIONS.some(projectAccess.has)
         : false,
-      // The settings of the plugins the workspace switched on: whoever may switch them on.
-      plugin: access.has("plugin.enable"),
+      // The settings of the plugins switched on here: whoever may set plugins up, in the workspace or in a project.
+      plugin: pluginsOpen,
     },
   );
 

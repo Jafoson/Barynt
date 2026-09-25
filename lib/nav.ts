@@ -471,16 +471,23 @@ export function accountPath(workspaceId: string, section: string): string {
 
 /**
  * The plugins' settings of a workspace: `/<workspaceId>/plugin/settings` is the overview of the
- * plugins that are on there, and `/<workspaceId>/plugin/settings/<pluginId>` one plugin's own
- * settings page. Empty plugin id = the overview. (A plugin id is lowercase letters, digits and
- * dashes, so it needs no escaping, and none is a section: the area has no other pages.)
+ * plugins that are on there, `/<workspaceId>/plugin/settings/<pluginId>` one plugin's settings
+ * page (for a plugin that is set per project: the projects to choose from), and
+ * `/<workspaceId>/plugin/settings/<pluginId>/<projectSlug>` a plugin's settings in one project.
+ * Empty plugin id = the overview; a project slug needs a plugin id. (A plugin id is lowercase
+ * letters, digits and dashes, so it needs no escaping, and none is a section: the area has no
+ * other pages.)
  */
 export function pluginSettingsPath(
   workspaceId: string,
   pluginId?: string,
+  projectSlug?: string,
 ): string {
   const base = workspacePath(workspaceId, "plugin/settings");
-  return pluginId ? `${base}/${pluginId}` : base;
+  if (!pluginId) return base;
+  return projectSlug
+    ? `${base}/${pluginId}/${projectSlug}`
+    : `${base}/${pluginId}`;
 }
 
 /**
@@ -567,9 +574,9 @@ export function settingsScopeItems({
  * Narrows the candidates from `settingsScopeItems()` down to what's really
  * up for choosing: "Personal" always, "Project"/"Workspace"/"Plugins" only with an
  * address AND a permission (`WORKSPACE_SETTINGS_PERMISSIONS`/
- * `PROJECT_SETTINGS_PERMISSIONS`, and `plugin.enable` in the workspace for the
- * plugins, each resolved by the layout — this function itself knows no
- * permissions).
+ * `PROJECT_SETTINGS_PERMISSIONS`, and `plugin.enable` in the workspace or in a
+ * project of it for the plugins, each resolved by the layout — this function
+ * itself knows no permissions).
  *
  * If only "Personal" is left in the end, the switcher has nothing left to
  * switch between — the layouts then leave `SettingsHeader` out entirely.

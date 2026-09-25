@@ -411,6 +411,31 @@ describe("Plugin settings routes", () => {
     expect(tabIcon(`${BASE}/plugin/settings/notes`)).toBe("lucide:puzzle");
   });
 
+  it("names a plugin's page in a project after the plugin and the project", () => {
+    expect(
+      tabMeta(`${BASE}/plugin/settings/roadmap/side-project`, projects, t)
+        .title,
+    ).toBe("Plugins (Roadmap · Side Project)");
+    expect(
+      tabMeta(`${BASE}/plugin/settings/roadmap/fuchsly`, projects, t).title,
+    ).toBe("Plugins (Roadmap · Fuchsly)");
+    expect(tabIcon(`${BASE}/plugin/settings/roadmap/fuchsly`)).toBe(
+      "lucide:puzzle",
+    );
+  });
+
+  it("says the slug of a project it does not know, rather than nothing", () => {
+    expect(
+      tabMeta(`${BASE}/plugin/settings/roadmap/gone`, projects, t).title,
+    ).toBe("Plugins (Roadmap · gone)");
+  });
+
+  it("does not take the project's color for the tab: it is the plugins' area", () => {
+    expect(
+      tabMeta(`${BASE}/plugin/settings/roadmap/fuchsly`, projects, t).color,
+    ).toBeNull();
+  });
+
   it("ignores the query string of the tab's address", () => {
     expect(
       tabMeta(`${BASE}/plugin/settings/notes?open=1`, projects, t).title,

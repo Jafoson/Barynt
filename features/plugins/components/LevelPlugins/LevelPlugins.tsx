@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
-import { Button } from "@/components/ui/atoms/Button/Button";
 import { LinkButton } from "@/components/ui/atoms/LinkButton/LinkButton";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
@@ -16,16 +15,11 @@ import {
   SettingsList,
   type SettingsRow,
 } from "@/components/ui/layout/SettingsList/SettingsList";
-import type {
-  PluginActionResult,
-  SettingsSaveResult,
-} from "@/features/plugins/types";
+import type { PluginActionResult } from "@/features/plugins/types";
 import type {
   WorkspacePlugin,
   WorkspacePluginsView,
 } from "@/features/plugins/workspacePlugins";
-import type { SettingsForm, SettingValue } from "@/lib/plugins/settings";
-import { useOpenPluginSettings } from "../PluginSettings/useOpenPluginSettings";
 import styles from "../PluginsAdmin/pluginsAdmin.module.scss";
 import { type Tone, useRuntimeText } from "../PluginsAdmin/runtimeText";
 
@@ -37,18 +31,10 @@ interface Props {
   enable: (pluginId: string) => Promise<PluginActionResult>;
   disable: (pluginId: string) => Promise<PluginActionResult>;
   /**
-   * Where a plugin's settings are: the address of their page, where the level has one (a
-   * workspace's plugins' settings, `/<workspace>/plugin/settings/<id>`). The button is then a link.
+   * Where a plugin's settings are: the address of their page in the plugins' settings
+   * (`/<workspace>/plugin/settings/<id>`, and `.../<slug>` in a project). The button is a link.
    */
-  settingsHref?: (pluginId: string) => string;
-  /**
-   * Otherwise the settings open in a window: save them there with the action of that level, with
-   * the plugin's id already in it. Either this or `settingsHref` (which wins).
-   */
-  saveSettings?: (
-    pluginId: string,
-    values: Record<string, SettingValue | null>,
-  ) => Promise<SettingsSaveResult>;
+  settingsHref: (pluginId: string) => string;
   /** The Installed and Store tabs, where the level has a store. */
   tabs?: ReactNode;
 }
@@ -73,7 +59,6 @@ export function LevelPlugins({
   enable,
   disable,
   settingsHref,
-  saveSettings,
   tabs,
 }: Props) {
   const t = useTranslations();
@@ -84,7 +69,6 @@ export function LevelPlugins({
   const router = useRouter();
   const confirm = useConfirm();
   const text = useRuntimeText();
-  const openSettings = useOpenPluginSettings();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
@@ -158,44 +142,6 @@ export function LevelPlugins({
     { id: "actions", header: "", width: "minmax(0, 140px)" },
   ];
 
-  /**
-   * The way into a plugin's settings: a link to their page where the level has one, else a button
-   * that opens them in a window.
-   */
-  const settingsControl = (plugin: WorkspacePlugin, form: SettingsForm) => {
-    const icon = <Icon icon="lucide:sliders-horizontal" width={14} />;
-    if (settingsHref) {
-      return (
-        <LinkButton
-          href={settingsHref(plugin.id)}
-          variant="text"
-          size="sm"
-          icon={icon}
-        >
-          {t("pluginSettings.open")}
-        </LinkButton>
-      );
-    }
-    return (
-      <Button
-        variant="text"
-        size="sm"
-        icon={icon}
-        disabled={isPending || !saveSettings}
-        onClick={() =>
-          saveSettings &&
-          openSettings({
-            name: plugin.name,
-            form,
-            save: (values) => saveSettings(plugin.id, values),
-          })
-        }
-      >
-        {t("pluginSettings.open")}
-      </Button>
-    );
-  };
-
   const rows: SettingsRow[] = view.plugins.map((plugin) => {
     const { tone, line } = standing(plugin);
     const settingsForm = plugin.settings;
@@ -249,7 +195,16 @@ export function LevelPlugins({
           />
         ),
         // Only for a plugin that is on here and lets this level set something.
-        actions: settingsForm ? settingsControl(plugin, settingsForm) : null,
+        actions: settingsForm ? (
+          <LinkButton
+            href={settingsHref(plugin.id)}
+            variant="text"
+            size="sm"
+            icon={<Icon icon="lucide:sliders-horizontal" width={14} />}
+          >
+            {t("pluginSettings.open")}
+          </LinkButton>
+        ) : null,
       },
     };
   });

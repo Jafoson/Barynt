@@ -35,6 +35,8 @@ import { PluginSettingsOverview } from "@/features/plugins/components/PluginSett
 import type {
   SettingsArea,
   SettingsAreaPlugin,
+  SettingsAreaProject,
+  SettingsAreaProjectPlugin,
 } from "@/features/plugins/settingsArea";
 import type { SettingsForm } from "@/lib/plugins/settings";
 
@@ -49,13 +51,37 @@ function entry(more: Partial<SettingsAreaPlugin> = {}): SettingsAreaPlugin {
     ...more,
   };
 }
-const render = (plugins: SettingsAreaPlugin[]): string =>
+const render = (
+  plugins: SettingsAreaPlugin[],
+  more: Partial<SettingsArea> = {},
+): string =>
   renderToStaticMarkup(
     <PluginSettingsOverview
       workspaceId="nimbus"
-      area={{ plugins } satisfies SettingsArea}
+      area={{ ownWorkspace: true, plugins, projectPlugins: [], ...more }}
     />,
   );
+
+const web: SettingsAreaProject = {
+  id: "p-1",
+  slug: "web-app",
+  name: "Web App",
+  color: "#3b82f6",
+  avatarUrl: null,
+  settings: form,
+};
+function projectPlugin(
+  more: Partial<SettingsAreaProjectPlugin> = {},
+): SettingsAreaProjectPlugin {
+  return {
+    id: "roadmap",
+    name: "Roadmap",
+    description: "Plans a project",
+    version: "0.4.0",
+    projects: [web],
+    ...more,
+  };
+}
 
 describe("the start page of the plugins' settings", () => {
   it("is titled, and says what this is", () => {
@@ -121,13 +147,16 @@ describe("the start page of the plugins' settings", () => {
   });
 
   it("makes the way into the settings a quiet text link, and the way to the plugins an outline one", () => {
-    const linked = render([entry()]).match(/<a [^>]*>/)?.[0] ?? "";
+    const tokens = (html: string): string[] =>
+      (html.match(/<a [^>]*class="([^"]*)"/)?.[1] ?? "").split(" ");
+    const linked = tokens(render([entry()]));
     expect(linked).toContain("text");
     expect(linked).toContain("sm");
     expect(linked).not.toContain("outline");
-    const empty = render([]).match(/<a [^>]*>/)?.[0] ?? "";
+    const empty = tokens(render([]));
     expect(empty).toContain("outline");
     expect(empty).toContain("sm");
+    expect(empty).not.toContain("text");
   });
 
   it("puts the settings icon before the words of the link", () => {
@@ -150,5 +179,103 @@ describe("the start page of the plugins' settings", () => {
     const html = render([entry()]);
     expect(html).not.toContain("<p>pluginSettings.empty</p>");
     expect(html).not.toContain('href="/nimbus/settings/plugins"');
+  });
+});
+
+describe("the plugins that are set per project", () => {
+  it("are a section of their own, with a name, what they do, their version and where they are on", () => {
+    const html = render([], {
+      projectPlugins: [
+        projectPlugin({
+          projects: [
+            web,
+            { ...web, id: "p-2", slug: "mobile", name: "Mobile" },
+          ],
+        }),
+      ],
+    });
+    expect(html).toContain("pluginSettings.projectListTitle");
+    expect(html).toContain("pluginSettings.projectListIntro");
+    for (const text of ["Roadmap", "Plans a project", "0.4.0"]) {
+      expect(html).toContain(text);
+    }
+    expect(html).toContain("pluginSettings.inProjects:Web App, Mobile");
+  });
+
+  it("link to the plugin's page, where the project is chosen", () => {
+    const html = render([], {
+      projectPlugins: [projectPlugin({ id: "roadmap" })],
+    });
+    expect(html).toContain('href="/nimbus/plugin/settings/roadmap"');
+    expect(html).not.toContain("/plugin/settings/roadmap/web-app");
+  });
+
+  it("link a plugin to its page once any project it is on in has something to set", () => {
+    const html = render([], {
+      projectPlugins: [
+        projectPlugin({
+          id: "mixed",
+          projects: [
+            { ...web, settings: null },
+            { ...web, id: "p-2", slug: "mobile", name: "Mobile" },
+          ],
+        }),
+      ],
+    });
+    expect(html).toContain('href="/nimbus/plugin/settings/mixed"');
+    expect(html).not.toContain("pluginSettings.noSettings");
+  });
+
+  it("say a plugin that declares none has none, and link nowhere for it", () => {
+    const html = render([], {
+      projectPlugins: [
+        projectPlugin({ id: "quiet", projects: [{ ...web, settings: null }] }),
+      ],
+    });
+    expect(html).toContain("pluginSettings.noSettings");
+    expect(html).not.toContain("/plugin/settings/quiet");
+  });
+
+  it("stand with the workspace's own plugins, each in its section", () => {
+    const html = render([entry({ id: "notes" })], {
+      projectPlugins: [projectPlugin()],
+    });
+    expect(html).toContain("pluginSettings.listTitle");
+    expect(html).toContain("pluginSettings.projectListTitle");
+    expect(html.indexOf("pluginSettings.listTitle")).toBeLessThan(
+      html.indexOf("pluginSettings.projectListTitle"),
+    );
+    expect(html).toContain('href="/nimbus/plugin/settings/notes"');
+    expect(html).toContain('href="/nimbus/plugin/settings/roadmap"');
+  });
+
+  it("are all there is, without the workspace's section or the empty note", () => {
+    const html = render([], {
+      ownWorkspace: false,
+      projectPlugins: [projectPlugin()],
+    });
+    expect(html).toContain("pluginSettings.projectListTitle");
+    expect(html).not.toContain("pluginSettings.listTitle");
+    expect(html).not.toContain("<p>pluginSettings.empty");
+  });
+
+  it("are not a section when there are none", () => {
+    const html = render([entry()]);
+    expect(html).not.toContain("pluginSettings.projectListTitle");
+  });
+});
+
+describe("the start page where nothing is switched on, for someone who may set up a project only", () => {
+  it("says so in the projects' words and points nowhere: they may not switch plugins on in the workspace", () => {
+    const html = render([], { ownWorkspace: false });
+    expect(html).toContain("<p>pluginSettings.emptyProjects</p>");
+    expect(html).not.toContain("pluginSettings.emptyLink");
+    expect(html).not.toContain('href="/nimbus/settings/plugins"');
+  });
+
+  it("says so in the workspace's words and points to where plugins are switched on, for whoever may", () => {
+    const html = render([], { ownWorkspace: true });
+    expect(html).toContain("<p>pluginSettings.empty</p>");
+    expect(html).toContain('href="/nimbus/settings/plugins"');
   });
 });

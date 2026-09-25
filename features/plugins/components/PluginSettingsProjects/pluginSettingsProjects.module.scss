@@ -1,0 +1,23 @@
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-width: 40rem;
+}
+
+.description {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--on-surface);
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--on-surface-variant);
+}
