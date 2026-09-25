@@ -160,7 +160,7 @@ describe("what is put together", () => {
     await getProjectPlugins("p-7", "en");
     expect(mockProjectRows).toHaveBeenCalledWith({
       where: { projectId: "p-7", enabled: true },
-      select: { pluginId: true },
+      select: { pluginId: true, config: true },
     });
   });
 
@@ -188,6 +188,28 @@ describe("what is put together", () => {
       ["wiki", true, null],
     ]);
     expect(view.available).toBe(true);
+  });
+
+  it("gives a plugin's settings, with what this project has stored for it", async () => {
+    const board = await put("board", "1.0.0", {
+      scope: "project",
+      contributes: {
+        settings: [
+          { id: "title", type: "text", label: "Title", default: "Board" },
+        ],
+      },
+    });
+    mockPluginFindMany.mockResolvedValue([row("board", board)]);
+    mockProjectRows.mockResolvedValue([
+      { pluginId: "board", config: { title: "Sprint" } },
+    ]);
+    const view = await getProjectPlugins("p-7", "en");
+    expect(view.plugins[0]?.settings?.values).toEqual({ title: "Sprint" });
+    // Not on here: nothing to set.
+    mockProjectRows.mockResolvedValue([]);
+    expect(
+      (await getProjectPlugins("p-7", "en")).plugins[0]?.settings,
+    ).toBeNull();
   });
 
   it("says a plugin with code needs the platform's approval, from what the platform has approved", async () => {

@@ -7,6 +7,13 @@ import { type BlockedReason, decideExecution } from "@/lib/plugins/policy";
 import type { PluginStatus } from "@/lib/plugins/registry";
 import type { Problem } from "@/lib/plugins/resolve";
 import { type PluginRowScope, rowScopeOf } from "@/lib/plugins/scope";
+import {
+  resolveSettings,
+  type SettingField,
+  type SettingValue,
+  settingsOf,
+  toFields,
+} from "@/lib/plugins/settings";
 
 // What the admin page for plugins shows, put together from what is installed (the
 // database), what lies in the plugin directory (the disk) and what the registry
@@ -27,6 +34,8 @@ export interface InstalledRow {
   /** The version before the last update or rollback, and the hash of its files. Both or neither. */
   previousVersion: string | null;
   previousIntegrity: string | null;
+  /** `Plugin.config`: the platform's settings for a plugin that applies to the whole platform. */
+  config?: unknown;
 }
 
 /** What became of an installed plugin, as a code the page turns into a sentence. */
@@ -93,6 +102,14 @@ export interface InstalledPlugin {
    * the server checks the files (`rollbackPlugin`) before it brings them back.
    */
   previousVersion: string | null;
+  /**
+   * What the plugin lets people set, from its manifest, in the language of the page. Empty when
+   * it declares none. The values are the level's: the platform's here, a workspace's or a
+   * project's on their own pages.
+   */
+  settings: SettingField[];
+  /** The platform's values, for a plugin that applies to the whole platform and has settings. */
+  settingValues: Record<string, SettingValue | null> | null;
   /**
    * For a plugin from a store: the version that store describes now, when that is newer and the
    * plugin fits this Barynt. It is updated in the store (`updateStorePlugin`), where what it asks
@@ -247,6 +264,7 @@ export function buildOverview(input: OverviewInput): PluginsOverview {
     const found = byKey.get(`${row.id}@${row.version}`);
     const manifest = found?.ok ? found.manifest : null;
     const newer = best.get(row.id);
+    const settings = manifest ? toFields(settingsOf(manifest), locale) : [];
     const update =
       row.source === "DIRECTORY" &&
       newer &&
@@ -286,6 +304,11 @@ export function buildOverview(input: OverviewInput): PluginsOverview {
       ),
       integrity: row.integrity,
       update,
+      settings,
+      settingValues:
+        row.scope === "PLATFORM" && settings.length > 0
+          ? resolveSettings(settings, row.config)
+          : null,
       previousVersion:
         row.previousVersion && row.previousIntegrity
           ? row.previousVersion

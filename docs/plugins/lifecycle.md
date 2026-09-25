@@ -15,7 +15,8 @@ Every action:
   workspace of the request for a workspace's. A layout protects no action, and the first thing that happens is the
   permission check, so nothing is looked up for someone who may not;
 - is **audited**, and tells the **registry** (`invalidatePluginRegistry()`) and the cache, so from
-  the next request the plugin is or is not handed out ([Loading](loading.md#when-it-is-built-again));
+  the next request the plugin is or is not handed out ([Loading](loading.md#when-it-is-built-again)); the one exception is saving a plugin's
+  settings, which changes nothing the registry decides ([A plugin's settings](#a-plugins-settings));
 - never throws for a reason the admin can act on: it returns `{ ok: true }` or `{ error }` with a sentence, and
   `{ ok: true, warning }` when the change was made but a hook of the plugin failed on the way. Only a broken database or a
   missing permission throws.
@@ -235,6 +236,34 @@ holds `project.admin.all` in the workspace, [RBAC](../rbac.md)).
   (A project plugin cannot depend on a workspace plugin at all, [Compatibility](compatibility.md#when-a-plugin-cannot-load).)
 - **Hooks get the project and its workspace**: `ctx.project` and `ctx.workspace` ([SDK](sdk.md#lifecycle-hooks)).
 
+## A plugin's settings
+
+What a plugin lets people set is declared in its manifest ([Settings](manifest.md#settings)); the host keeps and checks the values, **no plugin code
+runs for it**. Three actions in [`settingsActions.ts`](../../features/plugins/settingsActions.ts), one per level, each asking for its permission
+first:
+
+| Action | Level and permission | Kept in | Audit entry |
+| --- | --- | --- | --- |
+| `savePlatformPluginSettings(pluginId, values)` | a `PLATFORM` plugin, `plugin.manage` | `Plugin.config` | `plugin.settings.changed` |
+| `saveWorkspacePluginSettings(workspaceId, pluginId, values)` | a `WORKSPACE` plugin, `plugin.enable` in that workspace | `PluginWorkspace.config` | `plugin.settings.changed` |
+| `saveProjectPluginSettings(projectId, pluginId, values)` | a `PROJECT` plugin, `plugin.enable` in that project | `PluginProject.config` | `plugin.settings.changed` (with the project's workspace) |
+
+- **The level is the plugin's scope.** An action refuses a plugin of another level, with a sentence. A workspace's or project's action also refuses while
+  the plugin is **switched off there** ("Switch the plugin on … first"), and the write itself is conditional on the row still being on, so two admins
+  at once cannot write a row that was just switched off.
+- **The definition is read from the installed files**, the manifest of the version the row names, not from the client and not from a cache; a plugin
+  with no settings has nothing to save.
+- **`values` is the whole form**, not a patch. It is checked as [the manifest says](manifest.md#settings): an unknown key, a wrong type or a value out
+  of bounds is refused with **one message per setting** (`issues`, `{ id, message }`), nothing is written, and a value that equals the default is not stored.
+- **Saving what is already there is not a change:** no write, no audit entry.
+- **The audit entry names the keys that changed, never the values** (`changed`), with the version and the level. A setting may be an address or a name
+  someone would not want in a log that other admins read.
+- **The registry is not told.** Settings change no code and no dependency, so nothing has to be built again; the cache of the pages is refreshed.
+
+What a page reads: `getPluginsOverview` gives a platform plugin its `settings` (the form's fields) and `settingValues` (what is stored, each value only if
+it still fits the definition, otherwise the default); a workspace's and a project's plugin has `settings` as a form with its values, and `null` while the
+plugin is off there or has none ([The plugins of a workspace](workspace.md), [of a project](project.md)).
+
 ## Hooks
 
 Five optional hooks in the SDK ([SDK](sdk.md#lifecycle-hooks)), run by `runHook` ([`lib/plugins/hooks.ts`](../../lib/plugins/hooks.ts)):
@@ -275,4 +304,6 @@ Five optional hooks in the SDK ([SDK](sdk.md#lifecycle-hooks)), run by `runHook`
 
 The switch per workspace is on the workspace's own settings page ([The plugins of a workspace](workspace.md)).
 
-- **The plugin's own settings per workspace** (`PluginWorkspace.config`, BARY-66): the actions keep what is there, nothing writes it yet.
+- **The forms for a plugin's settings** (BARY-68, step 3): the actions and the read side are there ([A plugin's settings](#a-plugins-settings)), the
+  page does not draw the form yet.
+- **A plugin reading its own settings** (the SDK, BARY-66): only the host reads them for now.

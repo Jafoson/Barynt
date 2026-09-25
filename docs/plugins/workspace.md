@@ -59,6 +59,7 @@ means off) and someone with `plugin.enable` opens it; otherwise the tab is missi
 ## Not here
 
 - **Updating and removing.** Those are the platform's ([The plugins page](admin.md)).
-- **A plugin's own settings** (`PluginWorkspace.config`, BARY-66).
+- **A plugin's own settings** (`PluginWorkspace.config`): saving and reading are there (`saveWorkspacePluginSettings`, [Lifecycle](lifecycle.md#a-plugins-settings));
+  the form on this page is not built yet (BARY-68, step 3).
 - **Project level**: a project switches on the plugins that apply per project on [its own page](project.md); a workspace's page knows
   nothing of them. A project opting out of what the workspace switched on is not built.

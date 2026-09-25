@@ -25,7 +25,7 @@ export async function getWorkspacePlugins(
     loadOverview(locale, async () => false),
     db.pluginWorkspace.findMany({
       where: { workspaceId, enabled: true },
-      select: { pluginId: true },
+      select: { pluginId: true, config: true },
     }),
     // Whether the platform gave workspaces the store: fails closed, so a setting that cannot
     // be read is no Store tab.
@@ -35,5 +35,6 @@ export async function getWorkspacePlugins(
     overview,
     new Set(enabled.map((e) => e.pluginId)),
     visibility.inWorkspaces,
+    new Map(enabled.map((e) => [e.pluginId, e.config])),
   );
 }

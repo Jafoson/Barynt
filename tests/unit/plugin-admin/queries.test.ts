@@ -204,6 +204,7 @@ describe("what is put together", () => {
       codeApprovalHash: true,
       previousVersion: true,
       previousIntegrity: true,
+      config: true,
     });
     expect(mockGroupBy.mock.calls[0]?.[0]).toEqual({
       by: ["pluginId"],
@@ -214,6 +215,39 @@ describe("what is put together", () => {
       by: ["pluginId"],
       where: { enabled: true },
       _count: { _all: true },
+    });
+  });
+
+  it("gives the platform's settings for a plugin that applies to the whole platform, from its own row", async () => {
+    const hash = await put("audit", "1.0.0", {
+      scope: "platform",
+      contributes: {
+        settings: [
+          { id: "hook", type: "text", label: "Hook" },
+          { id: "compact", type: "boolean", label: "Compact" },
+        ],
+      },
+    });
+    mockPluginFindMany.mockResolvedValue([
+      {
+        id: "audit",
+        version: "1.0.0",
+        status: "ENABLED",
+        source: "STORE",
+        scope: "PLATFORM",
+        origin: OFFICIAL_STORE_URL,
+        integrity: hash,
+        codeApprovalHash: null,
+        previousVersion: null,
+        previousIntegrity: null,
+        config: { hook: "https://example.com/hook" },
+      },
+    ]);
+    const plugin = (await getPluginsOverview("en")).installed[0];
+    expect(plugin?.settings.map((f) => f.id)).toEqual(["hook", "compact"]);
+    expect(plugin?.settingValues).toEqual({
+      hook: "https://example.com/hook",
+      compact: false,
     });
   });
 

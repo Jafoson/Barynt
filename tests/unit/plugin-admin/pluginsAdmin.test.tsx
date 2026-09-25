@@ -155,6 +155,8 @@ function installed(more: Partial<InstalledPlugin> = {}): InstalledPlugin {
     integrity: H1,
     update: null,
     projects: 0,
+    settings: [],
+    settingValues: null,
     previousVersion: null,
     storeUpdate: null,
     ...more,

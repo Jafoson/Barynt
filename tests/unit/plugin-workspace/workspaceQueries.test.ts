@@ -162,7 +162,7 @@ describe("what is put together", () => {
     await getWorkspacePlugins("ws-7", "en");
     expect(mockWorkspaceRows).toHaveBeenCalledWith({
       where: { workspaceId: "ws-7", enabled: true },
-      select: { pluginId: true },
+      select: { pluginId: true, config: true },
     });
   });
 
@@ -190,6 +190,37 @@ describe("what is put together", () => {
       ["wiki", true, null],
     ]);
     expect(view.available).toBe(true);
+  });
+
+  it("gives a plugin's settings, with what this workspace has stored for it and no other", async () => {
+    const notes = await put("notes", "1.0.0", {
+      contributes: {
+        settings: [
+          { id: "title", type: "text", label: "Title", default: "Notes" },
+          { id: "compact", type: "boolean", label: "Compact" },
+        ],
+      },
+    });
+    const wiki = await put("wiki", "1.0.0", {
+      contributes: {
+        settings: [
+          { id: "title", type: "text", label: "Title", default: "Wiki" },
+        ],
+      },
+    });
+    mockPluginFindMany.mockResolvedValue([
+      row("notes", notes),
+      row("wiki", wiki),
+    ]);
+    mockWorkspaceRows.mockResolvedValue([
+      { pluginId: "notes", config: { title: "Sprint", compact: true } },
+    ]);
+    const view = await getWorkspacePlugins("ws-7", "en");
+    const [n, w] = view.plugins;
+    expect(n?.settings?.values).toEqual({ title: "Sprint", compact: true });
+    expect(n?.settings?.fields.map((f) => f.id)).toEqual(["title", "compact"]);
+    // Off here: nothing to set.
+    expect(w?.settings).toBeNull();
   });
 
   it("says a plugin with code needs the platform's approval, from what the platform has approved", async () => {

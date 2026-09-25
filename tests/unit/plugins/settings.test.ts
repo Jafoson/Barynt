@@ -1,11 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import {
+  changedSettings,
   checkSettingValue,
   DEFAULT_TEXT_LENGTH,
   DEFAULT_TEXTAREA_LENGTH,
-  defaultOf,
   MAX_SETTINGS_BYTES,
   resolveSettings,
+  sameSettings,
+  settingsForm,
   settingsOf,
   toFields,
   validateSettings,
@@ -34,10 +36,11 @@ function manifestWith(settings: unknown[]) {
   return result.manifest;
 }
 const defs = (...settings: unknown[]) => settingsOf(manifestWith(settings));
+const fieldsOf = (...settings: unknown[]) => toFields(defs(...settings), "en");
 const one = (setting: Record<string, unknown>) => {
-  const [def] = defs({ id: "s", label: "S", ...setting });
-  if (!def) throw new Error("no definition");
-  return def;
+  const [field] = fieldsOf({ id: "s", label: "S", ...setting });
+  if (!field) throw new Error("no field");
+  return field;
 };
 
 describe("the settings a manifest declares", () => {
@@ -228,17 +231,17 @@ describe("a choice", () => {
 
 describe("the default", () => {
   it("is what the definition says, and a yes/no is off when it says nothing", () => {
-    expect(defaultOf(one({ type: "text", default: "x" }))).toBe("x");
-    expect(defaultOf(one({ type: "number", default: 0 }))).toBe(0);
-    expect(defaultOf(one({ type: "boolean", default: true }))).toBe(true);
-    expect(defaultOf(one({ type: "boolean" }))).toBe(false);
-    expect(defaultOf(one({ type: "text" }))).toBeNull();
-    expect(defaultOf(one({ type: "number" }))).toBeNull();
+    expect(one({ type: "text", default: "x" }).default).toBe("x");
+    expect(one({ type: "number", default: 0 }).default).toBe(0);
+    expect(one({ type: "boolean", default: true }).default).toBe(true);
+    expect(one({ type: "boolean" }).default).toBe(false);
+    expect(one({ type: "text" }).default).toBeNull();
+    expect(one({ type: "number" }).default).toBeNull();
   });
 });
 
 describe("saving values", () => {
-  const all = defs(
+  const all = fieldsOf(
     { id: "title", type: "text", label: "Title", default: "Board" },
     { id: "note", type: "textarea", label: "Note" },
     {
@@ -324,7 +327,7 @@ describe("saving values", () => {
   });
 
   it("does not take a name from Object.prototype for a value someone gave", () => {
-    const odd = defs(
+    const odd = fieldsOf(
       { id: "constructor", type: "text", label: "C" },
       { id: "to-string", type: "text", label: "T" },
     );
@@ -410,7 +413,7 @@ describe("saving values", () => {
   });
 
   it("refuses more than it may keep, as a whole", () => {
-    const big = defs(
+    const big = fieldsOf(
       ...Array.from({ length: 20 }, (_, i) => ({
         id: `note-${i}`,
         type: "textarea",
@@ -445,7 +448,7 @@ describe("saving values", () => {
 });
 
 describe("reading values", () => {
-  const all = defs(
+  const all = fieldsOf(
     { id: "title", type: "text", label: "Title", default: "Board" },
     { id: "limit", type: "number", label: "Limit", min: 1 },
     { id: "compact", type: "boolean", label: "Compact" },
@@ -604,5 +607,82 @@ describe("what a form needs", () => {
     expect(
       toFields(defs({ id: "t", type: "text", label: "T" }), "en")[0]?.maxLength,
     ).toBe(DEFAULT_TEXT_LENGTH);
+  });
+});
+
+describe("the form of a plugin's settings", () => {
+  const fields = fieldsOf(
+    { id: "title", type: "text", label: "Title", default: "Board" },
+    { id: "compact", type: "boolean", label: "Compact" },
+  );
+
+  it("is the fields, and what each has now", () => {
+    const form = settingsForm(fields, { title: "Sprint", compact: true });
+    expect(form.fields).toEqual(fields);
+    expect(form.values).toEqual({ title: "Sprint", compact: true });
+    expect(settingsForm(fields, {}).values).toEqual({
+      title: "Board",
+      compact: false,
+    });
+  });
+
+  it("is a copy of the fields, so a caller cannot change the ones it was made from", () => {
+    const form = settingsForm(fields, {});
+    expect(form.fields).not.toBe(fields);
+    form.fields.pop();
+    expect(fields).toHaveLength(2);
+  });
+
+  it("has no fields and no values for a plugin without settings", () => {
+    expect(settingsForm([], { anything: 1 })).toEqual({
+      fields: [],
+      values: {},
+    });
+  });
+});
+
+describe("whether two sets of stored values are the same", () => {
+  it("is so whatever order the keys are in", () => {
+    expect(sameSettings({ a: 1, b: "x" }, { b: "x", a: 1 })).toBe(true);
+    expect(sameSettings({}, {})).toBe(true);
+  });
+
+  it("is not when a value, a key or the number of keys differs", () => {
+    expect(sameSettings({ a: 1 }, { a: 2 })).toBe(false);
+    expect(sameSettings({ a: 1 }, { b: 1 })).toBe(false);
+    expect(sameSettings({ a: 1 }, { a: 1, b: 2 })).toBe(false);
+    expect(sameSettings({ a: 1, b: 2 }, { a: 1 })).toBe(false);
+    expect(sameSettings({ a: 1 }, { a: "1" })).toBe(false);
+    expect(sameSettings({ a: false }, {})).toBe(false);
+    expect(sameSettings({ a: undefined }, { b: undefined })).toBe(false);
+  });
+
+  it("takes what is not an object, in the database, for nothing stored", () => {
+    for (const nothing of [null, undefined, "x", 5, ["a"]]) {
+      expect(sameSettings(nothing, {})).toBe(true);
+      expect(sameSettings({}, nothing)).toBe(true);
+      expect(sameSettings(nothing, { a: 1 })).toBe(false);
+    }
+  });
+});
+
+describe("what a change touched", () => {
+  it("is the keys that were added, removed or given another value, sorted", () => {
+    expect(changedSettings({ a: 1, b: 2, c: 3 }, { a: 1, b: 5, d: 4 })).toEqual(
+      ["b", "c", "d"],
+    );
+  });
+
+  it("is nothing when nothing changed, and every key against nothing", () => {
+    expect(changedSettings({ a: 1 }, { a: 1 })).toEqual([]);
+    expect(changedSettings({}, {})).toEqual([]);
+    expect(changedSettings(null, { b: 1, a: 2 })).toEqual(["a", "b"]);
+    expect(changedSettings({ b: 1, a: 2 }, undefined)).toEqual(["a", "b"]);
+  });
+
+  it("sees a value that became false or empty as a change, not as nothing", () => {
+    expect(changedSettings({ a: true }, { a: false })).toEqual(["a"]);
+    expect(changedSettings({ a: "x" }, { a: "" })).toEqual(["a"]);
+    expect(changedSettings({ a: 0 }, {})).toEqual(["a"]);
   });
 });

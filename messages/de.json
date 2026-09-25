@@ -1483,6 +1483,7 @@
       "pluginWorkspaceDisabled": "Plugin in einem Workspace ausgeschaltet",
       "pluginProjectEnabled": "Plugin in einem Projekt eingeschaltet",
       "pluginProjectDisabled": "Plugin in einem Projekt ausgeschaltet",
+      "pluginSettingsChanged": "Plugin-Einstellungen geändert",
       "projectCreated": "Projekt angelegt",
       "projectVisibilityChanged": "Sichtbarkeit geändert",
       "memberAdded": "Mitglied hinzugefügt",

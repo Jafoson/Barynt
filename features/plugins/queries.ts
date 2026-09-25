@@ -73,6 +73,7 @@ export async function loadOverview(
         codeApprovalHash: true,
         previousVersion: true,
         previousIntegrity: true,
+        config: true,
       },
     }),
     db.pluginWorkspace.groupBy({

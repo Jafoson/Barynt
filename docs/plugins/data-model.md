@@ -18,7 +18,7 @@ tables, one row per installation and one per plugin and workspace.
 | `status` | `ENABLED` or `DISABLED`, the platform's switch for the whole plugin. `DISABLED` stops it loading without uninstalling it; the workspaces' settings stay |
 | `source` | `STORE`, `UPLOAD` or `DIRECTORY`. `STORE` means it came from a plugin store and its hash is pinned in the store entry; the other two have no store entry and are not loaded unless the platform allows plugins from no store, and even then only one without code runs ([`allowUnsignedPlugins`](#systemsettingsallowunsignedplugins)) |
 | `scope` | `WORKSPACE`, `PROJECT` or `PLATFORM`, taken from the manifest's `scope` at install; an update or a rollback cannot change it. `WORKSPACE`: switched on per workspace (`PluginWorkspace`). `PROJECT`: switched on per project. `PLATFORM`: applies to the whole instance as soon as it is installed and `ENABLED`, with no switch per workspace. Stored so that "which plugins apply in this workspace" is one query and not a walk over the manifests on disk |
-| `config` | the platform's settings for a `PLATFORM` plugin, `{}` until something is set. Unused for `WORKSPACE` plugins, whose settings are per workspace in `PluginWorkspace.config` |
+| `config` | the platform's settings for a `PLATFORM` plugin, `{}` until something is set: only the values that differ from the manifest's defaults ([Lifecycle](lifecycle.md#a-plugins-settings)). Unused for `WORKSPACE` and `PROJECT` plugins, whose settings are per workspace in `PluginWorkspace.config` and per project in `PluginProject.config` |
 | `origin` | for `STORE` the address of the store (the official one or a custom one), otherwise empty |
 | `integrity` | the hash of the plugin **directory** as `sha512-<base64>`, computed at install by `hashPluginDirectory()` and approved by the admin. It is checked before every load, and a plugin whose files differ does not load ([Security](security.md#the-integrity-check)). The archive hash pinned in a store entry is verified by the installer before it extracts; the directory hash is what is stored |
 | `codeApprovalHash`, `codeApprovedAt` | the hash the platform approved for the plugin's **code** to run in the process, and when. Empty: not approved, a plugin with `server` or `client` does not run. It fits only while it equals `integrity`; after an update it no longer does and the code does not run until the new version is approved ([Security](security.md#the-approval)). A plugin without code needs none |
@@ -37,7 +37,7 @@ constraint would need a trigger); the registry never creates such a row.
 | Column | Meaning |
 | --- | --- |
 | `enabled` | on in this workspace. The row appears at the first switch-on (`enablePlugin`) and **stays when it is switched off** (`disablePlugin` sets it to `false`), so the settings are not lost. It is deleted only with the plugin (uninstall), with the workspace, or when a switch-on that this call created is put back because the plugin could not run there ([Lifecycle](lifecycle.md#switching-on-has-to-end-with-the-plugin-running)) |
-| `config` | the plugin's settings in this workspace, `{}` until something is set. The plugin defines the shape (BARY-66) |
+| `config` | the plugin's settings in this workspace, `{}` until something is set: only what differs from the defaults. The manifest defines the shape ([Settings](manifest.md#settings)); it is at most 64 KB |
 | `createdAt`, `updatedAt` | |
 
 There is an index on `workspaceId` for the most common question, which plugins are on
@@ -53,7 +53,7 @@ per workspace), so a row of the wrong kind would not get a plugin loaded, and th
 | Column | Meaning |
 | --- | --- |
 | `enabled` | on in this project. The row appears at the first switch-on and **stays when it is switched off**, so the settings are not lost. It is deleted with the plugin (uninstall), with the project, or when a switch-on that this call created is put back because the plugin could not run there |
-| `config` | the plugin's settings in this project, `{}` until something is set. The plugin defines the shape (BARY-66) |
+| `config` | the plugin's settings in this project, `{}` until something is set: only what differs from the defaults. The manifest defines the shape ([Settings](manifest.md#settings)); it is at most 64 KB |
 | `createdAt`, `updatedAt` | |
 
 There is an index on `projectId`, for which plugins are on in this project.

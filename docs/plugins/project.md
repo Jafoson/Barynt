@@ -54,4 +54,5 @@ workspace's ([The store of a workspace](workspace.md#the-store-of-a-workspace)),
 
 ## Not here yet
 
-- **A plugin's own settings** (`PluginProject.config`, BARY-66).
+- **A plugin's own settings** (`PluginProject.config`): saving and reading are there (`saveProjectPluginSettings`, [Lifecycle](lifecycle.md#a-plugins-settings));
+  the form on this page is not built yet (BARY-68, step 3).
