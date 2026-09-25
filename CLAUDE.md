@@ -264,7 +264,11 @@ and measured (start at `docs/plugins/README.md`).
 - **The plugins of a project** (`/<workspace>/project/<slug>/settings/plugins`, `docs/plugins/project.md`, `plugin.enable` in that project, asked by the query itself):
   the workspace's page with the words of a project. `features/plugins/components/LevelPlugins` is the one component (`level="workspace" | "project"`, the words
   `workspacePlugins.*` or `projectPlugins.*`), `WorkspacePlugins` and `ProjectPlugins` are thin wrappers that bind the ids; `buildWorkspacePlugins` and `buildProjectPlugins`
-  (`workspacePlugins.ts`) make the same selection for the plugins that apply per workspace or per project. `getProjectPlugins` (`projectQueries.ts`) has no store tab yet.
+  (`workspacePlugins.ts`) make the same selection for the plugins that apply per workspace or per project. `getProjectPlugins` (`projectQueries.ts`) has a Store tab where `getStoreVisibility().inProjects` says so (fails closed; what is set for workspaces does not decide it).
+  **The store for a project** (`.../settings/plugins/store`, the same `PluginStore` with a `project` prop and a `StoreModeContext` whose `level` is `workspace`/`project`/`platform`):
+  `getProjectStore` and `getWorkspaceStore` share `selectForLevel` (`levelStore.ts`: the plugins of that scope, released ones where the platform asked, what is on here as installed, a
+  store's state only as "unavailable"); `addStorePluginToProject` and `addStorePluginToWorkspace` share `addStorePluginForLevel` (`storeLevelAdd.ts`: visibility of that level, release,
+  `installFromStore` with `only` and the id that asked, then the switch; code waits for the platform's approval, a warning not a failure).
 - **The plugins of a workspace** (`/<workspace>/settings/plugins`, `docs/plugins/workspace.md`, `plugin.enable` in that workspace, asked by the query itself; a page for someone
   who may not is a 404): `getWorkspacePlugins` (`workspaceQueries.ts`) reads the platform's overview (`loadOverview`) and `buildWorkspacePlugins` (pure) **selects** from it: **nothing that is
   the platform's** (the plugin directory's path, why plugins are off, hashes, origin, counts) reaches a workspace admin. The switch is `enablePlugin`/`disablePlugin`; one that cannot run is

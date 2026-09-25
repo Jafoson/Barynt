@@ -130,6 +130,7 @@ const install = (
     storeId?: string;
     only?: "WORKSPACE" | "PROJECT";
     workspaceId?: string;
+    projectId?: string;
   } = {},
 ) =>
   installFromStore({
@@ -139,6 +140,7 @@ const install = (
     version: more.version ?? "1.0.0",
     ...(more.only ? { only: more.only } : {}),
     ...(more.workspaceId ? { workspaceId: more.workspaceId } : {}),
+    ...(more.projectId ? { projectId: more.projectId } : {}),
   });
 const at = (...parts: string[]) => join(root, ...parts);
 const noWork = () => {
@@ -345,10 +347,23 @@ describe("an install for a workspace", () => {
     noWork();
   });
 
-  it("takes only what applies per project, for a project", async () => {
+  it("takes only what applies per project, for a project, and says in the audit entry which project asked", async () => {
     await clone({ manifest: { scope: "project" } });
-    expect(await install({ only: "PROJECT" })).toEqual({ ok: true });
+    expect(await install({ only: "PROJECT", projectId: "p-7" })).toEqual({
+      ok: true,
+    });
     expect(pluginCreate.mock.calls[0]?.[0].data.scope).toBe("PROJECT");
+    const meta = auditCreate.mock.calls[0]?.[0].data.meta;
+    expect(meta).toMatchObject({ project: "p-7", scope: "PROJECT" });
+    expect(meta).not.toHaveProperty("workspace");
+  });
+
+  it("does not say a project in the audit entry when none asked, and not a workspace for a project", async () => {
+    await clone({ manifest: { scope: "project" } });
+    await install({ only: "PROJECT" });
+    expect(auditCreate.mock.calls[0]?.[0].data.meta).not.toHaveProperty(
+      "project",
+    );
   });
 
   it("does not take what applies per workspace or to the whole platform, for a project", async () => {

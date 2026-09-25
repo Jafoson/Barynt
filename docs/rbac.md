@@ -391,7 +391,9 @@ permissions at different levels (the plugin system is described in
   whole platform is never a workspace's to bring in, and uninstalling and updating stay
   with `plugin.manage`. `plugin.manage` is not grantable in a workspace or a project, and
   `plugin.enable` is not grantable on the platform. What applies **per project** is switched on by the
-  project (`plugin.enable` on a project role), not by the workspace.
+  project (`plugin.enable` on a project role), not by the workspace, and a project admin with it can also **add** such a plugin from the stores
+  the platform switched on (*Show the store in projects*, [docs/plugins/project.md](plugins/project.md#the-store-of-a-project)), as a workspace admin can
+  for what applies per workspace.
 - **`manager` does not have `plugin.enable`.** Switching a plugin on lets its code work
   with the workspace's data, which is the leadership's call rather than
   configuration. A workspace can still give the permission to a custom role

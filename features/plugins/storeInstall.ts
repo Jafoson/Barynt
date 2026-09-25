@@ -60,6 +60,8 @@ export async function installFromStore(input: {
   only?: "WORKSPACE" | "PROJECT";
   /** The workspace that asked, when one did: it is in the audit entry. */
   workspaceId?: string;
+  /** The project that asked, when one did: it is in the audit entry. */
+  projectId?: string;
 }): Promise<PluginActionResult> {
   const { actorId, storeId, pluginId, version } = input;
 
@@ -181,6 +183,7 @@ export async function installFromStore(input: {
       store: store.key,
       archive: verified.release.archiveSha512,
       ...(input.workspaceId ? { workspace: input.workspaceId } : {}),
+      ...(input.projectId ? { project: input.projectId } : {}),
     },
   });
 

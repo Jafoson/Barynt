@@ -150,6 +150,23 @@ describe("what the row says", () => {
     expect(read).toContain("workspaceStore.storeUnavailable");
   });
 
+  it("says it in a project's words for a project's page, and a workspace's for a workspace's", () => {
+    const unavailable = state({
+      error: "unavailable",
+      errorCode: "unreadable",
+    });
+    const project = render(
+      <StoreSync readOnly level="project" store={unavailable} />,
+    );
+    expect(project).toContain("projectStore.storeUnavailable");
+    expect(project).not.toContain("workspaceStore.storeUnavailable");
+    const workspace = render(
+      <StoreSync readOnly level="workspace" store={unavailable} />,
+    );
+    expect(workspace).toContain("workspaceStore.storeUnavailable");
+    expect(workspace).not.toContain("projectStore.storeUnavailable");
+  });
+
   it("says nothing is wrong when nothing is", () => {
     const html = render(<StoreSync store={state({ syncedAt: new Date() })} />);
     for (const word of [

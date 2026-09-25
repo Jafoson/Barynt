@@ -1692,5 +1692,20 @@
     "addedNotOn": "{message}",
     "noStores": "No plugin store is switched on, so there is nothing to add here yet.",
     "nothingReleased": "The platform has not released a plugin for workspaces yet."
+  },
+  "projectStore": {
+    "add": "Add",
+    "switchOn": "Switch on",
+    "installTitle": "Add {name} {version}",
+    "installConfirm": "Add",
+    "installCodeNote": "It has code. It is added for the whole platform, and its code runs only after the platform has approved it. Until then it is added and not switched on here.",
+    "installNoCodeNote": "It has no code. What its manifest describes is available here as soon as it is added.",
+    "installWarnBody": "Adding takes the files from the store, puts them on this instance for the whole platform and switches the plugin on in this project.",
+    "installCheck": "I have read what it asks for and want to add it",
+    "storeUnavailable": "A store cannot be read or updated at the moment, so what is shown may be out of date.",
+    "storeUpdated": "Store updated {time}",
+    "addedNotOn": "{message}",
+    "noStores": "No plugin store is switched on, so there is nothing to add here yet.",
+    "nothingReleased": "The platform has not released a plugin for projects yet."
   }
 }

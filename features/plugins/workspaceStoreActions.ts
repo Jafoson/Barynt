@@ -1,13 +1,10 @@
 "use server";
 
-import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/permissions";
 import { pluginVersionSchema } from "@/lib/plugins/manifest";
 import { STORE_PLUGIN_ID } from "@/lib/plugins/store/format";
-import { getStoreVisibility } from "@/lib/plugins/storeVisibility";
-import { installFromStore } from "./storeInstall";
+import { addStorePluginForLevel } from "./storeLevelAdd";
 import type { PluginActionResult } from "./types";
-import { enablePlugin } from "./workspaceActions";
 
 // A workspace adding a plugin from the store: what the platform admin allowed by default (the
 // store shown in workspaces, open unless the admin closed it). It is the platform's install
@@ -53,41 +50,12 @@ export async function addStorePluginToWorkspace(
     };
   }
 
-  // What the platform decided, fail closed: a setting that cannot be read is "not shown".
-  const visibility = await getStoreVisibility();
-  if (!visibility.inWorkspaces) {
-    return { error: "The plugin store is not available in workspaces." };
-  }
-  if (visibility.curatedOnly) {
-    const released = await db.pluginStoreCurated.findUnique({
-      where: { storeId_pluginId: { storeId, pluginId } },
-      select: { pluginId: true },
-    });
-    if (!released) {
-      return {
-        error: "The platform has not released this plugin for workspaces.",
-      };
-    }
-  }
-
-  const installed = await installFromStore({
+  return addStorePluginForLevel({
+    level: "workspace",
+    id: workspaceId,
     actorId,
     storeId,
     pluginId,
     version,
-    only: "WORKSPACE",
-    workspaceId,
   });
-  if ("error" in installed) return installed;
-
-  // Installed. Switching it on has to end with it running here, which a plugin with code
-  // cannot until the platform approves it: that is not a failure of the add.
-  const enabled = await enablePlugin(workspaceId, pluginId);
-  if ("error" in enabled) {
-    return {
-      ok: true,
-      warning: `${pluginId} was added, but it is not switched on in this workspace yet: ${enabled.error}`,
-    };
-  }
-  return enabled;
 }
