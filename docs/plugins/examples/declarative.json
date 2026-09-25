@@ -13,17 +13,10 @@
   },
   "author": "Jane Doe",
   "license": "MIT",
-  "categories": [
-    "customization"
-  ],
-  "keywords": [
-    "customer",
-    "custom-field"
-  ],
+  "categories": ["customization"],
+  "keywords": ["customer", "custom-field"],
   "barynt": ">=0.1.0 <0.2.0",
-  "capabilities": [
-    "issues:read"
-  ],
+  "capabilities": ["issues:read"],
   "contributes": {
     "customFields": [
       {
