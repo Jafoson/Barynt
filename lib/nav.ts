@@ -117,12 +117,14 @@ export const WORKSPACE_SETTINGS_PERMISSIONS: Permission[] = [
   "role.manage",
   "label.create",
   "workspace.update",
+  "customfield.manage",
 ];
 export const PROJECT_SETTINGS_PERMISSIONS: Permission[] = [
   "role.manage",
   "label.create",
   "project.update",
   "plugin.enable",
+  "customfield.manage",
 ];
 
 /**
@@ -385,6 +387,13 @@ export const WORKSPACE_SETTINGS_NAV: NavEntry[] = [
   { section: "", icon: "lucide:settings", labelKey: "general" },
   { section: "projects", icon: "lucide:folders", labelKey: "projects" },
   { section: "labels", icon: "lucide:tag", labelKey: "labels" },
+  {
+    // What every issue of the workspace is asked besides what it has anyway.
+    section: "fields",
+    icon: "lucide:layout-list",
+    labelKey: "fields",
+    permission: "customfield.manage",
+  },
   {
     section: "webhooks",
     icon: "lucide:webhook",

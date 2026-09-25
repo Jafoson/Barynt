@@ -343,6 +343,10 @@ of a `Label`) and **answered** per issue (`CustomFieldValue`, `(issueId, fieldId
   **where the field applies** (`{ workspaceId }` or `{ projectId }`; a project field's workspace is the project's, never the caller's), reports the reason instead of throwing, and is audited
   (`customfield.*`, target type `customField`). **The key and the type never change**; an option in use cannot be removed; a plugin's field (`pluginId`) is the plugin's. Reads are in
   `features/custom-fields/queries.ts` (`getCustomFieldsView`, `getFieldsOfProject`); a row of an unknown type is left out, not shown broken.
+- **The screens** (`features/custom-fields/components/`): `CustomFields` (the list; `embedded` on a project's Fields page, under the built-in switches, where the workspace-wide fields show **read only**
+  under "From the workspace") and `CustomFieldModal` (opened through `useOpenCustomFieldModal`: sheet on a phone, dialog from a tablet up). The workspace's page is `/<ws>/settings/fields`
+  (`WORKSPACE_SETTINGS_NAV`, `customfield.manage`, which also counts in `WORKSPACE_SETTINGS_PERMISSIONS`/`PROJECT_SETTINGS_PERMISSIONS`). **Key and type are asked only when a field is made**;
+  an option keeps its id through a rename (the form sends the id it read; a new option has none). The form's state is pure (`formState.ts`), the confirmation of a delete names the answers that go with it.
 - **`customfield.manage`** (WORKSPACE and PROJECT, `owner`/`admin`/`manager` and `project_admin`) defines fields; **filling one in is `issue.update.*`**. It is a new permission: an
   existing dev database needs the `provisionSystemRbac` snippet below.
 
@@ -644,11 +648,15 @@ tests/
       workspace.test.ts           ← switch on/off per workspace, onEnable/onDisable (own process: mocks `@/lib/plugins/host`)
       project.test.ts             ← switch on/off per project, onProjectEnable/onProjectDisable (same shape, one level down)
     custom-fields/
-      config.test.ts / value.test.ts  ← what a field's definition is made of and how a value is checked and stored (pure, no mocks)
+      config.test.ts / value.test.ts / formState.test.ts / nav.test.ts  ← what a field's definition is made of, how a value is checked and stored, the form's state, where the section is offered (pure, no mocks; the path in `run-tests.ts` ends in a slash, or the sibling folders would join this process)
     custom-fields-actions/
       definitionActions.test.ts   ← create, change, archive, delete a definition (own process: mocks the db, permissions, audit and `next/cache`)
     custom-fields-queries/
       fieldQueries.test.ts        ← what the screens read of the definitions (own process: mocks the db and the permissions differently)
+    custom-fields-modal/
+      customFieldModalFlow.test.tsx ← the window at work: Save off until changed, scope, key and type only on create, options keep ids, problems under their box (own process: replaces `react`'s hooks)
+    custom-fields-section/
+      customFields.test.tsx       ← the list: what is shown, what each row may do, what each button asks (own process: replaces `react`'s hooks, the confirmation, the opener and the actions)
     plugin-host-settings/
       settingsService.test.ts     ← what a plugin reads of its own settings, `ctx.settings` (own process: replaces the database, the permissions and the session)
     plugin-settings/
