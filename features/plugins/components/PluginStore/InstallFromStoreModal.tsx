@@ -15,8 +15,8 @@ interface Props {
   onConfirm: () => Promise<string | null>;
   close: () => void;
   sheet?: boolean;
-  /** A workspace adds it for the platform and switches it on here: the words say so. */
-  workspace?: boolean;
+  /** A workspace or a project adds it for the platform and switches it on here: the words say so. */
+  level?: "platform" | "workspace" | "project";
 }
 
 /**
@@ -31,10 +31,13 @@ export function InstallFromStoreModal({
   onConfirm,
   close,
   sheet,
-  workspace,
+  level = "platform",
 }: Props) {
   const t = useTranslations();
-  const scope = workspace ? "workspaceStore" : "pluginStore";
+  const scope =
+    level === "platform"
+      ? "pluginStore"
+      : (`${level}Store` as "workspaceStore" | "projectStore");
   return (
     <AcknowledgeModal
       close={close}

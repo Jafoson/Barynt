@@ -51,8 +51,12 @@ export function PluginAction({
       </span>
     );
   }
-  // On the platform already and off in this workspace: nothing to download, only to switch on.
-  if (mode.workspace && mode.switchOn.has(entry.id) && mode.onSwitchOn) {
+  // On the platform already and off in this workspace or project: nothing to download, only to switch on.
+  if (
+    mode.level !== "platform" &&
+    mode.switchOn.has(entry.id) &&
+    mode.onSwitchOn
+  ) {
     const switchOn = mode.onSwitchOn;
     return (
       <Button
@@ -61,7 +65,7 @@ export function PluginAction({
         disabled={disabled}
         onClick={() => switchOn(entry)}
       >
-        {t("workspaceStore.switchOn")}
+        {t(`${mode.level}Store.switchOn` as "workspaceStore.switchOn")}
       </Button>
     );
   }
@@ -90,7 +94,9 @@ export function PluginAction({
       disabled={disabled}
       onClick={() => onInstall(entry, version)}
     >
-      {mode.workspace ? t("workspaceStore.add") : t("pluginStore.install")}
+      {mode.level === "platform"
+        ? t("pluginStore.install")
+        : t(`${mode.level}Store.add` as "workspaceStore.add")}
     </Button>
   );
 }

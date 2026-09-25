@@ -5,8 +5,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { CatalogEntry } from "@/lib/plugins/store/catalog";
 import { entry, view } from "../plugin-store-support/fixtures";
 import {
+  mockAddToProject,
   mockAddToWorkspace,
   mockEnable,
+  mockEnableInProject,
   mockInstall,
   mockSetCurated,
   mockUpdate,
@@ -62,12 +64,18 @@ function render(
   v: StoreCatalogView,
   initial?: ComponentProps<typeof PluginStore>["initial"],
   workspace?: ComponentProps<typeof PluginStore>["workspace"],
+  project?: ComponentProps<typeof PluginStore>["project"],
 ): string {
   cards.length = 0;
   featuredShown.length = 0;
   resetStarted();
   return renderToStaticMarkup(
-    <PluginStore view={v} initial={initial} workspace={workspace} />,
+    <PluginStore
+      view={v}
+      initial={initial}
+      workspace={workspace}
+      project={project}
+    />,
   );
 }
 
@@ -105,8 +113,12 @@ beforeEach(() => {
     mockSetCurated,
     mockEnable,
     mockAddToWorkspace,
+    mockAddToProject,
+    mockEnableInProject,
   ])
     m.mockClear();
+  mockAddToProject.mockResolvedValue({ ok: true });
+  mockEnableInProject.mockResolvedValue({ ok: true });
   mockUpdate.mockResolvedValue({ ok: true });
   mockEnable.mockResolvedValue({ ok: true });
   mockAddToWorkspace.mockResolvedValue({ ok: true });
@@ -691,7 +703,7 @@ describe("a workspace's store", () => {
       close: () => {},
     }).props as Record<string, unknown> & {
       entry: CatalogEntry;
-      workspace?: boolean;
+      level?: string;
       onConfirm: () => Promise<string | null>;
       onRelease?: unknown;
     };
@@ -707,7 +719,7 @@ describe("a workspace's store", () => {
   it("tells the cards it is a workspace's page, and which plugins are to be switched on", () => {
     wsRender();
     const modes = cards.map((c) => c.mode);
-    expect(modes.every((m) => m.workspace)).toBe(true);
+    expect(modes.every((m) => m.level === "workspace")).toBe(true);
     expect([...(modes[0]?.switchOn ?? [])]).toEqual(["b-plugin"]);
     expect(typeof modes[0]?.onSwitchOn).toBe("function");
   });
@@ -715,7 +727,7 @@ describe("a workspace's store", () => {
   it("tells the cards nothing of the kind on the platform's page", () => {
     render(view({ entries: four() }));
     for (const card of cards) {
-      expect(card.mode.workspace).toBe(false);
+      expect(card.mode.level).toBe("platform");
       expect(card.mode.switchOn.size).toBe(0);
       expect(card.mode.onSwitchOn).toBeNull();
     }
@@ -753,7 +765,7 @@ describe("a workspace's store", () => {
     wsRender();
     cards[2]?.onInstall(cards[2].entry, "2.3.4");
     const props = modal();
-    expect(props.workspace).toBe(true);
+    expect(props.level).toBe("workspace");
     expect(await props.onConfirm()).toBeNull();
     expect(mockAddToWorkspace.mock.calls).toEqual([
       ["ws-7", "store-1", "c-plugin", "2.3.4", { acknowledged: true }],
@@ -811,5 +823,149 @@ describe("a workspace's store", () => {
     render(view({ entries: four() }));
     cards[1]?.onOpen(cards[1].entry);
     expect(typeof modal().onRelease).toBe("function");
+  });
+});
+
+describe("a project's store", () => {
+  const PR = {
+    id: "p-7",
+    switchOn: ["b-plugin"],
+    basePath: "/nimbus/project/web-app/settings/plugins",
+  };
+  const prRender = (v = view({ entries: four() })) =>
+    render(v, undefined, undefined, PR);
+  const modal = () => {
+    const call = openModal.mock.calls.at(-1);
+    if (!call) throw new Error("no dialog");
+    return (call[0] as (a: { close: () => void }) => ReactElement)({
+      close: () => {},
+    }).props as Record<string, unknown> & {
+      entry: CatalogEntry;
+      level?: string;
+      onConfirm: () => Promise<string | null>;
+      onRelease?: unknown;
+    };
+  };
+
+  it("has the project's own two pages as tabs, not the platform's or a workspace's", () => {
+    const html = prRender();
+    expect(html).toContain(
+      'href="/nimbus/project/web-app/settings/plugins/store"',
+    );
+    expect(html).toContain('href="/nimbus/project/web-app/settings/plugins"');
+    expect(html).not.toContain("/admin/plugins");
+  });
+
+  it("tells the cards it is a project's page, and which plugins are to be switched on", () => {
+    prRender();
+    const modes = cards.map((c) => c.mode);
+    expect(modes.every((m) => m.level === "project")).toBe(true);
+    expect([...(modes[0]?.switchOn ?? [])]).toEqual(["b-plugin"]);
+    expect(typeof modes[0]?.onSwitchOn).toBe("function");
+  });
+
+  it("has no button to update a store, which is the platform's, and says a store that could not be updated in a project's words", () => {
+    const html = prRender();
+    expect(html).toContain("Official");
+    expect(html).not.toContain("pluginStore.syncLabel");
+    const failing = view({
+      entries: four(),
+      stores: [
+        {
+          id: "store-1",
+          name: "Official",
+          official: true,
+          error: "unavailable",
+          errorCode: "unreadable",
+          syncedAt: null,
+          syncError: null,
+          problems: [],
+        },
+      ],
+    });
+    const failed = prRender(failing);
+    expect(failed).toContain("projectStore.storeUnavailable");
+    expect(failed).not.toContain("workspaceStore.storeUnavailable");
+  });
+
+  it("says the platform has released nothing yet, in a project's words, where it asked for that and there is nothing", () => {
+    const curated = view({
+      entries: [],
+      visibility: { inWorkspaces: true, inProjects: true, curatedOnly: true },
+    });
+    expect(prRender(curated)).toContain("projectStore.nothingReleased");
+    expect(prRender(curated)).not.toContain("workspaceStore.nothingReleased");
+    expect(prRender(curated)).not.toContain("pluginStore.noEntries");
+    expect(prRender(view({ entries: [] }))).toContain("pluginStore.noEntries");
+  });
+
+  it("does not send a project admin to the platform's stores page when none is on, and says so in a project's words", () => {
+    const html = prRender(view({ stores: [] }));
+    expect(html).toContain("projectStore.noStores");
+    expect(html).not.toContain("workspaceStore.noStores");
+    expect(html).not.toContain("/admin/plugin-stores");
+  });
+
+  it("adds a plugin for this project, with the ids it was shown and the yes, and not through the platform's or a workspace's install", async () => {
+    prRender();
+    cards[2]?.onInstall(cards[2].entry, "2.3.4");
+    const props = modal();
+    expect(props.level).toBe("project");
+    expect(await props.onConfirm()).toBeNull();
+    expect(mockAddToProject.mock.calls).toEqual([
+      ["p-7", "store-1", "c-plugin", "2.3.4", { acknowledged: true }],
+    ]);
+    expect(mockInstall).not.toHaveBeenCalled();
+    expect(mockAddToWorkspace).not.toHaveBeenCalled();
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives back the server's reason and does not reload when it refuses", async () => {
+    prRender();
+    cards[2]?.onInstall(cards[2].entry, "1.0.0");
+    mockAddToProject.mockResolvedValue({
+      error: "The platform has not released this plugin for projects.",
+    });
+    expect(await modal().onConfirm()).toBe(
+      "The platform has not released this plugin for projects.",
+    );
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("reloads and is done when the plugin was added but could not be switched on yet: that is a warning", async () => {
+    prRender();
+    cards[2]?.onInstall(cards[2].entry, "1.0.0");
+    mockAddToProject.mockResolvedValue({
+      ok: true,
+      warning: "not approved yet",
+    });
+    expect(await modal().onConfirm()).toBeNull();
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("switches on, in this project, a plugin the platform has, and reloads", async () => {
+    prRender();
+    cards[1]?.mode.onSwitchOn?.(cards[1].entry);
+    await settled();
+    expect(mockEnableInProject.mock.calls).toEqual([["p-7", "b-plugin"]]);
+    expect(mockEnable).not.toHaveBeenCalled();
+    expect(mockAddToProject).not.toHaveBeenCalled();
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not reload when the server refused to switch it on", async () => {
+    mockEnableInProject.mockResolvedValue({
+      error: "The platform has not approved its code.",
+    });
+    prRender();
+    cards[1]?.mode.onSwitchOn?.(cards[1].entry);
+    await settled();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it("has details without the release switch, which only the platform admin has", () => {
+    prRender();
+    cards[1]?.onOpen(cards[1].entry);
+    expect(modal().onRelease).toBeUndefined();
   });
 });

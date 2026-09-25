@@ -80,6 +80,8 @@ import type {
   WorkspacePluginsView,
 } from "@/features/plugins/workspacePlugins";
 
+const BASE = "/nimbus/project/web-app/settings/plugins";
+
 function plugin(more: Partial<WorkspacePlugin> = {}): WorkspacePlugin {
   return {
     id: "notes",
@@ -109,7 +111,9 @@ function view(more: Partial<WorkspacePluginsView> = {}): WorkspacePluginsView {
 function render(v: WorkspacePluginsView): string {
   switches = [];
   started = [];
-  return renderToStaticMarkup(<ProjectPlugins projectId="p-7" view={v} />);
+  return renderToStaticMarkup(
+    <ProjectPlugins projectId="p-7" view={v} basePath={BASE} />,
+  );
 }
 const settled = async () => {
   while (started.length > 0) await Promise.all(started.splice(0));
@@ -316,11 +320,19 @@ describe("what is shown", () => {
 });
 
 describe("the tabs", () => {
-  it("are not there yet: the store in a project is a later step, and the page says nothing of it", () => {
+  it("are there, to the project's own two pages, when the platform gave projects the store", () => {
     const html = render(view({ storeAvailable: true, plugins: [plugin()] }));
+    expect(html).toContain(`href="${BASE}"`);
+    expect(html).toContain(`href="${BASE}/store"`);
+    expect(html).toContain('aria-current="page"');
+    expect(html).toContain("pluginStore.tabStore");
+    expect(html).not.toContain("/admin");
+  });
+
+  it("are not there when it did not", () => {
+    const html = render(view({ storeAvailable: false, plugins: [plugin()] }));
     expect(html).not.toContain("/store");
     expect(html).not.toContain("pluginStore.tabStore");
-    expect(html).not.toContain('aria-current="page"');
   });
 });
 

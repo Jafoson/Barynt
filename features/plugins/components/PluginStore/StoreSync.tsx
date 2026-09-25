@@ -17,6 +17,8 @@ interface Props {
    * no button and not the reason, which is the platform's to see.
    */
   readOnly?: boolean;
+  /** Whose page: a workspace's or a project's says it in its own words. */
+  level?: "platform" | "workspace" | "project";
 }
 
 /**
@@ -26,7 +28,7 @@ interface Props {
  * (`syncPluginStores`, which needs `plugin.manage`); how it went is on the store's row, and
  * the page reads it from there.
  */
-export function StoreSync({ store, readOnly }: Props) {
+export function StoreSync({ store, readOnly, level = "platform" }: Props) {
   const t = useTranslations();
   const timeAgo = useTimeAgo();
   const router = useRouter();
@@ -78,7 +80,11 @@ export function StoreSync({ store, readOnly }: Props) {
         (store.error || store.syncError) && (
           <p className={styles.notice}>
             <Icon icon="lucide:triangle-alert" width={14} />
-            {t("workspaceStore.storeUnavailable")}
+            {t(
+              level === "project"
+                ? "projectStore.storeUnavailable"
+                : "workspaceStore.storeUnavailable",
+            )}
           </p>
         )
       ) : (

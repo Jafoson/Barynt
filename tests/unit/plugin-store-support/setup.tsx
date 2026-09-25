@@ -14,6 +14,8 @@ export const mockSetVisibility = mock();
 export const mockSync = mock();
 export const mockEnable = mock();
 export const mockAddToWorkspace = mock();
+export const mockAddToProject = mock();
+export const mockEnableInProject = mock();
 
 // `startTransition` cannot be called after a server render; here it runs what it is
 // given at once and remembers it, so a test can wait for it.
@@ -91,6 +93,12 @@ mock.module("@/features/plugins/workspaceActions", () => ({
 }));
 mock.module("@/features/plugins/workspaceStoreActions", () => ({
   addStorePluginToWorkspace: mockAddToWorkspace,
+}));
+mock.module("@/features/plugins/projectActions", () => ({
+  enablePluginInProject: mockEnableInProject,
+}));
+mock.module("@/features/plugins/projectStoreActions", () => ({
+  addStorePluginToProject: mockAddToProject,
 }));
 mock.module("@/features/plugin-stores/visibilityActions", () => ({
   setPluginCurated: mockSetCurated,

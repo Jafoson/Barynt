@@ -388,6 +388,34 @@ describe("the tabs", () => {
   });
 });
 
+describe("the tabs on a project's pages", () => {
+  const base = "/nimbus/project/web-app/settings/plugins";
+
+  it("are links to that project's own two pages, and none to the platform's or a workspace's", () => {
+    const html = render(<PluginsTabs active="store" basePath={base} />);
+    expect(html).toContain(`href="${base}"`);
+    expect(html).toContain(`href="${base}/store"`);
+    expect(html).not.toContain("/admin");
+    expect(html).not.toContain("/ws-");
+    expect(html.match(/aria-current="page"/g)).toHaveLength(1);
+    const installedPage = render(
+      <PluginsTabs active="installed" basePath={base} />,
+    );
+    expect(installedPage.match(/aria-current="page"/g)).toHaveLength(1);
+    expect(installedPage.indexOf('aria-current="page"')).toBeLessThan(
+      installedPage.indexOf(`href="${base}/store"`),
+    );
+  });
+
+  it("go by the project's address when both a workspace and a project are given: the project is the more specific", () => {
+    const html = render(
+      <PluginsTabs active="store" workspaceId="ws-7" basePath={base} />,
+    );
+    expect(html).toContain(`href="${base}/store"`);
+    expect(html).not.toContain("/ws-7/");
+  });
+});
+
 describe("the tabs on a workspace's pages", () => {
   it("are links to that workspace's own two pages, and none to the platform's", () => {
     const html = render(<PluginsTabs active="store" workspaceId="ws-7" />);
@@ -834,10 +862,86 @@ describe("the consent before updating", () => {
   });
 });
 
+describe("in a project's store", () => {
+  const mode = (more: Partial<StoreMode> = {}): StoreMode => ({
+    ...PLATFORM_MODE,
+    level: "project",
+    ...more,
+  });
+  const inMode = (m: StoreMode, e: CatalogEntry, seen: string[] = []) =>
+    render(
+      <StoreModeContext.Provider value={m}>
+        <PluginAction
+          entry={e}
+          onInstall={(x, v) => seen.push(`add ${x.id}@${v}`)}
+        />
+      </StoreModeContext.Provider>,
+    );
+
+  it("says add in its own words, where the platform's page says install and a workspace's says its own add", () => {
+    const html = inMode(mode(), entry("notes", { offered: "1.4.0" }));
+    expect(html).toContain("projectStore.add");
+    expect(html).not.toContain("workspaceStore.add");
+    expect(html).not.toContain("pluginStore.install<");
+  });
+
+  it("adds what it was offered, with the version on offer", () => {
+    const seen: string[] = [];
+    inMode(mode(), entry("notes", { offered: "1.4.0" }), seen);
+    buttons[0]?.onClick?.();
+    expect(seen).toEqual(["add notes@1.4.0"]);
+  });
+
+  it("is a button to switch on, in its own words, for a plugin the platform has and this project has not", () => {
+    const switched: string[] = [];
+    const html = inMode(
+      mode({
+        switchOn: new Set(["notes"]),
+        onSwitchOn: (e) => switched.push(e.id),
+      }),
+      entry("notes"),
+    );
+    expect(html).toContain("projectStore.switchOn");
+    expect(html).not.toContain("workspaceStore.switchOn");
+    buttons[0]?.onClick?.();
+    expect(switched).toEqual(["notes"]);
+  });
+
+  it("has a consent in its own words: adding for the whole platform, and switching on in the project", () => {
+    const element = InstallFromStoreModal({
+      entry: entry("notes", { name: "Notes", hasCode: true }),
+      version: "2.0.0",
+      onConfirm: async () => null,
+      close: noop,
+      level: "project",
+    }) as ReactElement<{
+      title: string;
+      confirmLabel: string;
+      notice: (s: {
+        checked: boolean;
+        onChange: (c: boolean) => void;
+        disabled: boolean;
+      }) => ReactNode;
+    }>;
+    expect(element.props.title).toBe(
+      'projectStore.installTitle|{"name":"Notes","version":"2.0.0"}',
+    );
+    expect(element.props.confirmLabel).toBe("projectStore.installConfirm");
+    const html = renderToStaticMarkup(
+      element.props.notice({ checked: false, onChange: noop, disabled: false }),
+    );
+    expect(html).toContain("projectStore.installCodeNote");
+    expect(html).toContain("projectStore.installWarnBody");
+    expect(html).toContain("projectStore.installCheck");
+    expect(html).not.toContain("workspaceStore.");
+    expect(html).not.toContain("pluginStore.installWarnBody");
+  });
+});
+
 describe("in a workspace's store", () => {
   const mode = (more: Partial<StoreMode> = {}): StoreMode => ({
     ...PLATFORM_MODE,
-    workspace: true,
+    level: "workspace",
     ...more,
   });
   const inMode = (m: StoreMode, e: CatalogEntry, seen: string[] = []) =>
@@ -938,7 +1042,7 @@ describe("in a workspace's store", () => {
       version: "2.0.0",
       onConfirm: async () => null,
       close: noop,
-      workspace: true,
+      level: "workspace",
     }) as ReactElement<{
       title: string;
       confirmLabel: string;
@@ -969,7 +1073,7 @@ describe("in a workspace's store", () => {
       version: "1.0.0",
       onConfirm: async () => null,
       close: noop,
-      workspace: true,
+      level: "workspace",
     }) as typeof element;
     expect(
       renderToStaticMarkup(

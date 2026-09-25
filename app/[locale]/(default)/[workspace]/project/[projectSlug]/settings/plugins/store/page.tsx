@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { ProjectPlugins } from "@/features/plugins/components/ProjectPlugins/ProjectPlugins";
-import { getProjectPlugins } from "@/features/plugins/projectQueries";
+import { PluginStore } from "@/features/plugins/components/PluginStore/PluginStore";
+import { getProjectStore } from "@/features/plugins/projectStoreQueries";
 import { getWorkspaceProjects } from "@/features/workspaces/queries";
 import { setCurrentWorkspaceId } from "@/lib/current-workspace";
 import { projectSettingsPath } from "@/lib/nav";
@@ -9,11 +9,11 @@ import { PermissionError } from "@/lib/permissions";
 export const dynamic = "force-dynamic";
 
 /**
- * The plugins of a project: which of the platform's plugins that apply per project it switches
- * on. Needs `plugin.enable` in this project; the query asks for it itself, a layout protects
- * nothing.
+ * The plugin store for a project: the plugins that apply per project, to add for the project or
+ * switch on. Needs `plugin.enable` in this project, and the platform having given projects the
+ * store (`SystemSettings`, open by default); otherwise the page is not there.
  */
-export default async function ProjectPluginsPage({
+export default async function ProjectPluginStorePage({
   params,
 }: {
   params: Promise<{ workspace: string; projectSlug: string; locale: string }>;
@@ -26,16 +26,18 @@ export default async function ProjectPluginsPage({
   if (!project) notFound();
 
   try {
-    const view = await getProjectPlugins(project.id, locale);
+    const store = await getProjectStore(project.id, locale);
+    if (!store) notFound();
     return (
-      <ProjectPlugins
-        projectId={project.id}
-        view={view}
-        basePath={projectSettingsPath(workspace, projectSlug, "plugins")}
+      <PluginStore
+        view={store.view}
+        project={{
+          ...store.project,
+          basePath: projectSettingsPath(workspace, projectSlug, "plugins"),
+        }}
       />
     );
   } catch (error) {
-    // Whoever may not is told the page is not there, like on the other settings pages.
     if (error instanceof PermissionError) notFound();
     throw error;
   }

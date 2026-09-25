@@ -2,8 +2,8 @@ import "server-only";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/permissions";
 import { pluginsDirSetting } from "@/lib/plugins/discovery";
-import type { CatalogEntry } from "@/lib/plugins/store/catalog";
 import { getStoreVisibility } from "@/lib/plugins/storeVisibility";
+import { selectForLevel } from "./levelStore";
 import { loadStoreCatalog, type StoreCatalogView } from "./storeQueries";
 
 /**
@@ -19,18 +19,11 @@ export interface WorkspaceStoreView {
   };
 }
 
-/** What a workspace admin is told of a store that cannot be read or fetched: that, and no more. */
-export const STORE_UNAVAILABLE = "unavailable";
-export const STORE_NOT_UPDATED = "failed";
-
 /**
  * The store for a workspace, or `null` where the platform has not given it one (the setting is
  * off, or plugins are off). Needs `plugin.enable` in this workspace, asked here and not only by the
- * layout. **A selection, not the platform's page**: only the plugins that apply per workspace, and
- * where the platform asked for it only the ones it released; a plugin that is on the platform and
- * not in this workspace is offered as one to switch on, and one that is on here as installed;
- * nothing of a store's state is passed on but that it could not be read or updated (not the reason,
- * which can hold a path or an address), and never an update, which is the platform's.
+ * layout. **A selection, not the platform's page** (`selectForLevel`): only the plugins that apply
+ * per workspace, and where the platform asked for it only the ones it released.
  */
 export async function getWorkspaceStore(
   workspaceId: string,
@@ -48,44 +41,15 @@ export async function getWorkspaceStore(
       select: { pluginId: true },
     }),
   ]);
-  const onHere = new Set(enabled.map((row) => row.pluginId));
-  const released = new Set(loaded.released);
-
-  const entries: CatalogEntry[] = [];
-  const switchOn: string[] = [];
-  for (const entry of loaded.catalog.entries) {
-    if (entry.scope !== "WORKSPACE") continue;
-    if (visibility.curatedOnly && !released.has(entry.key)) continue;
-    const here = onHere.has(entry.id);
-    if (entry.installed !== null && !here) switchOn.push(entry.id);
-    entries.push({
-      ...entry,
-      installed:
-        here && entry.installed
-          ? { ...entry.installed, update: null, addedCapabilities: [] }
-          : null,
-    });
-  }
+  const { view, switchOn } = selectForLevel(
+    loaded,
+    visibility,
+    new Set(enabled.map((row) => row.pluginId)),
+    "WORKSPACE",
+  );
 
   return {
-    view: {
-      catalog: {
-        entries,
-        stores: loaded.catalog.stores.map((store) => ({
-          id: store.id,
-          name: store.name,
-          official: store.official,
-          error: store.error ? STORE_UNAVAILABLE : null,
-          errorCode: store.errorCode,
-          syncedAt: store.syncedAt,
-          syncError: store.syncError ? STORE_NOT_UPDATED : null,
-          problems: [],
-        })),
-      },
-      visibility,
-      released: [],
-      problem: null,
-    },
+    view,
     workspace: { id: workspaceId, switchOn },
   };
 }

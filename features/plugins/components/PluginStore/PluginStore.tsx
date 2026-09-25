@@ -11,6 +11,8 @@ import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/Segment
 import { PageHeader } from "@/components/ui/layout/PageHeader/PageHeader";
 import { SettingsBody } from "@/components/ui/layout/SettingsList/SettingsList";
 import { setPluginCurated } from "@/features/plugin-stores/visibilityActions";
+import { enablePluginInProject } from "@/features/plugins/projectActions";
+import { addStorePluginToProject } from "@/features/plugins/projectStoreActions";
 import {
   installStorePlugin,
   updateStorePlugin,
@@ -36,7 +38,7 @@ import { PluginCard } from "./PluginCard";
 import styles from "./pluginStore.module.scss";
 import { StoreDetailModal } from "./StoreDetailModal";
 import { StoreSync } from "./StoreSync";
-import { PLATFORM_MODE, StoreModeContext } from "./storeMode";
+import { PLATFORM_MODE, type StoreMode, StoreModeContext } from "./storeMode";
 import { UpdateFromStoreModal } from "./UpdateFromStoreModal";
 
 interface Props {
@@ -47,6 +49,11 @@ interface Props {
    * (those are the platform's).
    */
   workspace?: { id: string; switchOn: string[] };
+  /**
+   * Set on a project's page: the same as a workspace's, for the plugins that apply per project.
+   * `basePath` is the project's plugins page, where the two tabs point.
+   */
+  project?: { id: string; switchOn: string[]; basePath: string };
   /** Where the page starts: what is typed, the category and the view. All empty by default. */
   initial?: { query?: string; category?: string | null; view?: StoreView };
 }
@@ -61,7 +68,7 @@ interface Props {
  * Installing asks the server for the same yes the dialog asks for; releasing a plugin for
  * workspaces and projects is the platform admin's choice, here, in the details.
  */
-export function PluginStore({ view, workspace, initial }: Props) {
+export function PluginStore({ view, workspace, project, initial }: Props) {
   const t = useTranslations();
   const router = useRouter();
   const { openModal } = useModal();
@@ -76,6 +83,19 @@ export function PluginStore({ view, workspace, initial }: Props) {
   );
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  // Whose page this is: the platform's, a workspace's or a project's. It decides the words and
+  // which actions the buttons call; a workspace's and a project's page add and switch on, the
+  // platform's installs.
+  const level: StoreMode["level"] = workspace
+    ? "workspace"
+    : project
+      ? "project"
+      : "platform";
+  const inLevel = level !== "platform";
+  /** The words of this level (`workspaceStore.*` or `projectStore.*`), which have the same keys. */
+  const levelText = (name: string, params?: Record<string, string>): string =>
+    t(`${level}Store.${name}` as "workspaceStore.add", params);
 
   const { catalog, visibility } = view;
   const entries = catalog.entries;
@@ -103,24 +123,20 @@ export function PluginStore({ view, workspace, initial }: Props) {
           version={version}
           close={close}
           sheet={isPhone}
-          workspace={Boolean(workspace)}
+          level={level}
           onConfirm={async () => {
+            const args = [entry.storeId, entry.id, version] as const;
+            const yes = { acknowledged: true };
             const result = workspace
-              ? await addStorePluginToWorkspace(
-                  workspace.id,
-                  entry.storeId,
-                  entry.id,
-                  version,
-                  { acknowledged: true },
-                )
-              : await installStorePlugin(entry.storeId, entry.id, version, {
-                  acknowledged: true,
-                });
+              ? await addStorePluginToWorkspace(workspace.id, ...args, yes)
+              : project
+                ? await addStorePluginToProject(project.id, ...args, yes)
+                : await installStorePlugin(...args, yes);
             if ("error" in result) return result.error;
             // Done, and something on the way was not: the page says so once the dialog is gone.
             setNotice(
               result.warning
-                ? t("workspaceStore.addedNotOn", { message: result.warning })
+                ? levelText("addedNotOn", { message: result.warning })
                 : "",
             );
             router.refresh();
@@ -163,11 +179,13 @@ export function PluginStore({ view, workspace, initial }: Props) {
       ? openUpdateDialog(entry, version)
       : openInstallDialog(entry, version);
 
-  /** Switches on, in this workspace, a plugin the platform has installed already. */
-  const switchOn = workspace
+  /** Switches on, in this workspace or project, a plugin the platform has installed already. */
+  const switchOn = inLevel
     ? (entry: CatalogEntry) =>
         startTransition(async () => {
-          const result = await enablePlugin(workspace.id, entry.id);
+          const result = workspace
+            ? await enablePlugin(workspace.id, entry.id)
+            : await enablePluginInProject(project?.id ?? "", entry.id);
           if ("error" in result) {
             setError(result.error);
             return;
@@ -175,7 +193,7 @@ export function PluginStore({ view, workspace, initial }: Props) {
           setError("");
           setNotice(
             result.warning
-              ? t("workspaceStore.addedNotOn", { message: result.warning })
+              ? levelText("addedNotOn", { message: result.warning })
               : "",
           );
           router.refresh();
@@ -192,7 +210,7 @@ export function PluginStore({ view, workspace, initial }: Props) {
           close={close}
           sheet={isPhone}
           onInstall={openInstall}
-          {...(workspace
+          {...(inLevel
             ? {}
             : {
                 onRelease: async (next: boolean) => {
@@ -214,10 +232,10 @@ export function PluginStore({ view, workspace, initial }: Props) {
   const noStores = catalog.stores.length === 0;
   const listEmpty = shown.length === 0;
 
-  const mode = workspace
+  const mode = inLevel
     ? {
-        workspace: true,
-        switchOn: new Set(workspace.switchOn),
+        level,
+        switchOn: new Set((workspace ?? project)?.switchOn),
         onSwitchOn: switchOn,
       }
     : PLATFORM_MODE;
@@ -227,7 +245,13 @@ export function PluginStore({ view, workspace, initial }: Props) {
       <PageHeader
         divider={false}
         title={t("pluginStore.title")}
-        actions={<PluginsTabs active="store" workspaceId={workspace?.id} />}
+        actions={
+          <PluginsTabs
+            active="store"
+            workspaceId={workspace?.id}
+            basePath={project?.basePath}
+          />
+        }
       />
 
       <SettingsBody>
@@ -270,8 +294,8 @@ export function PluginStore({ view, workspace, initial }: Props) {
           {noStores && !view.problem && (
             <p className={styles.notice}>
               <Icon icon="lucide:info" width={14} />
-              {workspace ? (
-                t("workspaceStore.noStores")
+              {inLevel ? (
+                levelText("noStores")
               ) : (
                 <span>
                   {t("pluginStore.noStores")}{" "}
@@ -288,7 +312,8 @@ export function PluginStore({ view, workspace, initial }: Props) {
                 <StoreSync
                   key={store.id}
                   store={store}
-                  readOnly={Boolean(workspace)}
+                  readOnly={inLevel}
+                  level={level}
                 />
               ))}
             </div>
@@ -379,8 +404,8 @@ export function PluginStore({ view, workspace, initial }: Props) {
             !noStores &&
             !catalog.stores.some((s) => s.error) && (
               <p className={styles.empty}>
-                {workspace && visibility.curatedOnly
-                  ? t("workspaceStore.nothingReleased")
+                {inLevel && visibility.curatedOnly
+                  ? levelText("nothingReleased")
                   : t("pluginStore.noEntries")}
               </p>
             )}

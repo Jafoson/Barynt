@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -230,13 +238,37 @@ describe("what is put together", () => {
       blocker: "cannot-run",
     });
     expect(mockRequirePermission).toHaveBeenCalledTimes(1);
-    // No setting is read at all: not whether unsigned plugins are allowed, and the store in
-    // projects is a later step.
-    expect(mockSettingsFindUnique).not.toHaveBeenCalled();
+    // Only the store's visibility is read from the settings, not whether unsigned plugins are allowed.
+    expect(mockSettingsFindUnique).toHaveBeenCalledTimes(1);
+    expect(mockSettingsFindUnique.mock.calls[0]?.[0].select).toEqual({
+      pluginStoreInWorkspaces: true,
+      pluginStoreInProjects: true,
+      pluginStoreCuratedOnly: true,
+    });
   });
 
-  it("has no Store tab yet, whatever the platform set for projects", async () => {
+  it("says whether projects have the store, from what the platform set for projects, and none when that cannot be read", async () => {
+    expect((await getProjectPlugins("p-7", "en")).storeAvailable).toBe(true);
+    // What the platform set for workspaces is not what it set for projects.
+    mockSettingsFindUnique.mockResolvedValue({
+      pluginStoreInWorkspaces: true,
+      pluginStoreInProjects: false,
+      pluginStoreCuratedOnly: false,
+    });
     expect((await getProjectPlugins("p-7", "en")).storeAvailable).toBe(false);
+    mockSettingsFindUnique.mockResolvedValue({
+      pluginStoreInWorkspaces: false,
+      pluginStoreInProjects: true,
+      pluginStoreCuratedOnly: false,
+    });
+    expect((await getProjectPlugins("p-7", "en")).storeAvailable).toBe(true);
+    mockSettingsFindUnique.mockRejectedValue(new Error("database down"));
+    const quiet = spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect((await getProjectPlugins("p-7", "en")).storeAvailable).toBe(false);
+    } finally {
+      quiet.mockRestore();
+    }
   });
 
   it("is only the plugins that apply per project: what applies per workspace or to the whole platform is not its to switch", async () => {
