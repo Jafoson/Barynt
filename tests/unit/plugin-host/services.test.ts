@@ -26,6 +26,8 @@ const READER = Symbol.for("barynt.currentWorkspaceReader");
 const holder = globalThis as unknown as Record<symbol, unknown>;
 
 const PLUGIN = { id: "calendar", version: "1.0.0" };
+// What the services need of the manifest: its level and what it declares.
+const MANIFEST = { scope: "workspace", contributes: {} } as const;
 
 function signedIn(more: Record<string, unknown> = {}) {
   mockAuth.mockResolvedValue({
@@ -52,7 +54,7 @@ beforeEach(() => {
 describe("user.current", () => {
   it("is the signed-in user, with the name in one piece", async () => {
     signedIn();
-    expect(await createHostServices(PLUGIN).user.current()).toEqual({
+    expect(await createHostServices(PLUGIN, MANIFEST).user.current()).toEqual({
       id: "u1",
       name: "Mara Velez",
     });
@@ -60,14 +62,14 @@ describe("user.current", () => {
 
   it("uses the account's single name when there is no first and last name", async () => {
     signedIn({ firstName: "", lastName: "", name: "Mara" });
-    expect((await createHostServices(PLUGIN).user.current())?.name).toBe(
-      "Mara",
-    );
+    expect(
+      (await createHostServices(PLUGIN, MANIFEST).user.current())?.name,
+    ).toBe("Mara");
   });
 
   it("has an empty name rather than none at all when the account has no name", async () => {
     mockAuth.mockResolvedValue({ user: { id: "u1" } });
-    expect(await createHostServices(PLUGIN).user.current()).toEqual({
+    expect(await createHostServices(PLUGIN, MANIFEST).user.current()).toEqual({
       id: "u1",
       name: "",
     });
@@ -75,7 +77,7 @@ describe("user.current", () => {
 
   it("gives the id and the name and nothing else", async () => {
     signedIn({ email: "mara@example.com", image: "x.png", color: "#fff" });
-    const user = await createHostServices(PLUGIN).user.current();
+    const user = await createHostServices(PLUGIN, MANIFEST).user.current();
     expect(Object.keys(user ?? {}).sort()).toEqual(["id", "name"]);
   });
 
@@ -86,21 +88,27 @@ describe("user.current", () => {
     ["the id is empty", { user: { id: "" } }],
   ])("is null when %s", async (_name, session) => {
     mockAuth.mockResolvedValue(session);
-    expect(await createHostServices(PLUGIN).user.current()).toBeNull();
+    expect(
+      await createHostServices(PLUGIN, MANIFEST).user.current(),
+    ).toBeNull();
   });
 
   it("is null, and does not throw, outside a request where there is no session to read", async () => {
     mockAuth.mockRejectedValue(
       new Error("cookies was called outside a request scope"),
     );
-    expect(await createHostServices(PLUGIN).user.current()).toBeNull();
+    expect(
+      await createHostServices(PLUGIN, MANIFEST).user.current(),
+    ).toBeNull();
   });
 });
 
 describe("workspace.current", () => {
   it("is null outside a workspace, without asking the session or the database", async () => {
     signedIn();
-    expect(await createHostServices(PLUGIN).workspace.current()).toBeNull();
+    expect(
+      await createHostServices(PLUGIN, MANIFEST).workspace.current(),
+    ).toBeNull();
     expect(mockAuth).not.toHaveBeenCalled();
     expect(mockWorkspaceFind).not.toHaveBeenCalled();
   });
@@ -114,7 +122,9 @@ describe("workspace.current", () => {
       name: "Nimbus",
       secret: "x",
     });
-    expect(await createHostServices(PLUGIN).workspace.current()).toEqual({
+    expect(
+      await createHostServices(PLUGIN, MANIFEST).workspace.current(),
+    ).toEqual({
       id: "w1",
       name: "Nimbus",
     });
@@ -129,7 +139,9 @@ describe("workspace.current", () => {
     signedIn();
     mockWorkspaceId.mockReturnValue("w1");
     mockCanEnter.mockResolvedValue(false);
-    expect(await createHostServices(PLUGIN).workspace.current()).toBeNull();
+    expect(
+      await createHostServices(PLUGIN, MANIFEST).workspace.current(),
+    ).toBeNull();
     expect(mockWorkspaceFind).not.toHaveBeenCalled();
   });
 
@@ -137,7 +149,9 @@ describe("workspace.current", () => {
     delete holder[READER];
     signedIn();
     mockCanEnter.mockResolvedValue(true);
-    expect(await createHostServices(PLUGIN).workspace.current()).toBeNull();
+    expect(
+      await createHostServices(PLUGIN, MANIFEST).workspace.current(),
+    ).toBeNull();
     expect(mockWorkspaceFind).not.toHaveBeenCalled();
   });
 
@@ -156,14 +170,18 @@ describe("workspace.current", () => {
     signedIn();
     mockCanEnter.mockResolvedValue(true);
     mockWorkspaceFind.mockResolvedValue({ id: "w1", name: "Nimbus" });
-    expect(await createHostServices(PLUGIN).workspace.current()).toBeNull();
+    expect(
+      await createHostServices(PLUGIN, MANIFEST).workspace.current(),
+    ).toBeNull();
     expect(mockWorkspaceFind).not.toHaveBeenCalled();
   });
 
   it("is null when nobody is signed in, even though a workspace is in the address", async () => {
     mockWorkspaceId.mockReturnValue("w1");
     mockCanEnter.mockResolvedValue(true);
-    expect(await createHostServices(PLUGIN).workspace.current()).toBeNull();
+    expect(
+      await createHostServices(PLUGIN, MANIFEST).workspace.current(),
+    ).toBeNull();
     expect(mockCanEnter).not.toHaveBeenCalled();
     expect(mockWorkspaceFind).not.toHaveBeenCalled();
   });
@@ -173,13 +191,17 @@ describe("workspace.current", () => {
     mockWorkspaceId.mockReturnValue("w1");
     mockCanEnter.mockResolvedValue(true);
     mockWorkspaceFind.mockResolvedValue(null);
-    expect(await createHostServices(PLUGIN).workspace.current()).toBeNull();
+    expect(
+      await createHostServices(PLUGIN, MANIFEST).workspace.current(),
+    ).toBeNull();
   });
 
   it("is null, and does not throw, when there is no session to read", async () => {
     mockAuth.mockRejectedValue(new Error("outside a request"));
     mockWorkspaceId.mockReturnValue("w1");
-    expect(await createHostServices(PLUGIN).workspace.current()).toBeNull();
+    expect(
+      await createHostServices(PLUGIN, MANIFEST).workspace.current(),
+    ).toBeNull();
   });
 });
 
@@ -194,7 +216,9 @@ describe("while plugins load", () => {
   it("does not say who is signed in, and does not even ask the session", async () => {
     signedIn();
     loading.loading = 1;
-    expect(await createHostServices(PLUGIN).user.current()).toBeNull();
+    expect(
+      await createHostServices(PLUGIN, MANIFEST).user.current(),
+    ).toBeNull();
     expect(mockAuth).not.toHaveBeenCalled();
   });
 
@@ -204,7 +228,9 @@ describe("while plugins load", () => {
     mockCanEnter.mockResolvedValue(true);
     mockWorkspaceFind.mockResolvedValue({ id: "w1", name: "Nimbus" });
     loading.loading = 1;
-    expect(await createHostServices(PLUGIN).workspace.current()).toBeNull();
+    expect(
+      await createHostServices(PLUGIN, MANIFEST).workspace.current(),
+    ).toBeNull();
     expect(mockCanEnter).not.toHaveBeenCalled();
     expect(mockWorkspaceFind).not.toHaveBeenCalled();
   });
@@ -212,7 +238,7 @@ describe("while plugins load", () => {
   it("answers again as soon as the load is over, also for services made during it", async () => {
     signedIn();
     loading.loading = 1;
-    const services = createHostServices(PLUGIN);
+    const services = createHostServices(PLUGIN, MANIFEST);
     expect(await services.user.current()).toBeNull();
     loading.loading = 0;
     expect(await services.user.current()).toEqual({
@@ -224,33 +250,41 @@ describe("while plugins load", () => {
   it("holds while more than one load runs", async () => {
     signedIn();
     loading.loading = 2;
-    expect(await createHostServices(PLUGIN).user.current()).toBeNull();
+    expect(
+      await createHostServices(PLUGIN, MANIFEST).user.current(),
+    ).toBeNull();
     loading.loading = 1;
-    expect(await createHostServices(PLUGIN).user.current()).toBeNull();
+    expect(
+      await createHostServices(PLUGIN, MANIFEST).user.current(),
+    ).toBeNull();
   });
 });
 
 describe("jobs.enqueue", () => {
   it("says jobs are not there yet instead of pretending to queue one", async () => {
-    const jobs = createHostServices(PLUGIN).jobs;
+    const jobs = createHostServices(PLUGIN, MANIFEST).jobs;
     await expect(jobs.enqueue("sync")).rejects.toThrow("not available yet");
     await expect(jobs.enqueue("sync", { a: 1 })).rejects.toThrow("BARY-90");
   });
 
   it("names the plugin that asked", async () => {
-    const other = createHostServices({ id: "other-plugin", version: "2.0.0" });
+    const other = createHostServices(
+      { id: "other-plugin", version: "2.0.0" },
+      MANIFEST,
+    );
     await expect(other.jobs.enqueue("x")).rejects.toThrow("other-plugin");
   });
 });
 
 describe("what a plugin can change about them", () => {
   it("nothing: the services and each of them are frozen", () => {
-    const services = createHostServices(PLUGIN);
+    const services = createHostServices(PLUGIN, MANIFEST);
     for (const value of [
       services,
       services.jobs,
       services.user,
       services.workspace,
+      services.settings,
       services.storage,
       services.events,
     ]) {
@@ -265,22 +299,25 @@ describe("what a plugin can change about them", () => {
   });
 
   it("has storage and events with no members until their tickets are built", () => {
-    const services = createHostServices(PLUGIN);
+    const services = createHostServices(PLUGIN, MANIFEST);
     expect(Object.keys(services.storage)).toEqual([]);
     expect(Object.keys(services.events)).toEqual([]);
   });
 
   it("gives every plugin services of its own", () => {
-    expect(createHostServices(PLUGIN)).not.toBe(createHostServices(PLUGIN));
-    expect(createHostServices(PLUGIN).jobs).not.toBe(
-      createHostServices(PLUGIN).jobs,
+    expect(createHostServices(PLUGIN, MANIFEST)).not.toBe(
+      createHostServices(PLUGIN, MANIFEST),
+    );
+    expect(createHostServices(PLUGIN, MANIFEST).jobs).not.toBe(
+      createHostServices(PLUGIN, MANIFEST).jobs,
     );
   });
 
-  it("has exactly the five services the loader hands on, and nothing else", () => {
-    expect(Object.keys(createHostServices(PLUGIN)).sort()).toEqual([
+  it("has exactly the six services the loader hands on, and nothing else", () => {
+    expect(Object.keys(createHostServices(PLUGIN, MANIFEST)).sort()).toEqual([
       "events",
       "jobs",
+      "settings",
       "storage",
       "user",
       "workspace",

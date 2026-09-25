@@ -4,7 +4,7 @@
 of a plugin, the two contexts it receives, and the version of the contract. The
 host imports the same types, so both sides agree on one definition.
 
-> **Status: early, version 0.3.0.** This is the frame: the two phases, the five
+> **Status: early, version 0.4.0.** This is the frame: the two phases, the five
 > lifecycle hooks, the names of the registration methods and services, and how the
 > host reads a plugin module. What most definitions hold is still open (see [Not decided yet](#not-decided-yet)).
 > The package is `private` and not published yet.
@@ -65,7 +65,7 @@ registered twice, is an error the host reports for that plugin.
 
 | Method | Manifest point | Definition |
 | --- | --- | --- |
-| `registerSetting` | `settings` | open, BARY-66 |
+| `registerSetting` | `settings` | open: the form needs no code (the host draws it from the manifest), so this is for what a plugin does beyond it |
 | `registerPermission` | `permissions` | open |
 | `registerEventListener` | `events` | open, BARY-84 |
 | `registerJob` | `jobs` | open, BARY-90 |
@@ -89,8 +89,39 @@ inside the manifest's `CONTRIBUTION_POINTS`.
 | `ctx.jobs` | `enqueue(id, payload?)`: **rejects for now**, background jobs do not exist yet (BARY-90) |
 | `ctx.user` | `current()`: the signed-in user (`id`, `name`) of the current request, or `null` |
 | `ctx.workspace` | `current()`: the workspace (`id`, `name`) of the current request if the signed-in user may enter it, or `null` |
+| `ctx.settings` | `current()` and `ofProject(projectId)`: what the people who run the plugin set in its settings ([Settings](#settings)) |
 | `ctx.storage` | provisional, arrives with BARY-85 |
 | `ctx.events` | provisional, arrives with BARY-84 |
+
+### Settings
+
+The settings a plugin declares in its manifest (`contributes.settings`, [Manifest](manifest.md#settings)) are drawn, checked and kept by the host: **no plugin
+code runs for that**. `ctx.settings` is how the plugin reads them:
+
+```ts
+async boot(ctx) {
+  const platform = await ctx.settings.current();          // a plugin for the whole platform
+  // in a request, for a plugin that applies per workspace:
+  const mine = await ctx.settings.current();               // the settings of ctx.workspace.current()
+  // for a plugin that applies per project:
+  const project = await ctx.settings.ofProject(projectId); // the settings in that project
+  const url = project?.endpoint;                           // string | number | boolean | null
+}
+```
+
+- **The values are the host's resolved ones**, one entry for every setting the manifest declares: what an admin set while it still fits the definition, else the default, else
+  `null`. A value a later version of the plugin no longer accepts comes back as the default, never as something the plugin would have to check again. A key that is not a
+  declared setting is never there.
+- **`null` is the one answer for "nothing to read here":** outside a request (for a plugin that applies per workspace or per project), where the platform has switched the plugin
+  off, where the workspace or project has it off or never switched it on, for someone who may not enter the workspace or see the project, and for a plugin of another level
+  (a plugin for the whole platform has no project's settings; a workspace plugin has none per project; a project plugin has no "current" one: it names the project).
+- **A plugin for the whole platform needs no request:** what the platform set is the plugin's own configuration, not a user's data, so `current()` answers in `boot` too.
+  For the other two the answer depends on who is asking, like `ctx.workspace`, and while plugins load it is `null`, so a `boot` that runs inside a request never sees that request's
+  workspace.
+- **Read again on every call,** from the database: a switch or a change shows at once. **The definitions come from the manifest that was loaded**: the running code and its
+  definitions are one version, until the process starts again.
+- **No secrets.** A setting cannot be a password or a token (there is no such type), so nothing here is sealed; secrets need the plugin storage (BARY-85).
+- **The values are frozen copies:** changing one changes nothing, and a plugin saves nothing through this service (people do, on the settings pages).
 
 `boot` runs once per process, when the server starts (`instrumentation.ts`), before the first
 request and outside any. So `ctx.user` and `ctx.workspace` are **services that answer when asked**,

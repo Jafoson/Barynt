@@ -99,6 +99,10 @@ function options(more: Partial<LoadOptions> = {}): LoadOptions {
       },
       user: { current: async () => null },
       workspace: { current: async () => null },
+      settings: {
+        current: async () => null,
+        ofProject: async () => null,
+      },
     }),
     importTimeoutMs: 2000,
     bootTimeoutMs: 2000,
@@ -192,13 +196,13 @@ export default {
     expect(trace()).toEqual([
       "register:calendar@1.0.0 host 0.1.0/0.1.0",
       "frozen:true,true",
-      "boot keys:events,host,jobs,plugin,storage,user,workspace",
+      "boot keys:events,host,jobs,plugin,settings,storage,user,workspace",
       "enqueue:calendar:sync",
       "user:null",
     ]);
   });
 
-  it("does not hand the plugin more than the five services", async () => {
+  it("does not hand the plugin more than the six services", async () => {
     const a = await plugin("calendar", {
       code: `${T} ??= []; export default { boot(ctx) { ${T}.push(String(ctx.secret)); } };`,
     });
@@ -212,6 +216,10 @@ export default {
             jobs: { enqueue: async () => {} },
             user: { current: async () => null },
             workspace: { current: async () => null },
+            settings: {
+              current: async () => null,
+              ofProject: async () => null,
+            },
             secret: "the database handle",
           }) as never,
       }),

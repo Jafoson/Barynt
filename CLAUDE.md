@@ -170,6 +170,9 @@ and measured (start at `docs/plugins/README.md`).
 - **A plugin's settings** are declared in `contributes.settings` (`text`, `textarea`, `number`, `boolean`, `select`; a strict schema in `manifest.ts`, no secrets, no regular
   expressions) and read and checked only through `lib/plugins/settings.ts` (`validateSettings` for what someone saves: unknown keys are refused, only what differs from the
   default is kept; `resolveSettings` for what is read: a stored value that no longer fits falls back to the default; `toFields` for the form). A value is data, never code.
+  **A plugin reads its own settings** through `ctx.settings` (`current()`, `ofProject(projectId)`; SDK 0.4.0, `createSettingsService` in `lib/plugins/services.ts`): the host's resolved values
+  (`resolveSettings`, never a stored value the definition refuses), read again on each call, `null` for every "nothing to read here" (outside a request, plugin off, the person may not
+  see the workspace or project, a plugin of another level), and the definitions come from the manifest that was loaded (`options.services(info, manifest)`).
   **Saved by three actions, one per level** (`features/plugins/settingsActions.ts`: `savePlatformPluginSettings` `plugin.manage`, `saveWorkspacePluginSettings` and
   `saveProjectPluginSettings` `plugin.enable` there; `Plugin.config`, `PluginWorkspace.config`, `PluginProject.config`): the level is the plugin's scope, the definition is read
   from the installed files (never from the client), a workspace's or project's plugin has to be on there, the values are the whole form, and the audit entry
@@ -620,6 +623,8 @@ tests/
       lifecycle.test.ts           ← install, update, uninstall, switch off (features/plugins/lifecycleActions)
       workspace.test.ts           ← switch on/off per workspace, onEnable/onDisable (own process: mocks `@/lib/plugins/host`)
       project.test.ts             ← switch on/off per project, onProjectEnable/onProjectDisable (same shape, one level down)
+    plugin-host-settings/
+      settingsService.test.ts     ← what a plugin reads of its own settings, `ctx.settings` (own process: replaces the database, the permissions and the session)
     plugin-settings/
       settingsActions.test.ts     ← saving a plugin's settings per level (real plugin dirs, mocked db; own process: mocks `@/lib/permissions` and `next/cache`)
     plugin-settings-ui/

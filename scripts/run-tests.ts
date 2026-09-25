@@ -96,6 +96,9 @@ const SEGMENTS: string[][] = [
   // for the services the plugin host offers (`lib/plugins/services.ts`); other
   // files test the real permissions and session code, or mock them differently.
   ["tests/unit/plugin-host"],
+  // What a plugin reads of its own settings (`ctx.settings`): replaces the database and the
+  // permissions, and reads the request's workspace through the reader `setCurrentWorkspaceId` publishes.
+  ["tests/unit/plugin-host-settings"],
   // Mocks `@/lib/plugins/host` (the registry) for the actions that switch plugins on and
   // off and remove them; `tests/unit/plugin-host` tests the real one.
   ["tests/unit/plugin-lifecycle"],

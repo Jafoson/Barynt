@@ -102,15 +102,18 @@ export interface LoadCandidate {
   integrity: string;
 }
 
-/** The host's services for one plugin, so `jobs.enqueue` can be bound to its id. */
+/**
+ * The host's services for one plugin: `jobs.enqueue` is bound to its id, and `settings` reads the
+ * settings its manifest declares (the ones of the version that is loaded).
+ */
 export type BootServices = Pick<
   BootContext,
-  "storage" | "events" | "jobs" | "user" | "workspace"
+  "storage" | "events" | "jobs" | "user" | "workspace" | "settings"
 >;
 
 export interface LoadOptions {
   host: HostInfo;
-  services: (plugin: PluginInfo) => BootServices;
+  services: (plugin: PluginInfo, manifest: PluginManifest) => BootServices;
   /** How long importing a module may take. Default 10 seconds. */
   importTimeoutMs?: number;
   /** How long `boot` may take. Default 30 seconds. */
@@ -381,9 +384,9 @@ export async function loadPlugins(
     try {
       if (options.alreadyBooted?.(candidate)) continue;
       const info: PluginInfo = { id, version: candidate.version };
-      const services = options.services(info);
-      // Picked one by one: a factory that returns more than the five services
-      // must not hand the plugin the rest.
+      const services = options.services(info, candidate.manifest);
+      // Picked one by one: a factory that returns more than the services listed
+      // here must not hand the plugin the rest.
       const context: BootContext = Object.freeze({
         plugin: Object.freeze({ ...info }),
         host: Object.freeze({ ...options.host }),
@@ -392,6 +395,7 @@ export async function loadPlugins(
         jobs: services.jobs,
         user: services.user,
         workspace: services.workspace,
+        settings: services.settings,
       });
       await withTimeout(
         Promise.resolve(definition.boot(context)),

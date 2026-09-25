@@ -1,14 +1,19 @@
 import "server-only";
 import type {
   PluginInfo,
+  PluginSettingValues,
   PluginUser,
   PluginWorkspace,
+  SettingsService,
 } from "@barynt/plugin-sdk";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { canEnterWorkspace } from "@/lib/permissions";
+import { can, canEnterWorkspace } from "@/lib/permissions";
 import type { BootServices } from "./loader";
+import type { PluginManifest } from "./manifest";
 import { getRegistryState } from "./registryState";
+import { rowScopeOf } from "./scope";
+import { resolveSettings, settingsOf, toFields } from "./settings";
 
 // The host's services for a plugin's `boot` (docs/plugins/sdk.md). `boot` runs
 // once per process, outside any request, so `user` and `workspace` are not "the
@@ -77,14 +82,92 @@ async function currentWorkspace(): Promise<PluginWorkspace | null> {
   return workspace ? { id: workspace.id, name: workspace.name } : null;
 }
 
+/**
+ * A plugin's settings, read the way the host offers them. What the plugin is (its level) and
+ * what its settings are come from the manifest that was loaded; whether it is on, and what is
+ * set, come from the database, asked again each time so a switch or a change is seen at once.
+ * Every answer is the values as the host resolves them (`resolveSettings`: what is stored while it
+ * still fits the definition, else the default, else `null`), so a plugin never sees a stored value
+ * the definition would refuse.
+ *
+ * `null` is the one answer for "nothing to read here": the platform switched the plugin off, it is
+ * off in this workspace or project, the signed-in user may not see them, or the plugin is of
+ * another level. A plugin that applies to the whole platform needs no request: what the platform
+ * set is the plugin's own configuration, not a user's data.
+ */
+function createSettingsService(
+  plugin: PluginInfo,
+  manifest: Pick<PluginManifest, "scope" | "contributes">,
+): SettingsService {
+  const scope = rowScopeOf(manifest.scope);
+  // Only the values and the checks are used, not the words, so any language will do.
+  const fields = toFields(settingsOf(manifest), "en");
+  const read = (stored: unknown): PluginSettingValues =>
+    Object.freeze({ ...resolveSettings(fields, stored) });
+
+  /** The plugin's own row, when the platform has it switched on and it is still of this level. */
+  async function platformRow(): Promise<{ config: unknown } | null> {
+    const row = await db.plugin.findUnique({
+      where: { id: plugin.id },
+      select: { status: true, scope: true, config: true },
+    });
+    if (!row || row.status !== "ENABLED" || row.scope !== scope) return null;
+    return { config: row.config };
+  }
+
+  return Object.freeze({
+    async current(): Promise<PluginSettingValues | null> {
+      if (scope !== "PLATFORM" && scope !== "WORKSPACE") return null;
+      const row = await platformRow();
+      if (!row) return null;
+      if (scope === "PLATFORM") return read(row.config);
+
+      // Not "which workspace is in the URL" but the one the signed-in user may enter.
+      const workspace = await currentWorkspace();
+      if (!workspace) return null;
+      const here = await db.pluginWorkspace.findUnique({
+        where: {
+          pluginId_workspaceId: {
+            pluginId: plugin.id,
+            workspaceId: workspace.id,
+          },
+        },
+        select: { enabled: true, config: true },
+      });
+      return here?.enabled ? read(here.config) : null;
+    },
+
+    async ofProject(projectId: string): Promise<PluginSettingValues | null> {
+      if (scope !== "PROJECT") return null;
+      if (typeof projectId !== "string" || projectId === "") return null;
+      const who = await sessionUser();
+      if (!who) return null;
+      // A project's settings are for someone who may see the project, as its page is.
+      if (!(await can(who.user.id, "project.view", { projectId }))) return null;
+      if (!(await platformRow())) return null;
+      const here = await db.pluginProject.findUnique({
+        where: {
+          pluginId_projectId: { pluginId: plugin.id, projectId },
+        },
+        select: { enabled: true, config: true },
+      });
+      return here?.enabled ? read(here.config) : null;
+    },
+  });
+}
+
 const EMPTY = Object.freeze({});
 
 /**
- * The services for one plugin. `storage` and `events` have no members until their
+ * The services for one plugin, with the manifest that was loaded (its level and its settings).
+ * `storage` and `events` have no members until their
  * tickets are built (BARY-85, BARY-84). `jobs.enqueue` says so plainly instead of
  * pretending to queue: a job that is never run must not look queued.
  */
-export function createHostServices(plugin: PluginInfo): BootServices {
+export function createHostServices(
+  plugin: PluginInfo,
+  manifest: Pick<PluginManifest, "scope" | "contributes">,
+): BootServices {
   return Object.freeze({
     storage: EMPTY,
     events: EMPTY,
@@ -100,5 +183,6 @@ export function createHostServices(plugin: PluginInfo): BootServices {
         (await sessionUser())?.user ?? null,
     }),
     workspace: Object.freeze({ current: currentWorkspace }),
+    settings: createSettingsService(plugin, manifest),
   });
 }

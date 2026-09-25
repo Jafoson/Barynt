@@ -159,6 +159,10 @@ describe("the two contexts", () => {
       jobs: { enqueue: async (...args: unknown[]) => void enqueued.push(args) },
       user: { current: async () => null },
       workspace: { current: async () => null },
+      settings: {
+        current: async () => null,
+        ofProject: async () => null,
+      },
     } satisfies BootContext;
 
     plugin.register?.(registration);

@@ -325,9 +325,3 @@ Five optional hooks in the SDK ([SDK](sdk.md#lifecycle-hooks)), run by `runHook`
 - **Deleting files.** See [Uninstall](#uninstall).
 - **Several replicas.** The registry lives in the process, so a change is seen by the replica that handled the action; the
   others catch up only when they are told. That belongs to the Helm decision (BARY-125).
-
-## Not built yet
-
-The switch per workspace is on the workspace's own settings page ([The plugins of a workspace](workspace.md)).
-
-- **A plugin reading its own settings** (the SDK, BARY-66): only the host reads them for now.

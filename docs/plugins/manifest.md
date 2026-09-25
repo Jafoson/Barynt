@@ -190,6 +190,7 @@ What the host does with the values ([`lib/plugins/settings.ts`](../../lib/plugin
 - **When one is read** it is used only if it still fits the definition; otherwise the default is used. A plugin update can change what a setting
   accepts without leaving the platform with values nobody can read.
 - **Who saves, where, and what is audited** is in [Lifecycle](lifecycle.md#a-plugins-settings).
+- **A plugin reads them** through `ctx.settings` in its server module ([SDK](sdk.md#settings)): the resolved values, for the level the plugin applies to.
 
 ## Validating
 
