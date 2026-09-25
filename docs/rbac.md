@@ -408,6 +408,16 @@ permissions at different levels (the plugin system is described in
 
 ---
 
+## Custom fields: one permission (BARY-79)
+
+| Permission | Scopes | Default holders | What it does |
+| --- | --- | --- | --- |
+| `customfield.manage` | WORKSPACE, PROJECT | workspace: `owner`, `admin`, `manager`; project: `project_admin` | create, edit, archive and delete custom fields ([docs/custom-fields.md](custom-fields.md)). On a workspace role it is the **workspace-wide** fields (they apply in every project), on a project role that project's. Whoever holds `project.admin.all` has it in every project |
+
+- **Filling a field in is not this permission.** It is editing the issue (`issue.update.own` / `issue.update.any`), like status or labels.
+- **The `manager` has it**, unlike plugins: fields are configuration (like statuses and priorities), not code.
+- On an existing database it needs `provisionSystemRbac` (see "Introducing a new permission"), like any new permission.
+
 ## Managing members: three permissions, not one
 
 `member.invite`, `member.role.update`, and `member.remove` are grantable

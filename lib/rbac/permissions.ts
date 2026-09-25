@@ -262,6 +262,17 @@ export const PERMISSIONS = {
   "label.update": { desc: "Edit a label", scopes: WORKSPACE_AND_PROJECT },
   "label.delete": { desc: "Delete a label", scopes: WORKSPACE_AND_PROJECT },
 
+  // ── Custom fields (BARY-79) ─────────────────────────────────────────────────
+  //
+  // One permission for the definitions: creating, changing, archiving and deleting a field.
+  // On a workspace role it is the workspace-wide fields (they apply in every project), on a
+  // project role that project's. Filling a field in is not this: that is editing the issue
+  // (`issue.update.*`), like any other property.
+  "customfield.manage": {
+    desc: "Create, edit, archive and delete custom fields",
+    scopes: WORKSPACE_AND_PROJECT,
+  },
+
   // ── Issues ──────────────────────────────────────────────────────────────────
   //
   // An issue always lives in a project — there's no workspace-wide issue.

@@ -326,6 +326,22 @@ and measured (start at `docs/plugins/README.md`).
   `null`, "no token", never a fallback. Secrets that have to be read back later use `sealSecret`/`openSecret`; passwords
   are hashed, not sealed.
 
+## Custom fields (`lib/custom-fields`)
+
+`docs/custom-fields.md` records what is decided. A field is **defined** (`CustomFieldDefinition`: workspace-wide when `projectId` is `null`, else one project's, the reach
+of a `Label`) and **answered** per issue (`CustomFieldValue`, `(issueId, fieldId)`, **no value is no row**).
+
+- `lib/custom-fields/` is dependency-free (no database, no `server-only`, no React): `types.ts` (the type tuple, the limits, `VALUE_COLUMN`), `config.ts` (`parseFieldConfig`,
+  `parseDefinition`, `normalizeOptions`, `deriveFieldKey`), `value.ts` (`toColumns`, `fromColumns`, `sameValue`). Input is untrusted: every check reports and none throws; a
+  setting a type does not have is refused, not ignored; `fieldConfigOrDefault` is the one that never refuses (reading).
+- The **types are a `const` tuple, not a database enum** (`text`, `number`, `select`, `date`, `user`, `url`), and a value is stored **in the column of its type** (`text`, `number`,
+  `date`, `userId`), so filters are indexed comparisons; a check constraint keeps a row to exactly one value. A `select` stores the **option's id**, never its label. Nothing is coerced
+  (`"42"` is not a number), and `null`, an empty text and spaces are "no value", not zero.
+- `key` is unique in the workspace, project fields included. A definition deleted, or its issue, project or workspace, takes the values with it; `pluginId` is `ON DELETE SET NULL`
+  (an uninstalled plugin's fields the admin keeps become ordinary ones).
+- **`customfield.manage`** (WORKSPACE and PROJECT, `owner`/`admin`/`manager` and `project_admin`) defines fields; **filling one in is `issue.update.*`**. It is a new permission: an
+  existing dev database needs the `provisionSystemRbac` snippet below.
+
 ## Email (`lib/mail`)
 
 SMTP, configured exclusively through the environment (`SMTP_HOST`, `SMTP_PORT`,
@@ -623,6 +639,8 @@ tests/
       lifecycle.test.ts           ← install, update, uninstall, switch off (features/plugins/lifecycleActions)
       workspace.test.ts           ← switch on/off per workspace, onEnable/onDisable (own process: mocks `@/lib/plugins/host`)
       project.test.ts             ← switch on/off per project, onProjectEnable/onProjectDisable (same shape, one level down)
+    custom-fields/
+      config.test.ts / value.test.ts  ← what a field's definition is made of and how a value is checked and stored (pure, no mocks)
     plugin-host-settings/
       settingsService.test.ts     ← what a plugin reads of its own settings, `ctx.settings` (own process: replaces the database, the permissions and the session)
     plugin-settings/

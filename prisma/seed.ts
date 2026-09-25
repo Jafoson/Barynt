@@ -1239,6 +1239,67 @@ async function main() {
   }
   console.log(`   ✓ ${ISSUES.length} issues`);
 
+  // Custom fields (BARY-79): one that applies in every project of the workspace and one in a single
+  // project, each answered on a few issues so the screens have something to show.
+  const customerField = await db.customFieldDefinition.upsert({
+    where: { workspaceId_key: { workspaceId: WS, key: "customer" } },
+    update: {},
+    create: {
+      id: uid("cf"),
+      workspaceId: WS,
+      key: "customer",
+      name: "Customer",
+      description: "Who this is for.",
+      type: "text",
+      config: { maxLength: 60 },
+      position: 0,
+    },
+  });
+  const environmentField = await db.customFieldDefinition.upsert({
+    where: { workspaceId_key: { workspaceId: WS, key: "environment" } },
+    update: {},
+    create: {
+      id: uid("cf"),
+      workspaceId: WS,
+      projectId: ref(realProjectId, "p1", "custom field project"),
+      key: "environment",
+      name: "Environment",
+      type: "select",
+      config: {
+        options: [
+          { id: "staging", label: "Staging", color: "#f59e0b" },
+          { id: "production", label: "Production", color: "#ef4444" },
+        ],
+      },
+      position: 1,
+    },
+  });
+  const inFirstProject = ISSUES.filter(
+    (issue) => (projectOf[issue.id] ?? "p1") === "p1",
+  );
+  const answers: [
+    (typeof ISSUES)[number] | undefined,
+    string,
+    { text: string },
+  ][] = [
+    [ISSUES[0], customerField.id, { text: "Acme Corp" }],
+    [ISSUES[1], customerField.id, { text: "Globex" }],
+    [inFirstProject[0], environmentField.id, { text: "production" }],
+    [inFirstProject[1], environmentField.id, { text: "staging" }],
+  ];
+  let answered = 0;
+  for (const [issue, fieldId, value] of answers) {
+    if (!issue) continue;
+    const issueId = ref(realIssueId, issue.id, "custom field issue");
+    await db.customFieldValue.upsert({
+      where: { issueId_fieldId: { issueId, fieldId } },
+      update: {},
+      create: { issueId, fieldId, ...value },
+    });
+    answered++;
+  }
+  console.log(`   ✓ 2 custom fields, ${answered} values`);
+
   console.log("✅  Done.");
 }
 

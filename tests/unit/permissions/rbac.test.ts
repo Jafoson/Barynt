@@ -155,6 +155,20 @@ describe("Permission registry (lib/rbac/permissions.ts)", () => {
     expect(isPermissionAllowedIn("plugin.enable", "PLATFORM")).toBe(false);
   });
 
+  // The definitions of custom fields (BARY-79): one permission, in a workspace for the fields
+  // that apply everywhere and in a project for that project's. Filling a field in is not this.
+  it("lets custom fields be managed in a workspace or a project, and nowhere else", () => {
+    expect(PERMISSIONS["customfield.manage"].scopes).toEqual([
+      "WORKSPACE",
+      "PROJECT",
+    ]);
+    for (const scope of ["WORKSPACE", "PROJECT"] as const) {
+      expect(isPermissionAllowedIn("customfield.manage", scope)).toBe(true);
+    }
+    expect(isPermissionAllowedIn("customfield.manage", "PLATFORM")).toBe(false);
+    expect(permissionsFor("PLATFORM")).not.toContain("customfield.manage");
+  });
+
   it("safely narrows arbitrary strings", () => {
     expect(toPermission("issue.create")).toBe("issue.create");
     expect(toPermission("project.issue.create")).toBeNull();
@@ -278,6 +292,24 @@ describe("System roles (lib/rbac/roles.ts)", () => {
         .map((r) => r.key);
       expect(holders).toEqual(["owner", "admin"]);
       expect(role("manager").allow).toContain("webhook.manage");
+    });
+
+    it("lets the owner, the admin and the manager manage the workspace's custom fields, and nobody else", () => {
+      // They are configuration, like the statuses and priorities: the manager has them.
+      const holders = systemRolesIn("WORKSPACE")
+        .filter((r) => r.allow.includes("customfield.manage"))
+        .map((r) => r.key);
+      expect(holders).toEqual(["owner", "admin", "manager"]);
+    });
+
+    it("lets only the project admin manage a project's custom fields", () => {
+      const holders = systemRolesIn("PROJECT")
+        .filter((r) => r.allow.includes("customfield.manage"))
+        .map((r) => r.key);
+      expect(holders).toEqual(["project_admin"]);
+      // Filling a field in is editing the issue, which a contributor may do for their own.
+      expect(role("contributor").allow).not.toContain("customfield.manage");
+      expect(role("contributor").allow).toContain("issue.update.own");
     });
 
     it("lets only the project admin enable plugins in a project", () => {
