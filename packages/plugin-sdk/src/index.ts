@@ -25,9 +25,12 @@ export type {
   JsonValue,
   PluginEvents,
   PluginProject,
+  PluginSettingValues,
   PluginStorage,
   PluginUser,
   PluginWorkspace,
+  SettingsService,
+  SettingValue,
   UserService,
   WorkspaceService,
 } from "./services";

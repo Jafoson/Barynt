@@ -9,6 +9,7 @@ import type {
   PluginHooks,
   Registration,
 } from "./loader";
+import type { PluginManifest } from "./manifest";
 import { type InstalledPlugin, type PluginPlan, planPlugins } from "./plan";
 import { invalidatePluginRegistry, type RegistryState } from "./registryState";
 import type { PluginRowScope } from "./scope";
@@ -52,7 +53,7 @@ export interface RegistryDeps {
     options: LoadOptions,
   ): Promise<LoadReport>;
   host: HostInfo;
-  services(plugin: PluginInfo): BootServices;
+  services(plugin: PluginInfo, manifest: PluginManifest): BootServices;
   now(): number;
   /** One line for the server log. */
   log(message: string): void;
@@ -159,7 +160,7 @@ async function buildSnapshot(
     try {
       report = await deps.load(plan.candidates, {
         host: deps.host,
-        services: (plugin) => deps.services(plugin),
+        services: (plugin, manifest) => deps.services(plugin, manifest),
         alreadyBooted: (candidate) => state.booted.has(bootKey(candidate)),
       });
     } finally {

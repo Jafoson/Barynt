@@ -84,6 +84,8 @@ interface Harness {
     /** What `alreadyBooted` answered for each candidate, at the moment the loader asked. */
     booted: Record<string, boolean>[];
     services: string[];
+    /** The manifest each `services` call was given, in order. */
+    manifests: unknown[];
     log: string[];
   };
   clock: { now: number };
@@ -121,6 +123,7 @@ function harness(
     loadOptions: [],
     booted: [],
     services: [],
+    manifests: [],
     log: [],
   };
   const d: Harness["data"] = {
@@ -195,14 +198,19 @@ function harness(
       return { loaded, failed } as LoadReport;
     },
     host: { barynt: "1.2.0", sdk: "0.1.0" },
-    services: (plugin) => {
+    services: (plugin, manifest) => {
       calls.services.push(plugin.id);
+      calls.manifests.push(manifest);
       return {
         storage: {},
         events: {},
         jobs: { enqueue: async () => {} },
         user: { current: async () => null },
         workspace: { current: async () => null },
+        settings: {
+          current: async () => null,
+          ofProject: async () => null,
+        },
       };
     },
     now: () => clock.now,
@@ -870,11 +878,13 @@ describe("boot runs once per process", () => {
     expect(h.calls.booted[1]).toEqual({ "calendar@1.0.0": true });
   });
 
-  it("gives the services to the loader one plugin at a time", async () => {
+  it("gives the services to the loader one plugin at a time, with the manifest that was loaded", async () => {
     await registry().get();
     const services = h.calls.loadOptions[0]?.services;
-    services?.({ id: "calendar", version: "1.0.0" });
+    const manifest = { scope: "project", contributes: { settings: [] } };
+    services?.({ id: "calendar", version: "1.0.0" }, manifest as never);
     expect(h.calls.services).toEqual(["calendar"]);
+    expect(h.calls.manifests[0]).toBe(manifest);
   });
 });
 

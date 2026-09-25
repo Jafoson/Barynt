@@ -13,6 +13,7 @@ import type {
   PluginProject,
   PluginStorage,
   PluginWorkspace,
+  SettingsService,
   UserService,
   WorkspaceService,
 } from "./services";
@@ -66,6 +67,7 @@ export interface BootContext {
   readonly jobs: JobService;
   readonly user: UserService;
   readonly workspace: WorkspaceService;
+  readonly settings: SettingsService;
 }
 
 /**
