@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useTransition } from "react";
+import type { SetFieldValue } from "@/features/custom-fields/types";
+import { setCustomFieldValue } from "@/features/custom-fields/valueActions";
 import {
   addComment,
   deleteIssue,
@@ -40,6 +42,8 @@ export interface IssueDetailState {
    */
   isLoading: boolean;
   patch: (patch: IssuePatch) => void;
+  /** Answers one custom field of the open issue, or clears it with `null`, and reloads it. */
+  setField: SetFieldValue;
   comment: (body: PMDoc) => Promise<void>;
   remove: () => void;
   /**
@@ -142,6 +146,16 @@ export function useIssueDetail({
     });
   };
 
+  const setField: SetFieldValue = async (fieldId, value) => {
+    if (!issue) return { error: "" };
+    const result = await setCustomFieldValue(issue.id, fieldId, value);
+    if ("ok" in result && result.changed) {
+      markLocalMutation();
+      await reload();
+    }
+    return result;
+  };
+
   const comment = async (body: PMDoc) => {
     if (!issue) return;
     await addComment(issue.id, body, data.me.id);
@@ -164,6 +178,7 @@ export function useIssueDetail({
     isMissing,
     isLoading,
     patch,
+    setField,
     comment,
     remove,
     refresh: reload,

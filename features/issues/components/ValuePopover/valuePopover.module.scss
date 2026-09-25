@@ -19,3 +19,11 @@
     color: var(--text);
   }
 }
+
+/* Why Save is off: a sentence, not a red box, so the popover stays as narrow as its field. */
+.problem {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--error);
+}

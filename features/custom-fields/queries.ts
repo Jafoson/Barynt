@@ -4,6 +4,7 @@ import {
   isCustomFieldType,
   MAX_CUSTOM_FIELDS_PER_WORKSPACE,
 } from "@/lib/custom-fields/types";
+import { fromColumns } from "@/lib/custom-fields/value";
 import { db } from "@/lib/db";
 import { accessFor, currentUserId } from "@/lib/permissions";
 import type {
@@ -11,6 +12,7 @@ import type {
   CustomFieldRow,
   CustomFieldScope,
   CustomFieldsView,
+  IssueFieldEntry,
 } from "./types";
 
 // What the screens read of the definitions. A row from the database is turned into a
@@ -32,7 +34,7 @@ interface DbRow {
   projectId: string | null;
 }
 
-const SELECT = {
+export const FIELD_SELECT = {
   id: true,
   key: true,
   name: true,
@@ -106,13 +108,13 @@ export async function getCustomFieldsView(
   const [own, inherited, total] = await Promise.all([
     db.customFieldDefinition.findMany({
       where: { workspaceId, projectId },
-      select: SELECT,
+      select: FIELD_SELECT,
       orderBy: [...ORDER],
     }),
     projectId
       ? db.customFieldDefinition.findMany({
           where: { workspaceId, projectId: null, archivedAt: null },
-          select: SELECT,
+          select: FIELD_SELECT,
           orderBy: [...ORDER],
         })
       : Promise.resolve([]),
@@ -167,8 +169,42 @@ export async function getFieldsOfProject(
       archivedAt: null,
       OR: [{ projectId: null }, { projectId }],
     },
-    select: SELECT,
+    select: FIELD_SELECT,
     orderBy: [...ORDER],
   });
   return rowsOf(rows);
+}
+
+/**
+ * The fields of one issue with its answer to each, in the fields' order: the workspace-wide ones and
+ * its project's own, the archived ones left out (their answers stay in the database, out of sight).
+ * No permission is asked here: the caller has already let this person see the issue, and its fields
+ * are part of it. A field the issue has not answered is there with `value: null`.
+ */
+export async function getIssueFieldEntries(issue: {
+  id: string;
+  projectId: string;
+  workspaceId: string;
+}): Promise<IssueFieldEntry[]> {
+  const [definitions, values] = await Promise.all([
+    db.customFieldDefinition.findMany({
+      where: {
+        workspaceId: issue.workspaceId,
+        archivedAt: null,
+        OR: [{ projectId: null }, { projectId: issue.projectId }],
+      },
+      select: FIELD_SELECT,
+      orderBy: [...ORDER],
+    }),
+    db.customFieldValue.findMany({ where: { issueId: issue.id } }),
+  ]);
+  const byField = new Map(values.map((value) => [value.fieldId, value]));
+
+  return rowsOf(definitions).map((field) => {
+    const stored = byField.get(field.id);
+    return {
+      field,
+      value: stored ? fromColumns(field.type, stored) : null,
+    };
+  });
 }

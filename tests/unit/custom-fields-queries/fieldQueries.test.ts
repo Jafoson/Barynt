@@ -10,6 +10,7 @@ const mockProjectFind = mock();
 const mockDefFindMany = mock();
 const mockDefCount = mock();
 const mockValueGroupBy = mock();
+const mockValueFindMany = mock();
 const mockAccessFor = mock();
 const mockUserId = mock(async (): Promise<string | null> => "u1");
 
@@ -17,7 +18,10 @@ mock.module("@/lib/db", () => ({
   db: {
     project: { findUnique: mockProjectFind },
     customFieldDefinition: { findMany: mockDefFindMany, count: mockDefCount },
-    customFieldValue: { groupBy: mockValueGroupBy },
+    customFieldValue: {
+      groupBy: mockValueGroupBy,
+      findMany: mockValueFindMany,
+    },
   },
 }));
 mock.module("@/lib/permissions", () => ({
@@ -28,6 +32,7 @@ mock.module("@/lib/permissions", () => ({
 import {
   getCustomFieldsView,
   getFieldsOfProject,
+  getIssueFieldEntries,
   rowOf,
 } from "@/features/custom-fields/queries";
 import { MAX_CUSTOM_FIELDS_PER_WORKSPACE } from "@/lib/custom-fields/types";
@@ -67,6 +72,7 @@ beforeEach(() => {
     mockDefFindMany,
     mockDefCount,
     mockValueGroupBy,
+    mockValueFindMany,
     mockAccessFor,
   ]) {
     m.mockReset();
@@ -82,6 +88,7 @@ beforeEach(() => {
   mockDefFindMany.mockResolvedValue([]);
   mockDefCount.mockResolvedValue(0);
   mockValueGroupBy.mockResolvedValue([]);
+  mockValueFindMany.mockResolvedValue([]);
 });
 
 describe("a field as the screens read it", () => {
@@ -357,5 +364,98 @@ describe("the fields an issue of a project has", () => {
     expect((await getFieldsOfProject(PROJECT)).map((f) => f.id)).toEqual([
       "ok",
     ]);
+  });
+});
+
+describe("an issue's fields with its answers", () => {
+  const issue = { id: "i-1", projectId: PROJECT, workspaceId: WS };
+  const columns = { text: null, number: null, date: null, userId: null };
+  const answer = (fieldId: string, more: Record<string, unknown>) => ({
+    issueId: "i-1",
+    fieldId,
+    ...columns,
+    ...more,
+  });
+
+  it("asks for the workspace's fields and the project's own, archived ones left out, in their order", async () => {
+    await getIssueFieldEntries(issue);
+    const query = mockDefFindMany.mock.calls[0][0];
+    expect(query.where).toEqual({
+      workspaceId: WS,
+      archivedAt: null,
+      OR: [{ projectId: null }, { projectId: PROJECT }],
+    });
+    expect(query.orderBy).toEqual([{ position: "asc" }, { createdAt: "asc" }]);
+  });
+
+  it("asks for this issue's answers only", async () => {
+    await getIssueFieldEntries(issue);
+    expect(mockValueFindMany.mock.calls[0][0].where).toEqual({
+      issueId: "i-1",
+    });
+  });
+
+  it("asks nobody's permission: the caller has let this person see the issue", async () => {
+    await getIssueFieldEntries(issue);
+    expect(mockAccessFor).not.toHaveBeenCalled();
+  });
+
+  it("pairs each field with its answer, and a field nobody answered with none", async () => {
+    mockDefFindMany.mockResolvedValue([
+      dbRow({ id: "a" }),
+      dbRow({
+        id: "b",
+        key: "effort",
+        type: "number",
+        config: { integer: false, min: null, max: null },
+      }),
+      dbRow({ id: "c", key: "release", type: "date", config: {} }),
+    ]);
+    mockValueFindMany.mockResolvedValue([
+      answer("a", { text: "Acme" }),
+      answer("c", { date: new Date("2026-09-26T12:00:00.000Z") }),
+    ]);
+    const entries = await getIssueFieldEntries(issue);
+    expect(entries.map((e) => [e.field.id, e.value])).toEqual([
+      ["a", "Acme"],
+      ["b", null],
+      ["c", "2026-09-26"],
+    ]);
+  });
+
+  it("gives an answer of zero as zero, not as none", async () => {
+    mockDefFindMany.mockResolvedValue([
+      dbRow({
+        id: "b",
+        type: "number",
+        config: { integer: false, min: null, max: null },
+      }),
+    ]);
+    mockValueFindMany.mockResolvedValue([answer("b", { number: 0 })]);
+    expect((await getIssueFieldEntries(issue))[0].value).toBe(0);
+  });
+
+  it("does not read the column of another type as the answer", async () => {
+    mockDefFindMany.mockResolvedValue([dbRow({ id: "a" })]);
+    mockValueFindMany.mockResolvedValue([answer("a", { number: 5 })]);
+    expect((await getIssueFieldEntries(issue))[0].value).toBeNull();
+  });
+
+  it("leaves out the answers of fields that are not listed, and the fields it cannot read", async () => {
+    mockDefFindMany.mockResolvedValue([
+      dbRow({ id: "a" }),
+      dbRow({ id: "x", type: "boolean" }),
+    ]);
+    mockValueFindMany.mockResolvedValue([
+      answer("a", { text: "Acme" }),
+      answer("archived-one", { text: "Old" }),
+      answer("x", { text: "?" }),
+    ]);
+    const entries = await getIssueFieldEntries(issue);
+    expect(entries.map((e) => e.field.id)).toEqual(["a"]);
+  });
+
+  it("is empty for an issue whose workspace has no fields", async () => {
+    expect(await getIssueFieldEntries(issue)).toEqual([]);
   });
 });

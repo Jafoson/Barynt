@@ -33,6 +33,7 @@ export function IssueDetailPage({ issue, data }: IssueDetailPageProps) {
   const {
     issue: current,
     patch,
+    setField,
     comment,
     remove,
     refresh,
@@ -51,6 +52,7 @@ export function IssueDetailPage({ issue, data }: IssueDetailPageProps) {
       data={data}
       backHref={backHref}
       onPatch={patch}
+      onField={setField}
       onComment={comment}
       onDelete={remove}
       onRefresh={refresh}

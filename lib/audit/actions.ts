@@ -123,6 +123,7 @@ export const AUDIT_ACTIONS = {
   "issue.dueDate.changed": "Due date changed",
   "issue.storyPoints.changed": "Story points changed",
   "issue.estimateHours.changed": "Time estimate changed",
+  "issue.customField.changed": "Custom field changed",
   "label.created": "Label created",
   "label.deleted": "Label deleted",
   // Custom fields (BARY-79): what a field is, not what an issue answers (that is the issue's own

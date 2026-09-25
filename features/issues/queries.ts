@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { getIssueFieldEntries } from "@/features/custom-fields/queries";
 import { listAudit } from "@/lib/audit";
 import { getCurrentWorkspaceId } from "@/lib/current-workspace";
 import { db } from "@/lib/db";
@@ -665,6 +666,7 @@ export async function getIssuesByProject(
       children: [],
       relations: [],
       activity: [],
+      customFields: [],
     })),
   );
 }
@@ -719,6 +721,7 @@ export async function getMyIssues(
       children: [],
       relations: [],
       activity: [],
+      customFields: [],
     })),
   );
 }
@@ -902,15 +905,21 @@ export async function getIssueById(id: string): Promise<IssueDetail | null> {
   const access = await issueAccessFor(i);
   const attachments = await resolveIssueAttachments(i.attachments);
   const viewerId = await currentUserId();
-  const [relations, activity] = await Promise.all([
+  const [relations, activity, customFields] = await Promise.all([
     loadIssueRelations(i.id, i.parentId, i.project.workspaceId),
     listAudit({ targetId: i.id, projectId: i.projectId }),
+    getIssueFieldEntries({
+      id: i.id,
+      projectId: i.projectId,
+      workspaceId: i.project.workspaceId,
+    }),
   ]);
   return {
     ...withIssueAttachments(mapIssue(i, viewerId), attachments),
     access,
     ...relations,
     activity,
+    customFields,
   };
 }
 
@@ -952,15 +961,21 @@ export const getIssueByRef = cache(
     const access = await issueAccessFor(i);
     const attachments = await resolveIssueAttachments(i.attachments);
     const viewerId = await currentUserId();
-    const [relations, activity] = await Promise.all([
+    const [relations, activity, customFields] = await Promise.all([
       loadIssueRelations(i.id, i.parentId, workspaceId),
       listAudit({ targetId: i.id, projectId: project.id }),
+      getIssueFieldEntries({
+        id: i.id,
+        projectId: project.id,
+        workspaceId,
+      }),
     ]);
     return {
       ...withIssueAttachments(mapIssue(i, viewerId), attachments),
       access,
       ...relations,
       activity,
+      customFields,
     };
   },
 );

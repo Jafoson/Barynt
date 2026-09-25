@@ -40,8 +40,16 @@ export function IssueDetail({
   isExpanded = false,
   onToggleExpanded,
 }: IssueDetailProps) {
-  const { issue, isMissing, isLoading, patch, comment, remove, refresh } =
-    useIssueDetail({ issueRef, data, onDeleted: onClose });
+  const {
+    issue,
+    isMissing,
+    isLoading,
+    patch,
+    setField,
+    comment,
+    remove,
+    refresh,
+  } = useIssueDetail({ issueRef, data, onDeleted: onClose });
 
   if (!issue) {
     // `isLoading` is also true here (a confirmed miss turns it off first —
@@ -65,6 +73,7 @@ export function IssueDetail({
       isExpanded={isExpanded}
       isLoading={isLoading}
       onPatch={patch}
+      onField={setField}
       onComment={comment}
       onDelete={remove}
       onRefresh={refresh}

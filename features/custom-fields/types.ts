@@ -2,6 +2,7 @@ import type { DefinitionIssue } from "@/lib/custom-fields/config";
 import type {
   CustomFieldConfig,
   CustomFieldType,
+  FieldValue,
 } from "@/lib/custom-fields/types";
 
 /** A field's definition as the screens and the API read it. */
@@ -53,3 +54,23 @@ export interface CustomFieldsView {
 export type CustomFieldResult =
   | { ok: true; id: string }
   | { error: string; issues?: DefinitionIssue[] };
+
+/** One field of an issue and the issue's answer to it: `null` for a field it has not answered. */
+export interface IssueFieldEntry {
+  field: CustomFieldRow;
+  value: FieldValue | null;
+}
+
+/**
+ * What answering a field says: it went through, or a sentence. `changed` is `false` for an answer
+ * that was already there, so nothing was written and nothing logged.
+ */
+export type FieldValueResult =
+  | { ok: true; changed: boolean }
+  | { error: string };
+
+/** How the screens set one field of the open issue; `null` clears it. */
+export type SetFieldValue = (
+  fieldId: string,
+  value: unknown,
+) => Promise<FieldValueResult>;

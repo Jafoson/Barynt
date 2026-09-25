@@ -92,7 +92,8 @@ export async function recordIssueAudit(
     | "issue.comment.removed"
     | "issue.dueDate.changed"
     | "issue.storyPoints.changed"
-    | "issue.estimateHours.changed",
+    | "issue.estimateHours.changed"
+    | "issue.customField.changed",
   id: string,
   issue: { projectId: string; project: { workspaceId: string } } & Parameters<
     typeof issueRef

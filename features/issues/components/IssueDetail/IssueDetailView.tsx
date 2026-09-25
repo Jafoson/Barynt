@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/atoms/EmptyState/EmptyState";
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
 import { Modal } from "@/components/ui/layout/Modal/Modal";
 import { Resizer } from "@/components/ui/layout/Resizer/Resizer";
+import type { SetFieldValue } from "@/features/custom-fields/types";
 import { issuePath } from "@/features/issues/issue-links";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
 import { visibleDetailFields } from "@/features/projects/detail-fields";
@@ -274,6 +275,8 @@ interface IssueDetailViewProps {
    */
   isLoading?: boolean;
   onPatch: (patch: IssuePatch) => void;
+  /** Answers one custom field of the issue, or clears it with `null`. */
+  onField: SetFieldValue;
   onComment: (body: PMDoc) => Promise<void>;
   onDelete: () => void;
   /** Refetches the issue — for attachments that are written past the hook. */
@@ -289,6 +292,7 @@ export function IssueDetailView({
   isLoading = false,
   isExpanded = false,
   onPatch,
+  onField,
   onComment,
   onDelete,
   onRefresh,
@@ -441,6 +445,7 @@ export function IssueDetailView({
               visibleFields={visibleFields}
               isPhone={isPhone}
               onPatch={onPatch}
+              onField={onField}
               onComment={onComment}
               onRefresh={onRefresh}
             />
@@ -491,7 +496,12 @@ export function IssueDetailView({
                 />
               </div>
 
-              <IssueSidebar issue={issue} data={data} onPatch={onPatch} />
+              <IssueSidebar
+                issue={issue}
+                data={data}
+                onPatch={onPatch}
+                onField={onField}
+              />
             </div>
           )}
           {/* Delayed via CSS, not skipped here: a switch that resolves fast

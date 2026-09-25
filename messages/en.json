@@ -856,6 +856,10 @@
     "fromProjectsDesc": "These labels belong to individual projects and apply only there. They are edited in that project's settings — the row takes you there."
   },
   "customFields": {
+    "notSet": "Not set",
+    "none": "None",
+    "unknownPerson": "Former member",
+    "openLink": "Open {name}",
     "title": "Custom fields",
     "workspaceIntro": "What every issue in this workspace is asked besides what it has anyway. A field here applies in all projects; a project can add its own.",
     "projectIntro": "What the issues of this project are asked besides what they have anyway. The fields of the workspace apply here as well.",
@@ -1568,6 +1572,7 @@
       "issueDueDateChanged": "Due date changed",
       "issueStoryPointsChanged": "Story points changed",
       "issueEstimateHoursChanged": "Time estimate changed",
+      "issueCustomFieldChanged": "Custom field changed",
       "labelCreated": "Label created",
       "labelDeleted": "Label deleted",
       "customFieldCreated": "Custom field created",

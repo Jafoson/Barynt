@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
+import type { SetFieldValue } from "@/features/custom-fields/types";
 import { issuePath } from "@/features/issues/issue-links";
 import { carryIssueOrigin, issueOrigin } from "@/features/issues/issue-origin";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
@@ -35,6 +36,8 @@ interface IssueDetailPageViewProps {
   /** Target of the back arrow and the project step in the breadcrumb path. */
   backHref: string;
   onPatch: (patch: IssuePatch) => void;
+  /** Answers one custom field of the issue, or clears it with `null`. */
+  onField: SetFieldValue;
   onComment: (body: PMDoc) => Promise<void>;
   onDelete: () => void;
   /** Refetches the issue — for attachments that are written past the hook. */
@@ -56,6 +59,7 @@ export function IssueDetailPageView({
   data,
   backHref,
   onPatch,
+  onField,
   onComment,
   onDelete,
   onRefresh,
@@ -213,6 +217,7 @@ export function IssueDetailPageView({
             visibleFields={visibleFields}
             isPhone={false}
             onPatch={onPatch}
+            onField={onField}
             onComment={onComment}
             onRefresh={onRefresh}
           />
@@ -265,6 +270,7 @@ export function IssueDetailPageView({
             data={data}
             defaultWidth={PAGE_SIDEBAR_W}
             onPatch={onPatch}
+            onField={onField}
           />
         </div>
       )}

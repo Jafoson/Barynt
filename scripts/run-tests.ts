@@ -112,6 +112,14 @@ const SEGMENTS: string[][] = [
   // The list of a workspace's or a project's fields: the same stand-in hooks, and stand-ins for the
   // window's opener, the confirmation and the actions.
   ["tests/unit/custom-fields-section"],
+  // Answering a field on an issue (`features/custom-fields/valueActions`): replaces the database, the
+  // permissions, the issue's audit helper and `next/cache`.
+  ["tests/unit/custom-fields-values"],
+  // The answers on the issue's detail view (`IssueCustomFields`, the value and the editor): the value
+  // view and the editor need only stand-ins for `next-intl` and the avatar; the section replaces
+  // `react`'s hooks, so it has a folder of its own.
+  ["tests/unit/custom-fields-issue"],
+  ["tests/unit/custom-fields-issue-fields"],
   // What a plugin reads of its own settings (`ctx.settings`): replaces the database and the
   // permissions, and reads the request's workspace through the reader `setCurrentWorkspaceId` publishes.
   ["tests/unit/plugin-host-settings"],
