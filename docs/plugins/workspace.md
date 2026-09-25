@@ -40,28 +40,35 @@ from, in how many workspaces it is on, what is approved.
 
 ## A plugin's settings
 
-The settings of the plugins a workspace switched on are **their own area of the settings**: the fourth choice next to *Personal*, *Project* and *Workspace*
-in the row at the top (*Plugins*, `/<workspace>/plugin/settings`). It is there for whoever holds `plugin.enable` in the workspace, and for nobody else (the
-address is "not found" for anyone else, and the choice is not offered).
+The settings of the plugins are **their own area of the settings**: the fourth choice next to *Personal*, *Project* and *Workspace* in the row at the top
+(*Plugins*, `/<workspace>/plugin/settings`). It shows **what this person may set up**, and is offered to whoever holds `plugin.enable` in the workspace **or in a
+project of it** (a project admin who is no workspace admin gets it too, with their projects' plugins only); anyone else gets "not found" and is not offered the choice.
 
 | Address | What it is |
 | --- | --- |
-| `/<workspace>/plugin/settings` | The overview: every plugin that is **on here**, with its name, what it does and its version, and a link into its settings, or "No settings." |
-| `/<workspace>/plugin/settings/<pluginId>` | One plugin's settings: the [form](lifecycle.md#the-form) as a page, with **Save** in the header like the other settings pages |
+| `/<workspace>/plugin/settings` | The overview: the plugins that are **on in this workspace** and, in a section of their own, the plugins that are **set per project**, each with what it does, its version (for the second: the projects it is on in) and a link into its settings, or "No settings." |
+| `/<workspace>/plugin/settings/<pluginId>` | A workspace plugin: its [form](lifecycle.md#the-form) as a page, with **Save** in the header like the other settings pages. A plugin set per project: the projects to choose from |
+| `/<workspace>/plugin/settings/<pluginId>/<projectSlug>` | A plugin set per project, in one project: the form as a page, with the way back to the projects |
 
-- **The navigation on the left** lists the overview and, below it, each plugin that is on here **and declares settings**. A plugin without settings is on
-  the overview (which says so), not in the navigation: a row that opens nothing would be a dead end. On a phone the overview is the list of sections and a
-  plugin's page is its own screen, like every other settings area.
-- **The Settings button** on the workspace's [Plugins page](#what-it-shows) is a link to that page (`LinkButton`, a real link: it can be opened in a new tab).
-- **A page that is not there is a 404:** a plugin that is off here, one that declares no settings and one that does not exist look the same, never an empty form.
-- **Saving** is `saveWorkspacePluginSettings(workspaceId, pluginId, values)` ([Lifecycle](lifecycle.md#a-plugins-settings)); the page passes the ids and nothing
-  else. A toast says it is saved, the page reads again, and the form starts over from what it sent.
-- **What is read** is `getWorkspacePlugins` (the same selection as the Plugins page, so nothing that is the platform's reaches a workspace admin) put together by
-  `settingsAreaOf` ([`settingsArea.ts`](../../features/plugins/settingsArea.ts), pure) and asked through `getPluginSettingsArea`, which turns a missing
-  permission into `null` for the page to make a 404.
-- **What is not here:** the plugins for the whole platform (the platform's), and the plugins that apply per project (a project's: [Project](project.md)).
-  Their settings still open in a window for now.
-- The tab of the tab bar is called *Plugins* for the overview and *Plugins (Notes)* for a plugin's page (the tab bar knows the plugin's id, not its name).
+- **Whose plugins are listed** depends on who asks. The workspace's own plugins are listed for whoever holds `plugin.enable` in the workspace (`owner` and `admin`
+  by default). A plugin set per project is listed with the projects **it is on in and this person may set up** (`plugin.enable` in that project: `project_admin`, and whoever
+  holds `project.admin.all`): `projectIdsWith` (`lib/permissions.ts`) answers it for all projects at once, by the same rules as the resolver of a single project.
+- **The navigation on the left** lists the overview and, below it, each plugin that is on and **declares settings**: the workspace's with the puzzle piece, then the
+  ones set per project with the projects' icon (a row that stays open on the pages beneath it). A plugin without settings is on the overview (which says so), not in the
+  navigation: a row that opens nothing would be a dead end. On a phone the overview is the list of sections and a plugin's page is its own screen.
+- **The Settings button** on the workspace's and on a project's [Plugins page](#what-it-shows) is a link to that page (`LinkButton`, a real link: it can be opened in a
+  new tab): `/<workspace>/plugin/settings/<id>` for a workspace plugin, `.../<id>/<projectSlug>` in a project.
+- **A page that is not there is a 404:** a plugin that is off, one that declares no settings, a project the person may not set up and one that does not exist look the
+  same, never an empty form.
+- **Saving** is `saveWorkspacePluginSettings(workspaceId, pluginId, values)` or `saveProjectPluginSettings(projectId, pluginId, values)`
+  ([Lifecycle](lifecycle.md#a-plugins-settings)); the page passes the ids and nothing else. A toast says it is saved, the page reads again, and the form starts over from
+  what it sent.
+- **What is read** is put together by `settingsAreaOf` ([`settingsArea.ts`](../../features/plugins/settingsArea.ts), pure) from the same selection as the plugins pages
+  (so nothing that is the platform's reaches a workspace or project admin) and asked through `getPluginSettingsArea`, which turns "may set nothing up" into `null` for the
+  page to make a 404. `canOpenPluginSettings` decides whether the choice is offered in the four settings layouts.
+- **What is not here:** the plugins for the whole platform (the platform's, on [the plugins page](admin.md), where their settings open in a window).
+- The tab of the tab bar is called *Plugins* for the overview, *Plugins (Notes)* for a plugin's page and *Plugins (Roadmap · Web App)* for a project's (the tab bar knows
+  the plugin's id, not its name).
 - On a phone, four choices do not fit the row with their words: the open one keeps its word and the others are their icon.
 
 ## The store of a workspace

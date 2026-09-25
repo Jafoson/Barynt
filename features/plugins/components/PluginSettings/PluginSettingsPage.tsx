@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useId } from "react";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { Button } from "@/components/ui/atoms/Button/Button";
+import { LinkButton } from "@/components/ui/atoms/LinkButton/LinkButton";
 import { PageHeader } from "@/components/ui/layout/PageHeader/PageHeader";
 import { SettingsBody } from "@/components/ui/layout/SettingsList/SettingsList";
 import type { SettingsSaveResult } from "@/features/plugins/types";
@@ -19,6 +20,10 @@ interface Props {
   name: string;
   description: string;
   version: string;
+  /** Whose settings these are, in a sentence: "Applies to the whole workspace." */
+  note: string;
+  /** A way back to where the plugin's settings were chosen, above the intro: the projects to choose from. */
+  back?: { href: string; label: string };
   form: SettingsForm;
   /** Saves the whole form: the action of the level, with its ids already in it. */
   save: (
@@ -37,6 +42,8 @@ export function PluginSettingsPage({
   name,
   description,
   version,
+  note,
+  back,
   form,
   save,
 }: Props) {
@@ -75,6 +82,17 @@ export function PluginSettingsPage({
 
       <SettingsBody>
         <div className={styles.pageIntro}>
+          {back && (
+            <LinkButton
+              href={back.href}
+              variant="text"
+              size="sm"
+              icon={<Icon icon="lucide:chevron-left" width={14} />}
+              className={styles.back}
+            >
+              {back.label}
+            </LinkButton>
+          )}
           {description && (
             <p className={styles.pageDescription}>{description}</p>
           )}
@@ -82,7 +100,7 @@ export function PluginSettingsPage({
             <Badge size="sm" mono>
               {version}
             </Badge>
-            <span>{t("pluginSettings.pageScope")}</span>
+            <span>{note}</span>
           </p>
         </div>
 

@@ -600,6 +600,57 @@ export const accessibleProjectIds = cache(async function accessibleProjectIds(
   return visible;
 });
 
+/**
+ * The projects of a workspace in which `userId` holds `permission`.
+ *
+ * The bulk variant of `can(userId, permission, { projectId })`, for a list that would otherwise
+ * need one resolution per project (which projects' plugins someone may set up). The same rules as
+ * in `resolve`, across all projects at once: support and `project.admin.all` hold everything in
+ * every project, a suspended workspace or a pending invitation nothing, and otherwise the project
+ * role decides alone. `project.view.all` opens no other permission than seeing, so it counts only
+ * for `project.view`, as it does in `resolve`.
+ */
+export const projectIdsWith = cache(async function projectIdsWith(
+  userId: string | null,
+  workspaceId: string,
+  permission: Permission,
+): Promise<Set<string>> {
+  const found = new Set<string>();
+  // A permission that cannot hold in a project is held in none, whoever asks.
+  if (!userId || !isPermissionAllowedIn(permission, "PROJECT")) return found;
+
+  const [base, projects, memberships] = await Promise.all([
+    loadBase(userId, workspaceId),
+    db.project.findMany({ where: { workspaceId }, select: { id: true } }),
+    db.projectMember.findMany({
+      where: { userId, project: { workspaceId } },
+      select: { projectId: true, role: { select: roleSelect } },
+    }),
+  ]);
+
+  // Rules 1 and 3: support and the workspace's leadership hold every project permission.
+  if (
+    base.master ||
+    opens(base, "project.admin.all") ||
+    (permission === "project.view" && opens(base, "project.view.all"))
+  ) {
+    for (const project of projects) found.add(project.id);
+    return found;
+  }
+  // Rule 2.
+  if (base.closed) return found;
+
+  const ownRole = new Map(memberships.map((m) => [m.projectId, m.role]));
+
+  // Rule 4: the project role decides, and no role means no permission.
+  for (const project of projects) {
+    const role = ownRole.get(project.id);
+    if (role && collect(role, "PROJECT").has(permission)) found.add(project.id);
+  }
+
+  return found;
+});
+
 /** Like `accessibleProjectIds`, but for the logged-in user. */
 export async function visibleProjectIds(
   workspaceId: string,

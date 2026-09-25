@@ -36,9 +36,11 @@ the hashes, where a plugin came from, in how many projects it is on and what is 
 
 ## A plugin's settings
 
-A plugin that is **on in this project** and declares settings has a **Settings** button on its row: the [form](lifecycle.md#the-form) in a dialog (a sheet on
-a phone), saved by `saveProjectPluginSettings(projectId, pluginId, values)` with `plugin.enable` in this project. A plugin that is off here has no button, and
-its settings stay for when it is switched on again. The workspace's own values for a plugin are the workspace's, and are not seen here.
+A plugin that is **on in this project** and declares settings has a **Settings** button on its row: a link to that plugin's page for this project in the plugins' settings,
+`/<workspace>/plugin/settings/<pluginId>/<projectSlug>` ([The plugins of a workspace](workspace.md#a-plugins-settings)), where the [form](lifecycle.md#the-form) is a page.
+It is saved by `saveProjectPluginSettings(projectId, pluginId, values)` with `plugin.enable` in this project. A plugin that is off here has no button, and its settings
+stay for when it is switched on again. The workspace's own values for a plugin are the workspace's, and are not seen here. Someone who holds `plugin.enable` in this
+project only (no workspace right) reaches the same page: the choice *Plugins* is offered to them too, with their projects' plugins.
 
 ## The store of a project
 

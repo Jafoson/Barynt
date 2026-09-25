@@ -43,6 +43,7 @@ import {
   assignmentCeiling,
   can,
   canEnterWorkspace,
+  projectIdsWith,
 } from "@/lib/permissions";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -648,6 +649,164 @@ describe("accessibleProjectIds", () => {
 
   it("gibt ohne Session eine leere Menge", async () => {
     expect([...(await accessibleProjectIds(null, "ws1"))]).toEqual([]);
+  });
+});
+
+describe("projectIdsWith", () => {
+  const admin = role(
+    "project_admin",
+    4,
+    allow("project.view", "plugin.enable"),
+  );
+  const viewer = role("project_viewer", 2, allow("project.view"));
+
+  it("lists the projects whose role carries the permission, and only those", async () => {
+    setup({ workspace: role("member", 2, allow("project.view")) });
+    mockProjectFindMany.mockResolvedValue([
+      { id: "p1" },
+      { id: "p2" },
+      { id: "p3" },
+    ]);
+    mockProjectMemberFindMany.mockResolvedValue([
+      { projectId: "p1", role: admin },
+      { projectId: "p2", role: viewer },
+    ]);
+
+    const ids = await projectIdsWith("u1", "ws1", "plugin.enable");
+    expect([...ids]).toEqual(["p1"]);
+  });
+
+  it("gives another answer for another permission", async () => {
+    setup({ workspace: role("member", 2, allow("project.view")) });
+    mockProjectFindMany.mockResolvedValue([{ id: "p1" }, { id: "p2" }]);
+    mockProjectMemberFindMany.mockResolvedValue([
+      { projectId: "p1", role: admin },
+      { projectId: "p2", role: viewer },
+    ]);
+
+    expect(
+      [...(await projectIdsWith("u1", "ws1", "project.view"))].sort(),
+    ).toEqual(["p1", "p2"]);
+  });
+
+  it("lists nothing for someone in no project", async () => {
+    setup({ workspace: role("member", 2, allow("project.view")) });
+    mockProjectFindMany.mockResolvedValue([{ id: "p1" }]);
+    mockProjectMemberFindMany.mockResolvedValue([]);
+
+    expect([...(await projectIdsWith("u1", "ws1", "plugin.enable"))]).toEqual(
+      [],
+    );
+  });
+
+  it("lists every project for the workspace's leadership, with no project role at all", async () => {
+    setup({ workspace: role("owner", 6, allow("project.admin.all")) });
+    mockProjectFindMany.mockResolvedValue([{ id: "p1" }, { id: "p2" }]);
+    mockProjectMemberFindMany.mockResolvedValue([]);
+
+    const ids = await projectIdsWith("u1", "ws1", "plugin.enable");
+    expect([...ids].sort()).toEqual(["p1", "p2"]);
+  });
+
+  it("does not let a blocked project role hide a project from the leadership", async () => {
+    setup({ workspace: role("owner", 6, allow("project.admin.all")) });
+    mockProjectFindMany.mockResolvedValue([{ id: "p1" }]);
+    mockProjectMemberFindMany.mockResolvedValue([
+      { projectId: "p1", role: role("blocked", 0, []) },
+    ]);
+
+    expect([...(await projectIdsWith("u1", "ws1", "plugin.enable"))]).toEqual([
+      "p1",
+    ]);
+  });
+
+  it("lets project.view.all open seeing only, not the other permissions", async () => {
+    setup({ workspace: role("auditor", 3, allow("project.view.all")) });
+    mockProjectFindMany.mockResolvedValue([{ id: "p1" }, { id: "p2" }]);
+    mockProjectMemberFindMany.mockResolvedValue([]);
+
+    expect(
+      [...(await projectIdsWith("u1", "ws1", "project.view"))].sort(),
+    ).toEqual(["p1", "p2"]);
+    expect([...(await projectIdsWith("u1", "ws1", "plugin.enable"))]).toEqual(
+      [],
+    );
+  });
+
+  it("lists every project for support, whatever else it holds", async () => {
+    setup({ platform: role("platform_support", 1, allow("tenant.access")) });
+    mockProjectFindMany.mockResolvedValue([{ id: "p1" }, { id: "p2" }]);
+    mockProjectMemberFindMany.mockResolvedValue([]);
+
+    const ids = await projectIdsWith("u1", "ws1", "plugin.enable");
+    expect([...ids].sort()).toEqual(["p1", "p2"]);
+  });
+
+  it("lists nothing in a suspended workspace, even for a project admin", async () => {
+    setup({
+      workspace: role("owner", 6, allow("project.admin.all")),
+      suspended: true,
+    });
+    mockProjectFindMany.mockResolvedValue([{ id: "p1" }]);
+    mockProjectMemberFindMany.mockResolvedValue([
+      { projectId: "p1", role: admin },
+    ]);
+
+    expect([...(await projectIdsWith("u1", "ws1", "plugin.enable"))]).toEqual(
+      [],
+    );
+  });
+
+  it("lists nothing for a deactivated account, not even with the support key", async () => {
+    setup({
+      deactivated: true,
+      platform: role("platform_support", 1, allow("tenant.access")),
+    });
+    mockProjectFindMany.mockResolvedValue([{ id: "p1" }]);
+    mockProjectMemberFindMany.mockResolvedValue([
+      { projectId: "p1", role: admin },
+    ]);
+
+    expect([...(await projectIdsWith("u1", "ws1", "plugin.enable"))]).toEqual(
+      [],
+    );
+  });
+
+  it("lists nothing without a session, and asks the database nothing", async () => {
+    expect([...(await projectIdsWith(null, "ws1", "plugin.enable"))]).toEqual(
+      [],
+    );
+    expect(mockProjectFindMany).not.toHaveBeenCalled();
+    expect(mockProjectMemberFindMany).not.toHaveBeenCalled();
+    expect(mockUserFindUnique).not.toHaveBeenCalled();
+  });
+  it("lists nothing for a permission that cannot hold in a project, whoever asks", async () => {
+    setup({ workspace: role("owner", 6, allow("project.admin.all")) });
+    mockProjectFindMany.mockResolvedValue([{ id: "p1" }]);
+    mockProjectMemberFindMany.mockResolvedValue([]);
+
+    expect([
+      ...(await projectIdsWith("u1", "ws1", "workspace.delete")),
+    ]).toEqual([]);
+  });
+
+  it("agrees with the resolver of a single project", async () => {
+    // The same person, the same workspace: the list and `can` must not part ways.
+    setup({
+      workspace: role("member", 2, allow("project.view")),
+      project: admin,
+    });
+    mockProjectFindMany.mockResolvedValue([{ id: "p1" }]);
+    mockProjectMemberFindMany.mockResolvedValue([
+      { projectId: "p1", role: admin },
+    ]);
+
+    const listed = (await projectIdsWith("u1", "ws1", "plugin.enable")).has(
+      "p1",
+    );
+    const single = await can("u1", "plugin.enable", { projectId: "p1" });
+    expect(listed).toBe(single);
+    expect(listed).toBe(true);
   });
 });
 

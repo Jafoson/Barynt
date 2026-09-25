@@ -2,11 +2,8 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { SettingsHeader } from "@/components/ui/layout/SettingsHeader/SettingsHeader";
 import { SettingsBody } from "@/components/ui/layout/SettingsNav/SettingsBody";
-import {
-  SettingsNav,
-  type SettingsNavItem,
-} from "@/components/ui/layout/SettingsNav/SettingsNav";
-import { configurable } from "@/features/plugins/settingsArea";
+import { SettingsNav } from "@/components/ui/layout/SettingsNav/SettingsNav";
+import { settingsNavItems } from "@/features/plugins/settingsAreaNav";
 import { getPluginSettingsArea } from "@/features/plugins/settingsAreaQueries";
 import {
   getCurrentWorkspace,
@@ -26,12 +23,12 @@ import styles from "./pluginSettings.module.scss";
 export const dynamic = "force-dynamic";
 
 /**
- * Frame of the plugins' settings: the plugins this workspace has switched on and that have
- * settings on the left, the open one on the right.
+ * Frame of the plugins' settings: the plugins that are switched on here or in a project, that
+ * this person may set up and that have settings, on the left, the open one on the right.
  *
  * Structured like the frames of the workspace, project and account settings, and the fourth
  * choice of their switcher. This layout only holds the navigation together: every page asks
- * again (`getPluginSettingsArea` needs `plugin.enable` in the workspace), because a layout
+ * again (`getPluginSettingsArea` needs `plugin.enable` in the workspace or in a project), because a layout
  * protects no page and no action, and a missing row in the sidebar is not access control.
  */
 export default async function PluginSettingsLayout({
@@ -76,24 +73,12 @@ export default async function PluginSettingsLayout({
       project: projectAccess
         ? PROJECT_SETTINGS_PERMISSIONS.some(projectAccess.has)
         : false,
-      plugin: access.has("plugin.enable"),
+      // Here already: the area only opens for someone who may set plugins up.
+      plugin: true,
     },
   );
 
-  // The overview, then one row for each plugin that has something to set. A plugin without
-  // settings is on the overview, which says so; a row that opens nothing would be a dead end.
-  const items: SettingsNavItem[] = [
-    {
-      href: pluginSettingsPath(workspace),
-      label: t("nav.overview"),
-      icon: "lucide:layout-list",
-    },
-    ...configurable(area).map((plugin) => ({
-      href: pluginSettingsPath(workspace, plugin.id),
-      label: plugin.name,
-      icon: "lucide:puzzle",
-    })),
-  ];
+  const items = settingsNavItems(area, workspace, t("nav.overview"));
 
   return (
     <div className={styles.shell}>

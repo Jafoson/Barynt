@@ -28,6 +28,21 @@ describe("the address of the plugins' settings", () => {
     expect(pluginSettingsPath("nimbus", "")).toBe("/nimbus/plugin/settings");
   });
 
+  it("adds the project's slug for a plugin's settings in one project", () => {
+    expect(pluginSettingsPath("nimbus", "roadmap", "web-app")).toBe(
+      "/nimbus/plugin/settings/roadmap/web-app",
+    );
+  });
+
+  it("needs a plugin for a project: a slug alone is the overview", () => {
+    expect(pluginSettingsPath("nimbus", undefined, "web-app")).toBe(
+      "/nimbus/plugin/settings",
+    );
+    expect(pluginSettingsPath("nimbus", "", "web-app")).toBe(
+      "/nimbus/plugin/settings",
+    );
+  });
+
   it("adds the plugin's id for one plugin's page", () => {
     expect(pluginSettingsPath("nimbus", "github-sync")).toBe(
       "/nimbus/plugin/settings/github-sync",

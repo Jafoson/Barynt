@@ -29,7 +29,9 @@ export default async function ProjectPluginsPage({
     const view = await getProjectPlugins(project.id, locale);
     return (
       <ProjectPlugins
+        workspaceId={workspace}
         projectId={project.id}
+        projectSlug={projectSlug}
         view={view}
         basePath={projectSettingsPath(workspace, projectSlug, "plugins")}
       />

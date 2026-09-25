@@ -14,6 +14,12 @@ export interface SettingsNavItem {
   href: string;
   label: string;
   icon: string;
+  /**
+   * Where the row counts as open, when that is more than its own address: `<href>/*` for a row
+   * whose pages have pages beneath them (a plugin's settings per project). Without it the row
+   * is open only on its own address.
+   */
+  activeHref?: string;
   /** Shown only where there's a keyboard — the shortcuts page, say. */
   needsKeyboard?: boolean;
 }
@@ -118,7 +124,7 @@ export function SettingsNav({
                     ? `${item.href}?${OPEN_PARAM}=1`
                     : item.href
                 }
-                activeHref={item.href}
+                activeHref={item.activeHref ?? item.href}
                 icon={item.icon}
                 label={item.label}
               />
