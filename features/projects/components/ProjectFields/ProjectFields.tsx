@@ -16,6 +16,8 @@ import styles from "./projectFields.module.scss";
 
 interface Props extends ProjectFieldsView {
   onChange: (hidden: string[]) => Promise<{ ok: true } | { error: string }>;
+  /** The project's custom fields (`CustomFields`), below the switches of the built-in ones. */
+  children?: React.ReactNode;
 }
 
 /**
@@ -82,6 +84,7 @@ export function ProjectFields({
   hiddenDetailFields,
   canUpdate,
   onChange,
+  children,
 }: Props) {
   const t = useTranslations();
   const router = useRouter();
@@ -147,6 +150,8 @@ export function ProjectFields({
           rows={rows}
           getRowKey={(row) => row.id}
         />
+
+        {children}
       </div>
     </>
   );

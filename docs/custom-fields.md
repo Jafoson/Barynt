@@ -10,7 +10,7 @@ Extra data on an issue that the fixed columns do not cover: a customer number, a
 | The model, the types, the checks | `prisma/schema.prisma`, `lib/custom-fields/` | BARY-80 (this page) |
 | The permission `customfield.manage` | `lib/rbac/permissions.ts`, [rbac.md](rbac.md#custom-fields-one-permission-bary-79) | BARY-80 |
 | Defining fields: create, change, archive, delete (server side, audited) | `features/custom-fields/` | BARY-81, this page |
-| The screens to manage them | | BARY-81, not built yet |
+| The screens to manage them: a workspace's Fields section, a project's Fields page, the window | `features/custom-fields/components/`, `formState.ts` | BARY-81, this page |
 | Filling them in on the issue, showing them on cards and rows | | BARY-81, not built yet |
 | REST, MCP, filters, search, webhooks, audit | | BARY-82, not built yet |
 | Fields declared by a plugin, and what happens to them when it is uninstalled | | not built yet |
@@ -87,6 +87,24 @@ wrong (`issues`, one per part).
 
 What the screens read is in [`features/custom-fields/queries.ts`](../features/custom-fields/queries.ts): `getCustomFieldsView` (a workspace's page needs `customfield.manage`; a project's page shows to whoever may see the project and says whether they may manage; a project's page also lists the workspace-wide fields that apply there, read only) and `getFieldsOfProject` (the fields an issue has: workspace-wide and the project's, archived ones left out). A row whose type this code does not know is left out, never breaks the page.
 
+## The screens
+
+- **The workspace's fields**: `/<workspace>/settings/fields`, a section of the workspace settings for whoever holds `customfield.manage` in the workspace (`WORKSPACE_SETTINGS_NAV`; the page is a 404 without it,
+  because `getCustomFieldsView` asks itself). Holding it also makes the workspace settings reachable, like `role.manage` does.
+- **A project's fields**: the project's existing **Fields** page (`.../settings/fields`) keeps the switches of the built-in detail fields and gets an **Own fields** section below them: the project's own fields (change,
+  archive, delete for whoever holds `customfield.manage` in the project, the list only for everyone else who may see the project) and, under **From the workspace**, the workspace-wide fields that apply there, **read only**:
+  they are changed where they belong. A project cannot hide a workspace-wide field in v1; archive it in the workspace.
+- **One list component** (`CustomFields`, with `embedded` for the project's page) and **one window** (`CustomFieldModal`, opened by `useOpenCustomFieldModal`): a bottom sheet on a phone (no Cancel, no autofocus), a
+  dialog from a tablet up. The rows become cards on a phone (`card-rows`).
+- **The key and the type are asked for only when a field is made** and cannot be changed after, so the change window has neither box (the type is shown, greyed, and says why). What a type allows
+  (a text's length, a number's range and whole-numbers switch, a choice's options) can change. An option keeps its **id** through a rename (the window sends the id it read) and a new option has none, the server makes it.
+  Taking away an option that issues answer with is refused by the server and the window says so under the options.
+- **Archive before delete**: an archived field goes to its own **Archived** list (no longer offered, answers kept) with Restore and Delete. Deleting asks first and says **how many answers go with it**, in words
+  that point to archiving as the way to keep them. A field a plugin declared shows a **Plugin** mark instead of buttons (the actions refuse it too).
+- The **New field** button is off, with the reason, when the workspace has reached its 100 fields (`view.room`).
+- The form's state is pure (`features/custom-fields/formState.ts`: `initialForm`, `configOf`, `toCreateInput`/`toChangeInput`, `isDirty`, `groupIssues`), so the conversions are tested without a DOM. A number is kept as the
+  text of its box: an empty box is "no limit", never zero, and text that is not a number is sent as `NaN` for the server to refuse.
+
 ## Who may do what
 
 - **Defining** is `customfield.manage`: in the workspace for workspace-wide fields (`owner`, `admin`, `manager`), in a project for that project's (`project_admin`) ([rbac.md](rbac.md#custom-fields-one-permission-bary-79)).
@@ -99,4 +117,4 @@ What the screens read is in [`features/custom-fields/queries.ts`](../features/cu
 ## Not decided yet
 
 - Multiple choice, a boolean and a required flag are not in v1; a type is an addition to the tuple and its column mapping.
-- Whether a project may hide a workspace-wide field (the way it hides a workspace label) is decided with the screens (BARY-81).
+- Whether a project may hide a workspace-wide field (the way it hides a workspace label): not in v1, see [the screens](#the-screens).

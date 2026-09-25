@@ -51,7 +51,9 @@ const SEGMENTS: string[][] = [
     "tests/unit/store-catalog",
     "tests/unit/store-settings",
     "tests/unit/secrets",
-    "tests/unit/custom-fields",
+    // A trailing slash: a path is a filter (a prefix of the file's path), and without one it would
+    // also take in `custom-fields-actions`, `-modal` and the others that have a process of their own.
+    "tests/unit/custom-fields/",
   ],
   ["tests/unit/permissions/resolver.test.ts"],
   // Own invocation: sharing segment 0 with tests/unit/projects made
@@ -103,6 +105,13 @@ const SEGMENTS: string[][] = [
   // What the screens read of the definitions (`features/custom-fields/queries`): replaces the database and
   // the permissions differently from the actions' tests.
   ["tests/unit/custom-fields-queries"],
+  // The window for a custom field at work: it replaces `react`'s hooks with a list and the actions
+  // that write a definition, so it cannot share a process with the section's tests (which replace
+  // them differently) or with the actions' own.
+  ["tests/unit/custom-fields-modal"],
+  // The list of a workspace's or a project's fields: the same stand-in hooks, and stand-ins for the
+  // window's opener, the confirmation and the actions.
+  ["tests/unit/custom-fields-section"],
   // What a plugin reads of its own settings (`ctx.settings`): replaces the database and the
   // permissions, and reads the request's workspace through the reader `setCurrentWorkspaceId` publishes.
   ["tests/unit/plugin-host-settings"],
