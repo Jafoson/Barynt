@@ -1,0 +1,8 @@
+/* The option's own color (`#rrggbb`) is data, so it comes in as a custom property. */
+.dot {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--option-color);
+}

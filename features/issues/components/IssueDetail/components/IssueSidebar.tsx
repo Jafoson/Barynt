@@ -3,10 +3,12 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Resizer } from "@/components/ui/layout/Resizer/Resizer";
+import type { SetFieldValue } from "@/features/custom-fields/types";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
 import { visibleDetailFields } from "@/features/projects/detail-fields";
 import type { IssueDetail } from "@/types";
 import styles from "../issueDetail.module.scss";
+import { IssueCustomFields } from "./IssueCustomFields";
 import { IssueLabels } from "./IssueLabels";
 import { IssueMeta } from "./IssueMeta";
 import { IssuePlanning } from "./IssuePlanning";
@@ -22,6 +24,7 @@ interface IssueSidebarProps {
    */
   defaultWidth?: number;
   onPatch: (patch: IssuePatch) => void;
+  onField: SetFieldValue;
 }
 
 /**
@@ -53,6 +56,7 @@ export function IssueSidebar({
   data,
   defaultWidth = DEFAULT_W,
   onPatch,
+  onField,
 }: IssueSidebarProps) {
   const t = useTranslations();
   const [width, setWidth] = useState(defaultWidth);
@@ -103,6 +107,19 @@ export function IssueSidebar({
         />
 
         <div className={styles.divider} />
+
+        {issue.customFields.length > 0 && (
+          <>
+            <IssueCustomFields
+              issue={issue}
+              members={data.members}
+              layout="aside"
+              onField={onField}
+            />
+
+            <div className={styles.divider} />
+          </>
+        )}
 
         {showLabels && (
           <>

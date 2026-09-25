@@ -1,3 +1,4 @@
+import type { IssueFieldEntry } from "@/features/custom-fields/types";
 import type { AuditEntry } from "@/lib/audit/actions";
 import type { PMDoc } from "@/lib/richtext/types";
 import type { SearchableIssue } from "./workspace";
@@ -204,4 +205,7 @@ export interface IssueDetail extends Issue {
    *  first — the same `AuditLog` rows the workspace/project activity log
    *  reads, filtered to this one issue (`listAudit({ targetId })`). */
   activity: AuditEntry[];
+  /** The issue's custom fields with its answers (BARY-81), in the fields' order; archived fields
+   *  left out. Loaded by the detail view only: `[]` on a board card or a list row. */
+  customFields: IssueFieldEntry[];
 }

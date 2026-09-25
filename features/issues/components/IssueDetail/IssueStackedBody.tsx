@@ -3,12 +3,14 @@
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import type { SetFieldValue } from "@/features/custom-fields/types";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
 import type { DetailFieldKey } from "@/features/projects/detail-fields";
 import type { PMDoc } from "@/lib/richtext/types";
 import type { IssueDetail } from "@/types";
 import { IssueAttachments } from "./components/IssueAttachments";
 import { IssueComments } from "./components/IssueComments";
+import { IssueCustomFields } from "./components/IssueCustomFields";
 import { IssueDescription } from "./components/IssueDescription";
 import { IssueLabels } from "./components/IssueLabels";
 import { IssueMeta } from "./components/IssueMeta";
@@ -53,6 +55,7 @@ interface IssueStackedBodyProps {
   /** A phone groups the attributes into one collapsible list up front. */
   isPhone: boolean;
   onPatch: (patch: IssuePatch) => void;
+  onField: SetFieldValue;
   onComment: (body: PMDoc) => Promise<void>;
   onRefresh: () => Promise<void>;
 }
@@ -69,6 +72,7 @@ export function IssueStackedBody({
   visibleFields,
   isPhone,
   onPatch,
+  onField,
   onComment,
   onRefresh,
 }: IssueStackedBodyProps) {
@@ -97,6 +101,12 @@ export function IssueStackedBody({
             layout="column"
             visibleFields={visibleFields}
             onPatch={onPatch}
+          />
+          <IssueCustomFields
+            issue={issue}
+            members={data.members}
+            layout="column"
+            onField={onField}
           />
           {showLabels && (
             <IssueLabels
@@ -143,6 +153,12 @@ export function IssueStackedBody({
             layout="column"
             visibleFields={visibleFields}
             onPatch={onPatch}
+          />
+          <IssueCustomFields
+            issue={issue}
+            members={data.members}
+            layout="column"
+            onField={onField}
           />
           {showLabels && (
             <IssueLabels

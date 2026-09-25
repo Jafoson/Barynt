@@ -856,6 +856,10 @@
     "fromProjectsDesc": "Diese Labels gehören einzelnen Projekten und gelten nur dort. Geändert werden sie in den Einstellungen des jeweiligen Projekts — die Zeile führt hin."
   },
   "customFields": {
+    "notSet": "Nicht gesetzt",
+    "none": "Keine Angabe",
+    "unknownPerson": "Ehemaliges Mitglied",
+    "openLink": "{name} öffnen",
     "title": "Eigene Felder",
     "workspaceIntro": "Was jede Aufgabe in diesem Workspace zusätzlich zu dem gefragt wird, was sie ohnehin hat. Ein Feld hier gilt in allen Projekten; ein Projekt kann eigene ergänzen.",
     "projectIntro": "Was die Aufgaben dieses Projekts zusätzlich zu dem gefragt werden, was sie ohnehin haben. Die Felder des Workspace gelten hier ebenfalls.",
@@ -1568,6 +1572,7 @@
       "issueDueDateChanged": "Fälligkeitsdatum geändert",
       "issueStoryPointsChanged": "Story Points geändert",
       "issueEstimateHoursChanged": "Zeitschätzung geändert",
+      "issueCustomFieldChanged": "Eigenes Feld geändert",
       "labelCreated": "Label angelegt",
       "labelDeleted": "Label gelöscht",
       "customFieldCreated": "Benutzerdefiniertes Feld angelegt",

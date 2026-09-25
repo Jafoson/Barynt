@@ -11,7 +11,8 @@ Extra data on an issue that the fixed columns do not cover: a customer number, a
 | The permission `customfield.manage` | `lib/rbac/permissions.ts`, [rbac.md](rbac.md#custom-fields-one-permission-bary-79) | BARY-80 |
 | Defining fields: create, change, archive, delete (server side, audited) | `features/custom-fields/` | BARY-81, this page |
 | The screens to manage them: a workspace's Fields section, a project's Fields page, the window | `features/custom-fields/components/`, `formState.ts` | BARY-81, this page |
-| Filling them in on the issue, showing them on cards and rows | | BARY-81, not built yet |
+| Answering them on the issue (detail page, panel and dialog) | `features/custom-fields/values.ts`, `valueActions.ts`, `IssueCustomFields` | BARY-81, this page |
+| Answering them when an issue is created, showing them on cards and rows | | BARY-81, not built yet |
 | REST, MCP, filters, search, webhooks, audit | | BARY-82, not built yet |
 | Fields declared by a plugin, and what happens to them when it is uninstalled | | not built yet |
 
@@ -104,6 +105,21 @@ What the screens read is in [`features/custom-fields/queries.ts`](../features/cu
 - The **New field** button is off, with the reason, when the workspace has reached its 100 fields (`view.room`).
 - The form's state is pure (`features/custom-fields/formState.ts`: `initialForm`, `configOf`, `toCreateInput`/`toChangeInput`, `isDirty`, `groupIssues`), so the conversions are tested without a DOM. A number is kept as the
   text of its box: an empty box is "no limit", never zero, and text that is not a number is sent as `NaN` for the server to refuse.
+
+## Answering a field on an issue
+
+- **One place writes an answer**: `writeFieldValue` (`features/custom-fields/values.ts`, server-only). The web app's action `setCustomFieldValue(issueId, fieldId, value)` (`valueActions.ts`) decides who may edit the issue, then calls it; the REST API and the MCP tools will do the
+  same after **their** own check (BARY-82), so an answer is treated the same wherever it comes from.
+- **Who may**: what editing the issue takes (`issue.update.any`, or `issue.update.own` for its reporter and assignee), the same as `updateIssue`; `customfield.manage` has nothing to do with it. Someone who may not, and an issue that does not exist, get the same sentence.
+- **The field has to be this issue's**: of the issue's workspace, workspace-wide or its own project's, and **not archived** (an archived field's answers stay in the database, out of sight and out of reach). Anything else is "this field does not apply to this issue".
+- **The answer is checked** by `toColumns` (the type's rules, in the field's own words: "Customer must be at most 60 characters."), and a `user` has to be a **member of the workspace**. Nothing is coerced. **An answer that is already there** writes and logs nothing (`{ ok: true, changed: false }`).
+- **Stored** in the column of the field's type, all four columns written on a change so an old answer never sits beside the new one; clearing (null, an empty text) deletes the row. A field or an issue deleted while the write is on its way is "does not apply", not an error page.
+- **Logged** once per change in the issue's own history: `issue.customField.changed`, label `Customer: Acme → Globex` (a choice by its label, a person by their name, none as `—`), the raw values in the entry's details. The webhook `issue.updated` and the API's payload
+  learn about custom fields with BARY-82.
+- **Reading**: `getIssueFieldEntries` (`queries.ts`) gives an issue its fields with its answers (`IssueDetail.customFields`, filled by the detail queries `getIssueById`/`getIssueByRef` only; `[]` on a board card or a list row). It asks nobody: the caller has let this person see the issue.
+- **On screen** (`IssueCustomFields`): rows beside the planning rows in the attributes sidebar, and a section of its own, "Custom fields", in the stacked body (panel, and the full page on a phone). Whoever may edit the issue gets a popover per row (`FieldEditor`: a choice and a person are picked from a list, a text, number, day
+  and address are typed and saved with the button); everyone else sees the answer, an address as a link. What cannot be saved says why beside the box before any request (`fieldInput.ts` runs the server's own `toColumns`), and a refusal from the server shows under its own row. `FieldValueView` draws one answer without a box of its own, so
+  cards and list rows can use it.
 
 ## Who may do what
 

@@ -347,6 +347,10 @@ of a `Label`) and **answered** per issue (`CustomFieldValue`, `(issueId, fieldId
   under "From the workspace") and `CustomFieldModal` (opened through `useOpenCustomFieldModal`: sheet on a phone, dialog from a tablet up). The workspace's page is `/<ws>/settings/fields`
   (`WORKSPACE_SETTINGS_NAV`, `customfield.manage`, which also counts in `WORKSPACE_SETTINGS_PERMISSIONS`/`PROJECT_SETTINGS_PERMISSIONS`). **Key and type are asked only when a field is made**;
   an option keeps its id through a rename (the form sends the id it read; a new option has none). The form's state is pure (`formState.ts`), the confirmation of a delete names the answers that go with it.
+- **Answering** a field on an issue is **`writeFieldValue`** (`features/custom-fields/values.ts`: the field must be this issue's and not archived, `toColumns` checks the answer, a `user` must be a workspace member, an unchanged answer writes and logs nothing, one
+  `issue.customField.changed` entry per change) called by `setCustomFieldValue` (`valueActions.ts`: `issue.update.any`/`.own`, like `updateIssue`) — **the API and MCP call `writeFieldValue` after their own permission check, never a second copy**. The detail queries fill `IssueDetail.customFields`
+  (`getIssueFieldEntries`; `[]` on cards and rows). On screen: `IssueCustomFields` (sidebar rows and the stacked body's own section), `FieldEditor` (popover per type), `FieldValueView` (one answer, reusable on cards), and `fieldInput.ts` (pure: what a box says, why it cannot be saved). A class name in
+  `issueDetail.module.scss` may already exist (`fieldLabel` did): CSS modules merge them silently.
 - **`customfield.manage`** (WORKSPACE and PROJECT, `owner`/`admin`/`manager` and `project_admin`) defines fields; **filling one in is `issue.update.*`**. It is a new permission: an
   existing dev database needs the `provisionSystemRbac` snippet below.
 
@@ -653,6 +657,12 @@ tests/
       definitionActions.test.ts   ← create, change, archive, delete a definition (own process: mocks the db, permissions, audit and `next/cache`)
     custom-fields-queries/
       fieldQueries.test.ts        ← what the screens read of the definitions (own process: mocks the db and the permissions differently)
+    custom-fields-values/
+      valueActions.test.ts        ← answering a field: who may, which fields an issue has, the checks, the write, the log (own process: mocks the db, permissions, the issue audit helper)
+    custom-fields-issue/
+      fieldValueView.test.tsx / fieldEditor.test.tsx / valuePopover.test.tsx  ← one answer as text, the popover per type, the popover's "cannot be saved" line (stand-ins for `next-intl` and the avatar only)
+    custom-fields-issue-fields/
+      issueCustomFields.test.tsx  ← the fields on the detail view: sidebar or section, who may edit, refusals beside their row (own process: replaces `react`'s hooks)
     custom-fields-modal/
       customFieldModalFlow.test.tsx ← the window at work: Save off until changed, scope, key and type only on create, options keep ids, problems under their box (own process: replaces `react`'s hooks)
     custom-fields-section/

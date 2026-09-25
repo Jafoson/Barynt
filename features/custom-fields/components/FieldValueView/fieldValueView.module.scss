@@ -1,0 +1,38 @@
+/* Truncate rather than wrap: a value sits in one line of a row, a card or a list cell. */
+.text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unset {
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+}
+
+.link {
+  color: var(--primary);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.option,
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+/* The option's own color (`#rrggbb`) is data, so it comes in as a custom property. */
+.dot {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--option-color);
+}
