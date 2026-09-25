@@ -1,5 +1,6 @@
 import { validRange } from "semver";
 import { z } from "zod";
+import { checkSettingValue } from "./settings";
 
 // ─── Plugin manifest (`barynt-plugin.json`) ─────────────────────────────────
 //
@@ -14,8 +15,8 @@ import { z } from "zod";
 // and `semver`. `scripts/build-plugin-schema.ts` generates the JSON Schema for
 // editors from it, and `docs/plugins/manifest.md` describes it for authors.
 //
-// Not decided here, on purpose: what an item under `contributes` looks like
-// (the ticket that builds each extension point defines that) and which
+// Not decided here, on purpose: what an item under `contributes` looks like, except for
+// `settings` (the ticket that builds each extension point defines that) and which
 // capability names exist (BARY-95). Until then items only need an `id`, and a
 // capability only needs the right shape.
 
@@ -276,8 +277,152 @@ const contributionList = z
   )
   .optional();
 
+// ─── Settings (`contributes.settings`) ──────────────────────────────────────
+//
+// What a plugin lets people set, described so that the host can draw the form, check the
+// values and keep them without running any plugin code. A plugin has one scope, so its
+// settings are its workspace's, its project's or the platform's, whichever it applies to.
+// The value types are the ones a form has: text, long text, number, yes/no and a choice.
+// There is no type for a secret: that needs sealed storage (BARY-85), not a plain value.
+
+const settingId = z
+  .string()
+  .min(1)
+  .max(63)
+  .regex(
+    /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/,
+    "use lowercase letters, digits and single dashes",
+  );
+
+const settingBase = {
+  /** The key the value is stored under. */
+  id: settingId,
+  label: localizedText(80),
+  description: localizedText(300).optional(),
+};
+
+const textSetting = z.strictObject({
+  ...settingBase,
+  type: z.literal("text"),
+  default: z.string().max(1000).optional(),
+  required: z.boolean().optional(),
+  /** Up to 1000; 200 when left out. */
+  maxLength: z.int().min(1).max(1000).optional(),
+  /** What the text has to be: a web address or an email address. */
+  format: z.enum(["url", "email"]).optional(),
+  placeholder: localizedText(80).optional(),
+});
+
+const textareaSetting = z.strictObject({
+  ...settingBase,
+  type: z.literal("textarea"),
+  default: z.string().max(4000).optional(),
+  required: z.boolean().optional(),
+  /** Up to 4000; 1000 when left out. */
+  maxLength: z.int().min(1).max(4000).optional(),
+  placeholder: localizedText(80).optional(),
+});
+
+const numberSetting = z.strictObject({
+  ...settingBase,
+  type: z.literal("number"),
+  default: z.number().optional(),
+  required: z.boolean().optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  integer: z.boolean().optional(),
+});
+
+const booleanSetting = z.strictObject({
+  ...settingBase,
+  type: z.literal("boolean"),
+  /** Off when left out. */
+  default: z.boolean().optional(),
+});
+
+const selectSetting = z.strictObject({
+  ...settingBase,
+  type: z.literal("select"),
+  options: z
+    .array(
+      z.strictObject({
+        value: z
+          .string()
+          .min(1)
+          .max(80)
+          .regex(
+            /^[a-z0-9][a-z0-9._-]*$/,
+            "use lowercase letters, digits, dots, dashes and underscores",
+          ),
+        label: localizedText(80),
+      }),
+    )
+    .min(1, "needs at least one choice")
+    .max(30, "at most 30 choices")
+    .refine(
+      (options) =>
+        new Set(options.map((option) => option.value)).size === options.length,
+      "each choice may only be listed once",
+    ),
+  default: z.string().max(80).optional(),
+  required: z.boolean().optional(),
+});
+
+const settingSchema = z.discriminatedUnion(
+  "type",
+  [textSetting, textareaSetting, numberSetting, booleanSetting, selectSetting],
+  {
+    error:
+      'must have a type: "text", "textarea", "number", "boolean" or "select"',
+  },
+);
+
+/** One setting a plugin declares. */
+export type SettingDefinition = z.output<typeof settingSchema>;
+
+const settingList = z
+  .array(settingSchema)
+  .max(50, "at most 50 settings")
+  .superRefine((settings, ctx) => {
+    const seen = new Set<string>();
+    settings.forEach((setting, index) => {
+      if (seen.has(setting.id)) {
+        ctx.addIssue({
+          code: "custom",
+          path: [index, "id"],
+          message: "ids must be unique within a list",
+        });
+      }
+      seen.add(setting.id);
+      if (
+        setting.type === "number" &&
+        setting.min !== undefined &&
+        setting.max !== undefined &&
+        setting.min > setting.max
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: [index, "min"],
+          message: "must not be more than max",
+        });
+      }
+      // A default is a value like any other: it has to fit what the setting accepts.
+      if (setting.default !== undefined) {
+        const problem = checkSettingValue(setting, setting.default);
+        if (problem) {
+          ctx.addIssue({
+            code: "custom",
+            path: [index, "default"],
+            message: problem,
+          });
+        }
+      }
+    });
+  })
+  .optional();
+
 const contributesSchema = z.strictObject({
-  settings: contributionList,
+  settings: settingList,
   pages: contributionList,
   navigation: contributionList,
   views: contributionList,
