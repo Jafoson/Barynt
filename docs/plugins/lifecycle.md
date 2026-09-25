@@ -260,6 +260,29 @@ first:
   someone would not want in a log that other admins read.
 - **The registry is not told.** Settings change no code and no dependency, so nothing has to be built again; the cache of the pages is refreshed.
 
+### The form
+
+One window for all three levels ([`features/plugins/components/PluginSettings/`](../../features/plugins/components/PluginSettings)): a dialog from a
+tablet up and a bottom sheet on a phone, opened by `useOpenPluginSettings` from the **Settings** button of a row. It draws what the manifest
+declared and nothing else, from the same field the server checks:
+
+| Type | Control | What the browser is given |
+| --- | --- | --- |
+| `text` | a text box (`url`/`email` as such) | `maxLength`, `placeholder`, `required` |
+| `textarea` | four lines, taller by hand | `maxLength`, `placeholder`, `required` |
+| `number` | a number box | `min`, `max`, `step` (1 for a whole number, else any) |
+| `select` | the browser's own select | an empty choice ("Not set") when there is no default, "Choose…" (not selectable) when it must be set |
+| `boolean` | a checkbox | a checkbox, not a switch: it takes effect with **Save** |
+
+- **Under a label:** what the setting is for, that it is required, and its default ("Default: …"). A setting with a default is never shown as required: an
+  empty box means the default, and the server reads it so.
+- **Save** belongs to the form (`type="submit"`), so the browser checks the limits it knows before anything is sent, and Enter in a field presses it. It
+  is off while nothing was changed. The whole form is sent, and a number the box does not hold as one is refused by the server, never turned into `0`.
+- **What the server says** comes back per setting and shows under that setting (a problem goes when that setting is edited), with one line above the
+  buttons: "some are not valid", "too large together", or, when no setting is at fault, the server's own sentence (the plugin was switched off meanwhile).
+  A request that fails is "could not be saved", never the error itself.
+- **Once saved** a toast says so, the window closes and the page is read again, so the next time it opens it shows what is stored.
+
 What a page reads: `getPluginsOverview` gives a platform plugin its `settings` (the form's fields) and `settingValues` (what is stored, each value only if
 it still fits the definition, otherwise the default); a workspace's and a project's plugin has `settings` as a form with its values, and `null` while the
 plugin is off there or has none ([The plugins of a workspace](workspace.md), [of a project](project.md)).
@@ -304,6 +327,4 @@ Five optional hooks in the SDK ([SDK](sdk.md#lifecycle-hooks)), run by `runHook`
 
 The switch per workspace is on the workspace's own settings page ([The plugins of a workspace](workspace.md)).
 
-- **The forms for a plugin's settings** (BARY-68, step 3): the actions and the read side are there ([A plugin's settings](#a-plugins-settings)), the
-  page does not draw the form yet.
 - **A plugin reading its own settings** (the SDK, BARY-66): only the host reads them for now.

@@ -34,6 +34,12 @@ project** (not `plugin.manage`), then reads the platform's overview (`loadOvervi
 plugins are on in this project, and `buildProjectPlugins` (pure) makes the same **selection** as a workspace gets: the plugin directory's path,
 the hashes, where a plugin came from, in how many projects it is on and what is approved are the platform's and are not passed on.
 
+## A plugin's settings
+
+A plugin that is **on in this project** and declares settings has a **Settings** button on its row: the [form](lifecycle.md#the-form) in a dialog (a sheet on
+a phone), saved by `saveProjectPluginSettings(projectId, pluginId, values)` with `plugin.enable` in this project. A plugin that is off here has no button, and
+its settings stay for when it is switched on again. The workspace's own values for a plugin are the workspace's, and are not seen here.
+
 ## The store of a project
 
 **Project settings, Plugins, Store** (`<project settings>/plugins/store`) is the same store page as the platform's ([The store](admin.md#the-store)) and the
@@ -51,8 +57,3 @@ workspace's ([The store of a workspace](workspace.md#the-store-of-a-workspace)),
   it is added for the whole platform and switched on here. **What it does not change:** a plugin with code is added and **waits for the platform to approve
   its code**; the page then says it was added and is not switched on yet, and offers *Switch on* once the platform has approved it.
 - **What a project admin is told of the stores** is their names, when they were fetched and that one could not be read or updated; not why.
-
-## Not here yet
-
-- **A plugin's own settings** (`PluginProject.config`): saving and reading are there (`saveProjectPluginSettings`, [Lifecycle](lifecycle.md#a-plugins-settings));
-  the form on this page is not built yet (BARY-68, step 3).

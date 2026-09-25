@@ -1,0 +1,25 @@
+/* The box of `Input`'s `boxed` appearance, for several lines. */
+.textarea {
+  width: 100%;
+  min-height: calc(var(--control-h) * 2);
+  padding: 0.5rem 0.6875rem;
+  color: var(--on-surface);
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  /* Taller by hand, never wider than the form. */
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.12s, box-shadow 0.12s;
+
+  &::placeholder { color: var(--on-surface-variant); }
+  &:focus { border-color: var(--tertiary); }
+
+  &.hasError {
+    border-color: var(--error);
+    &:focus { box-shadow: 0 0 0 0.1875rem color-mix(in oklab, var(--error) 18%, transparent); }
+  }
+}

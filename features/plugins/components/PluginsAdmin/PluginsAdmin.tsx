@@ -34,12 +34,15 @@ import type {
   PluginsOverview,
 } from "@/features/plugins/overview";
 import { scopeMessageKey } from "@/features/plugins/scopeText";
+import { savePlatformPluginSettings } from "@/features/plugins/settingsActions";
 import type { PluginActionResult } from "@/features/plugins/types";
 import { Link } from "@/i18n/navigation";
 import { useModal } from "@/lib/context";
 import { adminPath } from "@/lib/nav";
 import type { PluginRowScope } from "@/lib/plugins/scope";
+import type { SettingsForm } from "@/lib/plugins/settings";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
+import { useOpenPluginSettings } from "../PluginSettings/useOpenPluginSettings";
 import { PluginsTabs } from "../PluginsTabs/PluginsTabs";
 import { ApproveWarning } from "./ApproveWarning";
 import { PluginFacts } from "./PluginFacts";
@@ -68,6 +71,7 @@ export function PluginsAdmin({ overview }: Props) {
   const confirm = useConfirm();
   const { openModal } = useModal();
   const isPhone = useMediaQuery(PHONE_QUERY);
+  const openSettings = useOpenPluginSettings();
   const text = useRuntimeText();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
@@ -310,6 +314,10 @@ export function PluginsAdmin({ overview }: Props) {
       (plugin.state.reason === "not-approved" ||
         plugin.state.reason === "approval-outdated");
     const approvalLine = saidByState ? null : text.approval(plugin.approval);
+    // The platform's own settings, for a plugin that applies to the whole platform and declares some.
+    const settingsForm: SettingsForm | null = plugin.settingValues
+      ? { fields: plugin.settings, values: plugin.settingValues }
+      : null;
     return {
       id: plugin.id,
       label: plugin.name,
@@ -410,6 +418,24 @@ export function PluginsAdmin({ overview }: Props) {
                 onClick={() => void withdraw(plugin)}
               >
                 {t("pluginsAdmin.withdraw")}
+              </Button>
+            )}
+            {settingsForm && (
+              <Button
+                variant="text"
+                size="sm"
+                icon={<Icon icon="lucide:sliders-horizontal" width={14} />}
+                disabled={isPending}
+                onClick={() =>
+                  openSettings({
+                    name: plugin.name,
+                    form: settingsForm,
+                    save: (values) =>
+                      savePlatformPluginSettings(plugin.id, values),
+                  })
+                }
+              >
+                {t("pluginSettings.open")}
               </Button>
             )}
             {plugin.update && (

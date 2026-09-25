@@ -33,6 +33,10 @@ is meant to be seen. Then, in words, **what became of it**:
 | not compatible | Its `barynt` range or a dependency does not fit; every problem is listed |
 | files missing, manifest invalid | What is on disk is not usable; the issues are listed |
 
+A plugin that applies to the **whole platform** and declares settings has a **Settings** button in its row's actions (also while the plugin is switched off: they
+are the platform's to set): the [form](lifecycle.md#the-form), saved by `savePlatformPluginSettings`. A plugin that applies per workspace or per project has
+none here, its settings belong to the workspace or the project that switched it on.
+
 Under it, **the code approval**, for plugins with code: approved for exactly these files, not approved, approved
 for other files (an update since), or that it cannot be approved and why. It is said once: when the state already
 says "not approved", the approval line stays out.
@@ -108,6 +112,8 @@ setting (what the platform set for workspaces does not decide for projects).
 
 - **Updating everything at once.** Each update is its own consent: what a new version asks for is read by a person, plugin by plugin. Install and update on the first tab take what lies in the plugin directory.
 - **"Keep or delete the data" on uninstall.** There is no storage yet (BARY-85).
+- **The plugin's settings per workspace or project.** Those are set where the plugin is switched on ([workspace](workspace.md#a-plugins-settings),
+  [project](project.md#a-plugins-settings)); the platform sets only those of a plugin that applies to the whole platform.
 - **The switch per workspace.** That is the workspace's own settings page ([The plugins of a workspace](workspace.md)), where a workspace admin
   switches on what the platform installed.
 - **Changelog and details.** The manifest has no changelog field; the row shows what the manifest does say.
