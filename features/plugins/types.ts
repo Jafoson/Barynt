@@ -6,3 +6,14 @@
 export type PluginActionResult =
   | { ok: true; warning?: string }
   | { error: string };
+
+/**
+ * What saving a plugin's settings gives back. When the values do not fit, `issues` says which
+ * setting and what is wrong, so the form can show it where it belongs.
+ */
+export type SettingsSaveResult =
+  | { ok: true }
+  | {
+      error: string;
+      issues?: { id: string; message: string }[];
+    };

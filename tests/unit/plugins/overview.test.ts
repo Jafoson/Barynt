@@ -403,6 +403,75 @@ describe("whether its code may be approved", () => {
   });
 });
 
+describe("what a plugin lets people set", () => {
+  const SETTINGS = [
+    {
+      id: "title",
+      type: "text",
+      label: { en: "Title", de: "Titel" },
+      default: "Board",
+    },
+    { id: "compact", type: "boolean", label: "Compact" },
+  ];
+  const withSettings = { contributes: { settings: SETTINGS } };
+
+  it("is the fields, in the language of the page, for a plugin that declares settings", () => {
+    const plugin = one({ manifest: withSettings, input: { locale: "de" } });
+    expect(plugin.settings.map((f) => [f.id, f.label])).toEqual([
+      ["title", "Titel"],
+      ["compact", "Compact"],
+    ]);
+  });
+
+  it("is nothing for a plugin that declares none, and for one whose manifest cannot be read", () => {
+    expect(one().settings).toEqual([]);
+    const missing = buildOverview(
+      input({ rows: [row("calendar")], discovered: [] }),
+    );
+    expect(missing.installed[0]?.settings).toEqual([]);
+    expect(missing.installed[0]?.settingValues).toBeNull();
+  });
+
+  it("has values only for a plugin that applies to the whole platform: what is stored, else the default", () => {
+    const platform = one({
+      row: { scope: "PLATFORM", config: { compact: true } },
+      manifest: { ...withSettings, scope: "platform" },
+    });
+    expect(platform.settingValues).toEqual({ title: "Board", compact: true });
+  });
+
+  it("does not carry the platform's stored values for a plugin of a workspace or a project, which have their own", () => {
+    for (const scope of ["WORKSPACE", "PROJECT"] as const) {
+      const plugin = one({
+        row: { scope, config: { title: "Leaked" } },
+        manifest: withSettings,
+      });
+      expect(plugin.settingValues).toBeNull();
+      expect(JSON.stringify(plugin)).not.toContain("Leaked");
+    }
+  });
+
+  it("has no values for a platform plugin without settings", () => {
+    expect(
+      one({ row: { scope: "PLATFORM", config: { a: 1 } } }).settingValues,
+    ).toBeNull();
+  });
+
+  it("falls back to the default for a stored value that no longer fits, or that is not an object", () => {
+    const platform = (config: unknown) =>
+      one({
+        row: { scope: "PLATFORM", config },
+        manifest: { ...withSettings, scope: "platform" },
+      }).settingValues;
+    expect(platform({ title: 5, compact: "yes" })).toEqual({
+      title: "Board",
+      compact: false,
+    });
+    expect(platform("nonsense")).toEqual({ title: "Board", compact: false });
+    expect(platform(undefined)).toEqual({ title: "Board", compact: false });
+  });
+});
+
 describe("in how many workspaces and projects a plugin is on", () => {
   const counts = {
     workspaceCounts: new Map([["calendar", 4]]),

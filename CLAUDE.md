@@ -170,6 +170,10 @@ and measured (start at `docs/plugins/README.md`).
 - **A plugin's settings** are declared in `contributes.settings` (`text`, `textarea`, `number`, `boolean`, `select`; a strict schema in `manifest.ts`, no secrets, no regular
   expressions) and read and checked only through `lib/plugins/settings.ts` (`validateSettings` for what someone saves: unknown keys are refused, only what differs from the
   default is kept; `resolveSettings` for what is read: a stored value that no longer fits falls back to the default; `toFields` for the form). A value is data, never code.
+  **Saved by three actions, one per level** (`features/plugins/settingsActions.ts`: `savePlatformPluginSettings` `plugin.manage`, `saveWorkspacePluginSettings` and
+  `saveProjectPluginSettings` `plugin.enable` there; `Plugin.config`, `PluginWorkspace.config`, `PluginProject.config`): the level is the plugin's scope, the definition is read
+  from the installed files (never from the client), a workspace's or project's plugin has to be on there, the values are the whole form, and the audit entry
+  (`plugin.settings.changed`) names the changed keys, **never the values**. The registry is not told: settings decide neither code nor dependencies.
 - Change the manifest schema → **`bun run plugin-schema:build`** and commit
   `public/schemas/barynt-plugin.schema.json`. `tests/unit/plugins` (and
   `bun run plugin-schema:check`) fail while it is out of date.
@@ -602,6 +606,8 @@ tests/
       lifecycle.test.ts           ← install, update, uninstall, switch off (features/plugins/lifecycleActions)
       workspace.test.ts           ← switch on/off per workspace, onEnable/onDisable (own process: mocks `@/lib/plugins/host`)
       project.test.ts             ← switch on/off per project, onProjectEnable/onProjectDisable (same shape, one level down)
+    plugin-settings/
+      settingsActions.test.ts     ← saving a plugin's settings per level (real plugin dirs, mocked db; own process: mocks `@/lib/permissions` and `next/cache`)
     plugin-staging/
       stage.test.ts               ← features/plugins/disk (own process: it replaces the directory hash)
     store-catalog/

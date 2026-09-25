@@ -26,7 +26,7 @@ export async function getProjectPlugins(
     loadOverview(locale, async () => false),
     db.pluginProject.findMany({
       where: { projectId, enabled: true },
-      select: { pluginId: true },
+      select: { pluginId: true, config: true },
     }),
     // Whether the platform gave projects the store: fails closed, so a setting that cannot be
     // read is no Store tab.
@@ -36,5 +36,6 @@ export async function getProjectPlugins(
     overview,
     new Set(enabled.map((e) => e.pluginId)),
     visibility.inProjects,
+    new Map(enabled.map((e) => [e.pluginId, e.config])),
   );
 }

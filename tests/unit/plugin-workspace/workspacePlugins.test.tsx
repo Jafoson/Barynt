@@ -94,6 +94,7 @@ function plugin(more: Partial<WorkspacePlugin> = {}): WorkspacePlugin {
     on: false,
     blocker: null,
     state: { kind: "idle" },
+    settings: null,
     ...more,
   };
 }

@@ -42,6 +42,8 @@ function installed(more: Partial<InstalledPlugin> = {}): InstalledPlugin {
     integrity: H,
     update: null,
     projects: 0,
+    settings: [],
+    settingValues: null,
     previousVersion: null,
     storeUpdate: null,
     ...more,
@@ -415,5 +417,111 @@ describe("the plugins a project can use", () => {
     ];
     expect(build(list).plugins.map((p) => p.id)).toEqual(["notes"]);
     expect(buildProject(list).plugins.map((p) => p.id)).toEqual(["board"]);
+  });
+});
+
+describe("the settings of a plugin at a level", () => {
+  const fields = [
+    {
+      id: "title",
+      type: "text" as const,
+      label: "Title",
+      description: null,
+      required: false,
+      placeholder: null,
+      format: null,
+      maxLength: 200,
+      min: null,
+      max: null,
+      integer: false,
+      options: [],
+      default: "Board",
+    },
+  ];
+  const withFields = (more: object = {}) =>
+    installed({ id: "board", scope: "PROJECT", settings: fields, ...more });
+  const workspaceOne = (more: object = {}) =>
+    installed({ id: "board", scope: "WORKSPACE", settings: fields, ...more });
+
+  it("are the fields and what the workspace has stored, for a plugin that is on here", () => {
+    const view = buildWorkspacePlugins(
+      overview([workspaceOne()]),
+      new Set(["board"]),
+      false,
+      new Map([["board", { title: "Sprint" }]]),
+    );
+    expect(view.plugins[0]?.settings).toEqual({
+      fields,
+      values: { title: "Sprint" },
+    });
+  });
+
+  it("are the fields and what the project has stored, for a plugin that is on in the project", () => {
+    const view = buildProjectPlugins(
+      overview([withFields()]),
+      new Set(["board"]),
+      false,
+      new Map([["board", { title: "Sprint" }]]),
+    );
+    expect(view.plugins[0]?.settings).toEqual({
+      fields,
+      values: { title: "Sprint" },
+    });
+  });
+
+  it("have the default where nothing is stored, or what is stored is not an object", () => {
+    for (const stored of [undefined, null, "x", ["title"]]) {
+      const view = buildProjectPlugins(
+        overview([withFields()]),
+        new Set(["board"]),
+        false,
+        new Map([["board", stored]]),
+      );
+      expect(view.plugins[0]?.settings?.values).toEqual({ title: "Board" });
+    }
+    expect(
+      buildProjectPlugins(overview([withFields()]), new Set(["board"]), false)
+        .plugins[0]?.settings?.values,
+    ).toEqual({ title: "Board" });
+  });
+
+  it("are not shown for a plugin that is off here: nothing to set where it does not apply", () => {
+    const view = buildProjectPlugins(
+      overview([withFields()]),
+      new Set(),
+      false,
+      new Map([["board", { title: "Sprint" }]]),
+    );
+    expect(view.plugins[0]?.on).toBe(false);
+    expect(view.plugins[0]?.settings).toBeNull();
+  });
+
+  it("are not shown for a plugin that declares none", () => {
+    const view = buildProjectPlugins(
+      overview([withFields({ settings: [] })]),
+      new Set(["board"]),
+      false,
+      new Map([["board", { title: "Sprint" }]]),
+    );
+    expect(view.plugins[0]?.settings).toBeNull();
+  });
+
+  it("are the level's own: what another plugin has stored is not read for this one", () => {
+    const view = buildProjectPlugins(
+      overview([withFields()]),
+      new Set(["board"]),
+      false,
+      new Map([["gantt", { title: "Not mine" }]]),
+    );
+    expect(view.plugins[0]?.settings?.values).toEqual({ title: "Board" });
+  });
+
+  it("do not carry the platform's stored values: a level sees its own", () => {
+    const view = buildProjectPlugins(
+      overview([withFields({ settingValues: { title: "Platform's" } })]),
+      new Set(["board"]),
+      false,
+    );
+    expect(JSON.stringify(view)).not.toContain("Platform's");
   });
 });

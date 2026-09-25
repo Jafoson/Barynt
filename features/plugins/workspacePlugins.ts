@@ -1,3 +1,4 @@
+import { type SettingsForm, settingsForm } from "@/lib/plugins/settings";
 import type {
   InstalledPlugin,
   PluginsOverview,
@@ -34,6 +35,11 @@ export interface WorkspacePlugin {
   blocker: Blocker | null;
   /** What became of it in the registry, for a plugin that is on here and does not run. */
   state: RuntimeState;
+  /**
+   * What it lets this level set and what is set now, for a plugin that is on here and declares
+   * settings; otherwise `null`. Settings are not shown for a plugin that is off.
+   */
+  settings: SettingsForm | null;
 }
 
 /** A plugin that applies to the whole platform: shown, and not the workspace's to switch. */
@@ -95,6 +101,8 @@ function buildLevelPlugins(
   enabledHere: ReadonlySet<string>,
   storeAvailable: boolean,
   level: Level,
+  /** What each plugin that is on here has stored, by plugin id (`PluginWorkspace.config`, `PluginProject.config`). */
+  configs: ReadonlyMap<string, unknown>,
 ): WorkspacePluginsView {
   const plugins: WorkspacePlugin[] = [];
   const platform: PlatformPlugin[] = [];
@@ -130,6 +138,10 @@ function buildLevelPlugins(
       on,
       blocker: blockerOf(plugin),
       state: plugin.state,
+      settings:
+        on && plugin.settings.length > 0
+          ? settingsForm(plugin.settings, configs.get(plugin.id))
+          : null,
     });
   }
   return {
@@ -148,8 +160,15 @@ export function buildWorkspacePlugins(
   overview: PluginsOverview,
   enabledHere: ReadonlySet<string>,
   storeAvailable: boolean,
+  configs: ReadonlyMap<string, unknown> = new Map(),
 ): WorkspacePluginsView {
-  return buildLevelPlugins(overview, enabledHere, storeAvailable, "WORKSPACE");
+  return buildLevelPlugins(
+    overview,
+    enabledHere,
+    storeAvailable,
+    "WORKSPACE",
+    configs,
+  );
 }
 
 /**
@@ -161,6 +180,13 @@ export function buildProjectPlugins(
   overview: PluginsOverview,
   enabledHere: ReadonlySet<string>,
   storeAvailable: boolean,
+  configs: ReadonlyMap<string, unknown> = new Map(),
 ): WorkspacePluginsView {
-  return buildLevelPlugins(overview, enabledHere, storeAvailable, "PROJECT");
+  return buildLevelPlugins(
+    overview,
+    enabledHere,
+    storeAvailable,
+    "PROJECT",
+    configs,
+  );
 }

@@ -189,6 +189,7 @@ What the host does with the values ([`lib/plugins/settings.ts`](../../lib/plugin
   never chose one. All the values of one level together are bounded (64 KB).
 - **When one is read** it is used only if it still fits the definition; otherwise the default is used. A plugin update can change what a setting
   accepts without leaving the platform with values nobody can read.
+- **Who saves, where, and what is audited** is in [Lifecycle](lifecycle.md#a-plugins-settings).
 
 ## Validating
 

@@ -1,6 +1,6 @@
 import { validRange } from "semver";
 import { z } from "zod";
-import { checkSettingValue } from "./settings";
+import { checkSettingValue, toFields } from "./settings";
 
 // ─── Plugin manifest (`barynt-plugin.json`) ─────────────────────────────────
 //
@@ -408,7 +408,11 @@ const settingList = z
       }
       // A default is a value like any other: it has to fit what the setting accepts.
       if (setting.default !== undefined) {
-        const problem = checkSettingValue(setting, setting.default);
+        // The words do not matter here, only the bounds.
+        const [field] = toFields([setting], "en");
+        const problem = field
+          ? checkSettingValue(field, setting.default)
+          : null;
         if (problem) {
           ctx.addIssue({
             code: "custom",

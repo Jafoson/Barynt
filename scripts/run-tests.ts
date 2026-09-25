@@ -121,6 +121,9 @@ const SEGMENTS: string[][] = [
   // Mocks `@/lib/db`, `next/cache` and `node:dns/promises` for installing from a store; the store's
   // clone, the release, the plugin directory and the checks are real.
   ["tests/unit/store-install"],
+  // Mocks `@/lib/db`, `@/lib/permissions` and `next/cache` for saving a plugin's settings
+  // (`features/plugins/settingsActions`); the plugin directory and the checks are real.
+  ["tests/unit/plugin-settings"],
   // Mocks `@/lib/project-membership` away entirely — see CLAUDE.md.
   [
     "tests/unit/workspace/inviteLinks.test.ts",
