@@ -51,6 +51,7 @@ const SEGMENTS: string[][] = [
     "tests/unit/store-catalog",
     "tests/unit/store-settings",
     "tests/unit/secrets",
+    "tests/unit/custom-fields",
   ],
   ["tests/unit/permissions/resolver.test.ts"],
   // Own invocation: sharing segment 0 with tests/unit/projects made

@@ -47,6 +47,7 @@ model Workspace {
   members       WorkspaceMember[]
   projects      Project[]
   labels        Label[]
+  customFields  CustomFieldDefinition[]
   teams         Team[]
   invitations   Invitation[]
   statuses      WorkspaceStatus[]
@@ -162,6 +163,7 @@ model User {
   workspaces          WorkspaceMember[]
   assignedIssues      Issue[]                        @relation("IssueAssignee")
   reportedIssues      Issue[]                        @relation("IssueReporter")
+  customFieldValues   CustomFieldValue[]
   sharedIssues        Issue[]                        @relation("IssueSharedBy")
   comments            Comment[]
   commentReactions    CommentReaction[]
@@ -660,6 +662,7 @@ model Project {
   issues        Issue[]
   teams         TeamProject[]
   labels        Label[]
+  customFields  CustomFieldDefinition[]
   members       ProjectMember[]
   invitations   Invitation[]
   // Workspace-Labels, die in diesem Projekt nicht angeboten werden.
@@ -999,6 +1002,77 @@ model ProjectHiddenLabel {
   @@index([labelId])
 }
 
+/// What a custom field is (BARY-79): a name, a type, what the type allows, and where it applies
+/// (`lib/custom-fields`). A workspace-wide field (`projectId` null) applies in every project of the
+/// workspace, a project's field only in that project, the same reach as a `Label`.
+model CustomFieldDefinition {
+  id          String  @id
+  workspaceId String
+  /// `null` = the whole workspace, else that project only.
+  projectId   String?
+  /// What the API and a plugin's manifest call it: lowercase letters, digits and single dashes.
+  /// Unique in the workspace, project fields included, so a key names one field everywhere.
+  key         String
+  name        String
+  description String  @default("")
+  /// One of `CUSTOM_FIELD_TYPES` (`lib/custom-fields/types.ts`): a const tuple, not an enum, so a
+  /// new type is a change in code and no migration.
+  type        String
+  /// What the type allows in its normal form (`parseFieldConfig`): the length of a text, the range
+  /// of a number, the options of a choice. Read through `fieldConfigOrDefault`, which never throws.
+  config      Json    @default("{}")
+  /// The order in the lists and on the issue.
+  position    Int     @default(0)
+  /// Set when the field is retired: it leaves the screens and the API, and its values stay.
+  archivedAt  DateTime?
+
+  /// The plugin that declared the field, or `null` for one a person made. `SetNull`: when the
+  /// plugin is uninstalled and the admin keeps its fields, they become ordinary fields.
+  pluginId    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspace Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project   Project?           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  plugin    Plugin?            @relation(fields: [pluginId], references: [id], onDelete: SetNull)
+  values    CustomFieldValue[]
+
+  @@unique([workspaceId, key])
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([pluginId])
+}
+
+/// One issue's answer to one field. The value lives in the column of the field's type (`text` for a
+/// text, an address and a choice, `number`, `date`, `userId`), so a filter is an indexed
+/// comparison and not a look into JSON; the others stay `null`. No value is no row.
+model CustomFieldValue {
+  issueId String
+  fieldId String
+
+  text   String?
+  number Float?
+  /// A day, stamped at noon UTC like `Issue.dueDate`.
+  date   DateTime?
+  userId String?
+
+  updatedAt DateTime @updatedAt
+
+  issue Issue                 @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  field CustomFieldDefinition @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  /// A value that names a member goes with the member: without them it says nothing.
+  user  User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([issueId, fieldId])
+  // The filters of one field: "which issues have this value".
+  @@index([fieldId, text])
+  @@index([fieldId, number])
+  @@index([fieldId, date])
+  @@index([fieldId, userId])
+  @@index([userId])
+}
+
 /// Wie ein Issue oder Kommentar entstanden ist — für die kleine Quelle-Badge
 /// neben Reporter/Autor in der UI (nach dem Vorbild von GitLabs Pipeline-
 /// Quellen wie „API"/„Web"). `APP` ist der Normalfall (die eigentliche
@@ -1124,6 +1198,8 @@ model Issue {
   /// Beziehungen, bei denen dieses Issue das Ziel ist — z. B. "wird von X
   /// blockiert".
   relationsTo   IssueRelation[] @relation("IssueRelationTarget")
+  /// The answers to the custom fields that apply to this issue (`CustomFieldValue`).
+  customFieldValues CustomFieldValue[]
 
   @@unique([projectId, key])
   @@index([projectId, status])
@@ -1608,6 +1684,9 @@ model Plugin {
 
   workspaces PluginWorkspace[]
   projects   PluginProject[]
+  /// The custom fields this plugin declared (`CustomFieldDefinition.pluginId`); they stay as
+  /// ordinary fields when the plugin is uninstalled and the admin keeps them.
+  customFields CustomFieldDefinition[]
 }
 
 /// Ein Plugin in einem Workspace: ob es dort eingeschaltet ist und wie es dort
