@@ -11,7 +11,7 @@
   flex-direction: column;
   gap: 1.25rem;
 
-  @include card-rows.card-rows;
+  @include card-rows.card-rows(tablet);
   @include card-rows.page-scroll-lists;
 }
 
@@ -23,9 +23,9 @@
   gap: 1.25rem;
   margin-top: 1.5rem;
 
-  @include card-rows.card-rows;
+  @include card-rows.card-rows(tablet);
 
-  @include bp.phone {
+  @include bp.tablet-down {
     padding-inline: 0;
   }
 }
@@ -160,12 +160,13 @@
   font-size: var(--text-sm);
 }
 
-/* Phone rows: the name on top with the actions at its end (its basis leaves room for exactly
-   them), the type, the key and the answers under it. The inherited list has no actions: the name
-   takes the whole line. */
+/* Rows as cards on a phone and on a tablet (its page is narrow with the menu column beside it, and
+   five columns leave the name a sliver): the name on top with the actions at its end (its basis
+   leaves room for exactly them), the type, the key and the answers under it. The inherited list has
+   no actions: the name takes the whole line. */
 .content,
 .embedded {
-  @include bp.phone {
+  @include bp.tablet-down {
     td[data-col="name"] { order: 1; flex: 1 1 calc(100% - 7.5rem); }
     td[data-col="actions"] { order: 2; }
     td[data-col="type"] { order: 3; }
