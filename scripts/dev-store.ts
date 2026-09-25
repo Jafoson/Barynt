@@ -27,7 +27,7 @@ interface Sample {
   keywords?: string[];
   capabilities?: string[];
   code?: boolean;
-  scope?: "workspace" | "platform";
+  scope?: "workspace" | "platform" | "project";
   barynt?: string;
   released: string;
   /** More versions, older first than the main one. */
@@ -157,7 +157,17 @@ const SAMPLES: Sample[] = [
     description: "A timeline of a project's issues, drawn from their dates.",
     author: "Barynt Labs",
     categories: ["planning"],
+    scope: "project",
     released: "2026-06-20",
+  },
+  {
+    id: "release-checklist",
+    name: "Release checklist",
+    description: "A checklist a project ticks off before each release.",
+    author: "Barynt Labs",
+    categories: ["planning", "automation"],
+    scope: "project",
+    released: "2026-09-08",
   },
   {
     id: "team-views",
