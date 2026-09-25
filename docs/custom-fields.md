@@ -9,7 +9,9 @@ Extra data on an issue that the fixed columns do not cover: a customer number, a
 | --- | --- | --- |
 | The model, the types, the checks | `prisma/schema.prisma`, `lib/custom-fields/` | BARY-80 (this page) |
 | The permission `customfield.manage` | `lib/rbac/permissions.ts`, [rbac.md](rbac.md#custom-fields-one-permission-bary-79) | BARY-80 |
-| Managing fields, filling them in on the issue, showing them on cards and rows | | BARY-81, not built yet |
+| Defining fields: create, change, archive, delete (server side, audited) | `features/custom-fields/` | BARY-81, this page |
+| The screens to manage them | | BARY-81, not built yet |
+| Filling them in on the issue, showing them on cards and rows | | BARY-81, not built yet |
 | REST, MCP, filters, search, webhooks, audit | | BARY-82, not built yet |
 | Fields declared by a plugin, and what happens to them when it is uninstalled | | not built yet |
 
@@ -66,6 +68,24 @@ Checked and put in its normal form by `parseFieldConfig` ([`lib/custom-fields/co
 - **`fromColumns(type, columns)`** gives the value back, and only from the column of the field's type: a row written for another type, or by hand, is not read as this one's.
 - **`fieldConfigOrDefault(type, stored)`** reads a stored `config` and **never throws or refuses**: a definition that an older version or someone wrote by hand must not make an issue unreadable.
 - What needs the database is the caller's: that a `user` is a **member of the workspace**, and that the field **applies to the issue's project** (a project field only in its project).
+
+## Defining fields (`features/custom-fields/actions.ts`)
+
+Four actions, each asks for `customfield.manage` **where the field applies** (the workspace for a workspace-wide field, the project for a project's, so a project admin cannot touch a
+field that applies in every project) and reports the reason instead of throwing, like the label actions. What the client sends is data: `parseDefinition` checks it and says which part is
+wrong (`issues`, one per part).
+
+| Action | What it does | Audit entry |
+| --- | --- | --- |
+| `createCustomField(scope, input)` | A new field in the workspace (`{ workspaceId }`) or in a project (`{ projectId }`, and the workspace is then the **project's**, never the caller's). The key is made of the name unless one is given, and **numbered while it is taken**; one that was asked for and is taken is refused. At most 100 per workspace. The new field goes last | `customfield.created` |
+| `changeCustomField(id, { name, description, config })` | What is left out stays. **The key and the type never change** (the API and a plugin's manifest use the key; the answers would no longer fit a new type). **An option of a choice cannot be taken away while an issue answers with it**: the reason names the option and how many. Saving what is already there writes and audits nothing | `customfield.updated`, naming which parts changed |
+| `setCustomFieldArchived(id, archived)` | Retire a field or bring it back; the answers stay | `customfield.archived` / `customfield.restored` |
+| `deleteCustomField(id)` | Deletes the field **and every answer to it**. The audit entry counts them | `customfield.deleted` (marked: it cannot be undone) |
+
+- **A plugin's field is the plugin's** (`pluginId` set): a person cannot change, archive or delete it.
+- **Two people making the same key at once:** the database says which one came second, and that one gets "a field with this key already exists".
+
+What the screens read is in [`features/custom-fields/queries.ts`](../features/custom-fields/queries.ts): `getCustomFieldsView` (a workspace's page needs `customfield.manage`; a project's page shows to whoever may see the project and says whether they may manage; a project's page also lists the workspace-wide fields that apply there, read only) and `getFieldsOfProject` (the fields an issue has: workspace-wide and the project's, archived ones left out). A row whose type this code does not know is left out, never breaks the page.
 
 ## Who may do what
 

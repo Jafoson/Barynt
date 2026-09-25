@@ -339,6 +339,10 @@ of a `Label`) and **answered** per issue (`CustomFieldValue`, `(issueId, fieldId
   (`"42"` is not a number), and `null`, an empty text and spaces are "no value", not zero.
 - `key` is unique in the workspace, project fields included. A definition deleted, or its issue, project or workspace, takes the values with it; `pluginId` is `ON DELETE SET NULL`
   (an uninstalled plugin's fields the admin keeps become ordinary ones).
+- **Defining** goes through `features/custom-fields/actions.ts` (`createCustomField`, `changeCustomField`, `setCustomFieldArchived`, `deleteCustomField`): each asks for `customfield.manage`
+  **where the field applies** (`{ workspaceId }` or `{ projectId }`; a project field's workspace is the project's, never the caller's), reports the reason instead of throwing, and is audited
+  (`customfield.*`, target type `customField`). **The key and the type never change**; an option in use cannot be removed; a plugin's field (`pluginId`) is the plugin's. Reads are in
+  `features/custom-fields/queries.ts` (`getCustomFieldsView`, `getFieldsOfProject`); a row of an unknown type is left out, not shown broken.
 - **`customfield.manage`** (WORKSPACE and PROJECT, `owner`/`admin`/`manager` and `project_admin`) defines fields; **filling one in is `issue.update.*`**. It is a new permission: an
   existing dev database needs the `provisionSystemRbac` snippet below.
 
@@ -641,6 +645,10 @@ tests/
       project.test.ts             ← switch on/off per project, onProjectEnable/onProjectDisable (same shape, one level down)
     custom-fields/
       config.test.ts / value.test.ts  ← what a field's definition is made of and how a value is checked and stored (pure, no mocks)
+    custom-fields-actions/
+      definitionActions.test.ts   ← create, change, archive, delete a definition (own process: mocks the db, permissions, audit and `next/cache`)
+    custom-fields-queries/
+      fieldQueries.test.ts        ← what the screens read of the definitions (own process: mocks the db and the permissions differently)
     plugin-host-settings/
       settingsService.test.ts     ← what a plugin reads of its own settings, `ctx.settings` (own process: replaces the database, the permissions and the session)
     plugin-settings/

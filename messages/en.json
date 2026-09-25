@@ -1519,6 +1519,11 @@
       "issueEstimateHoursChanged": "Time estimate changed",
       "labelCreated": "Label created",
       "labelDeleted": "Label deleted",
+      "customFieldCreated": "Custom field created",
+      "customFieldUpdated": "Custom field changed",
+      "customFieldArchived": "Custom field archived",
+      "customFieldRestored": "Custom field restored",
+      "customFieldDeleted": "Custom field deleted",
       "pluginRolledBack": "Plugin rolled back"
     }
   },

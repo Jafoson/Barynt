@@ -1519,6 +1519,11 @@
       "issueEstimateHoursChanged": "Zeitschätzung geändert",
       "labelCreated": "Label angelegt",
       "labelDeleted": "Label gelöscht",
+      "customFieldCreated": "Benutzerdefiniertes Feld angelegt",
+      "customFieldUpdated": "Benutzerdefiniertes Feld geändert",
+      "customFieldArchived": "Benutzerdefiniertes Feld archiviert",
+      "customFieldRestored": "Benutzerdefiniertes Feld wiederhergestellt",
+      "customFieldDeleted": "Benutzerdefiniertes Feld gelöscht",
       "pluginRolledBack": "Plugin zurückgesetzt"
     }
   },

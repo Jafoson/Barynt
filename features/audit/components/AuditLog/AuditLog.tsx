@@ -343,6 +343,28 @@ export const AUDIT_ACTION_META = {
   },
   "label.created": { icon: "lucide:tag", message: "labelCreated" },
   "label.deleted": { icon: "lucide:tag", message: "labelDeleted" },
+  "customfield.created": {
+    icon: "lucide:text-cursor-input",
+    message: "customFieldCreated",
+  },
+  "customfield.updated": {
+    icon: "lucide:text-cursor-input",
+    message: "customFieldUpdated",
+  },
+  "customfield.archived": {
+    icon: "lucide:archive",
+    message: "customFieldArchived",
+  },
+  "customfield.restored": {
+    icon: "lucide:archive-restore",
+    message: "customFieldRestored",
+  },
+  // Every answer to it goes with it: the loud one of the five.
+  "customfield.deleted": {
+    icon: "lucide:trash-2",
+    message: "customFieldDeleted",
+    loud: true,
+  },
 } as const satisfies Record<
   AuditAction,
   { icon: string; message: string; loud?: boolean }
