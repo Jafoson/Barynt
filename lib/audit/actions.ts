@@ -125,6 +125,13 @@ export const AUDIT_ACTIONS = {
   "issue.estimateHours.changed": "Time estimate changed",
   "label.created": "Label created",
   "label.deleted": "Label deleted",
+  // Custom fields (BARY-79): what a field is, not what an issue answers (that is the issue's own
+  // history, BARY-82). Deleting one deletes every answer to it, so it names how many.
+  "customfield.created": "Custom field created",
+  "customfield.updated": "Custom field changed",
+  "customfield.archived": "Custom field archived",
+  "customfield.restored": "Custom field restored",
+  "customfield.deleted": "Custom field deleted",
 } as const;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
@@ -160,7 +167,8 @@ export type AuditTargetType =
   | "pluginStore"
   | "plugin"
   | "issue"
-  | "label";
+  | "label"
+  | "customField";
 
 export interface AuditTarget {
   type: AuditTargetType;

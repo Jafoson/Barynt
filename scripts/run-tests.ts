@@ -97,6 +97,12 @@ const SEGMENTS: string[][] = [
   // for the services the plugin host offers (`lib/plugins/services.ts`); other
   // files test the real permissions and session code, or mock them differently.
   ["tests/unit/plugin-host"],
+  // Writing the definitions of custom fields (`features/custom-fields/actions`): replaces the database,
+  // the permissions, the audit log and `next/cache`.
+  ["tests/unit/custom-fields-actions"],
+  // What the screens read of the definitions (`features/custom-fields/queries`): replaces the database and
+  // the permissions differently from the actions' tests.
+  ["tests/unit/custom-fields-queries"],
   // What a plugin reads of its own settings (`ctx.settings`): replaces the database and the
   // permissions, and reads the request's workspace through the reader `setCurrentWorkspaceId` publishes.
   ["tests/unit/plugin-host-settings"],
