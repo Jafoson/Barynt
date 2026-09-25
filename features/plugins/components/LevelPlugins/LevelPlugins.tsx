@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { type ReactNode, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
+import { Button } from "@/components/ui/atoms/Button/Button";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import { PageHeader } from "@/components/ui/layout/PageHeader/PageHeader";
@@ -14,11 +15,16 @@ import {
   SettingsList,
   type SettingsRow,
 } from "@/components/ui/layout/SettingsList/SettingsList";
-import type { PluginActionResult } from "@/features/plugins/types";
+import type {
+  PluginActionResult,
+  SettingsSaveResult,
+} from "@/features/plugins/types";
 import type {
   WorkspacePlugin,
   WorkspacePluginsView,
 } from "@/features/plugins/workspacePlugins";
+import type { SettingValue } from "@/lib/plugins/settings";
+import { useOpenPluginSettings } from "../PluginSettings/useOpenPluginSettings";
 import styles from "../PluginsAdmin/pluginsAdmin.module.scss";
 import { type Tone, useRuntimeText } from "../PluginsAdmin/runtimeText";
 
@@ -29,6 +35,11 @@ interface Props {
   /** Switch a plugin on or off there: the actions of that level, with its id already in them. */
   enable: (pluginId: string) => Promise<PluginActionResult>;
   disable: (pluginId: string) => Promise<PluginActionResult>;
+  /** Save a plugin's settings there: the action of that level, with its id already in it. */
+  saveSettings: (
+    pluginId: string,
+    values: Record<string, SettingValue | null>,
+  ) => Promise<SettingsSaveResult>;
   /** The Installed and Store tabs, where the level has a store. */
   tabs?: ReactNode;
 }
@@ -47,7 +58,14 @@ const TONE_ICON = {
  * server checks and says why not, so a switch never shows "on" for a plugin that is not running.
  * A workspace's page and a project's are this one page, with the words of their level.
  */
-export function LevelPlugins({ level, view, enable, disable, tabs }: Props) {
+export function LevelPlugins({
+  level,
+  view,
+  enable,
+  disable,
+  saveSettings,
+  tabs,
+}: Props) {
   const t = useTranslations();
   // The words of this level: `workspacePlugins.*` or `projectPlugins.*`, the same keys in both.
   const words = level === "workspace" ? "workspacePlugins" : "projectPlugins";
@@ -56,6 +74,7 @@ export function LevelPlugins({ level, view, enable, disable, tabs }: Props) {
   const router = useRouter();
   const confirm = useConfirm();
   const text = useRuntimeText();
+  const openSettings = useOpenPluginSettings();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
@@ -126,10 +145,12 @@ export function LevelPlugins({ level, view, enable, disable, tabs }: Props) {
 
   const columns: SettingsColumn[] = [
     { id: "on", header: t("pluginsAdmin.colOn"), width: "70px" },
+    { id: "actions", header: "", width: "minmax(0, 140px)" },
   ];
 
   const rows: SettingsRow[] = view.plugins.map((plugin) => {
     const { tone, line } = standing(plugin);
+    const settingsForm = plugin.settings;
     return {
       id: plugin.id,
       label: plugin.name,
@@ -179,6 +200,24 @@ export function LevelPlugins({ level, view, enable, disable, tabs }: Props) {
             onChange={(checked) => void switchPlugin(plugin, checked)}
           />
         ),
+        // Only for a plugin that is on here and lets this level set something.
+        actions: settingsForm ? (
+          <Button
+            variant="text"
+            size="sm"
+            icon={<Icon icon="lucide:sliders-horizontal" width={14} />}
+            disabled={isPending}
+            onClick={() =>
+              openSettings({
+                name: plugin.name,
+                form: settingsForm,
+                save: (values) => saveSettings(plugin.id, values),
+              })
+            }
+          >
+            {t("pluginSettings.open")}
+          </Button>
+        ) : null,
       },
     };
   });

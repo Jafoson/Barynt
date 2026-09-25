@@ -4,6 +4,7 @@ import {
   disablePluginInProject,
   enablePluginInProject,
 } from "@/features/plugins/projectActions";
+import { saveProjectPluginSettings } from "@/features/plugins/settingsActions";
 import type { WorkspacePluginsView } from "@/features/plugins/workspacePlugins";
 import { LevelPlugins } from "../LevelPlugins/LevelPlugins";
 import { PluginsTabs } from "../PluginsTabs/PluginsTabs";
@@ -27,6 +28,9 @@ export function ProjectPlugins({ projectId, view, basePath }: Props) {
       view={view}
       enable={(pluginId) => enablePluginInProject(projectId, pluginId)}
       disable={(pluginId) => disablePluginInProject(projectId, pluginId)}
+      saveSettings={(pluginId, values) =>
+        saveProjectPluginSettings(projectId, pluginId, values)
+      }
       tabs={
         view.storeAvailable ? (
           <PluginsTabs active="installed" basePath={basePath} />

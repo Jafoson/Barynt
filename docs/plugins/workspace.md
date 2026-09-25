@@ -38,6 +38,13 @@ action is the protection and refuses the same way if it is called anyway.
 of it. What is the platform's is not passed on: the plugin directory's path, why plugins are off, the hash of a plugin's files, where it came
 from, in how many workspaces it is on, what is approved.
 
+## A plugin's settings
+
+A plugin that is **on here** and declares settings has a **Settings** button on its row: the [form](lifecycle.md#the-form) in a dialog (a sheet on a phone),
+saved by `saveWorkspacePluginSettings(workspaceId, pluginId, values)` with `plugin.enable` in this workspace. A plugin that is off here has no button (its
+settings stay, as the switch's are: switching it on again shows what was set). These are the workspace's own values: what the platform set for a plugin that
+applies to the whole platform is not shown here.
+
 ## The store of a workspace
 
 **Workspace settings, Plugins, Store** (`/<workspace>/settings/plugins/store`) is the same store page as the platform's ([The store](admin.md#the-store)), for the
@@ -59,7 +66,5 @@ means off) and someone with `plugin.enable` opens it; otherwise the tab is missi
 ## Not here
 
 - **Updating and removing.** Those are the platform's ([The plugins page](admin.md)).
-- **A plugin's own settings** (`PluginWorkspace.config`): saving and reading are there (`saveWorkspacePluginSettings`, [Lifecycle](lifecycle.md#a-plugins-settings));
-  the form on this page is not built yet (BARY-68, step 3).
 - **Project level**: a project switches on the plugins that apply per project on [its own page](project.md); a workspace's page knows
   nothing of them. A project opting out of what the workspace switched on is not built.

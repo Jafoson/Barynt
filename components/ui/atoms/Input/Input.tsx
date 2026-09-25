@@ -4,7 +4,14 @@ import { Icon } from "@iconify/react";
 import { useId, useState } from "react";
 import styles from "./input.module.scss";
 
-type InputVariant = "text" | "password" | "search" | "date" | "number";
+type InputVariant =
+  | "text"
+  | "password"
+  | "search"
+  | "date"
+  | "number"
+  | "email"
+  | "url";
 type InputSize = "sm" | "md";
 
 /**

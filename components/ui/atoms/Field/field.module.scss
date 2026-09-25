@@ -1,0 +1,25 @@
+/* The same spacing and type as `Input`'s label and feedback lines. */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3125rem;
+  width: 100%;
+}
+
+.label {
+  font-size: var(--text-sm);
+  font-weight: 550;
+  color: var(--on-surface);
+  line-height: var(--leading-tight);
+}
+
+.feedback {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.error { color: var(--error); }
+.hint  { color: var(--on-surface-variant); }

@@ -1,5 +1,6 @@
 "use client";
 
+import { saveWorkspacePluginSettings } from "@/features/plugins/settingsActions";
 import {
   disablePlugin,
   enablePlugin,
@@ -25,6 +26,9 @@ export function WorkspacePlugins({ workspaceId, view }: Props) {
       view={view}
       enable={(pluginId) => enablePlugin(workspaceId, pluginId)}
       disable={(pluginId) => disablePlugin(workspaceId, pluginId)}
+      saveSettings={(pluginId, values) =>
+        saveWorkspacePluginSettings(workspaceId, pluginId, values)
+      }
       tabs={
         view.storeAvailable ? (
           <PluginsTabs active="installed" workspaceId={workspaceId} />

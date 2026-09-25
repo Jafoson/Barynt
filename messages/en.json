@@ -1708,5 +1708,17 @@
     "addedNotOn": "{message}",
     "noStores": "No plugin store is switched on, so there is nothing to add here yet.",
     "nothingReleased": "The platform has not released a plugin for projects yet."
+  },
+  "pluginSettings": {
+    "open": "Settings",
+    "title": "{name}: settings",
+    "saved": "Settings saved",
+    "saveFailed": "The settings could not be saved.",
+    "notValid": "Some settings are not valid.",
+    "tooLarge": "The settings are too large together.",
+    "required": "Required",
+    "default": "Default: {value}",
+    "notSet": "Not set",
+    "choose": "Choose…"
   }
 }

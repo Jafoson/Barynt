@@ -1708,5 +1708,17 @@
     "addedNotOn": "{message}",
     "noStores": "Es ist kein Plugin-Store eingeschaltet, deshalb gibt es hier noch nichts zum Hinzufügen.",
     "nothingReleased": "Die Plattform hat noch kein Plugin für Projekte freigegeben."
+  },
+  "pluginSettings": {
+    "open": "Einstellungen",
+    "title": "{name}: Einstellungen",
+    "saved": "Einstellungen gespeichert",
+    "saveFailed": "Die Einstellungen konnten nicht gespeichert werden.",
+    "notValid": "Einige Einstellungen sind nicht gültig.",
+    "tooLarge": "Die Einstellungen sind zusammen zu groß.",
+    "required": "Pflichtfeld",
+    "default": "Standard: {value}",
+    "notSet": "Nicht festgelegt",
+    "choose": "Auswählen …"
   }
 }

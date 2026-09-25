@@ -124,6 +124,12 @@ const SEGMENTS: string[][] = [
   // Mocks `@/lib/db`, `@/lib/permissions` and `next/cache` for saving a plugin's settings
   // (`features/plugins/settingsActions`); the plugin directory and the checks are real.
   ["tests/unit/plugin-settings"],
+  // The form of a plugin's settings: the state and the save as pure functions, the fields and the
+  // window as markup. Mocks `next-intl` and `@iconify/react`.
+  ["tests/unit/plugin-settings-ui"],
+  // The same window at work: it replaces `react`'s hooks with a list, so it cannot share a process
+  // with the markup tests above.
+  ["tests/unit/plugin-settings-modal"],
   // Mocks `@/lib/project-membership` away entirely — see CLAUDE.md.
   [
     "tests/unit/workspace/inviteLinks.test.ts",

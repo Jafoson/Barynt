@@ -25,6 +25,8 @@ let switches: Flip[] = [];
 const openModal = mock((_render: unknown, _options: unknown) => "modal");
 const confirm = mock(async (_options: unknown) => true);
 const refresh = mock();
+const toast = mock();
+const mockSaveSettings = mock();
 
 const mockApprove = mock();
 const mockRevoke = mock();
@@ -72,6 +74,7 @@ mock.module("@/i18n/navigation", () => ({
   ),
 }));
 mock.module("@/lib/context", () => ({ useModal: () => ({ openModal }) }));
+mock.module("@/lib/ui-store", () => ({ useUI: () => ({ toast }) }));
 mock.module("@/components/ui/layout/ConfirmDialog/ConfirmDialog", () => ({
   useConfirm: () => confirm,
 }));
@@ -114,6 +117,9 @@ mock.module("@/features/plugins/actions", () => ({
   approvePluginCode: mockApprove,
   revokePluginCodeApproval: mockRevoke,
 }));
+mock.module("@/features/plugins/settingsActions", () => ({
+  savePlatformPluginSettings: mockSaveSettings,
+}));
 mock.module("@/features/plugins/lifecycleActions", () => ({
   installPlugin: mockInstall,
   updatePlugin: mockUpdate,
@@ -128,6 +134,7 @@ import type {
   InstalledPlugin,
   PluginsOverview,
 } from "@/features/plugins/overview";
+import type { SettingField } from "@/lib/plugins/settings";
 
 const H1 = `sha512-${"A".repeat(86)}==`;
 
@@ -256,6 +263,8 @@ beforeEach(() => {
     mockUninstall,
     mockRollback,
     mockSetStatus,
+    toast,
+    mockSaveSettings,
   ]) {
     m.mockClear();
   }
@@ -270,6 +279,7 @@ beforeEach(() => {
     mockUninstall,
     mockRollback,
     mockSetStatus,
+    mockSaveSettings,
   ]) {
     m.mockResolvedValue({ ok: true });
   }
@@ -1056,5 +1066,163 @@ describe("when something is wrong", () => {
     const html = render(overview());
     expect(html).toContain("pluginsAdmin.emptyInstalled");
     expect(buttons).toEqual([]);
+  });
+});
+
+describe("a plugin's settings, for the platform", () => {
+  const field: SettingField = {
+    id: "endpoint",
+    type: "text",
+    label: "Endpoint",
+    description: null,
+    required: false,
+    placeholder: null,
+    format: "url",
+    maxLength: 200,
+    min: null,
+    max: null,
+    integer: false,
+    options: [],
+    default: null,
+  };
+  const closeSettings = mock();
+  const withSettings = (more: Partial<InstalledPlugin> = {}) =>
+    installed({
+      scope: "PLATFORM",
+      settings: [field],
+      settingValues: { endpoint: "https://example.com" },
+      ...more,
+    });
+
+  /** The window the last press opened, its props and options. */
+  function settingsWindow() {
+    const call = openModal.mock.calls.at(-1);
+    if (!call) throw new Error("no window was opened");
+    const element = (call[0] as (a: { close: () => void }) => ReactElement)({
+      close: closeSettings,
+    });
+    return {
+      props: element.props as {
+        close: () => void;
+        name: string;
+        form: { fields: SettingField[]; values: Record<string, unknown> };
+        sheet?: boolean;
+        save: (values: Record<string, unknown>) => Promise<unknown>;
+        onSaved: () => void;
+      },
+      options: call[1] as { label: string; placement?: string },
+    };
+  }
+
+  it("are offered for a plugin of the whole platform that declares some", () => {
+    render(overview({ installed: [withSettings()] }));
+    expect(labels()).toContain("pluginSettings.open");
+  });
+
+  it("are not offered for a plugin that declares none", () => {
+    render(overview({ installed: [installed({ scope: "PLATFORM" })] }));
+    expect(labels()).not.toContain("pluginSettings.open");
+  });
+
+  it("are not the platform's for a plugin that applies per workspace or per project: those are set there", () => {
+    render(
+      overview({
+        installed: [
+          installed({ id: "a", scope: "WORKSPACE", settings: [field] }),
+          installed({ id: "b", scope: "PROJECT", settings: [field] }),
+        ],
+      }),
+    );
+    expect(labels()).not.toContain("pluginSettings.open");
+  });
+
+  it("are offered where the plugin is switched off too: they are the platform's to set", () => {
+    render(overview({ installed: [withSettings({ platformOn: false })] }));
+    expect(labels()).toContain("pluginSettings.open");
+  });
+
+  it("open the plugin's form with what is stored, in a dialog", async () => {
+    render(overview({ installed: [withSettings()] }));
+    await press("pluginSettings.open");
+    const { props, options } = settingsWindow();
+    expect(props.name).toBe("Calendar");
+    expect(props.form).toEqual({
+      fields: [field],
+      values: { endpoint: "https://example.com" },
+    });
+    expect(props.sheet).toBe(false);
+    expect(options.placement).toBeUndefined();
+    expect(options.label).toBe('title|{"name":"Calendar"}');
+  });
+
+  it("cannot be opened while another action is running", () => {
+    running.pending = true;
+    render(overview({ installed: [withSettings()] }));
+    const button = buttons.find((b) => b.label === "pluginSettings.open");
+    expect(button?.disabled).toBe(true);
+  });
+
+  it("can be opened when nothing is running", () => {
+    render(overview({ installed: [withSettings()] }));
+    const button = buttons.find((b) => b.label === "pluginSettings.open");
+    expect(button?.disabled).toBe(false);
+  });
+
+  it("give the window the means to close itself", async () => {
+    render(overview({ installed: [withSettings()] }));
+    await press("pluginSettings.open");
+    expect(settingsWindow().props.close).toBe(closeSettings);
+  });
+
+  it("open as a sheet on a phone", async () => {
+    running.phone = true;
+    render(overview({ installed: [withSettings()] }));
+    await press("pluginSettings.open");
+    expect(settingsWindow().props.sheet).toBe(true);
+    expect(settingsWindow().options.placement).toBe("bottom");
+  });
+
+  it("open the form of the plugin whose button was pressed", async () => {
+    render(
+      overview({
+        installed: [
+          withSettings({ id: "first", name: "First" }),
+          withSettings({
+            id: "second",
+            name: "Second",
+            settingValues: { endpoint: "https://second.example" },
+          }),
+        ],
+      }),
+    );
+    const second = buttons.filter((b) => b.label === "pluginSettings.open")[1];
+    await second.onClick?.();
+    const { props } = settingsWindow();
+    expect(props.name).toBe("Second");
+    expect(props.form.values).toEqual({ endpoint: "https://second.example" });
+    await props.save({ endpoint: "https://x.example" });
+    expect(mockSaveSettings.mock.calls).toEqual([
+      ["second", { endpoint: "https://x.example" }],
+    ]);
+  });
+
+  it("save through the platform's action, with the plugin and the whole form", async () => {
+    render(overview({ installed: [withSettings()] }));
+    await press("pluginSettings.open");
+    const answer = await settingsWindow().props.save({ endpoint: "" });
+    expect(mockSaveSettings.mock.calls).toEqual([
+      ["calendar", { endpoint: "" }],
+    ]);
+    expect(answer).toEqual({ ok: true });
+  });
+
+  it("say so and read the page again once they are saved, and not before", async () => {
+    render(overview({ installed: [withSettings()] }));
+    await press("pluginSettings.open");
+    expect(toast).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    settingsWindow().props.onSaved();
+    expect(toast.mock.calls).toEqual([["saved"]]);
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 });

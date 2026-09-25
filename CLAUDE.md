@@ -174,6 +174,11 @@ and measured (start at `docs/plugins/README.md`).
   `saveProjectPluginSettings` `plugin.enable` there; `Plugin.config`, `PluginWorkspace.config`, `PluginProject.config`): the level is the plugin's scope, the definition is read
   from the installed files (never from the client), a workspace's or project's plugin has to be on there, the values are the whole form, and the audit entry
   (`plugin.settings.changed`) names the changed keys, **never the values**. The registry is not told: settings decide neither code nor dependencies.
+  **The form** is one window for all three levels (`features/plugins/components/PluginSettings/`: `PluginSettingsModal` = state and save, `SettingsFields` = rendering,
+  `formState.ts` = the pure conversions and `saveForm`, `useOpenPluginSettings` = the hook every page opens it with: a dialog from a tablet up, a sheet on a phone).
+  A yes/no is a checkbox there, not a `Switch` (it takes effect with Save); an empty box means the default, so a setting with one is never "required"
+  (`mustFill`); Save is a `type="submit"` button of the form, so the browser checks its limits first. New form controls are the atoms `Field`, `Textarea` and
+  `Select` (`components/ui/atoms`), and `Input` has the `email` and `url` variants.
 - Change the manifest schema → **`bun run plugin-schema:build`** and commit
   `public/schemas/barynt-plugin.schema.json`. `tests/unit/plugins` (and
   `bun run plugin-schema:check`) fail while it is out of date.
@@ -608,6 +613,11 @@ tests/
       project.test.ts             ← switch on/off per project, onProjectEnable/onProjectDisable (same shape, one level down)
     plugin-settings/
       settingsActions.test.ts     ← saving a plugin's settings per level (real plugin dirs, mocked db; own process: mocks `@/lib/permissions` and `next/cache`)
+    plugin-settings-ui/
+      formState.test.ts           ← the form's state, what the action is given, `saveForm` (pure)
+      settingsFields.test.tsx / settingsModal.test.tsx  ← the controls and the window as markup (mocks `next-intl`, `@iconify/react`)
+    plugin-settings-modal/
+      settingsModalFlow.test.tsx  ← the window at work: Save gating, problems under a setting (own process: replaces `react`'s hooks with a list)
     plugin-staging/
       stage.test.ts               ← features/plugins/disk (own process: it replaces the directory hash)
     store-catalog/
