@@ -45,6 +45,7 @@ const dict: Record<string, string> = {
   "nav.members": "Mitglieder",
   "nav.teams": "Teams",
   "nav.settings": "Einstellungen",
+  "nav.plugins": "Plugins",
   "nav.projects": "Projekte",
   "nav.general": "Allgemein",
   "nav.roles": "Rollen & Rechte",
@@ -383,5 +384,60 @@ describe("tabs for an issue's own page", () => {
   it("has its own icon and no project colour", () => {
     expect(tabIcon(path)).toBe("lucide:circle-dot");
     expect(tabColor(path, projects)).toBeNull();
+  });
+});
+
+// The plugins' settings live under /<workspace>/plugin/settings — not a section of the
+// workspace's table, so without special handling every tab there would be named "Barynt".
+describe("Plugin settings routes", () => {
+  it("names the overview 'Plugins' and gives it the puzzle piece", () => {
+    expect(tabTitle(`${BASE}/plugin/settings`, projects, t)).toBe("Plugins");
+    expect(tabIcon(`${BASE}/plugin/settings`)).toBe("lucide:puzzle");
+    expect(tabMeta(`${BASE}/plugin/settings`, projects, t)).toEqual({
+      title: "Plugins",
+      color: null,
+      icon: "lucide:puzzle",
+      image: null,
+    });
+  });
+
+  it("names a plugin's page after the plugin, so the tabs can be told apart", () => {
+    expect(
+      tabMeta(`${BASE}/plugin/settings/github-sync`, projects, t).title,
+    ).toBe("Plugins (Github Sync)");
+    expect(tabMeta(`${BASE}/plugin/settings/notes`, projects, t).title).toBe(
+      "Plugins (Notes)",
+    );
+    expect(tabIcon(`${BASE}/plugin/settings/notes`)).toBe("lucide:puzzle");
+  });
+
+  it("ignores the query string of the tab's address", () => {
+    expect(
+      tabMeta(`${BASE}/plugin/settings/notes?open=1`, projects, t).title,
+    ).toBe("Plugins (Notes)");
+  });
+
+  it("is only the settings: another page under /plugin is not this area", () => {
+    expect(tabMeta(`${BASE}/plugin/other`, projects, t).title).toBe("Barynt");
+    expect(tabMeta(`${BASE}/plugin`, projects, t).title).toBe("Barynt");
+  });
+
+  it("is a workspace's: the admin has none", () => {
+    expect(tabTitle("/admin/plugin/settings", projects, t)).toBe("Barynt");
+    expect(tabMeta("/admin/plugin/settings/notes", projects, t).title).toBe(
+      "Barynt",
+    );
+    expect(tabIcon("/admin/plugin/settings/notes")).not.toBe("lucide:puzzle");
+  });
+
+  it("needs the plugin area's own address: another area's 'settings' is not it", () => {
+    expect(tabMeta(`${BASE}/other/settings/notes`, projects, t).title).toBe(
+      "Barynt",
+    );
+    expect(tabIcon(`${BASE}/other/settings/notes`)).not.toBe("lucide:puzzle");
+  });
+
+  it("never has a project color", () => {
+    expect(tabColor(`${BASE}/plugin/settings/notes`, projects)).toBeNull();
   });
 });

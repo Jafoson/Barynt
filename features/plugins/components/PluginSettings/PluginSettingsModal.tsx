@@ -2,7 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
-import { useId, useRef, useState, useTransition } from "react";
+import { useId, useRef } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { ModalFooter } from "@/components/ui/layout/Modal/components/ModalFooter";
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
@@ -11,9 +11,9 @@ import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
 import type { SettingsSaveResult } from "@/features/plugins/types";
 import type { SettingsForm, SettingValue } from "@/lib/plugins/settings";
 import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
-import { initialState, isDirty, saveForm } from "./formState";
 import styles from "./pluginSettings.module.scss";
 import { SettingsFields } from "./SettingsFields";
+import { usePluginSettingsForm } from "./usePluginSettingsForm";
 
 interface Props {
   /** The plugin's name, in the title. */
@@ -46,36 +46,20 @@ export function PluginSettingsModal({
 }: Props) {
   const t = useTranslations();
   const idPrefix = useId();
-  const [isPending, startTransition] = useTransition();
   const bodyRef = useRef<HTMLDivElement>(null);
   const swipe = useSwipeToClose(close, bodyRef);
+  const settings = usePluginSettingsForm({
+    form,
+    save,
+    // Said before the window goes, so the page reads again while it closes.
+    onSaved: () => {
+      onSaved();
+      close();
+    },
+  });
 
-  const [start] = useState(() => initialState(form));
-  const [state, setState] = useState(start);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [failure, setFailure] = useState("");
-
-  const dirty = isDirty(start, state);
   const title = t("pluginSettings.title", { name });
   const formId = `${idPrefix}-form`;
-
-  const submit = () => {
-    if (!dirty || isPending) return;
-    startTransition(async () => {
-      const outcome = await saveForm(form, state, save, {
-        saveFailed: t("pluginSettings.saveFailed"),
-        notValid: t("pluginSettings.notValid"),
-        tooLarge: t("pluginSettings.tooLarge"),
-      });
-      if (outcome.saved) {
-        onSaved();
-        close();
-        return;
-      }
-      setErrors(outcome.errors);
-      setFailure(outcome.failure);
-    });
-  };
 
   return (
     <Modal
@@ -104,26 +88,21 @@ export function PluginSettingsModal({
           className={styles.form}
           onSubmit={(e) => {
             e.preventDefault();
-            submit();
+            settings.submit();
           }}
         >
           <SettingsFields
             fields={form.fields}
-            state={state}
-            errors={errors}
-            disabled={isPending}
+            state={settings.state}
+            errors={settings.errors}
+            disabled={settings.isPending}
             idPrefix={idPrefix}
-            onChange={(id, value) => {
-              setState((current) => ({ ...current, [id]: value }));
-              // Only this setting's problem goes: the others are still true.
-              setErrors(({ [id]: _gone, ...rest }) => rest);
-              setFailure("");
-            }}
+            onChange={settings.change}
           />
-          {failure && (
+          {settings.failure && (
             <p className={styles.error} role="alert">
               <Icon icon="lucide:circle-alert" width={14} />
-              {failure}
+              {settings.failure}
             </p>
           )}
         </form>
@@ -131,7 +110,7 @@ export function PluginSettingsModal({
 
       <ModalFooter>
         {!sheet && (
-          <Button variant="ghost" disabled={isPending} onClick={close}>
+          <Button variant="ghost" disabled={settings.isPending} onClick={close}>
             {t("actions.cancel")}
           </Button>
         )}
@@ -142,7 +121,7 @@ export function PluginSettingsModal({
           variant="primary"
           type="submit"
           form={formId}
-          disabled={!dirty || isPending}
+          disabled={!settings.dirty || settings.isPending}
         >
           {t("actions.save")}
         </Button>

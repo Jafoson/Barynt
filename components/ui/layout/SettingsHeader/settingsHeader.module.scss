@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 /* The topmost row of the settings — it only carries the scope switcher.
 
    No bottom edge, and no reason to have one: the line below it comes from
@@ -143,3 +145,23 @@
   }
 }
 
+
+/* The word of a choice. */
+.label {
+  min-width: 0;
+}
+
+/* Four choices (Personal, Project, Workspace, Plugins) don't fit a phone with their words. The open one keeps
+   its word; the others are their icon, and the word stays for a screen reader. The row still scrolls
+   sideways if the window is narrower than that, as above. */
+.scope:has(.segment:nth-child(4)) {
+  @include bp.phone {
+    .segment:not([data-active]) {
+      padding: 0 0.75rem;
+
+      .label {
+        @include bp.sr-only;
+      }
+    }
+  }
+}

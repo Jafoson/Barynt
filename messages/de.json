@@ -203,6 +203,7 @@
     "scopeWorkspace": "Workspace",
     "scopeProject": "Projekt",
     "scopeAccount": "Persönlich",
+    "scopePlugin": "Plugins",
     "scopeNoProject": "Kein sichtbares Projekt"
   },
   "members": {
@@ -1719,6 +1720,15 @@
     "required": "Pflichtfeld",
     "default": "Standard: {value}",
     "notSet": "Nicht festgelegt",
-    "choose": "Auswählen …"
+    "choose": "Auswählen …",
+    "areaTitle": "Plugin-Einstellungen",
+    "overviewTitle": "Plugin-Einstellungen",
+    "overviewIntro": "Die Einstellungen der Plugins, die dieser Workspace eingeschaltet hat. Was hier eingestellt wird, gilt für den ganzen Workspace.",
+    "listTitle": "In diesem Workspace eingeschaltet",
+    "noSettings": "Keine Einstellungen.",
+    "empty": "In diesem Workspace ist noch kein Plugin eingeschaltet.",
+    "emptyLink": "Plugins einschalten",
+    "pageScope": "Gilt für den ganzen Workspace.",
+    "version": "Version {version}"
   }
 }

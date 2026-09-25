@@ -96,6 +96,29 @@ function accountSection(path: string): string | null {
   return parts[3] ?? "";
 }
 
+/**
+ * The plugin within the plugins' settings — `""` for the overview, else the plugin's id.
+ * `null` when the path isn't there at all: `/<workspace>/plugin/settings[/<id>]`. Without it
+ * every plugin's page would be called the same and couldn't be told apart next to each other.
+ */
+function pluginSettingsPlugin(path: string): string | null {
+  const parts = path.split("/");
+  if (parts[1] === "admin" || parts[2] !== "plugin" || parts[3] !== "settings")
+    return null;
+  return parts[4] ?? "";
+}
+
+/**
+ * A plugin's id as a name for a tab: the tab bar is not told the plugin's own name (it knows
+ * paths and projects), and `github-sync` reads better as `Github Sync`.
+ */
+function pluginTabName(id: string): string {
+  return id
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 /** Human title for a tab path (no query string). */
 export function tabTitle(
   path: string,
@@ -116,6 +139,10 @@ export function tabTitle(
   // An issue's own page (`/<workspace>/issue/PREFIX-12`): its key says
   // which one it is.
   if (section === "issue") return decodeURIComponent(path.split("/")[3] ?? "");
+
+  // The plugins' settings are not a section of the workspace's table: they have a place of
+  // their own (`/<workspace>/plugin/settings`), called after what they are.
+  if (pluginSettingsPlugin(path) !== null) return t("nav.plugins");
 
   const entry = findBySection(WORKSPACE_SECTIONS, section);
   return entry ? t(`nav.${entry.labelKey}`) : "Barynt";
@@ -157,6 +184,9 @@ export function tabIcon(path: string): string {
   }
 
   if (section === "issue") return "lucide:circle-dot";
+
+  // The plugins' settings carry the icon of the plugins section of the workspace settings.
+  if (pluginSettingsPlugin(path) !== null) return "lucide:puzzle";
 
   // My Issues has two views like a project — the list carries its icon,
   // the board stays with the area's icon.
@@ -240,6 +270,10 @@ export function tabMeta(
     // carries the name unchanged, the list says so in a suffix.
     if (myIssuesSection(path) === "list")
       title = `${title} (${t("nav.issues")})`;
+
+    // The plugins' settings say which plugin: the overview is the head and stays as it is.
+    const plugin = pluginSettingsPlugin(path);
+    if (plugin) title = `${title} (${pluginTabName(plugin)})`;
 
     // And once more for your own account settings.
     const account = accountSection(path);

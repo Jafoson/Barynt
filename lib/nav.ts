@@ -470,11 +470,25 @@ export function accountPath(workspaceId: string, section: string): string {
 }
 
 /**
- * The three areas settings are split into: what applies to everyone in the
- * workspace, what applies to a project, and what only concerns you
- * yourself.
+ * The plugins' settings of a workspace: `/<workspaceId>/plugin/settings` is the overview of the
+ * plugins that are on there, and `/<workspaceId>/plugin/settings/<pluginId>` one plugin's own
+ * settings page. Empty plugin id = the overview. (A plugin id is lowercase letters, digits and
+ * dashes, so it needs no escaping, and none is a section: the area has no other pages.)
  */
-export type SettingsScopeKey = "workspace" | "project" | "account";
+export function pluginSettingsPath(
+  workspaceId: string,
+  pluginId?: string,
+): string {
+  const base = workspacePath(workspaceId, "plugin/settings");
+  return pluginId ? `${base}/${pluginId}` : base;
+}
+
+/**
+ * The four areas settings are split into: what applies to everyone in the
+ * workspace, what applies to a project, what only concerns you yourself,
+ * and the settings of the plugins the workspace switched on.
+ */
+export type SettingsScopeKey = "workspace" | "project" | "account" | "plugin";
 
 export interface SettingsScopeEntry {
   key: SettingsScopeKey;
@@ -510,9 +524,10 @@ export function settingsScopeItems({
   labels: Record<SettingsScopeKey, string>;
 }): SettingsScopeEntry[] {
   // Inside out: first what only concerns yourself, then the project, and
-  // last the whole workspace. That's also the order in which they're
+  // then the whole workspace. That's also the order in which they're
   // needed — everyone fiddles with their own settings, few with the
-  // workspace's.
+  // workspace's. The plugins' settings come last: they are the workspace's,
+  // one level of detail further in.
   //
   // The icons are the same ones the sidebar already uses for these things
   // (`GLOBAL_NAV`, `ACCOUNT_NAV`) — an area shouldn't depend on which door
@@ -538,22 +553,30 @@ export function settingsScopeItems({
       icon: "lucide:building-2",
       href: workspaceSettingsPath(workspaceId, ""),
     },
+    {
+      key: "plugin",
+      label: labels.plugin,
+      // The icon of the "Plugins" section of the workspace settings: it is the same thing.
+      icon: "lucide:puzzle",
+      href: pluginSettingsPath(workspaceId),
+    },
   ];
 }
 
 /**
  * Narrows the candidates from `settingsScopeItems()` down to what's really
- * up for choosing: "Personal" always, "Project"/"Workspace" only with an
+ * up for choosing: "Personal" always, "Project"/"Workspace"/"Plugins" only with an
  * address AND a permission (`WORKSPACE_SETTINGS_PERMISSIONS`/
- * `PROJECT_SETTINGS_PERMISSIONS`, each resolved by the layout — this
- * function itself knows no permissions).
+ * `PROJECT_SETTINGS_PERMISSIONS`, and `plugin.enable` in the workspace for the
+ * plugins, each resolved by the layout — this function itself knows no
+ * permissions).
  *
  * If only "Personal" is left in the end, the switcher has nothing left to
  * switch between — the layouts then leave `SettingsHeader` out entirely.
  */
 export function visibleSettingsScope(
   items: SettingsScopeEntry[],
-  allowed: { workspace: boolean; project: boolean },
+  allowed: { workspace: boolean; project: boolean; plugin: boolean },
 ): VisibleSettingsScopeEntry[] {
   return items.filter((item): item is VisibleSettingsScopeEntry => {
     if (!item.href) return false;

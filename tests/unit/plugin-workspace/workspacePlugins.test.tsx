@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import type { ReactElement, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 // A workspace's plugins page. Static markup shows what is offered where; the switches are
@@ -15,17 +15,9 @@ interface Flip {
   disabled?: boolean;
   label: string;
 }
-interface Pressed {
-  label: string;
-  onClick?: () => void;
-  disabled?: boolean;
-}
 let switches: Flip[] = [];
-let buttons: Pressed[] = [];
 const openModal = mock((_render: unknown, _options: unknown) => "modal");
 const toast = mock();
-const closeModal = mock();
-const mockSave = mock();
 /** Whether this is a phone (a sheet instead of a dialog), and whether an action is running. */
 const running = { phone: false, pending: false };
 const confirm = mock(async (_options: unknown) => true);
@@ -77,21 +69,6 @@ mock.module("@/lib/utils/useMediaQuery", () => ({
 }));
 mock.module("@/lib/context", () => ({ useModal: () => ({ openModal }) }));
 mock.module("@/lib/ui-store", () => ({ useUI: () => ({ toast }) }));
-mock.module("@/components/ui/atoms/Button/Button", () => ({
-  Button: (props: {
-    children?: ReactNode;
-    onClick?: () => void;
-    disabled?: boolean;
-  }) => {
-    const label = typeof props.children === "string" ? props.children : "";
-    buttons.push({ label, onClick: props.onClick, disabled: props.disabled });
-    return (
-      <button type="button" disabled={props.disabled} data-label={label}>
-        {label}
-      </button>
-    );
-  },
-}));
 mock.module("@/components/ui/layout/ConfirmDialog/ConfirmDialog", () => ({
   useConfirm: () => confirm,
 }));
@@ -103,20 +80,18 @@ mock.module("@/components/ui/atoms/Switch/Switch", () => ({
     );
   },
 }));
-mock.module("@/features/plugins/settingsActions", () => ({
-  saveWorkspacePluginSettings: mockSave,
-}));
 mock.module("@/features/plugins/workspaceActions", () => ({
   enablePlugin: mockEnable,
   disablePlugin: mockDisable,
 }));
 
+import { LevelPlugins } from "@/features/plugins/components/LevelPlugins/LevelPlugins";
 import { WorkspacePlugins } from "@/features/plugins/components/WorkspacePlugins/WorkspacePlugins";
 import type {
   WorkspacePlugin,
   WorkspacePluginsView,
 } from "@/features/plugins/workspacePlugins";
-import type { SettingField, SettingsForm } from "@/lib/plugins/settings";
+import type { SettingsForm } from "@/lib/plugins/settings";
 
 function plugin(more: Partial<WorkspacePlugin> = {}): WorkspacePlugin {
   return {
@@ -147,7 +122,6 @@ function view(more: Partial<WorkspacePluginsView> = {}): WorkspacePluginsView {
 }
 function render(v: WorkspacePluginsView): string {
   switches = [];
-  buttons = [];
   started = [];
   return renderToStaticMarkup(<WorkspacePlugins workspaceId="ws-7" view={v} />);
 }
@@ -166,8 +140,6 @@ const switchOf = (id: string) =>
 beforeEach(() => {
   openModal.mockReset();
   toast.mockReset();
-  mockSave.mockReset();
-  mockSave.mockResolvedValue({ ok: true });
   running.phone = false;
   running.pending = false;
   confirm.mockReset();
@@ -466,57 +438,47 @@ describe("the switch", () => {
   });
 });
 
-const settingField: SettingField = {
-  id: "title",
-  type: "text",
-  label: "Title",
-  description: null,
-  required: false,
-  placeholder: null,
-  format: null,
-  maxLength: 200,
-  min: null,
-  max: null,
-  integer: false,
-  options: [],
-  default: null,
-};
 const settingsForm: SettingsForm = {
-  fields: [settingField],
+  fields: [
+    {
+      id: "title",
+      type: "text",
+      label: "Title",
+      description: null,
+      required: false,
+      placeholder: null,
+      format: null,
+      maxLength: 200,
+      min: null,
+      max: null,
+      integer: false,
+      options: [],
+      default: null,
+    },
+  ],
   values: { title: "Hello" },
 };
 
-/** Presses the button with this label, and waits for what it started. */
-const press = async (label: string) => {
-  const button = buttons.find((b) => b.label === label);
-  if (!button?.onClick) throw new Error(`no button "${label}"`);
-  await button.onClick();
-  await settled();
-};
-
-/** The window the last press opened: its element's props, and how it was opened. */
-function lastModal() {
-  const call = openModal.mock.calls.at(-1);
-  if (!call) throw new Error("no window was opened");
-  const element = (call[0] as (a: { close: () => void }) => ReactElement)({
-    close: closeModal,
-  });
-  return {
-    props: element.props as {
-      name: string;
-      form: SettingsForm;
-      close: () => void;
-      sheet?: boolean;
-      save: (values: Record<string, unknown>) => Promise<unknown>;
-      onSaved: () => void;
-    },
-    options: call[1] as { label: string; placement?: string },
-  };
+/** The links to a plugin's settings page in the markup: their address and their text. */
+function settingLinks(html: string): { href: string; text: string }[] {
+  return [...html.matchAll(/<a [^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/g)]
+    .map((m) => ({ href: m[1], text: m[2].replace(/<[^>]*>/g, "") }))
+    .filter((link) => link.href.includes("/plugin/settings"));
 }
 
 describe("a plugin's settings, a workspace's", () => {
+  it("are a link to the plugin's page in the plugins' settings, not a window", () => {
+    const html = render(
+      view({ plugins: [plugin({ on: true, settings: settingsForm })] }),
+    );
+    expect(settingLinks(html)).toEqual([
+      { href: "/ws-7/plugin/settings/notes", text: "pluginSettings.open" },
+    ]);
+    expect(openModal).not.toHaveBeenCalled();
+  });
+
   it("are offered for a plugin that is on here and has settings, and only for it", () => {
-    render(
+    const html = render(
       view({
         plugins: [
           plugin({ id: "a", name: "A", on: true, settings: settingsForm }),
@@ -525,103 +487,68 @@ describe("a plugin's settings, a workspace's", () => {
         ],
       }),
     );
-    expect(buttons.map((b) => b.label)).toEqual(["pluginSettings.open"]);
+    expect(settingLinks(html).map((link) => link.href)).toEqual([
+      "/ws-7/plugin/settings/a",
+    ]);
   });
 
-  it("offers nothing when no plugin has settings", () => {
-    render(view({ plugins: [plugin({ on: true })] }));
-    expect(buttons).toEqual([]);
-  });
-
-  it("opens the plugin's own form in a dialog, with its name", async () => {
-    render(view({ plugins: [plugin({ on: true, settings: settingsForm })] }));
-    await press("pluginSettings.open");
-    expect(openModal).toHaveBeenCalledTimes(1);
-    const { props, options } = lastModal();
-    expect(props.name).toBe("Notes");
-    expect(props.form).toEqual(settingsForm);
-    expect(props.sheet).toBe(false);
-    expect(options.placement).toBeUndefined();
-    expect(options.label).toBe('title|{"name":"Notes"}');
-  });
-
-  it("cannot be opened while another action is running", () => {
-    running.pending = true;
-    render(view({ plugins: [plugin({ on: true, settings: settingsForm })] }));
-    const button = buttons.find((b) => b.label === "pluginSettings.open");
-    expect(button?.disabled).toBe(true);
-  });
-
-  it("can be opened when nothing is running", () => {
-    render(view({ plugins: [plugin({ on: true, settings: settingsForm })] }));
-    const button = buttons.find((b) => b.label === "pluginSettings.open");
-    expect(button?.disabled).toBe(false);
-  });
-
-  it("gives the window the means to close itself", async () => {
-    render(view({ plugins: [plugin({ on: true, settings: settingsForm })] }));
-    await press("pluginSettings.open");
-    expect(lastModal().props.close).toBe(closeModal);
-  });
-
-  it("opens it as a sheet on a phone", async () => {
-    running.phone = true;
-    render(view({ plugins: [plugin({ on: true, settings: settingsForm })] }));
-    await press("pluginSettings.open");
-    const { props, options } = lastModal();
-    expect(props.sheet).toBe(true);
-    expect(options.placement).toBe("bottom");
-  });
-
-  it("opens the form of the plugin whose button was pressed", async () => {
-    const other: SettingsForm = {
-      fields: [{ ...settingField, id: "other" }],
-      values: { other: "x" },
-    };
-    render(
+  it("go to the page of the plugin whose row it is", () => {
+    const html = render(
       view({
         plugins: [
-          plugin({ id: "a", name: "A", on: true, settings: settingsForm }),
-          plugin({ id: "b", name: "B", on: true, settings: other }),
+          plugin({
+            id: "first",
+            name: "First",
+            on: true,
+            settings: settingsForm,
+          }),
+          plugin({
+            id: "second",
+            name: "Second",
+            on: true,
+            settings: settingsForm,
+          }),
         ],
       }),
     );
-    const second = buttons.filter((b) => b.label === "pluginSettings.open")[1];
-    await second.onClick?.();
-    const { props } = lastModal();
-    expect(props.name).toBe("B");
-    expect(props.form).toEqual(other);
-    await props.save({ other: "y" });
-    expect(mockSave.mock.calls).toEqual([["ws-7", "b", { other: "y" }]]);
+    expect(settingLinks(html).map((link) => link.href)).toEqual([
+      "/ws-7/plugin/settings/first",
+      "/ws-7/plugin/settings/second",
+    ]);
   });
 
-  it("saves through this level's action, with the plugin and the whole form", async () => {
-    mockSave.mockResolvedValue({ ok: true });
-    render(view({ plugins: [plugin({ on: true, settings: settingsForm })] }));
-    await press("pluginSettings.open");
-    const answer = await lastModal().props.save({ title: "New" });
-    expect(mockSave.mock.calls).toEqual([["ws-7", "notes", { title: "New" }]]);
-    expect(answer).toEqual({ ok: true });
+  it("are the workspace's: the address carries this workspace", () => {
+    const html = render(
+      view({ plugins: [plugin({ on: true, settings: settingsForm })] }),
+    );
+    expect(html).toContain('href="/ws-7/plugin/settings/notes"');
+    expect(html).not.toContain("/project/");
   });
 
-  it("gives the window what the server said, the problems included", async () => {
-    const refused = {
-      error: "Some settings are not valid.",
-      issues: [{ id: "title", message: "is required" }],
-    };
-    mockSave.mockResolvedValue(refused);
-    render(view({ plugins: [plugin({ on: true, settings: settingsForm })] }));
-    await press("pluginSettings.open");
-    expect(await lastModal().props.save({ title: "" })).toEqual(refused);
+  it("offer nothing when no plugin has settings", () => {
+    const html = render(view({ plugins: [plugin({ on: true })] }));
+    expect(settingLinks(html)).toEqual([]);
   });
 
-  it("says so and reads the page again once they are saved, and not before", async () => {
-    render(view({ plugins: [plugin({ on: true, settings: settingsForm })] }));
-    await press("pluginSettings.open");
-    expect(toast).not.toHaveBeenCalled();
-    expect(refresh).not.toHaveBeenCalled();
-    lastModal().props.onSaved();
-    expect(toast.mock.calls).toEqual([["saved"]]);
-    expect(refresh).toHaveBeenCalledTimes(1);
+  it("are not offered while the plugin is off here: its settings stay for when it is on again", () => {
+    const html = render(
+      view({ plugins: [plugin({ on: false, settings: null })] }),
+    );
+    expect(settingLinks(html)).toEqual([]);
+  });
+});
+
+describe("a level that gives no way to set the settings", () => {
+  it("has a button that cannot be pressed, not a link that goes nowhere", () => {
+    const html = renderToStaticMarkup(
+      <LevelPlugins
+        level="workspace"
+        view={view({ plugins: [plugin({ on: true, settings: settingsForm })] })}
+        enable={async () => ({ ok: true })}
+        disable={async () => ({ ok: true })}
+      />,
+    );
+    expect(settingLinks(html)).toEqual([]);
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>/);
   });
 });
