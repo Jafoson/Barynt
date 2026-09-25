@@ -1,0 +1,38 @@
+@use "breakpoints" as bp;
+
+/* Header with the section switcher on top, two columns below. The header
+   spans across both because it swaps both of them at once. */
+.shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Two columns, one height: the sidebar stays fixed, the panel next to it
+   scrolls. Both get `min-height: 0`, otherwise the content stretches the row
+   and the whole page scrolls — exactly what the column split is meant to
+   prevent. */
+.body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+
+  /* Phone: the nav is a strip above the content, not a column beside it. */
+  @include bp.phone {
+    flex-direction: column;
+  }
+}
+
+/* The panel brings its own header (`PageHeader`) and handles its own
+   scrolling — so this is just the column, no padding. */
+.panel {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

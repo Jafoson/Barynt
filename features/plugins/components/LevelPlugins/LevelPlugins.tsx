@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { type ReactNode, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { Button } from "@/components/ui/atoms/Button/Button";
+import { LinkButton } from "@/components/ui/atoms/LinkButton/LinkButton";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import { PageHeader } from "@/components/ui/layout/PageHeader/PageHeader";
@@ -23,7 +24,7 @@ import type {
   WorkspacePlugin,
   WorkspacePluginsView,
 } from "@/features/plugins/workspacePlugins";
-import type { SettingValue } from "@/lib/plugins/settings";
+import type { SettingsForm, SettingValue } from "@/lib/plugins/settings";
 import { useOpenPluginSettings } from "../PluginSettings/useOpenPluginSettings";
 import styles from "../PluginsAdmin/pluginsAdmin.module.scss";
 import { type Tone, useRuntimeText } from "../PluginsAdmin/runtimeText";
@@ -35,8 +36,16 @@ interface Props {
   /** Switch a plugin on or off there: the actions of that level, with its id already in them. */
   enable: (pluginId: string) => Promise<PluginActionResult>;
   disable: (pluginId: string) => Promise<PluginActionResult>;
-  /** Save a plugin's settings there: the action of that level, with its id already in it. */
-  saveSettings: (
+  /**
+   * Where a plugin's settings are: the address of their page, where the level has one (a
+   * workspace's plugins' settings, `/<workspace>/plugin/settings/<id>`). The button is then a link.
+   */
+  settingsHref?: (pluginId: string) => string;
+  /**
+   * Otherwise the settings open in a window: save them there with the action of that level, with
+   * the plugin's id already in it. Either this or `settingsHref` (which wins).
+   */
+  saveSettings?: (
     pluginId: string,
     values: Record<string, SettingValue | null>,
   ) => Promise<SettingsSaveResult>;
@@ -63,6 +72,7 @@ export function LevelPlugins({
   view,
   enable,
   disable,
+  settingsHref,
   saveSettings,
   tabs,
 }: Props) {
@@ -148,6 +158,44 @@ export function LevelPlugins({
     { id: "actions", header: "", width: "minmax(0, 140px)" },
   ];
 
+  /**
+   * The way into a plugin's settings: a link to their page where the level has one, else a button
+   * that opens them in a window.
+   */
+  const settingsControl = (plugin: WorkspacePlugin, form: SettingsForm) => {
+    const icon = <Icon icon="lucide:sliders-horizontal" width={14} />;
+    if (settingsHref) {
+      return (
+        <LinkButton
+          href={settingsHref(plugin.id)}
+          variant="text"
+          size="sm"
+          icon={icon}
+        >
+          {t("pluginSettings.open")}
+        </LinkButton>
+      );
+    }
+    return (
+      <Button
+        variant="text"
+        size="sm"
+        icon={icon}
+        disabled={isPending || !saveSettings}
+        onClick={() =>
+          saveSettings &&
+          openSettings({
+            name: plugin.name,
+            form,
+            save: (values) => saveSettings(plugin.id, values),
+          })
+        }
+      >
+        {t("pluginSettings.open")}
+      </Button>
+    );
+  };
+
   const rows: SettingsRow[] = view.plugins.map((plugin) => {
     const { tone, line } = standing(plugin);
     const settingsForm = plugin.settings;
@@ -201,23 +249,7 @@ export function LevelPlugins({
           />
         ),
         // Only for a plugin that is on here and lets this level set something.
-        actions: settingsForm ? (
-          <Button
-            variant="text"
-            size="sm"
-            icon={<Icon icon="lucide:sliders-horizontal" width={14} />}
-            disabled={isPending}
-            onClick={() =>
-              openSettings({
-                name: plugin.name,
-                form: settingsForm,
-                save: (values) => saveSettings(plugin.id, values),
-              })
-            }
-          >
-            {t("pluginSettings.open")}
-          </Button>
-        ) : null,
+        actions: settingsForm ? settingsControl(plugin, settingsForm) : null,
       },
     };
   });

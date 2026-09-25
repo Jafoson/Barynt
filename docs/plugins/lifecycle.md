@@ -262,8 +262,10 @@ first:
 
 ### The form
 
-One window for all three levels ([`features/plugins/components/PluginSettings/`](../../features/plugins/components/PluginSettings)): a dialog from a
-tablet up and a bottom sheet on a phone, opened by `useOpenPluginSettings` from the **Settings** button of a row. It draws what the manifest
+One form for all three levels ([`features/plugins/components/PluginSettings/`](../../features/plugins/components/PluginSettings)), in two settings: as a
+**page** (`PluginSettingsPage`) for a workspace's plugins ([The plugins of a workspace](workspace.md#a-plugins-settings)), and as a **window** (a dialog from a
+tablet up, a bottom sheet on a phone, `PluginSettingsModal`, opened by `useOpenPluginSettings`) from the **Settings** button of a row for the platform's and a
+project's. Both are the same `usePluginSettingsForm` and `SettingsFields`, so a value is typed, checked and refused the same way. It draws what the manifest
 declared and nothing else, from the same field the server checks:
 
 | Type | Control | What the browser is given |
@@ -281,7 +283,8 @@ declared and nothing else, from the same field the server checks:
 - **What the server says** comes back per setting and shows under that setting (a problem goes when that setting is edited), with one line above the
   buttons: "some are not valid", "too large together", or, when no setting is at fault, the server's own sentence (the plugin was switched off meanwhile).
   A request that fails is "could not be saved", never the error itself.
-- **Once saved** a toast says so, the window closes and the page is read again, so the next time it opens it shows what is stored.
+- **Once saved** a toast says so and the page is read again, so what it shows is what is stored. The window closes; the page stays, and its form starts over
+  from what it sent (Save is off until something else changes).
 
 What a page reads: `getPluginsOverview` gives a platform plugin its `settings` (the form's fields) and `settingValues` (what is stored, each value only if
 it still fits the definition, otherwise the default); a workspace's and a project's plugin has `settings` as a form with its values, and `null` while the

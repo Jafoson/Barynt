@@ -59,11 +59,24 @@ mock.module("next-intl", () => {
   return { useTranslations: () => t };
 });
 
+const refresh = mock();
+const toast = mock();
+const mockSaveWorkspace = mock();
+mock.module("@/features/plugins/settingsActions", () => ({
+  saveWorkspacePluginSettings: mockSaveWorkspace,
+}));
+mock.module("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+mock.module("@/lib/ui-store", () => ({ useUI: () => ({ toast }) }));
+
+import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
 import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
+import { PageHeader } from "@/components/ui/layout/PageHeader/PageHeader";
 import { PluginSettingsModal } from "@/features/plugins/components/PluginSettings/PluginSettingsModal";
+import { PluginSettingsPage } from "@/features/plugins/components/PluginSettings/PluginSettingsPage";
 import { SettingsFields } from "@/features/plugins/components/PluginSettings/SettingsFields";
+import { WorkspacePluginSettings } from "@/features/plugins/components/PluginSettings/WorkspacePluginSettings";
 import type { SettingsSaveResult } from "@/features/plugins/types";
 import type { SettingField, SettingsForm } from "@/lib/plugins/settings";
 
@@ -170,6 +183,10 @@ beforeEach(() => {
   onSaved.mockReset();
   close.mockReset();
   preventDefault.mockReset();
+  refresh.mockReset();
+  toast.mockReset();
+  mockSaveWorkspace.mockReset();
+  mockSaveWorkspace.mockResolvedValue({ ok: true });
 });
 
 describe("a plugin's settings window at work", () => {
@@ -406,5 +423,215 @@ describe("a plugin's settings window at work", () => {
         (e) => e.type === Button && e.props.variant === "ghost",
       ),
     ).toBe(false);
+  });
+});
+
+describe("a plugin's settings page at work", () => {
+  /** Renders the page once more, from the state the hooks hold. */
+  function renderPage(): Node {
+    hooks.cursor = 0;
+    return PluginSettingsPage({
+      name: "Notes",
+      description: "Takes notes",
+      version: "1.2.0",
+      form,
+      save,
+    }) as Node;
+  }
+  const pageElements = () => elements(renderPage());
+  const pageFields = (): FieldsProps =>
+    pageElements().find((e) => e.type === SettingsFields)
+      ?.props as unknown as FieldsProps;
+  /** The Save button of the page: it sits in the header's `actions`. */
+  const pageSave = () => {
+    const header = pageElements().find((e) => e.type === PageHeader);
+    return (header?.props.actions as Node).props as {
+      disabled: boolean;
+      form: string;
+      type: string;
+    };
+  };
+  const pageSubmit = () => {
+    const formElement = pageElements().find((e) => e.type === "form");
+    (
+      formElement?.props as {
+        onSubmit: (e: { preventDefault: () => void }) => void;
+      }
+    ).onSubmit({ preventDefault });
+  };
+  const pageFailure = (): string | null => {
+    const line = pageElements().find((e) => e.props.role === "alert");
+    return line
+      ? String((line.props as { children: ReactNode[] }).children[1])
+      : null;
+  };
+
+  it("is titled with the plugin's name and starts with nothing to save", () => {
+    const header = pageElements().find((e) => e.type === PageHeader);
+    expect(header?.props.title).toBe("Notes");
+    expect(pageSave().disabled).toBe(true);
+    expect(pageFields().state).toEqual({ title: "Hello", limit: "5" });
+  });
+
+  it("says what the plugin is: its description, its version, and that it applies to the whole workspace", () => {
+    const description = pageElements().find(
+      (e) => e.type === "p" && e.props.className === "pageDescription",
+    );
+    expect(description?.props.children).toBe("Takes notes");
+    const badge = pageElements().find((e) => e.type === Badge);
+    expect(badge?.props.children).toBe("1.2.0");
+    const meta = pageElements().find(
+      (e) => e.type === "p" && e.props.className === "pageMeta",
+    );
+    expect(
+      elements(meta?.props.children as ReactNode).some(
+        (e) =>
+          e.type === "span" && e.props.children === "pluginSettings.pageScope",
+      ),
+    ).toBe(true);
+  });
+
+  it("shows no line for a description the plugin does not have", () => {
+    hooks.cursor = 0;
+    const tree = PluginSettingsPage({
+      name: "Notes",
+      description: "",
+      version: "1.2.0",
+      form,
+      save,
+    }) as Node;
+    expect(
+      elements(tree).some(
+        (e) => e.type === "p" && e.props.className === "pageDescription",
+      ),
+    ).toBe(false);
+  });
+
+  it("gives its fields the plugin's settings, and its Save button the look of the primary action", () => {
+    expect(pageFields().fields).toEqual(form.fields);
+    const header = pageElements().find((e) => e.type === PageHeader);
+    expect((header?.props.actions as Node).props.variant).toBe("primary");
+  });
+
+  it("has a Save button that belongs to its form", () => {
+    const formElement = pageElements().find((e) => e.type === "form");
+    const id = (formElement?.props as { id: string }).id;
+    expect(id).toBe(":form:-form");
+    expect(pageSave().form).toBe(id);
+    expect(pageSave().type).toBe("submit");
+  });
+
+  it("does not save while nothing was changed", async () => {
+    pageSubmit();
+    await settled();
+    expect(save).not.toHaveBeenCalled();
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  it("sends the whole form, says so and reads the page again, and stays where it is", async () => {
+    pageFields().onChange("limit", "9");
+    expect(pageSave().disabled).toBe(false);
+    pageSubmit();
+    await settled();
+    expect(save.mock.calls[0][0]).toEqual({ title: "Hello", limit: 9 });
+    expect(toast.mock.calls).toEqual([["pluginSettings.saved"]]);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(pageFields().state.limit).toBe("9");
+  });
+
+  it("starts over from what it sent: nothing more to save until something else changes", async () => {
+    pageFields().onChange("title", "New");
+    pageSubmit();
+    await settled();
+    expect(pageSave().disabled).toBe(true);
+    pageFields().onChange("title", "Newer");
+    expect(pageSave().disabled).toBe(false);
+    pageFields().onChange("title", "New");
+    expect(pageSave().disabled).toBe(true);
+  });
+
+  it("shows what the server refused under the setting, and neither says saved nor reads again", async () => {
+    save.mockResolvedValue({
+      error: "Some settings are not valid.",
+      issues: [{ id: "limit", message: "must be at least 10" }],
+    });
+    pageFields().onChange("limit", "3");
+    pageSubmit();
+    await settled();
+    expect(pageFields().errors).toEqual({ limit: "Must be at least 10" });
+    expect(pageFailure()).toBe("pluginSettings.notValid");
+    expect(toast).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+    expect(pageSave().disabled).toBe(false);
+  });
+
+  it("is off, and ignores a second press, while a save is running", async () => {
+    let finish: (result: SettingsSaveResult) => void = () => {};
+    save.mockImplementation(
+      () =>
+        new Promise<SettingsSaveResult>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    pageFields().onChange("title", "New");
+    pageSubmit();
+    expect(pageFields().disabled).toBe(true);
+    expect(pageSave().disabled).toBe(true);
+    pageSubmit();
+    expect(save).toHaveBeenCalledTimes(1);
+    finish({ ok: true });
+    await settled();
+    expect(toast).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the browser from submitting the form itself", () => {
+    pageSubmit();
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("a workspace plugin's settings page", () => {
+  const wrapper = () =>
+    WorkspacePluginSettings({
+      workspaceId: "ws-7",
+      plugin: {
+        id: "notes",
+        name: "Notes",
+        description: "Takes notes",
+        version: "1.2.0",
+      },
+      form,
+    }) as Node;
+
+  it("is the settings page of the plugin, with what it is and its form", () => {
+    const tree = wrapper();
+    expect(tree.type).toBe(PluginSettingsPage);
+    expect(tree.props.name).toBe("Notes");
+    expect(tree.props.description).toBe("Takes notes");
+    expect(tree.props.version).toBe("1.2.0");
+    expect(tree.props.form).toBe(form);
+  });
+
+  it("saves through the workspace's action, with this workspace and this plugin and the whole form", async () => {
+    const save = wrapper().props.save as (
+      values: Record<string, unknown>,
+    ) => Promise<unknown>;
+    const answer = await save({ title: "New", limit: 9 });
+    expect(mockSaveWorkspace.mock.calls).toEqual([
+      ["ws-7", "notes", { title: "New", limit: 9 }],
+    ]);
+    expect(answer).toEqual({ ok: true });
+  });
+
+  it("gives the page what the server said, the problems included", async () => {
+    const refused = {
+      error: "Some settings are not valid.",
+      issues: [{ id: "title", message: "is required" }],
+    };
+    mockSaveWorkspace.mockResolvedValue(refused);
+    const save = wrapper().props.save as (
+      values: Record<string, unknown>,
+    ) => Promise<unknown>;
+    expect(await save({ title: "" })).toEqual(refused);
   });
 });

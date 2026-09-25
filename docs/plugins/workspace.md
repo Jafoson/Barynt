@@ -40,10 +40,29 @@ from, in how many workspaces it is on, what is approved.
 
 ## A plugin's settings
 
-A plugin that is **on here** and declares settings has a **Settings** button on its row: the [form](lifecycle.md#the-form) in a dialog (a sheet on a phone),
-saved by `saveWorkspacePluginSettings(workspaceId, pluginId, values)` with `plugin.enable` in this workspace. A plugin that is off here has no button (its
-settings stay, as the switch's are: switching it on again shows what was set). These are the workspace's own values: what the platform set for a plugin that
-applies to the whole platform is not shown here.
+The settings of the plugins a workspace switched on are **their own area of the settings**: the fourth choice next to *Personal*, *Project* and *Workspace*
+in the row at the top (*Plugins*, `/<workspace>/plugin/settings`). It is there for whoever holds `plugin.enable` in the workspace, and for nobody else (the
+address is "not found" for anyone else, and the choice is not offered).
+
+| Address | What it is |
+| --- | --- |
+| `/<workspace>/plugin/settings` | The overview: every plugin that is **on here**, with its name, what it does and its version, and a link into its settings, or "No settings." |
+| `/<workspace>/plugin/settings/<pluginId>` | One plugin's settings: the [form](lifecycle.md#the-form) as a page, with **Save** in the header like the other settings pages |
+
+- **The navigation on the left** lists the overview and, below it, each plugin that is on here **and declares settings**. A plugin without settings is on
+  the overview (which says so), not in the navigation: a row that opens nothing would be a dead end. On a phone the overview is the list of sections and a
+  plugin's page is its own screen, like every other settings area.
+- **The Settings button** on the workspace's [Plugins page](#what-it-shows) is a link to that page (`LinkButton`, a real link: it can be opened in a new tab).
+- **A page that is not there is a 404:** a plugin that is off here, one that declares no settings and one that does not exist look the same, never an empty form.
+- **Saving** is `saveWorkspacePluginSettings(workspaceId, pluginId, values)` ([Lifecycle](lifecycle.md#a-plugins-settings)); the page passes the ids and nothing
+  else. A toast says it is saved, the page reads again, and the form starts over from what it sent.
+- **What is read** is `getWorkspacePlugins` (the same selection as the Plugins page, so nothing that is the platform's reaches a workspace admin) put together by
+  `settingsAreaOf` ([`settingsArea.ts`](../../features/plugins/settingsArea.ts), pure) and asked through `getPluginSettingsArea`, which turns a missing
+  permission into `null` for the page to make a 404.
+- **What is not here:** the plugins for the whole platform (the platform's), and the plugins that apply per project (a project's: [Project](project.md)).
+  Their settings still open in a window for now.
+- The tab of the tab bar is called *Plugins* for the overview and *Plugins (Notes)* for a plugin's page (the tab bar knows the plugin's id, not its name).
+- On a phone, four choices do not fit the row with their words: the open one keeps its word and the others are their icon.
 
 ## The store of a workspace
 

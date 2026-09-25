@@ -31,6 +31,9 @@ interface Props {
  * edges of the two columns (`SettingsNav`, `PageHeader`) — that way it runs
  * across the full width and stays one line instead of two.
  *
+ * With four choices the words no longer fit a phone: there the open one keeps its word and
+ * the others are their icon (`settingsHeader.module.scss`), still named for a screen reader.
+ *
  * Deliberately built from links rather than buttons: each scope has its own
  * address, and a link can be opened in a new tab. That means the row needs
  * no `"use client"` — which scope is active is known by the layout that
@@ -44,7 +47,7 @@ export function SettingsHeader({ items, active, label }: Props) {
           const content = (
             <>
               <Icon className={styles.icon} icon={item.icon} width={15} />
-              {item.label}
+              <span className={styles.label}>{item.label}</span>
             </>
           );
 

@@ -71,6 +71,7 @@ export default async function AccountLayout({
         workspace: t("settings.scopeWorkspace"),
         project: t("settings.scopeProject"),
         account: t("settings.scopeAccount"),
+        plugin: t("settings.scopePlugin"),
       },
     }),
     {
@@ -78,6 +79,8 @@ export default async function AccountLayout({
       project: projectAccess
         ? PROJECT_SETTINGS_PERMISSIONS.some(projectAccess.has)
         : false,
+      // The settings of the plugins a workspace switched on: whoever may switch them on.
+      plugin: workspaceAccess.has("plugin.enable"),
     },
   );
 

@@ -174,11 +174,16 @@ and measured (start at `docs/plugins/README.md`).
   `saveProjectPluginSettings` `plugin.enable` there; `Plugin.config`, `PluginWorkspace.config`, `PluginProject.config`): the level is the plugin's scope, the definition is read
   from the installed files (never from the client), a workspace's or project's plugin has to be on there, the values are the whole form, and the audit entry
   (`plugin.settings.changed`) names the changed keys, **never the values**. The registry is not told: settings decide neither code nor dependencies.
-  **The form** is one window for all three levels (`features/plugins/components/PluginSettings/`: `PluginSettingsModal` = state and save, `SettingsFields` = rendering,
-  `formState.ts` = the pure conversions and `saveForm`, `useOpenPluginSettings` = the hook every page opens it with: a dialog from a tablet up, a sheet on a phone).
+  **The form** is one form for all three levels (`features/plugins/components/PluginSettings/`: `usePluginSettingsForm` = state and save, `SettingsFields` = rendering,
+  `formState.ts` = the pure conversions and `saveForm`). It is a **page** for a workspace's plugins and a **window** for the platform's and a project's
+  (`PluginSettingsPage` / `PluginSettingsModal`, the latter opened by `useOpenPluginSettings`: a dialog from a tablet up, a sheet on a phone).
   A yes/no is a checkbox there, not a `Switch` (it takes effect with Save); an empty box means the default, so a setting with one is never "required"
   (`mustFill`); Save is a `type="submit"` button of the form, so the browser checks its limits first. New form controls are the atoms `Field`, `Textarea` and
   `Select` (`components/ui/atoms`), and `Input` has the `email` and `url` variants.
+  **A workspace's plugin settings are their own area of the settings** (`/<workspace>/plugin/settings[/<pluginId>]`, `pluginSettingsPath` in `lib/nav.ts`): the fourth choice of
+  the switcher (`SettingsScopeKey` `"plugin"`, offered with `plugin.enable` in the workspace, resolved by each of the four settings layouts), listing the plugins that are
+  on there. What it shows is `settingsAreaOf` (pure) asked through `getPluginSettingsArea` (`null` = 404); a plugin that is off, has no settings or does not exist is a 404, never an
+  empty form. A link that should look like a button is a `LinkButton` (`buttonClassName` is shared with `Button`), never a `Button` that navigates.
 - Change the manifest schema → **`bun run plugin-schema:build`** and commit
   `public/schemas/barynt-plugin.schema.json`. `tests/unit/plugins` (and
   `bun run plugin-schema:check`) fail while it is out of date.
@@ -604,6 +609,7 @@ tests/
       manifestSchemaFile.test.ts  ← generated JSON Schema is current, docs examples are valid
       sdk.test.ts                 ← packages/plugin-sdk: definePlugin, version, contexts vs manifest points
       definition.test.ts          ← parsePluginModule: reads a plugin's server module, never throws
+      settingsArea.test.ts / pluginSettingsNav.test.ts  ← the plugins' settings area (pure) and its place in the settings switcher (`lib/nav.ts`)
       resolve.test.ts             ← lib/plugins/resolve: host range, dependencies, cycles, load order
     plugin-approval/
       actions.test.ts             ← approve / withdraw the approval of a plugin's code (real plugin dirs)
@@ -615,9 +621,11 @@ tests/
       settingsActions.test.ts     ← saving a plugin's settings per level (real plugin dirs, mocked db; own process: mocks `@/lib/permissions` and `next/cache`)
     plugin-settings-ui/
       formState.test.ts           ← the form's state, what the action is given, `saveForm` (pure)
-      settingsFields.test.tsx / settingsModal.test.tsx  ← the controls and the window as markup (mocks `next-intl`, `@iconify/react`)
+      settingsFields.test.tsx / settingsModal.test.tsx / settingsOverview.test.tsx / settingsHeader.test.tsx / linkButton.test.tsx  ← the controls, the window, the area's overview, the switcher and the link button as markup (mocks `next-intl`, `@iconify/react`, the router's `Link`)
     plugin-settings-modal/
-      settingsModalFlow.test.tsx  ← the window at work: Save gating, problems under a setting (own process: replaces `react`'s hooks with a list)
+      settingsModalFlow.test.tsx  ← the window and the page at work: Save gating, problems under a setting (own process: replaces `react`'s hooks with a list)
+    plugin-settings-area/
+      settingsAreaQueries.test.ts ← what the plugins' settings area reads (own process: replaces `workspaceQueries`, which `plugin-workspace` tests for real)
     plugin-staging/
       stage.test.ts               ← features/plugins/disk (own process: it replaces the directory hash)
     store-catalog/

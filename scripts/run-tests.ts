@@ -130,6 +130,9 @@ const SEGMENTS: string[][] = [
   // The same window at work: it replaces `react`'s hooks with a list, so it cannot share a process
   // with the markup tests above.
   ["tests/unit/plugin-settings-modal"],
+  // Replaces `features/plugins/workspaceQueries` (tested for real in `plugin-workspace`) to test
+  // what the plugins' settings area reads from it.
+  ["tests/unit/plugin-settings-area"],
   // Mocks `@/lib/project-membership` away entirely — see CLAUDE.md.
   [
     "tests/unit/workspace/inviteLinks.test.ts",
