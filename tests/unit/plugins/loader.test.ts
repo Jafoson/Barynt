@@ -41,7 +41,7 @@ interface PluginSpec {
   code?: string;
   version?: string;
   dependencies?: Record<string, string>;
-  contributes?: Record<string, { id: string }[]>;
+  contributes?: Record<string, ({ id: string } & Record<string, unknown>)[]>;
 }
 
 /** Writes `<root>/<id>/<version>/` and returns what `loadPlugins` takes. */
@@ -133,7 +133,10 @@ export default {
 describe("a plugin that works", () => {
   it("is imported, registered and booted, and its registrations are reported", async () => {
     const a = await plugin("calendar", {
-      contributes: { jobs: [{ id: "sync" }], settings: [{ id: "api-key" }] },
+      contributes: {
+        jobs: [{ id: "sync" }],
+        settings: [{ id: "api-key", type: "text", label: "API key" }],
+      },
       code: tracing(
         "calendar",
         `ctx.registerJob("sync", { run() {} }); ctx.registerSetting("api-key", {});`,
@@ -247,7 +250,7 @@ export default {
 
 describe("what a plugin may register", () => {
   const all = {
-    settings: [{ id: "s" }],
+    settings: [{ id: "s", type: "text", label: "S" }],
     permissions: [{ id: "p" }],
     events: [{ id: "e" }],
     jobs: [{ id: "j" }],

@@ -643,6 +643,302 @@ describe("contributions", () => {
   });
 });
 
+describe("settings", () => {
+  const withSettings = (...settings: unknown[]) =>
+    manifest({ contributes: { settings } });
+  const ok = (...settings: unknown[]) =>
+    validateManifest(withSettings(...settings)).ok;
+  const problems = (...settings: unknown[]) => {
+    const result = validateManifest(withSettings(...settings));
+    if (result.ok) throw new Error("expected the manifest to be invalid");
+    return result.issues;
+  };
+  const text = { id: "title", type: "text", label: "Title" };
+
+  it("takes one of each type the form has", () => {
+    expect(
+      ok(
+        { id: "title", type: "text", label: "Title", default: "Board" },
+        { id: "note", type: "textarea", label: "Note" },
+        {
+          id: "limit",
+          type: "number",
+          label: "Limit",
+          min: 1,
+          max: 9,
+          integer: true,
+        },
+        { id: "compact", type: "boolean", label: "Compact", default: true },
+        {
+          id: "view",
+          type: "select",
+          label: "View",
+          options: [{ value: "board", label: "Board" }],
+          default: "board",
+        },
+      ),
+    ).toBe(true);
+  });
+
+  it("takes words in more than one language, for the label, the description, a placeholder and a choice", () => {
+    expect(
+      ok(
+        {
+          id: "title",
+          type: "text",
+          label: { en: "Title", de: "Titel" },
+          description: { en: "Shown on top", de: "Steht oben" },
+          placeholder: { en: "Board", de: "Tafel" },
+        },
+        {
+          id: "view",
+          type: "select",
+          label: "View",
+          options: [{ value: "board", label: { en: "Board", de: "Tafel" } }],
+        },
+      ),
+    ).toBe(true);
+    expect(
+      hasIssue(
+        problems({ ...text, label: { de: "Titel" } }),
+        "contributes.settings[0].label",
+        '"en"',
+      ),
+    ).toBe(true);
+  });
+
+  it("is a list of at most 50, each with an id that is unique in it", () => {
+    expect(ok()).toBe(true);
+    expect(
+      ok(...Array.from({ length: 50 }, (_, i) => ({ ...text, id: `s-${i}` }))),
+    ).toBe(true);
+    expect(
+      hasIssue(
+        problems(
+          ...Array.from({ length: 51 }, (_, i) => ({ ...text, id: `s-${i}` })),
+        ),
+        "contributes.settings",
+        "at most 50",
+      ),
+    ).toBe(true);
+    expect(
+      hasIssue(
+        problems(text, { ...text, label: "Other" }),
+        "contributes.settings[1].id",
+        "unique",
+      ),
+    ).toBe(true);
+  });
+
+  it.each([
+    [
+      "no id",
+      { type: "text", label: "T" },
+      "contributes.settings[0].id",
+      "is required",
+    ],
+    [
+      "a bad id",
+      { ...text, id: "Not_Ok" },
+      "contributes.settings[0].id",
+      "lowercase",
+    ],
+    [
+      "no label",
+      { id: "t", type: "text" },
+      "contributes.settings[0].label",
+      "is required",
+    ],
+    [
+      "no type",
+      { id: "t", label: "T" },
+      "contributes.settings[0].type",
+      "is required",
+    ],
+    [
+      "an unknown type",
+      { ...text, type: "password" },
+      "contributes.settings[0].type",
+      "must have a type",
+    ],
+    [
+      "an unknown field",
+      { ...text, pattern: "^a+$" },
+      "contributes.settings[0].pattern",
+      "not a known field",
+    ],
+    [
+      "a condition, which the slot framework decides",
+      { ...text, when: "x" },
+      "contributes.settings[0].when",
+      "not a known field",
+    ],
+    [
+      "a field of another type",
+      { ...text, min: 1 },
+      "contributes.settings[0].min",
+      "not a known field",
+    ],
+  ] as const)("refuses %s", (_n, setting, path, message) => {
+    expect(hasIssue(problems(setting), path, message)).toBe(true);
+  });
+
+  it("does not let a yes/no be required: it always has a value", () => {
+    expect(
+      hasIssue(
+        problems({ id: "c", type: "boolean", label: "C", required: true }),
+        "contributes.settings[0].required",
+        "not a known field",
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps a text within 1000 characters and a long text within 4000, and asks for a whole number of them", () => {
+    expect(ok({ ...text, maxLength: 1000 })).toBe(true);
+    expect(ok({ ...text, maxLength: 1001 })).toBe(false);
+    expect(ok({ ...text, maxLength: 0 })).toBe(false);
+    expect(ok({ ...text, maxLength: 1.5 })).toBe(false);
+    expect(ok({ id: "n", type: "textarea", label: "N", maxLength: 4000 })).toBe(
+      true,
+    );
+    expect(ok({ id: "n", type: "textarea", label: "N", maxLength: 4001 })).toBe(
+      false,
+    );
+    expect(ok({ ...text, default: "a".repeat(1001) })).toBe(false);
+  });
+
+  it("knows two formats for a text, and no more", () => {
+    expect(ok({ ...text, format: "url" })).toBe(true);
+    expect(ok({ ...text, format: "email" })).toBe(true);
+    expect(ok({ ...text, format: "regex" })).toBe(false);
+  });
+
+  it("needs choices for a select, at least one and at most 30, each once, with a value that is safe as a key", () => {
+    const select = { id: "v", type: "select", label: "V" };
+    expect(
+      hasIssue(
+        problems(select),
+        "contributes.settings[0].options",
+        "is required",
+      ),
+    ).toBe(true);
+    expect(
+      hasIssue(
+        problems({ ...select, options: [] }),
+        "contributes.settings[0].options",
+        "at least one",
+      ),
+    ).toBe(true);
+    expect(
+      ok({
+        ...select,
+        options: Array.from({ length: 30 }, (_, i) => ({
+          value: `v${i}`,
+          label: "V",
+        })),
+      }),
+    ).toBe(true);
+    expect(
+      ok({
+        ...select,
+        options: Array.from({ length: 31 }, (_, i) => ({
+          value: `v${i}`,
+          label: "V",
+        })),
+      }),
+    ).toBe(false);
+    expect(
+      hasIssue(
+        problems({
+          ...select,
+          options: [
+            { value: "a", label: "A" },
+            { value: "a", label: "Again" },
+          ],
+        }),
+        "contributes.settings[0].options",
+        "only be listed once",
+      ),
+    ).toBe(true);
+    for (const value of ["", "Board", "__proto__", "a b", "-a", "a/b"]) {
+      expect(ok({ ...select, options: [{ value, label: "X" }] })).toBe(false);
+    }
+    expect(ok({ ...select, options: [{ value: "a.b_c-1", label: "X" }] })).toBe(
+      true,
+    );
+  });
+
+  it("needs a default to fit what the setting accepts, and says what is wrong with it", () => {
+    const at = (setting: Record<string, unknown>, text_: string) =>
+      hasIssue(problems(setting), "contributes.settings[0].default", text_);
+    expect(at({ ...text, default: 5 }, "")).toBe(true);
+    expect(at({ ...text, default: "a\nb" }, "one line")).toBe(true);
+    expect(at({ ...text, maxLength: 3, default: "abcd" }, "at most 3")).toBe(
+      true,
+    );
+    expect(at({ ...text, format: "url", default: "nope" }, "web address")).toBe(
+      true,
+    );
+    expect(at({ ...text, format: "email", default: "nope" }, "email")).toBe(
+      true,
+    );
+    expect(
+      at(
+        { id: "n", type: "number", label: "N", min: 5, default: 1 },
+        "at least 5",
+      ),
+    ).toBe(true);
+    expect(
+      at(
+        { id: "n", type: "number", label: "N", integer: true, default: 1.5 },
+        "whole",
+      ),
+    ).toBe(true);
+    expect(
+      at(
+        {
+          id: "v",
+          type: "select",
+          label: "V",
+          options: [{ value: "a", label: "A" }],
+          default: "b",
+        },
+        "one of the choices",
+      ),
+    ).toBe(true);
+    expect(
+      at({ id: "c", type: "boolean", label: "C", default: "yes" }, ""),
+    ).toBe(true);
+  });
+
+  it("needs min not to be more than max", () => {
+    expect(
+      hasIssue(
+        problems({ id: "n", type: "number", label: "N", min: 5, max: 1 }),
+        "contributes.settings[0].min",
+        "not be more than max",
+      ),
+    ).toBe(true);
+    expect(ok({ id: "n", type: "number", label: "N", min: 5, max: 5 })).toBe(
+      true,
+    );
+  });
+
+  it("does not let a number be infinite or not a number, in a default or a bound", () => {
+    expect(
+      ok({
+        id: "n",
+        type: "number",
+        label: "N",
+        min: Number.POSITIVE_INFINITY,
+      }),
+    ).toBe(false);
+    expect(ok({ id: "n", type: "number", label: "N", default: "1" })).toBe(
+      false,
+    );
+  });
+});
+
 describe("what is missing or unknown", () => {
   it.each([
     "manifestVersion",

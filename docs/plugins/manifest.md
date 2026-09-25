@@ -13,7 +13,8 @@ The format is defined once, in [`lib/plugins/manifest.ts`](../../lib/plugins/man
 - the examples in [`examples/`](examples), which the tests validate.
 
 > **Status: early.** Manifest format `1` is the first draft. What an item under
-> `contributes` looks like is still open (see [Not decided yet](#not-decided-yet)).
+> `contributes` looks like is decided for `settings` ([Settings](#settings)) and still open for the
+> other points (see [Not decided yet](#not-decided-yet)).
 
 ## Two examples
 
@@ -34,7 +35,16 @@ A declarative plugin, no code at all. The host renders everything
   "keywords": ["customer", "custom-field"],
   "barynt": ">=0.1.0 <0.2.0",
   "capabilities": ["issues:read"],
-  "contributes": { "customFields": [{ "id": "customer-number" }] }
+  "contributes": {
+    "customFields": [{ "id": "customer-number" }],
+    "settings": [
+      { "id": "number-label", "type": "text", "label": { "en": "Label of the number", "de": "Bezeichnung der Nummer" }, "default": "Customer no.", "maxLength": 40 },
+      { "id": "required", "type": "boolean", "label": { "en": "Every issue needs a number", "de": "Jedes Issue braucht eine Nummer" } },
+      { "id": "view", "type": "select", "label": "Default view", "default": "list",
+        "options": [{ "value": "list", "label": { "en": "List", "de": "Liste" } }, { "value": "board", "label": { "en": "Board", "de": "Tafel" } }] }
+    ],
+    "navigation": [{ "id": "customers" }]
+  }
 }
 ```
 
@@ -146,8 +156,39 @@ each is the switch of the level it applies to.
 `customFields`, `notifications`.
 
 Each value is a list of items. Every item needs an `id` (lowercase letters, digits
-and dashes, unique within its list) and may have a `when` condition. An unknown
-extension point is an error.
+and dashes, unique within its list) and may have a `when` condition; the items of `settings` have their own shape,
+see [Settings](#settings). An unknown extension point is an error.
+
+### Settings
+
+`contributes.settings` describes what people can set for the plugin. The host draws the form, checks every value and keeps it: **no plugin code
+runs for that**, and a value is data, a string, a number or a yes/no, never code. Because a plugin has one [scope](#scope), its settings are its
+workspace's (a `workspace` plugin), its project's (a `project` plugin) or the platform's (a `platform` plugin).
+
+Every setting has an `id` (the key its value is kept under; lowercase letters, digits and single dashes, unique in the list), a `type` and a
+`label` (a text or one per language), and may have a `description`. At most 50. The types:
+
+| `type` | Value | More fields |
+| --- | --- | --- |
+| `text` | one line | `default`, `required`, `maxLength` (1 to 1000, 200 if left out), `format` (`url` for an http or https address without a user name, `email`), `placeholder` |
+| `textarea` | several lines | `default`, `required`, `maxLength` (1 to 4000, 1000 if left out), `placeholder` |
+| `number` | a finite number | `default`, `required`, `min`, `max` (both allowed), `integer` |
+| `boolean` | yes or no | `default` (no if left out); never required, it always has a value |
+| `select` | one of the choices | `options` (1 to 30, each `{ "value", "label" }`, the value lowercase letters, digits, `.`, `-`, `_`), `default`, `required` |
+
+A `default` has to fit what the setting accepts, and `min` may not be more than `max`; both are checked with the manifest. Unknown fields are an
+error, so there is no `pattern`: a regular expression from a manifest is a way to make the host slow.
+
+**There is no type for a secret.** A password or a token needs sealed storage (BARY-85), which a plain setting is not.
+
+What the host does with the values ([`lib/plugins/settings.ts`](../../lib/plugins/settings.ts)):
+
+- **When one is saved** it is checked against the definition: a key that is not a setting of the plugin is refused (not ignored), so is a value of the
+  wrong type or outside its bounds, and all problems are reported at once. A text is trimmed, an empty value is "not set", and a required setting
+  without a default cannot be. Only what **differs from the default** is stored, so a plugin update that changes a default reaches everyone who
+  never chose one. All the values of one level together are bounded (64 KB).
+- **When one is read** it is used only if it still fits the definition; otherwise the default is used. A plugin update can change what a setting
+  accepts without leaving the platform with values nobody can read.
 
 ## Validating
 
@@ -177,9 +218,10 @@ once the fields themselves are valid.
 
 Deliberately left open, because the ticket that builds the feature decides it:
 
-- **The shape of a contribution item** beyond `id` and `when`. Each extension
-  point defines its own (BARY-66 settings, BARY-70 pages, BARY-71 views, BARY-75
-  issue panels, …). Until then an item can carry any further fields.
+- **The shape of a contribution item** beyond `id` and `when`, except for
+  `settings` ([above](#settings)). Each extension point defines its own (BARY-70
+  pages, BARY-71 views, BARY-75 issue panels, …). Until then an item can carry
+  any further fields.
 - **Which capability names exist.** Only the shape (`resource:action[:qualifier]`)
   is checked (BARY-95).
 - **The grammar of `when`** (BARY-65).

@@ -167,6 +167,9 @@ and measured (start at `docs/plugins/README.md`).
   of another level is never taken for this one. A plugin may lean on plugins for the whole platform and on those of its own level; an update or a rollback
   cannot change the scope. A workspace's pages and actions know only `WORKSPACE` and `PLATFORM` plugins; `PROJECT` ones are a project's.
   `plugin.enable` is grantable in a workspace and in a project (the role says where, like `label.create`); `project_admin` has it.
+- **A plugin's settings** are declared in `contributes.settings` (`text`, `textarea`, `number`, `boolean`, `select`; a strict schema in `manifest.ts`, no secrets, no regular
+  expressions) and read and checked only through `lib/plugins/settings.ts` (`validateSettings` for what someone saves: unknown keys are refused, only what differs from the
+  default is kept; `resolveSettings` for what is read: a stored value that no longer fits falls back to the default; `toFields` for the form). A value is data, never code.
 - Change the manifest schema → **`bun run plugin-schema:build`** and commit
   `public/schemas/barynt-plugin.schema.json`. `tests/unit/plugins` (and
   `bun run plugin-schema:check`) fail while it is out of date.
