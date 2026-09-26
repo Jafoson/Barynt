@@ -84,6 +84,7 @@ function composer(...creatableProjectIds: string[]): IssueComposerData {
     searchIssues: [],
     issueTypes: [{ id: "feature", name: "Feature", color: "#111" }],
     creatableProjectIds,
+    customFields: [],
   };
 }
 

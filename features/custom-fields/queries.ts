@@ -208,3 +208,24 @@ export async function getIssueFieldEntries(issue: {
     };
   });
 }
+
+/**
+ * The fields a new issue can be answered with, for the composer: the workspace-wide ones and those
+ * of the given projects (the ones this person may create issues in), archived ones left out. No
+ * permission is asked here: the caller passes only projects it has already resolved.
+ */
+export async function getFieldsForNewIssues(
+  workspaceId: string,
+  projectIds: string[],
+): Promise<CustomFieldRow[]> {
+  const rows = await db.customFieldDefinition.findMany({
+    where: {
+      workspaceId,
+      archivedAt: null,
+      OR: [{ projectId: null }, { projectId: { in: projectIds } }],
+    },
+    select: FIELD_SELECT,
+    orderBy: [...ORDER],
+  });
+  return rowsOf(rows);
+}

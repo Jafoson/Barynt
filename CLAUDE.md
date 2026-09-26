@@ -351,6 +351,8 @@ of a `Label`) and **answered** per issue (`CustomFieldValue`, `(issueId, fieldId
   `issue.customField.changed` entry per change) called by `setCustomFieldValue` (`valueActions.ts`: `issue.update.any`/`.own`, like `updateIssue`) — **the API and MCP call `writeFieldValue` after their own permission check, never a second copy**. The detail queries fill `IssueDetail.customFields`
   (`getIssueFieldEntries`; `[]` on cards and rows). On screen: `IssueCustomFields` (sidebar rows and the stacked body's own section), `FieldEditor` (popover per type), `FieldValueView` (one answer, reusable on cards), and `fieldInput.ts` (pure: what a box says, why it cannot be saved). A class name in
   `issueDetail.module.scss` may already exist (`fieldLabel` did): CSS modules merge them silently.
+- **Creating** an issue with answers: `IssueComposerData.customFields` feeds the composer's second toolbar of `FieldChip`s (state in `composerAnswers.ts`), `createIssue({ customFields })` resolves them with `resolveNewAnswers` **before** anything is written (an answer that does not fit returns `{ error }` and uses up no issue number, a field that no longer applies is left out),
+  writes them with the issue and logs only `issue.created`. `createIssue` returns `{ id } | { error }`.
 - **`customfield.manage`** (WORKSPACE and PROJECT, `owner`/`admin`/`manager` and `project_admin`) defines fields; **filling one in is `issue.update.*`**. It is a new permission: an
   existing dev database needs the `provisionSystemRbac` snippet below.
 
@@ -659,6 +661,8 @@ tests/
       fieldQueries.test.ts        ← what the screens read of the definitions (own process: mocks the db and the permissions differently)
     custom-fields-values/
       valueActions.test.ts        ← answering a field: who may, which fields an issue has, the checks, the write, the log (own process: mocks the db, permissions, the issue audit helper)
+    custom-fields-create/
+      createIssue.test.ts         ← creating an issue with answers: checked before anything is written, a field that no longer applies is left out, one log entry (own process: `features/issues/actions` bound to this file's stand-ins)
     custom-fields-issue/
       fieldValueView.test.tsx / fieldEditor.test.tsx / valuePopover.test.tsx  ← one answer as text, the popover per type, the popover's "cannot be saved" line (stand-ins for `next-intl` and the avatar only)
     custom-fields-issue-fields/

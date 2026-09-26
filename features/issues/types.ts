@@ -1,3 +1,4 @@
+import type { CustomFieldRow } from "@/features/custom-fields/types";
 import type { PMDoc } from "@/lib/richtext/types";
 import type {
   EstimateUnit,
@@ -61,6 +62,12 @@ export interface IssueComposerData extends IssueEditorData {
    * `features/issues/editor-data.ts`, not in the four individual buttons.
    */
   creatableProjectIds: string[];
+  /**
+   * The custom fields a new issue can be answered with (BARY-81): the workspace-wide ones and those
+   * of the projects in `creatableProjectIds`, in their order. The composer shows the ones that
+   * apply to the project it is on.
+   */
+  customFields: CustomFieldRow[];
 }
 
 /**
