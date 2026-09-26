@@ -119,6 +119,11 @@ const SEGMENTS: string[][] = [
   // view and the editor need only stand-ins for `next-intl` and the avatar; the section replaces
   // `react`'s hooks, so it has a folder of its own.
   ["tests/unit/custom-fields-issue"],
+  // Creating an issue with answers (`createIssue`): replaces the database, the permissions and what
+  // `features/issues/actions` reaches into (notify, webhooks, cache); the values module is the real one.
+  // `tests/unit/issues/updateIssue.test.ts` binds `features/issues/actions` to its own database stand-in,
+  // so this cannot share its process.
+  ["tests/unit/custom-fields-create"],
   ["tests/unit/custom-fields-issue-fields"],
   // What a plugin reads of its own settings (`ctx.settings`): replaces the database and the
   // permissions, and reads the request's workspace through the reader `setCurrentWorkspaceId` publishes.

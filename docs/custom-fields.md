@@ -12,7 +12,8 @@ Extra data on an issue that the fixed columns do not cover: a customer number, a
 | Defining fields: create, change, archive, delete (server side, audited) | `features/custom-fields/` | BARY-81, this page |
 | The screens to manage them: a workspace's Fields section, a project's Fields page, the window | `features/custom-fields/components/`, `formState.ts` | BARY-81, this page |
 | Answering them on the issue (detail page, panel and dialog) | `features/custom-fields/values.ts`, `valueActions.ts`, `IssueCustomFields` | BARY-81, this page |
-| Answering them when an issue is created, showing them on cards and rows | | BARY-81, not built yet |
+| Answering them when an issue is created (the composer) | `features/custom-fields/composerAnswers.ts`, `FieldChip`, `createIssue` | BARY-81, this page |
+| Showing them on cards and rows | | BARY-81, not built yet |
 | REST, MCP, filters, search, webhooks, audit | | BARY-82, not built yet |
 | Fields declared by a plugin, and what happens to them when it is uninstalled | | not built yet |
 
@@ -120,6 +121,14 @@ What the screens read is in [`features/custom-fields/queries.ts`](../features/cu
 - **On screen** (`IssueCustomFields`): rows beside the planning rows in the attributes sidebar, and a section of its own, "Custom fields", in the stacked body (panel, and the full page on a phone). Whoever may edit the issue gets a popover per row (`FieldEditor`: a choice and a person are picked from a list, a text, number, day
   and address are typed and saved with the button); everyone else sees the answer, an address as a link. What cannot be saved says why beside the box before any request (`fieldInput.ts` runs the server's own `toColumns`), and a refusal from the server shows under its own row. `FieldValueView` draws one answer without a box of its own, so
   cards and list rows can use it.
+
+## Answering a field while an issue is created
+
+- The composer shows the fields that apply to its project as **chips in a second toolbar** under the attribute chips (`FieldChip`: the field's name until it has an answer, then the answer, highlighted, with a clear button; the detail view's `FieldEditor` opens). The composer's data carries the fields
+  (`IssueComposerData.customFields`, from `getFieldsForNewIssues`: workspace-wide plus those of the projects where this person may create, archived left out; none where nothing can be created). Switching the project drops the answers of the old project's own fields
+  (`answersForProject`), like it does for its labels. The state is pure (`composerAnswers.ts`).
+- `createIssue` takes `customFields` (by field id) and **checks them before anything is written** (`resolveNewAnswers`, the same resolver as an answer on an existing issue): an answer that does not fit refuses the whole creation with `{ error }` (the composer shows it in its footer and stays as it is),
+  and the project's next issue number is not used up. A field that no longer applies (archived while the window was open, another project's, gone) is left out, never an error. The answers are written with the issue and **not logged one by one**: `issue.created` is the one entry. `createIssue` now returns `{ id } | { error }`.
 
 ## Who may do what
 

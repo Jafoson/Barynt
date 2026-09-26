@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { getFieldsForNewIssues } from "@/features/custom-fields/queries";
 import type {
   IssueComposerData,
   IssueEditorData,
@@ -87,10 +88,19 @@ export const getIssueComposerData = cache(
       })),
     );
 
+    const creatableProjectIds = creatable
+      .filter((p) => p.allowed)
+      .map((p) => p.id);
+
     return {
       ...editor,
       issueTypes,
-      creatableProjectIds: creatable.filter((p) => p.allowed).map((p) => p.id),
+      creatableProjectIds,
+      // Nothing to answer where nothing can be created.
+      customFields:
+        creatableProjectIds.length > 0
+          ? await getFieldsForNewIssues(editor.workspaceId, creatableProjectIds)
+          : [],
     };
   },
 );

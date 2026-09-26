@@ -6,6 +6,10 @@ import {
   getIssueUnchecked,
 } from "@/features/api-v1/queries";
 import {
+  type ResolvedAnswers,
+  resolveNewAnswers,
+} from "@/features/custom-fields/values";
+import {
   issueRef,
   issueTypeName,
   priorityName,
@@ -752,11 +756,30 @@ export async function createIssue(data: {
   storyPoints?: number | null;
   estimateHours?: number | null;
   estimateUnit?: EstimateUnit | null;
-}) {
+  /**
+   * The answers to custom fields (BARY-81), by field id. Checked before anything is written: an
+   * answer that does not fit refuses the whole creation (`{ error }`), a field that no longer
+   * applies is left out.
+   */
+  customFields?: Record<string, unknown>;
+}): Promise<{ id: string } | { error: string }> {
   // The reporter is always the logged-in user — not the client parameter.
   const userId = await requirePermission("issue.create", {
     projectId: data.projectId,
   });
+
+  let answers: ResolvedAnswers = { ok: true, rows: [] };
+  if (data.customFields !== undefined) {
+    const owner = await db.project.findUnique({
+      where: { id: data.projectId },
+      select: { workspaceId: true },
+    });
+    answers = await resolveNewAnswers(
+      { workspaceId: owner?.workspaceId ?? "", projectId: data.projectId },
+      data.customFields,
+    );
+    if (!answers.ok) return { error: answers.error };
+  }
 
   // Atomically claim the next key for this project. The counter only ever
   // increments, so deleted keys are never reused and each key stays unique.
@@ -793,6 +816,23 @@ export async function createIssue(data: {
         data.estimateHours != null ? (data.estimateUnit ?? "hours") : null,
     },
   });
+
+  // The answers belong to the creation: one `issue.created` entry says it all, so none of them is
+  // logged on its own. A field deleted while the window was open is skipped, the issue stays.
+  for (const { fieldId, columns } of answers.rows) {
+    try {
+      await db.customFieldValue.create({
+        data: { issueId: id, fieldId, ...columns },
+      });
+    } catch (error) {
+      if (
+        !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+        error.code !== "P2003"
+      ) {
+        throw error;
+      }
+    }
+  }
 
   if (data.assignee && data.assignee !== userId) {
     await notify({

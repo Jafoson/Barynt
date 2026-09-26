@@ -21,6 +21,13 @@ import {
   ModalBody,
   ModalToolbar,
 } from "@/components/ui/layout/Modal/Modal";
+import { FieldChip } from "@/features/custom-fields/components/FieldChip/FieldChip";
+import {
+  answersForProject,
+  type ComposerAnswers,
+  fieldsForProject,
+  withAnswer,
+} from "@/features/custom-fields/composerAnswers";
 import {
   addIssueLinkAttachment,
   createIssue,
@@ -37,6 +44,7 @@ import { IssueRichText } from "@/features/issues/components/IssueRichText/IssueR
 import { LabelPickerMenu } from "@/features/issues/components/LabelPickerMenu/LabelPickerMenu";
 import type { IssueComposerData } from "@/features/issues/types";
 import { uploadIssueAttachment } from "@/features/issues/uploadAttachment";
+import type { FieldValue } from "@/lib/custom-fields/types";
 import { remapAttachmentIds } from "@/lib/richtext/attachments";
 import { emptyDoc } from "@/lib/richtext/doc";
 import type { PMDoc } from "@/lib/richtext/types";
@@ -46,6 +54,7 @@ import { fullName } from "@/lib/utils/string";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useSubmitShortcut } from "@/lib/utils/useSubmitShortcut";
 import type { Label } from "@/types";
+import styles from "./createIssueModal.module.scss";
 
 interface CreateIssueModalProps {
   /** Starting project — switchable in the header. */
@@ -86,6 +95,7 @@ export function CreateIssueModal({
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const fieldsRef = useRef<HTMLDivElement>(null);
 
   /**
    * Focus belongs in the title field when the modal opens.
@@ -118,6 +128,16 @@ export function CreateIssueModal({
   const [assignee, setAssignee] = useState<string | null>(null);
   const [labels, setLabels] = useState<string[]>([]);
   const [localLabels, setLocalLabels] = useState<Label[]>([]);
+  // The answers to custom fields (BARY-81), by field id. A field with no answer has no entry.
+  const [answers, setAnswers] = useState<ComposerAnswers>({});
+  const [error, setError] = useState("");
+
+  // The fields of the workspace and of the project the issue is being made in.
+  const fields = fieldsForProject(data.customFields, projectId);
+  const setAnswer = (fieldId: string, value: FieldValue | null) => {
+    setError("");
+    setAnswers((current) => withAnswer(current, fieldId, value));
+  };
 
   /**
    * Images/links dropped into the description before the issue itself
@@ -161,6 +181,8 @@ export function CreateIssueModal({
    */
   const changeProject = (id: string) => {
     setProjectId(id);
+    // The same for the custom fields: a project's own field does not come along to another project.
+    setAnswers((cur) => answersForProject(cur, data.customFields, id));
     setLabels((cur) =>
       cur.filter((labelId) => {
         const label = combinedLabels.find((l) => l.id === labelId);
@@ -214,6 +236,9 @@ export function CreateIssueModal({
         ...(toolbarRef.current?.querySelectorAll<HTMLElement>(
           "[data-field-nav]",
         ) ?? []),
+        ...(fieldsRef.current?.querySelectorAll<HTMLElement>(
+          "[data-field-nav]",
+        ) ?? []),
       ];
       if (fields.length === 0) return;
       const active = document.activeElement;
@@ -255,8 +280,9 @@ export function CreateIssueModal({
 
   const submit = () => {
     if (!title.trim() || !project) return;
+    setError("");
     startTransition(async () => {
-      const { id: issueId } = await createIssue({
+      const created = await createIssue({
         title: title.trim(),
         description,
         status,
@@ -266,7 +292,15 @@ export function CreateIssueModal({
         type,
         projectId: project.id,
         reporterId: me.id,
+        // Only what applies here: answers that came along from another project are already gone.
+        customFields: fields.length > 0 ? answers : undefined,
       });
+      // An answer that does not fit refuses the creation as a whole; the window stays as it is.
+      if ("error" in created) {
+        setError(created.error);
+        return;
+      }
+      const issueId = created.id;
 
       // Draft images/links only turn into real `Attachment` rows now that
       // the issue — and with it, an `issueId` to attach them to — exists.
@@ -608,9 +642,32 @@ export function CreateIssueModal({
         </FilterChip>
       </ModalToolbar>
 
+      {fields.length > 0 && (
+        <ModalToolbar ref={fieldsRef} divider={false}>
+          {fields.map((field) => (
+            <FieldChip
+              key={field.id}
+              field={field}
+              value={answers[field.id] ?? null}
+              members={members}
+              onChange={(value) => setAnswer(field.id, value)}
+            />
+          ))}
+        </ModalToolbar>
+      )}
+
       <ModalFooter
         hint={
-          <ModalShortcut keys="mod+enter">{t("issues.toCreate")}</ModalShortcut>
+          error ? (
+            <p className={styles.error} role="alert">
+              <Icon icon="lucide:circle-alert" width={14} />
+              {error}
+            </p>
+          ) : (
+            <ModalShortcut keys="mod+enter">
+              {t("issues.toCreate")}
+            </ModalShortcut>
+          )
         }
       >
         <Button variant="ghost" onClick={close}>
