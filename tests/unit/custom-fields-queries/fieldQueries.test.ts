@@ -30,6 +30,7 @@ mock.module("@/lib/permissions", () => ({
 }));
 
 import {
+  getCardCustomFields,
   getCustomFieldsView,
   getFieldsOfProject,
   getIssueFieldEntries,
@@ -457,5 +458,111 @@ describe("an issue's fields with its answers", () => {
 
   it("is empty for an issue whose workspace has no fields", async () => {
     expect(await getIssueFieldEntries(issue)).toEqual([]);
+  });
+});
+
+describe("what a board or list shows of the custom fields", () => {
+  const columns = { text: null, number: null, date: null, userId: null };
+  const answer = (
+    issueId: string,
+    fieldId: string,
+    more: Record<string, unknown>,
+  ) => ({
+    issueId,
+    fieldId,
+    ...columns,
+    ...more,
+  });
+  const NUMBER = { integer: false, min: null, max: null };
+
+  it("asks for nothing at all when nothing is chosen", async () => {
+    const result = await getCardCustomFields(WS, [PROJECT], [], ["i1"]);
+    expect(result).toEqual({ fields: [], values: {} });
+    expect(mockDefFindMany).not.toHaveBeenCalled();
+    expect(mockValueFindMany).not.toHaveBeenCalled();
+  });
+
+  it("asks for the fields of the given projects, and no answers when none of the chosen ones is one", async () => {
+    mockDefFindMany.mockResolvedValue([dbRow({ id: "a" })]);
+    const result = await getCardCustomFields(WS, [PROJECT], ["gone"], ["i1"]);
+    expect(result).toEqual({ fields: [], values: {} });
+    expect(mockDefFindMany.mock.calls[0][0].where).toEqual({
+      workspaceId: WS,
+      archivedAt: null,
+      OR: [{ projectId: null }, { projectId: { in: [PROJECT] } }],
+    });
+    expect(mockValueFindMany).not.toHaveBeenCalled();
+  });
+
+  it("asks for nothing when there are no issues", async () => {
+    mockDefFindMany.mockResolvedValue([dbRow({ id: "a" })]);
+    expect(await getCardCustomFields(WS, [PROJECT], ["a"], [])).toEqual({
+      fields: [],
+      values: {},
+    });
+    expect(mockValueFindMany).not.toHaveBeenCalled();
+  });
+
+  it("gives the chosen fields that exist, in the fields' order, not the order they were chosen", async () => {
+    mockDefFindMany.mockResolvedValue([
+      dbRow({ id: "a", position: 0 }),
+      dbRow({ id: "b", position: 1 }),
+      dbRow({ id: "c", position: 2 }),
+    ]);
+    const result = await getCardCustomFields(
+      WS,
+      [PROJECT],
+      ["c", "a", "x"],
+      ["i1"],
+    );
+    expect(result.fields.map((f) => f.id)).toEqual(["a", "c"]);
+  });
+
+  it("asks for the answers of these issues to these fields only", async () => {
+    mockDefFindMany.mockResolvedValue([dbRow({ id: "a" }), dbRow({ id: "b" })]);
+    await getCardCustomFields(WS, [PROJECT], ["a"], ["i1", "i2"]);
+    expect(mockValueFindMany.mock.calls[0][0].where).toEqual({
+      issueId: { in: ["i1", "i2"] },
+      fieldId: { in: ["a"] },
+    });
+  });
+
+  it("keys the answers by issue and field, each as the column of its type", async () => {
+    mockDefFindMany.mockResolvedValue([
+      dbRow({ id: "a" }),
+      dbRow({ id: "n", type: "number", config: NUMBER }),
+      dbRow({ id: "d", type: "date", config: {} }),
+    ]);
+    mockValueFindMany.mockResolvedValue([
+      answer("i1", "a", { text: "Acme" }),
+      answer("i1", "n", { number: 0 }),
+      answer("i2", "d", { date: new Date("2026-09-26T12:00:00.000Z") }),
+    ]);
+    const result = await getCardCustomFields(
+      WS,
+      [PROJECT],
+      ["a", "n", "d"],
+      ["i1", "i2"],
+    );
+    expect(result.values).toEqual({
+      i1: { a: "Acme", n: 0 },
+      i2: { d: "2026-09-26" },
+    });
+  });
+
+  it("leaves out an answer whose column is not its field's, and one to a field that is not there", async () => {
+    mockDefFindMany.mockResolvedValue([dbRow({ id: "a" })]);
+    mockValueFindMany.mockResolvedValue([
+      answer("i1", "a", { number: 5 }),
+      answer("i1", "other", { text: "x" }),
+    ]);
+    const result = await getCardCustomFields(WS, [PROJECT], ["a"], ["i1"]);
+    expect(result.values).toEqual({});
+  });
+
+  it("asks nobody's permission: the caller has let this person see the issues", async () => {
+    mockDefFindMany.mockResolvedValue([dbRow({ id: "a" })]);
+    await getCardCustomFields(WS, [PROJECT], ["a"], ["i1"]);
+    expect(mockAccessFor).not.toHaveBeenCalled();
   });
 });

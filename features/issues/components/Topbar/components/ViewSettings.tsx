@@ -9,6 +9,11 @@ import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
+import {
+  MAX_SHOWN_CUSTOM_FIELDS,
+  shownAmong,
+} from "@/features/custom-fields/cardFields";
+import type { CustomFieldRow } from "@/features/custom-fields/types";
 import type { ViewGroupsPatch } from "@/features/issues/actions";
 import {
   CARD_FIELD_KEYS,
@@ -115,6 +120,13 @@ interface ViewSettingsProps {
   onDisplayChange: (
     hidden: string[],
   ) => Promise<{ ok: true } | { error: string }>;
+  /** The custom fields that could be shown on the cards and rows here (BARY-81). */
+  customFields: CustomFieldRow[];
+  /** The ones this person shows, by id. */
+  shownCustomFields: string[];
+  onCustomFieldsChange: (
+    shown: string[],
+  ) => Promise<{ ok: true } | { error: string }>;
   /** Lookups for the groups of the active grouping, to list them (BARY-47). */
   groupLookups: GroupLookups;
   /** Board or list — the defaults for which groups show differ. */
@@ -144,6 +156,9 @@ export function ViewSettings({
   onSortChange,
   hiddenFields,
   onDisplayChange,
+  customFields,
+  shownCustomFields,
+  onCustomFieldsChange,
   groupLookups,
   view,
   hiddenGroups,
@@ -172,6 +187,25 @@ export function ViewSettings({
       await onDisplayChange([...next]);
       router.refresh();
     });
+  };
+
+  // The custom fields shown on the cards and rows: only the ones that still exist here count.
+  const [shownCustom, setShownCustom] = useState(() =>
+    shownAmong(shownCustomFields, customFields),
+  );
+  const saveCustom = (next: string[]) => {
+    setShownCustom(next);
+    startTransition(async () => {
+      await onCustomFieldsChange(next);
+      router.refresh();
+    });
+  };
+  const toggleCustomField = (id: string) => {
+    const next = shownCustom.includes(id)
+      ? shownCustom.filter((shown) => shown !== id)
+      : [...shownCustom, id];
+    // The most a card can show; the chip is off beyond it, this is for a stray call.
+    if (next.length <= MAX_SHOWN_CUSTOM_FIELDS) saveCustom(next);
   };
 
   const [hiddenGroupList, setHiddenGroupList] = useState(hiddenGroups);
@@ -210,6 +244,7 @@ export function ViewSettings({
     onSortChange("manual");
     onGroupChange("status");
     save(new Set());
+    if (shownCustom.length > 0) saveCustom([]);
     if (hiddenGroupList.length > 0 || hideEmpty)
       saveGroups({ hiddenGroups: [], hideEmptyGroups: false });
   };
@@ -225,11 +260,14 @@ export function ViewSettings({
     groupKey: activeGroupKey,
     sortKey: activeSortKey,
     hidden,
+    customFields,
+    shownCustom,
     projectHiddenFields,
     groupLookups,
     view,
     hiddenGroups: hiddenGroupList,
     hideEmptyGroups: hideEmpty,
+    toggleCustomField,
     toggleGroup,
     toggleHideEmpty,
     setGroup: onGroupChange,
@@ -241,11 +279,14 @@ export function ViewSettings({
     groupKey: activeGroupKey,
     sortKey: activeSortKey,
     hidden,
+    customFields,
+    shownCustom,
     projectHiddenFields,
     groupLookups,
     view,
     hiddenGroups: hiddenGroupList,
     hideEmptyGroups: hideEmpty,
+    toggleCustomField,
     toggleGroup,
     toggleHideEmpty,
     setGroup: onGroupChange,
@@ -293,6 +334,8 @@ export function ViewSettings({
               groupKey: activeGroupKey,
               sortKey: activeSortKey,
               hidden,
+              customFields,
+              shownCustomFields: shownCustom,
               projectHiddenFields,
               groupLookups,
               view,
@@ -302,6 +345,7 @@ export function ViewSettings({
             onGroup={onGroupChange}
             onSort={onSortChange}
             onToggleField={toggleField}
+            onToggleCustomField={toggleCustomField}
             onToggleGroup={toggleGroup}
             onToggleHideEmpty={toggleHideEmpty}
             onReset={reset}
@@ -320,11 +364,14 @@ interface SheetSource {
   groupKey: GroupKey;
   sortKey: SortKey;
   hidden: Set<CardFieldKey>;
+  customFields: CustomFieldRow[];
+  shownCustom: string[];
   projectHiddenFields: string[];
   groupLookups: GroupLookups;
   view: GroupView;
   hiddenGroups: string[];
   hideEmptyGroups: boolean;
+  toggleCustomField: (id: string) => void;
   toggleGroup: (group: GroupDef) => void;
   toggleHideEmpty: () => void;
   setGroup: (key: GroupKey) => void;
@@ -339,6 +386,9 @@ export interface DisplayState {
   groupKey: GroupKey;
   sortKey: SortKey;
   hidden: Set<CardFieldKey>;
+  /** The custom fields that could be shown on the cards and rows (BARY-81), and the ones that are. */
+  customFields: CustomFieldRow[];
+  shownCustomFields: string[];
   projectHiddenFields: string[];
   groupLookups: GroupLookups;
   view: GroupView;
@@ -362,6 +412,7 @@ function ViewSheet({
   const [groupKey, setGroupKey] = useState(latest.current.groupKey);
   const [sortKey, setSortKey] = useState(latest.current.sortKey);
   const [hidden, setHidden] = useState(latest.current.hidden);
+  const [shownCustom, setShownCustom] = useState(latest.current.shownCustom);
   const [hiddenGroups, setHiddenGroups] = useState(latest.current.hiddenGroups);
   const [hideEmpty, setHideEmpty] = useState(latest.current.hideEmptyGroups);
   const [facet, setFacet] = useState<DisplayFacet | null>(null);
@@ -372,6 +423,8 @@ function ViewSheet({
     groupKey,
     sortKey,
     hidden,
+    customFields: latest.current.customFields,
+    shownCustomFields: shownCustom,
     projectHiddenFields: latest.current.projectHiddenFields,
     groupLookups: latest.current.groupLookups,
     view: latest.current.view,
@@ -390,6 +443,7 @@ function ViewSheet({
     setGroupKey("status");
     setSortKey("manual");
     setHidden(new Set());
+    setShownCustom([]);
     setHiddenGroups([]);
     setHideEmpty(false);
     latest.current.reset();
@@ -432,6 +486,15 @@ function ViewSheet({
               setHidden(next);
               latest.current.toggleField(key);
             }}
+            onToggleCustomField={(id) => {
+              setShownCustom((prev) => {
+                const next = prev.includes(id)
+                  ? prev.filter((shown) => shown !== id)
+                  : [...prev, id];
+                return next.length <= MAX_SHOWN_CUSTOM_FIELDS ? next : prev;
+              });
+              latest.current.toggleCustomField(id);
+            }}
             onToggleGroup={(group) => {
               setHiddenGroups((prev) =>
                 toggleGroupHidden(prev, group, latest.current.view),
@@ -460,6 +523,8 @@ interface DisplayPanelProps {
   onGroup: (key: GroupKey) => void;
   onSort: (key: SortKey) => void;
   onToggleField: (key: CardFieldKey) => void;
+  /** Shows or hides one custom field on the cards and rows (BARY-81). */
+  onToggleCustomField: (id: string) => void;
   onToggleGroup: (group: GroupDef) => void;
   onToggleHideEmpty: () => void;
   onReset: () => void;
@@ -484,6 +549,7 @@ export function DisplayPanel({
   onGroup,
   onSort,
   onToggleField,
+  onToggleCustomField,
   onToggleGroup,
   onToggleHideEmpty,
   onReset,
@@ -643,6 +709,35 @@ export function DisplayPanel({
           ))}
         </div>
       </div>
+
+      {state.customFields.length > 0 && (
+        <div className={styles.section}>
+          <span className={styles.sectionTitle}>
+            {t("display.customFieldsTitle")}
+          </span>
+          <div className={styles.chips}>
+            {state.customFields.map((field) => {
+              const shown = state.shownCustomFields.includes(field.id);
+              return (
+                <Chip
+                  key={field.id}
+                  type="filter"
+                  variant="text"
+                  selected={shown}
+                  // Enough is enough: a card with more is no card. A shown one can always be taken off.
+                  disabled={
+                    !shown &&
+                    state.shownCustomFields.length >= MAX_SHOWN_CUSTOM_FIELDS
+                  }
+                  onClick={() => onToggleCustomField(field.id)}
+                >
+                  {field.name}
+                </Chip>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {!hideReset && (
         <div className={styles.footer}>

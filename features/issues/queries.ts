@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { sanitizeShownFields } from "@/features/custom-fields/cardFields";
 import { getIssueFieldEntries } from "@/features/custom-fields/queries";
 import { listAudit } from "@/lib/audit";
 import { getCurrentWorkspaceId } from "@/lib/current-workspace";
@@ -1262,6 +1263,37 @@ export const getMyIssuesViewPreference = cache(
       select: { hiddenFields: true },
     });
     return pref?.hiddenFields ?? [];
+  },
+);
+
+/**
+ * The custom fields this person shows on the cards and rows of a project's board or list (BARY-81):
+ * field ids, the other way round from the built-in fields above (none until asked for). Whether a
+ * field still exists is decided where they are read into fields (`getCardCustomFields`).
+ */
+export const getIssueViewCustomFields = cache(
+  async (projectId: string, view: "board" | "list"): Promise<string[]> => {
+    const userId = await currentUserId();
+    if (!userId) return [];
+    const pref = await db.issueViewPreference.findUnique({
+      where: { userId_projectId_view: { userId, projectId, view } },
+      select: { shownCustomFields: true },
+    });
+    return sanitizeShownFields(pref?.shownCustomFields);
+  },
+);
+
+/** The same for the cross-project "my issues" board or list. */
+export const getMyIssuesViewCustomFields = cache(
+  async (view: "board" | "list"): Promise<string[]> => {
+    const userId = await currentUserId();
+    const workspaceId = getCurrentWorkspaceId();
+    if (!userId || !workspaceId) return [];
+    const pref = await db.myIssuesViewPreference.findUnique({
+      where: { userId_workspaceId_view: { userId, workspaceId, view } },
+      select: { shownCustomFields: true },
+    });
+    return sanitizeShownFields(pref?.shownCustomFields);
   },
 );
 

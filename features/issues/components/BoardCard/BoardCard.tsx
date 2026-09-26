@@ -4,6 +4,8 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { type CSSProperties, useRef, useState } from "react";
 import { Label } from "@/components/ui/atoms/Label/Label";
+import { cardEntries } from "@/features/custom-fields/cardFields";
+import { CardFieldValues } from "@/features/custom-fields/components/CardFieldValues/CardFieldValues";
 import {
   type CardFieldKey,
   visibleCardFields,
@@ -89,7 +91,7 @@ export function BoardCard({
   issue,
   projectId,
   showProject,
-  lookups: { members, projects, labels, issueTypes },
+  lookups: { members, projects, labels, issueTypes, customFields },
   hiddenCardFields,
   isDragging,
   isActive,
@@ -344,6 +346,12 @@ export function BoardCard({
           )}
         </div>
       )}
+
+      <CardFieldValues
+        entries={cardEntries(customFields, issue.id)}
+        members={members}
+        layout="card"
+      />
 
       {/* Meta: priority + identifier | time + comments */}
       <div className={styles.footer}>

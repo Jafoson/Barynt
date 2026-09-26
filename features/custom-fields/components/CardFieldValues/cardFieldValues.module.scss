@@ -1,0 +1,35 @@
+.list {
+  display: flex;
+  gap: 0.25rem 0.5rem;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  list-style: none;
+  font-size: var(--text-xs);
+  color: var(--on-surface);
+}
+
+/* A board card: as many as fit, then a new line. */
+.card {
+  flex-wrap: wrap;
+}
+
+/* A list row: one line, whatever does not fit is cut off. */
+.row {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The field's name is a hint, the answer is what matters. */
+.name {
+  flex: none;
+  color: var(--outline);
+}

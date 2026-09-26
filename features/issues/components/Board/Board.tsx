@@ -1,6 +1,7 @@
 "use client";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { CardCustomFields } from "@/features/custom-fields/cardFields";
 import { BoardColumn } from "@/features/issues/components/BoardColumn/BoardColumn";
 import { BoardColumnSwitcher } from "@/features/issues/components/BoardColumnSwitcher/BoardColumnSwitcher";
 import {
@@ -42,6 +43,8 @@ interface BoardProps {
   composer: IssueComposerData;
   /** This person's hidden card fields for this board (BARY-33). */
   hiddenCardFields: string[];
+  /** The custom fields this person shows on the cards, with the answers of these issues (BARY-81). */
+  customFields: CardCustomFields;
   /** How each column orders its cards — "manual" is drag-and-drop (BARY-34). */
   sortKey: SortKey;
   /** What the columns are: statuses by default, or another field (BARY-35). */
@@ -58,6 +61,7 @@ export function Board({
   statuses,
   composer,
   hiddenCardFields,
+  customFields,
   sortKey,
   groupKey,
   hiddenGroups,
@@ -68,6 +72,7 @@ export function Board({
     members: composer.members,
     labels: composer.labels,
     issueTypes: composer.issueTypes,
+    customFields,
   };
   const t = useTranslations();
   const { toast } = useUI();

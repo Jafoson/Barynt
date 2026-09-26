@@ -289,6 +289,16 @@
       max-width: 100%;
       overflow: hidden;
     }
+
+    /* The custom fields the person shows (BARY-81) get a line of their own, below the rest. */
+    td[data-col="customFields"] {
+      order: 7;
+      flex: 1 1 100%;
+      max-width: 100%;
+      overflow: hidden;
+      justify-content: flex-start;
+      text-align: start;
+    }
   }
 }
 

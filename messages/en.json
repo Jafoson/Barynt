@@ -181,6 +181,7 @@
     "grouping": "Grouping",
     "ordering": "Ordering",
     "fieldsTitle": "Display properties",
+    "customFieldsTitle": "Custom fields",
     "groupsTitle": "Shown groups",
     "groupsAll": "All",
     "hideEmptyGroups": "Hide empty groups automatically",

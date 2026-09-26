@@ -14,6 +14,11 @@ import {
   type TableDndAnnouncement,
   useTableDnd,
 } from "@/components/ui/layout/Table/useTableDnd";
+import {
+  type CardCustomFields,
+  cardEntries,
+} from "@/features/custom-fields/cardFields";
+import { CardFieldValues } from "@/features/custom-fields/components/CardFieldValues/CardFieldValues";
 import { reorderIssue, updateIssue } from "@/features/issues/actions";
 import {
   isCardFieldKey,
@@ -74,6 +79,8 @@ interface ListViewProps {
   composer: IssueComposerData;
   /** This person's hidden row fields for this list (BARY-33). */
   hiddenCardFields: string[];
+  /** The custom fields this person shows on the rows, with the answers of these issues (BARY-81). */
+  customFields: CardCustomFields;
   /** How each group orders its rows — "manual" is drag-and-drop (BARY-34). */
   sortKey: SortKey;
   /** What the groups are: statuses by default, or another field (BARY-35). */
@@ -97,6 +104,7 @@ export function ListView({
   projectId,
   composer,
   hiddenCardFields,
+  customFields,
   sortKey,
   groupKey,
   hiddenGroups,
@@ -380,6 +388,23 @@ export function ListView({
           <LabelsCell issue={issue} labels={labels} />
         ) : null,
     },
+    // The custom fields this person chose to show (BARY-81): a column only while there are any.
+    ...(customFields.fields.length > 0
+      ? [
+          {
+            id: "customFields",
+            width: "max-content",
+            align: "end" as const,
+            cell: (issue: IssueDetail) => (
+              <CardFieldValues
+                entries={cardEntries(customFields, issue.id)}
+                members={members}
+                layout="row"
+              />
+            ),
+          },
+        ]
+      : []),
     // Only in the card rows of a phone/tablet — on a desktop the table has no
     // column for it.
     ...(isCompact

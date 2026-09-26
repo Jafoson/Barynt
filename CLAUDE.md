@@ -353,6 +353,9 @@ of a `Label`) and **answered** per issue (`CustomFieldValue`, `(issueId, fieldId
   `issueDetail.module.scss` may already exist (`fieldLabel` did): CSS modules merge them silently.
 - **Creating** an issue with answers: `IssueComposerData.customFields` feeds the composer's second toolbar of `FieldChip`s (state in `composerAnswers.ts`), `createIssue({ customFields })` resolves them with `resolveNewAnswers` **before** anything is written (an answer that does not fit returns `{ error }` and uses up no issue number, a field that no longer applies is left out),
   writes them with the issue and logs only `issue.created`. `createIssue` returns `{ id } | { error }`.
+- **On cards and rows** a custom field is **opt-in per person and view** (`shownCustomFields` on the two view preference models, ids, at most six; the built-in card fields are the other way round): the four board/list pages call `getViewCustomFields` (`features/issues/viewCustomFields.ts`; nothing is read
+  beyond the preference when nothing is shown), the Display panel (`ViewSettings`, chips under "Custom fields") saves through `setIssueViewCustomFields`/`setMyIssuesViewCustomFields`, `CardFieldValues` draws (`IssueLookups.customFields` on the board, a `customFields` prop on the list). **A Server Action runs before the page is rendered, so `getCurrentWorkspaceId()` is `null` in it**: an action that needs the workspace takes it as an argument
+  (the "my issues" display actions do, and check `currentUserCanEnterWorkspace`); reading it from the request store made them silently write nothing.
 - **`customfield.manage`** (WORKSPACE and PROJECT, `owner`/`admin`/`manager` and `project_admin`) defines fields; **filling one in is `issue.update.*`**. It is a new permission: an
   existing dev database needs the `provisionSystemRbac` snippet below.
 
@@ -663,6 +666,8 @@ tests/
       valueActions.test.ts        ← answering a field: who may, which fields an issue has, the checks, the write, the log (own process: mocks the db, permissions, the issue audit helper)
     custom-fields-create/
       createIssue.test.ts         ← creating an issue with answers: checked before anything is written, a field that no longer applies is left out, one log entry (own process: `features/issues/actions` bound to this file's stand-ins)
+    custom-fields-view/ · custom-fields-view-actions/
+      viewCustomFields.test.ts / viewPreferenceActions.test.ts  ← what a board or list shows of the custom fields (the real preference readers and loader against a stand-in database), and choosing them plus the other display settings of "my issues" (own processes: `features/issues/queries` and `actions` bound to their own stand-ins)
     custom-fields-issue/
       fieldValueView.test.tsx / fieldEditor.test.tsx / valuePopover.test.tsx  ← one answer as text, the popover per type, the popover's "cannot be saved" line (stand-ins for `next-intl` and the avatar only)
     custom-fields-issue-fields/
