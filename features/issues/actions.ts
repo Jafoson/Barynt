@@ -5,6 +5,7 @@ import {
   getCommentUnchecked,
   getIssueUnchecked,
 } from "@/features/api-v1/queries";
+import { sanitizeShownFields } from "@/features/custom-fields/cardFields";
 import {
   type ResolvedAnswers,
   resolveNewAnswers,
@@ -28,7 +29,6 @@ import { searchWorkspaceIssues } from "@/features/issues/queries";
 import type { IssuePatch } from "@/features/issues/types";
 import { recordAudit } from "@/lib/audit";
 import type { RelationChangeMeta } from "@/lib/audit/actions";
-import { getCurrentWorkspaceId } from "@/lib/current-workspace";
 import { db } from "@/lib/db";
 import { Prisma } from "@/lib/generated/prisma/client";
 import {
@@ -39,6 +39,7 @@ import {
 import { sendIssueShareLinkEmail } from "@/lib/mail";
 import { notify } from "@/lib/notify";
 import {
+  currentUserCanEnterWorkspace,
   currentUserId,
   hasPermission,
   PermissionError,
@@ -1865,14 +1866,21 @@ export async function setIssueViewFieldVisibility(
   return { ok: true };
 }
 
-/** Same as `setIssueViewFieldVisibility`, for the cross-project "my issues" board/list. */
+/**
+ * Same as `setIssueViewFieldVisibility`, for the cross-project "my issues" board/list. The workspace
+ * comes in as an argument: a Server Action runs before the page it was called from is rendered, so the
+ * request's current workspace (`getCurrentWorkspaceId`) is not set yet and the write would silently
+ * do nothing. It is data from the client, so this person has to be able to enter it.
+ */
 export async function setMyIssuesViewFieldVisibility(
+  workspaceId: string,
   view: "board" | "list",
   hidden: string[],
 ): Promise<{ ok: true } | { error: string }> {
   const userId = await currentUserId();
-  const workspaceId = getCurrentWorkspaceId();
-  if (!userId || !workspaceId) return { error: "Not signed in." };
+  if (!userId || !(await currentUserCanEnterWorkspace(workspaceId))) {
+    return { error: "Not signed in." };
+  }
 
   await db.myIssuesViewPreference.upsert({
     where: { userId_workspaceId_view: { userId, workspaceId, view } },
@@ -1883,6 +1891,53 @@ export async function setMyIssuesViewFieldVisibility(
       hiddenFields: hidden.filter(isCardFieldKey),
     },
     update: { hiddenFields: hidden.filter(isCardFieldKey) },
+  });
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/**
+ * Which custom fields the acting user shows on the cards and rows of one project's board or list
+ * (BARY-81), as field ids. A personal setting like the one above: no permission beyond being signed
+ * in. The list is cut down to what can be one (`sanitizeShownFields`); whether a field exists and
+ * applies is decided when it is read, so an id that is gone costs nothing.
+ */
+export async function setIssueViewCustomFields(
+  projectId: string,
+  view: "board" | "list",
+  shown: string[],
+): Promise<{ ok: true } | { error: string }> {
+  const userId = await currentUserId();
+  if (!userId) return { error: "Not signed in." };
+  const shownCustomFields = sanitizeShownFields(shown);
+
+  await db.issueViewPreference.upsert({
+    where: { userId_projectId_view: { userId, projectId, view } },
+    create: { userId, projectId, view, shownCustomFields },
+    update: { shownCustomFields },
+  });
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Same as `setIssueViewCustomFields`, for the cross-project "my issues" board/list (workspace as an argument, see `setMyIssuesViewFieldVisibility`). */
+export async function setMyIssuesViewCustomFields(
+  workspaceId: string,
+  view: "board" | "list",
+  shown: string[],
+): Promise<{ ok: true } | { error: string }> {
+  const userId = await currentUserId();
+  if (!userId || !(await currentUserCanEnterWorkspace(workspaceId))) {
+    return { error: "Not signed in." };
+  }
+  const shownCustomFields = sanitizeShownFields(shown);
+
+  await db.myIssuesViewPreference.upsert({
+    where: { userId_workspaceId_view: { userId, workspaceId, view } },
+    create: { userId, workspaceId, view, shownCustomFields },
+    update: { shownCustomFields },
   });
 
   revalidatePath("/", "layout");
@@ -1933,14 +1988,16 @@ export async function setIssueViewGroups(
   return { ok: true };
 }
 
-/** Same as `setIssueViewGroups`, for the cross-project "my issues" board/list. */
+/** Same as `setIssueViewGroups`, for the cross-project "my issues" board/list (workspace as an argument, see `setMyIssuesViewFieldVisibility`). */
 export async function setMyIssuesViewGroups(
+  workspaceId: string,
   view: "board" | "list",
   patch: ViewGroupsPatch,
 ): Promise<{ ok: true } | { error: string }> {
   const userId = await currentUserId();
-  const workspaceId = getCurrentWorkspaceId();
-  if (!userId || !workspaceId) return { error: "Not signed in." };
+  if (!userId || !(await currentUserCanEnterWorkspace(workspaceId))) {
+    return { error: "Not signed in." };
+  }
 
   const data = groupsData(patch);
   await db.myIssuesViewPreference.upsert({

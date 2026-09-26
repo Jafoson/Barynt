@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { getFieldsForNewIssues } from "@/features/custom-fields/queries";
+import { getFieldsOfProjects } from "@/features/custom-fields/queries";
 import type {
   IssueComposerData,
   IssueEditorData,
@@ -99,7 +99,7 @@ export const getIssueComposerData = cache(
       // Nothing to answer where nothing can be created.
       customFields:
         creatableProjectIds.length > 0
-          ? await getFieldsForNewIssues(editor.workspaceId, creatableProjectIds)
+          ? await getFieldsOfProjects(editor.workspaceId, creatableProjectIds)
           : [],
     };
   },

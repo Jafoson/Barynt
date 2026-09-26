@@ -181,6 +181,7 @@
     "grouping": "Gruppierung",
     "ordering": "Sortierung",
     "fieldsTitle": "Angezeigte Felder",
+    "customFieldsTitle": "Eigene Felder",
     "groupsTitle": "Angezeigte Gruppen",
     "groupsAll": "Alle",
     "hideEmptyGroups": "Leere Gruppen automatisch ausblenden",

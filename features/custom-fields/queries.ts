@@ -7,6 +7,7 @@ import {
 import { fromColumns } from "@/lib/custom-fields/value";
 import { db } from "@/lib/db";
 import { accessFor, currentUserId } from "@/lib/permissions";
+import { type CardCustomFields, NO_CARD_FIELDS } from "./cardFields";
 import type {
   CustomFieldManageRow,
   CustomFieldRow,
@@ -210,11 +211,12 @@ export async function getIssueFieldEntries(issue: {
 }
 
 /**
- * The fields a new issue can be answered with, for the composer: the workspace-wide ones and those
- * of the given projects (the ones this person may create issues in), archived ones left out. No
- * permission is asked here: the caller passes only projects it has already resolved.
+ * The fields that apply in the given projects, for the composer and for the Display panel: the
+ * workspace-wide ones and those of the projects, archived ones left out, in their order. No
+ * permission is asked here: the caller passes only projects it has already resolved (the ones this
+ * person may create issues in, the ones they may see).
  */
-export async function getFieldsForNewIssues(
+export async function getFieldsOfProjects(
   workspaceId: string,
   projectIds: string[],
 ): Promise<CustomFieldRow[]> {
@@ -228,4 +230,44 @@ export async function getFieldsForNewIssues(
     orderBy: [...ORDER],
   });
   return rowsOf(rows);
+}
+
+/**
+ * What a board or list shows of the custom fields: of the ids the person chose, the ones that still
+ * exist and apply in these projects, and the answers of the given issues to them. Asks for nothing
+ * when nothing is chosen. An id the person no longer has (a deleted or archived field, a project they
+ * can no longer see) is simply not there. The caller has already let this person see the issues.
+ */
+export async function getCardCustomFields(
+  workspaceId: string,
+  projectIds: string[],
+  shownIds: string[],
+  issueIds: string[],
+): Promise<CardCustomFields> {
+  if (shownIds.length === 0) return NO_CARD_FIELDS;
+
+  const chosen = new Set(shownIds);
+  const fields = (await getFieldsOfProjects(workspaceId, projectIds)).filter(
+    (field) => chosen.has(field.id),
+  );
+  if (fields.length === 0 || issueIds.length === 0) return NO_CARD_FIELDS;
+
+  const rows = await db.customFieldValue.findMany({
+    where: {
+      issueId: { in: issueIds },
+      fieldId: { in: fields.map((field) => field.id) },
+    },
+  });
+  const typeOf = new Map(fields.map((field) => [field.id, field.type]));
+  const values: CardCustomFields["values"] = {};
+  for (const row of rows) {
+    const type = typeOf.get(row.fieldId);
+    if (!type) continue;
+    const value = fromColumns(type, row);
+    if (value === null) continue;
+    const answers = values[row.issueId] ?? {};
+    answers[row.fieldId] = value;
+    values[row.issueId] = answers;
+  }
+  return { fields, values };
 }

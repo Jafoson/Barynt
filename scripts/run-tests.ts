@@ -101,30 +101,36 @@ const SEGMENTS: string[][] = [
   ["tests/unit/plugin-host"],
   // Writing the definitions of custom fields (`features/custom-fields/actions`): replaces the database,
   // the permissions, the audit log and `next/cache`.
-  ["tests/unit/custom-fields-actions"],
+  ["tests/unit/custom-fields-actions/"],
   // What the screens read of the definitions (`features/custom-fields/queries`): replaces the database and
   // the permissions differently from the actions' tests.
-  ["tests/unit/custom-fields-queries"],
+  ["tests/unit/custom-fields-queries/"],
   // The window for a custom field at work: it replaces `react`'s hooks with a list and the actions
   // that write a definition, so it cannot share a process with the section's tests (which replace
   // them differently) or with the actions' own.
-  ["tests/unit/custom-fields-modal"],
+  ["tests/unit/custom-fields-modal/"],
   // The list of a workspace's or a project's fields: the same stand-in hooks, and stand-ins for the
   // window's opener, the confirmation and the actions.
-  ["tests/unit/custom-fields-section"],
+  ["tests/unit/custom-fields-section/"],
   // Answering a field on an issue (`features/custom-fields/valueActions`): replaces the database, the
   // permissions, the issue's audit helper and `next/cache`.
-  ["tests/unit/custom-fields-values"],
+  ["tests/unit/custom-fields-values/"],
   // The answers on the issue's detail view (`IssueCustomFields`, the value and the editor): the value
   // view and the editor need only stand-ins for `next-intl` and the avatar; the section replaces
   // `react`'s hooks, so it has a folder of its own.
-  ["tests/unit/custom-fields-issue"],
+  ["tests/unit/custom-fields-issue/"],
   // Creating an issue with answers (`createIssue`): replaces the database, the permissions and what
   // `features/issues/actions` reaches into (notify, webhooks, cache); the values module is the real one.
   // `tests/unit/issues/updateIssue.test.ts` binds `features/issues/actions` to its own database stand-in,
   // so this cannot share its process.
-  ["tests/unit/custom-fields-create"],
-  ["tests/unit/custom-fields-issue-fields"],
+  ["tests/unit/custom-fields-create/"],
+  // What a board or list shows of the custom fields: the real preference readers
+  // (`features/issues/queries`) and the loader against a stand-in database; `tests/unit/issues` binds
+  // that module to its own.
+  ["tests/unit/custom-fields-view/"],
+  // Choosing them (`features/issues/actions`): its own database stand-in, like `custom-fields-create`.
+  ["tests/unit/custom-fields-view-actions/"],
+  ["tests/unit/custom-fields-issue-fields/"],
   // What a plugin reads of its own settings (`ctx.settings`): replaces the database and the
   // permissions, and reads the request's workspace through the reader `setCurrentWorkspaceId` publishes.
   ["tests/unit/plugin-host-settings"],

@@ -503,6 +503,12 @@ model IssueViewPreference {
   /// `CARD_FIELD_KEYS` (`features/issues/card-fields.ts`).
   hiddenFields String[] @default([])
 
+  /// Eigene Felder (`CustomFieldDefinition.id`), die diese Person auf den Karten/
+  /// Zeilen zeigt (BARY-81). Umgekehrt zu `hiddenFields`: standardmäßig zeigt
+  /// keine Karte ein eigenes Feld, sonst wäre jede Karte mit Feldern überladen.
+  /// Ids gelöschter Felder bleiben stehen und werden beim Lesen ignoriert.
+  shownCustomFields String[] @default([])
+
   /// Gruppen (Board-Spalten / Listengruppen), die diese Person ausgeblendet
   /// hat — Einträge "<groupKey>:<groupId>", damit ein Wechsel der Gruppierung
   /// nichts Falsches trifft (`features/issues/hidden-groups.ts`, BARY-47).
@@ -529,6 +535,8 @@ model MyIssuesViewPreference {
   view        String
 
   hiddenFields String[] @default([])
+  /// Wie bei `IssueViewPreference`: eigene Felder, die diese Person zeigt (BARY-81).
+  shownCustomFields String[] @default([])
   hiddenGroups String[] @default([])
   /// Leere Gruppen automatisch ausblenden (BARY-47).
   hideEmptyGroups Boolean @default(false)

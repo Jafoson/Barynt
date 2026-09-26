@@ -13,7 +13,7 @@ Extra data on an issue that the fixed columns do not cover: a customer number, a
 | The screens to manage them: a workspace's Fields section, a project's Fields page, the window | `features/custom-fields/components/`, `formState.ts` | BARY-81, this page |
 | Answering them on the issue (detail page, panel and dialog) | `features/custom-fields/values.ts`, `valueActions.ts`, `IssueCustomFields` | BARY-81, this page |
 | Answering them when an issue is created (the composer) | `features/custom-fields/composerAnswers.ts`, `FieldChip`, `createIssue` | BARY-81, this page |
-| Showing them on cards and rows | | BARY-81, not built yet |
+| Showing them on cards and rows, and the Display panel that chooses which | `features/custom-fields/cardFields.ts`, `CardFieldValues`, `features/issues/viewCustomFields.ts` | BARY-81, this page |
 | REST, MCP, filters, search, webhooks, audit | | BARY-82, not built yet |
 | Fields declared by a plugin, and what happens to them when it is uninstalled | | not built yet |
 
@@ -129,6 +129,15 @@ What the screens read is in [`features/custom-fields/queries.ts`](../features/cu
   (`answersForProject`), like it does for its labels. The state is pure (`composerAnswers.ts`).
 - `createIssue` takes `customFields` (by field id) and **checks them before anything is written** (`resolveNewAnswers`, the same resolver as an answer on an existing issue): an answer that does not fit refuses the whole creation with `{ error }` (the composer shows it in its footer and stays as it is),
   and the project's next issue number is not used up. A field that no longer applies (archived while the window was open, another project's, gone) is left out, never an error. The answers are written with the issue and **not logged one by one**: `issue.created` is the one entry. `createIssue` now returns `{ id } | { error }`.
+
+## Fields on cards and rows
+
+- **Opt-in, per person and per view.** A board card or a list row shows no custom field until this person asks for it in the **Display** panel ("Custom fields" chips under the built-in ones, on the phone in the sheet). The choice is stored per project and view (`IssueViewPreference.shownCustomFields`) and, across projects, per workspace and view
+  (`MyIssuesViewPreference.shownCustomFields`): field ids, **the other way round from `hiddenFields`** (which is everything-on by default), so a workspace with fields does not turn every card into a wall. At most six (`MAX_SHOWN_CUSTOM_FIELDS`); an id whose field is gone or archived is ignored when read.
+- **What is read**: the page asks `getViewCustomFields` for the shown fields and the answers of **the issues on the page** (one query for the answers, none when nothing is shown), and hands them to the board and the list as `CardCustomFields` (`IssueLookups.customFields` on the board, the `customFields` prop on the list). `IssueDetail.customFields` stays `[]` on cards and rows.
+- **Drawing**: `CardFieldValues` shows each answer with the field's name before it, small and quiet (`FieldValueView` inside): below the labels on a board card, in a column of its own in a list row (on a phone or tablet its own line at the bottom of the card). It is read-only: the card opens the issue, and the answer is changed there. An issue with no answer to a shown field shows nothing.
+- **Saved by** `setIssueViewCustomFields` and `setMyIssuesViewCustomFields` (personal settings: signed in, nothing more; the list is cut down by `sanitizeShownFields`).
+- **The `my issues` display actions take the workspace as an argument** (`setMyIssuesViewFieldVisibility`, `setMyIssuesViewGroups`, `setMyIssuesViewCustomFields`; the Topbar binds it): a Server Action runs before the page it was called from is rendered, so `getCurrentWorkspaceId()` is `null` in it and the old versions silently wrote nothing (the display settings of "my issues" never saved). The workspace is client data, so the action asks that this person can enter it.
 
 ## Who may do what
 

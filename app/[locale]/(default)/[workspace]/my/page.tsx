@@ -11,6 +11,7 @@ import {
   getMyIssuesViewPreference,
 } from "@/features/issues/queries";
 import { sortKeyFromParam } from "@/features/issues/sort";
+import { getViewCustomFields } from "@/features/issues/viewCustomFields";
 import { getWorkspaceStatuses } from "@/features/workspaces/queries";
 import { setCurrentWorkspaceId } from "@/lib/current-workspace";
 import { getSession } from "@/lib/session";
@@ -46,6 +47,12 @@ export default async function MyPage({
     ]);
   if (!composer) notFound();
 
+  // What this person shows of the custom fields on the cards and rows, and the answers to it.
+  const customFields = await getViewCustomFields(
+    "board",
+    issues.map((issue) => issue.id),
+  );
+
   return (
     <>
       <Topbar count={issues.length} view="board" />
@@ -55,6 +62,7 @@ export default async function MyPage({
           statuses={statuses}
           composer={composer}
           hiddenCardFields={hiddenCardFields}
+          customFields={customFields}
           hiddenGroups={groups.hiddenGroups}
           hideEmptyGroups={groups.hideEmptyGroups}
           sortKey={sortKeyFromParam(filters.sort)}

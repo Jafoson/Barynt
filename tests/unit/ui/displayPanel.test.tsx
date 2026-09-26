@@ -27,6 +27,8 @@ const state: DisplayState = {
   groupKey: "status",
   sortKey: "manual",
   hidden: new Set(["labels"]),
+  customFields: [],
+  shownCustomFields: [],
   projectHiddenFields: [],
   groupLookups: {
     statuses: [
@@ -52,6 +54,7 @@ function render(
       onGroup={() => {}}
       onSort={() => {}}
       onToggleField={() => {}}
+      onToggleCustomField={() => {}}
       onToggleGroup={() => {}}
       onToggleHideEmpty={() => {}}
       onReset={() => {}}
@@ -102,6 +105,72 @@ describe("DisplayPanel", () => {
     expect(html).toContain("Done");
     expect(html).toContain("Canceled");
     expect(html.match(/aria-selected="true"/g)).toHaveLength(2);
+  });
+
+  describe("the custom fields (BARY-81)", () => {
+    const field = (id: string, name: string) =>
+      ({
+        id,
+        key: id,
+        name,
+        description: "",
+        type: "text",
+        config: { maxLength: 20 },
+        position: 0,
+        archived: false,
+        pluginId: null,
+        workspaceId: "w",
+        projectId: null,
+      }) as never;
+    const withFields = (
+      count: number,
+      shown: string[],
+    ): React.ComponentProps<typeof DisplayPanel>["state"] => ({
+      ...state,
+      customFields: Array.from({ length: count }, (_, i) =>
+        field(`f${i}`, `Field ${i}`),
+      ),
+      shownCustomFields: shown,
+    });
+
+    it("has no section for a view with no custom fields", () => {
+      expect(render()).not.toContain("display.customFieldsTitle");
+    });
+
+    it("lists them as chips under a title of their own, the shown ones selected", () => {
+      const html = render({ state: withFields(3, ["f1"]) });
+      expect(html).toContain("display.customFieldsTitle");
+      expect(html).toContain("Field 0");
+      expect(html).toContain("Field 1");
+      expect(html).toContain("Field 2");
+      // The three built-in chips are not the custom ones: only f1 is on.
+      const section = html.slice(html.indexOf("display.customFieldsTitle"));
+      expect(section.match(/aria-pressed="true"/g)).toHaveLength(1);
+      expect(section.match(/aria-pressed="false"/g)).toHaveLength(2);
+    });
+
+    it("turns the chips that are not shown off once six are, and leaves the shown ones on", () => {
+      const shown = ["f0", "f1", "f2", "f3", "f4", "f5"];
+      const html = render({ state: withFields(8, shown) });
+      const section = html.slice(html.indexOf("display.customFieldsTitle"));
+      const chips = section.split('<div class="chip ').slice(1);
+      expect(chips).toHaveLength(8);
+      const off = (chip: string) => /disabled/.test(chip);
+      expect(chips.slice(0, 6).some(off)).toBe(false);
+      expect(chips.slice(6).every(off)).toBe(true);
+    });
+
+    it("keeps every chip on below the most", () => {
+      const html = render({ state: withFields(8, ["f0"]) });
+      const section = html.slice(html.indexOf("display.customFieldsTitle"));
+      expect(/disabled/.test(section)).toBe(false);
+    });
+
+    it("hides the section while a list is open", () => {
+      expect(
+        render({ state: withFields(2, []), facet: "group" }),
+      ).not.toContain("display.customFieldsTitle");
+    });
   });
 
   it("has a reset button below unless the sheet holds it in its bar", () => {

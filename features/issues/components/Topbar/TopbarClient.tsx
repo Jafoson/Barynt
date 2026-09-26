@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
+import type { CustomFieldRow } from "@/features/custom-fields/types";
 import type { ViewGroupsPatch } from "@/features/issues/actions";
 import type {
   IssueType,
@@ -37,6 +38,12 @@ interface TopbarClientProps {
   onDisplayChange: (
     hidden: string[],
   ) => Promise<{ ok: true } | { error: string }>;
+  /** The custom fields that could be shown on the cards and rows, and the ones this person shows (BARY-81). */
+  customFields: CustomFieldRow[];
+  shownCustomFields: string[];
+  onCustomFieldsChange: (
+    shown: string[],
+  ) => Promise<{ ok: true } | { error: string }>;
   onGroupsChange: (
     patch: ViewGroupsPatch,
   ) => Promise<{ ok: true } | { error: string }>;
@@ -55,6 +62,9 @@ export function TopbarClient({
   hideEmptyGroups,
   hiddenCardFields,
   onDisplayChange,
+  customFields,
+  shownCustomFields,
+  onCustomFieldsChange,
   onGroupsChange,
 }: TopbarClientProps) {
   const t = useTranslations();
@@ -170,6 +180,9 @@ export function TopbarClient({
             onGroupChange={setGroup}
             hiddenFields={hiddenCardFields}
             onDisplayChange={onDisplayChange}
+            customFields={customFields}
+            shownCustomFields={shownCustomFields}
+            onCustomFieldsChange={onCustomFieldsChange}
             groupLookups={{ statuses, priorities, issueTypes, members }}
             view={view}
             hiddenGroups={hiddenGroups}

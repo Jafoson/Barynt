@@ -104,6 +104,7 @@ const column = (data: IssueComposerData) =>
         members: [],
         labels: [],
         issueTypes: data.issueTypes,
+        customFields: { fields: [], values: {} },
       }}
       composer={data}
       hiddenCardFields={[]}

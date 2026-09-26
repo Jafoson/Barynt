@@ -1,3 +1,4 @@
+import type { CardCustomFields } from "@/features/custom-fields/cardFields";
 import type { CustomFieldRow } from "@/features/custom-fields/types";
 import type { PMDoc } from "@/lib/richtext/types";
 import type {
@@ -24,6 +25,8 @@ export interface IssueLookups {
   members: User[];
   labels: Label[];
   issueTypes: IssueType[];
+  /** The custom fields this person shows on cards and rows, with the answers of the view's issues (BARY-81). */
+  customFields: CardCustomFields;
 }
 
 /**
