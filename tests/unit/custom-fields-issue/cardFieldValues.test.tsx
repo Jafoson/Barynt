@@ -14,6 +14,11 @@ mock.module("next-intl", () => {
     }),
   };
 });
+mock.module("@iconify/react", () => ({
+  Icon: ({ icon, ...rest }: { icon: string; "aria-label"?: string }) => (
+    <span role="img" data-icon={icon} aria-label={rest["aria-label"]} />
+  ),
+}));
 mock.module("@/components/ui/atoms/Avatar/Avatar", () => ({
   Avatar: () => <i />,
 }));
@@ -32,6 +37,7 @@ function field(
     key: id,
     name,
     description: "",
+    icon: null,
     type,
     config: type === "number" ? { integer: false, min: null, max: null } : {},
     position: 0,
@@ -70,6 +76,29 @@ describe("the custom fields on a card or a row", () => {
     expect(html.indexOf("Acme")).toBeLessThan(html.indexOf("Effort"));
     expect(html).toContain("n:5");
     expect(html.match(/<li /g)).toHaveLength(2);
+  });
+
+  it("draws the field's icon instead of its name when it has one", () => {
+    const html = render([
+      {
+        field: { ...field("a", "text", "Customer"), icon: "lucide:building-2" },
+        value: "Acme",
+      },
+    ]);
+    expect(html).toContain('data-icon="lucide:building-2"');
+    expect(html).toContain('aria-label="Customer"');
+    expect(html).not.toContain('class="name"');
+    // Still named, for the hover and for a screen reader.
+    expect(html).toContain('title="Customer"');
+    expect(html).toContain("Acme");
+  });
+
+  it("draws the name of a field without an icon, and no icon", () => {
+    const html = render([
+      { field: field("a", "text", "Customer"), value: "Acme" },
+    ]);
+    expect(html).toContain('class="name"');
+    expect(html).not.toContain("data-icon");
   });
 
   it("names the field in the hover text of each item", () => {

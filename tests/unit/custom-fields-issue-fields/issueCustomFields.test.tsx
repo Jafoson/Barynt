@@ -78,6 +78,7 @@ function field(
     key: `key-${id}`,
     name: `Field ${id}`,
     description: "",
+    icon: null,
     type,
     config,
     position: 0,
@@ -213,7 +214,19 @@ describe("a row", () => {
       (e) => e.type === "span" && e.props.title,
     );
     expect(label?.props.title).toBe("Who asked");
-    expect(label?.props.children).toBe("Field a");
+    expect((label?.props.children as unknown[])[1]).toBe("Field a");
+    expect((label?.props.children as unknown[])[0]).toBeFalsy();
+  });
+
+  it("puts the icon the field was given before its name, and none when it has none", () => {
+    entries = [{ field: { ...field("a"), icon: "lucide:flag" }, value: null }];
+    const drawn = (row: ReturnType<typeof renderRow>) =>
+      elements(row).filter((e) => typeof e.props.icon === "string");
+    expect(drawn(renderRow()).map((e) => e.props.icon)).toEqual([
+      "lucide:flag",
+    ]);
+    entries = [{ field: field("a"), value: null }];
+    expect(drawn(renderRow())).toEqual([]);
   });
 
   it("has no hover text when the field has no description", () => {

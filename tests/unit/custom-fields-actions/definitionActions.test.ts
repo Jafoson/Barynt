@@ -58,6 +58,7 @@ function fieldRow(more: Record<string, unknown> = {}) {
     key: "customer",
     name: "Customer",
     description: "Who pays",
+    icon: null,
     type: "text",
     config: { maxLength: 60 },
     position: 0,
@@ -131,10 +132,31 @@ describe("creating a field", () => {
       key: "customer",
       name: "Customer",
       description: "",
+      icon: null,
       type: "text",
       config: { maxLength: 200 },
       position: 0,
     });
+  });
+
+  it("writes the icon it is given, and none when it is given none", async () => {
+    await createCustomField(
+      { workspaceId: WS },
+      { ...text, icon: "lucide:flag" },
+    );
+    expect(written().icon).toBe("lucide:flag");
+  });
+
+  it("refuses an icon that is not on the list, naming the part, and writes nothing", async () => {
+    const result = await createCustomField(
+      { workspaceId: WS },
+      { ...text, icon: "lucide:nonexistent" },
+    );
+    expect(result).toEqual({
+      error: "Some of the field is not valid.",
+      issues: [{ path: "icon", message: "is not one of the icons" }],
+    });
+    expect(mockDefCreate).not.toHaveBeenCalled();
   });
 
   it("writes the description, trimmed", async () => {
@@ -419,9 +441,49 @@ describe("changing a field", () => {
       data: {
         name: "Client",
         description: "Who orders",
+        icon: null,
         config: { maxLength: 60 },
       },
     });
+  });
+
+  it("changes the icon, and takes it away with null", async () => {
+    await changeCustomField("cf-1", { icon: "lucide:star" });
+    expect(mockDefUpdate.mock.calls[0][0].data.icon).toBe("lucide:star");
+    mockDefFind.mockResolvedValue(fieldRow({ icon: "lucide:star" }));
+    await changeCustomField("cf-1", { icon: null });
+    expect(mockDefUpdate.mock.calls[1][0].data.icon).toBeNull();
+  });
+
+  it("reads the icon of the field it changes", async () => {
+    await changeCustomField("cf-1", { name: "Client" });
+    expect(mockDefFind.mock.calls[0][0].select.icon).toBe(true);
+  });
+
+  it("keeps the icon it has when the change does not say", async () => {
+    mockDefFind.mockResolvedValue(fieldRow({ icon: "lucide:star" }));
+    await changeCustomField("cf-1", { name: "Client" });
+    expect(mockDefUpdate.mock.calls[0][0].data.icon).toBe("lucide:star");
+  });
+
+  it("refuses an icon that is not on the list", async () => {
+    expect(await changeCustomField("cf-1", { icon: "lucide:nope" })).toEqual({
+      error: "Some of the field is not valid.",
+      issues: [{ path: "icon", message: "is not one of the icons" }],
+    });
+    expect(mockDefUpdate).not.toHaveBeenCalled();
+  });
+
+  it("names only the icon when only that changed, and says nothing changed when it is the same", async () => {
+    await changeCustomField("cf-1", { icon: "lucide:star" });
+    expect(mockAudit.mock.calls[0][0].meta.changed).toEqual(["icon"]);
+    mockDefUpdate.mockClear();
+    mockDefFind.mockResolvedValue(fieldRow({ icon: "lucide:star" }));
+    expect(await changeCustomField("cf-1", { icon: "lucide:star" })).toEqual({
+      ok: true,
+      id: "cf-1",
+    });
+    expect(mockDefUpdate).not.toHaveBeenCalled();
   });
 
   it("does not take a key or a type from the change", async () => {
@@ -440,6 +502,7 @@ describe("changing a field", () => {
     expect(mockDefUpdate.mock.calls[0][0].data).toEqual({
       name: "Client",
       description: "Who pays",
+      icon: null,
       config: { maxLength: 60 },
     });
   });
@@ -473,6 +536,7 @@ describe("changing a field", () => {
       await changeCustomField("cf-1", {
         name: "Customer",
         description: "Who pays",
+        icon: null,
         config: { maxLength: 60 },
       }),
     ).toEqual({ ok: true, id: "cf-1" });

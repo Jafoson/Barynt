@@ -519,9 +519,44 @@ describe("a definition", () => {
       name: "Customer number",
       key: "customer-number",
       description: "",
+      icon: null,
       type: "text",
       config: { maxLength: DEFAULT_TEXT_LENGTH },
     });
+  });
+
+  it("has the icon of its type unless it is given one of the list", () => {
+    expect(ok({ name: "N", type: "text" }).icon).toBeNull();
+    expect(ok({ name: "N", type: "text", icon: "lucide:flag" }).icon).toBe(
+      "lucide:flag",
+    );
+  });
+
+  it("takes nothing, null and an empty text as no icon", () => {
+    for (const none of [undefined, null, ""]) {
+      expect(ok({ name: "N", type: "text", icon: none }).icon).toBeNull();
+    }
+  });
+
+  it("refuses an icon that is not on the list, or not text, saying which part it is about", () => {
+    for (const bad of [
+      "lucide:nonexistent",
+      "flag",
+      "mdi:home",
+      5,
+      {},
+      [],
+      true,
+    ]) {
+      expect(issues({ name: "N", type: "text", icon: bad })).toEqual([
+        { path: "icon", message: "is not one of the icons" },
+      ]);
+    }
+  });
+
+  it("reports the icon together with the other problems", () => {
+    const found = issues({ name: "", type: "nope", icon: "x" });
+    expect(found.map((i) => i.path).sort()).toEqual(["icon", "name", "type"]);
   });
 
   it("keeps the key it is given, and the description, trimmed", () => {

@@ -10,6 +10,7 @@ import type {
   IssueFieldEntry,
   SetFieldValue,
 } from "@/features/custom-fields/types";
+import { fieldIcon } from "@/lib/custom-fields/icons";
 import type { FieldValue } from "@/lib/custom-fields/types";
 import type { IssueDetail, User } from "@/types";
 import styles from "../issueDetail.module.scss";
@@ -51,6 +52,13 @@ function FieldRow({
         className={[styles.rowLabel, styles.customLabel].join(" ")}
         title={field.description || undefined}
       >
+        {field.icon && (
+          <Icon
+            icon={fieldIcon(field)}
+            width={13}
+            className={styles.customIcon}
+          />
+        )}
         {field.name}
       </span>
       <div className={styles.rowValue}>

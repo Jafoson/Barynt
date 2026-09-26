@@ -1023,6 +1023,8 @@ model CustomFieldDefinition {
   key         String
   name        String
   description String  @default("")
+  /// One of `CUSTOM_FIELD_ICONS` (`lib/custom-fields/icons.ts`), or `null` for the icon of its type.
+  icon        String?
   /// One of `CUSTOM_FIELD_TYPES` (`lib/custom-fields/types.ts`): a const tuple, not an enum, so a
   /// new type is a change in code and no migration.
   type        String

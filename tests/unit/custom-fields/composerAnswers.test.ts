@@ -14,6 +14,7 @@ function field(id: string, projectId: string | null): CustomFieldRow {
     key: id,
     name: id,
     description: "",
+    icon: null,
     type: "text",
     config: { maxLength: 20 },
     position: 0,

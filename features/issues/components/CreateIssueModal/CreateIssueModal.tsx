@@ -2,7 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
@@ -10,7 +10,10 @@ import { Button } from "@/components/ui/atoms/Button/Button";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import { Input } from "@/components/ui/atoms/Input/Input";
 import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
-import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
+import {
+  ChipOverflow,
+  type OverflowChip,
+} from "@/components/ui/layout/ChipOverflow/ChipOverflow";
 import {
   ModalFooter,
   ModalShortcut,
@@ -21,7 +24,7 @@ import {
   ModalBody,
   ModalToolbar,
 } from "@/components/ui/layout/Modal/Modal";
-import { FieldChip } from "@/features/custom-fields/components/FieldChip/FieldChip";
+import { fieldChipItem } from "@/features/custom-fields/components/FieldChip/FieldChip";
 import {
   answersForProject,
   type ComposerAnswers,
@@ -88,6 +91,7 @@ export function CreateIssueModal({
     issueTypes,
   } = data;
   const t = useTranslations();
+  const format = useFormatter();
   const router = useRouter();
   // A phone gets a bottom sheet: a new issue doesn't need the whole screen.
   // From a tablet up it is the ordinary centered dialog.
@@ -95,7 +99,6 @@ export function CreateIssueModal({
   const titleRef = useRef<HTMLInputElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
-  const fieldsRef = useRef<HTMLDivElement>(null);
 
   /**
    * Focus belongs in the title field when the modal opens.
@@ -234,9 +237,6 @@ export function CreateIssueModal({
           "[data-field-nav]",
         ) ?? []),
         ...(toolbarRef.current?.querySelectorAll<HTMLElement>(
-          "[data-field-nav]",
-        ) ?? []),
-        ...(fieldsRef.current?.querySelectorAll<HTMLElement>(
           "[data-field-nav]",
         ) ?? []),
       ];
@@ -395,6 +395,155 @@ export function CreateIssueModal({
       <LabelDots labels={selectedLabelObjects} />
     );
 
+  const chips: OverflowChip[] = [
+    {
+      id: "type",
+      name: t("fields.type"),
+      label: typeName(type),
+      icon: <TypeIcon type={type} size={14} color={typeColor(type)} />,
+      active: false,
+      width: 190,
+      children: (closeMenu) => (
+        <SelectMenu
+          items={issueTypes.map((x) => ({
+            value: x.id,
+            label: x.name,
+            icon: <TypeIcon type={x.id} size={15} color={x.color} />,
+          }))}
+          value={type}
+          onPick={(v) => {
+            setType(v as string);
+            closeMenu();
+          }}
+          onClose={closeMenu}
+        />
+      ),
+    },
+    {
+      id: "status",
+      name: t("fields.status"),
+      label: statusName(status),
+      icon: (
+        <StatusIcon status={status} size={14} color={statusColor(status)} />
+      ),
+      active: false,
+      width: 200,
+      children: (closeMenu) => (
+        <SelectMenu
+          items={statuses.map((s) => ({
+            value: s.id,
+            label: statusName(s.id),
+            icon: <StatusIcon status={s.id} size={15} color={s.color} />,
+          }))}
+          value={status}
+          onPick={(v) => {
+            setStatus(v as string);
+            closeMenu();
+          }}
+          onClose={closeMenu}
+        />
+      ),
+    },
+    {
+      id: "priority",
+      name: t("fields.priority"),
+      label: priorityName(priority),
+      icon: <PriorityIcon priority={priority} size={14} />,
+      active: false,
+      width: 190,
+      children: (closeMenu) => (
+        <SelectMenu
+          items={priorities.map((p) => ({
+            value: p.id,
+            label: priorityName(p.id),
+            icon: <PriorityIcon priority={p.id} size={15} />,
+          }))}
+          value={priority}
+          onPick={(v) => {
+            setPriority(v as number);
+            closeMenu();
+          }}
+          onClose={closeMenu}
+        />
+      ),
+    },
+    {
+      id: "assignee",
+      name: t("fields.assignee"),
+      label: assigneeUser ? assigneeUser.firstName : t("fields.assignee"),
+      icon: assigneeUser ? (
+        <Avatar avatar={assigneeUser} size={15} />
+      ) : (
+        <Icon icon="lucide:circle-dashed" width={14} />
+      ),
+      active: !!assigneeUser,
+      onClear: () => setAssignee(null),
+      width: 220,
+      children: (closeMenu) => (
+        <SelectMenu
+          items={[
+            {
+              value: null,
+              label: t("fields.unassigned"),
+              icon: <Avatar avatar={null} size={18} />,
+            },
+            ...members.map((u) => ({
+              value: u.id,
+              label: fullName(u),
+              icon: <Avatar avatar={u} size={18} />,
+            })),
+          ]}
+          value={assignee}
+          onPick={(v) => {
+            setAssignee(v as string | null);
+            closeMenu();
+          }}
+          onClose={closeMenu}
+          searchable
+        />
+      ),
+    },
+    {
+      id: "labels",
+      name: labelName,
+      label: labelLabel,
+      icon: labelIcon,
+      active: labels.length > 0,
+      onClear: () => setLabels([]),
+      maxWidth: 320,
+      children: (closeMenu) => (
+        <LabelPickerMenu
+          allLabels={combinedLabels}
+          selected={labels}
+          projectId={project.id}
+          projectName={project.name}
+          workspaceId={workspaceId}
+          onPick={(id) =>
+            setLabels((cur) =>
+              cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
+            )
+          }
+          onCreated={(label) => setLocalLabels((cur) => [...cur, label])}
+          onClose={closeMenu}
+          keepOpen
+        />
+      ),
+    },
+    ...fields.map((field) =>
+      fieldChipItem(
+        field,
+        answers[field.id] ?? null,
+        members,
+        {
+          number: (n) => format.number(n),
+          day: (d) =>
+            format.dateTime(d, { dateStyle: "medium", timeZone: "UTC" }),
+        },
+        (value) => setAnswer(field.id, value),
+      ),
+    ),
+  ];
+
   const projectPicker = (
     <InlinePicker
       width={260}
@@ -492,169 +641,17 @@ export function CreateIssueModal({
         />
       </ModalBody>
 
-      {/* Type, status, and priority are required fields — they always carry a
-          value, so they stay neutral and get no clear button. Assignee and
-          labels are optional and stand out once set. */}
+      {/* One line of chips: type, status, priority, assignee, labels and the custom fields, as many
+          as fit, the rest behind "more". Type, status, and priority are required fields — they always
+          carry a value, so they stay neutral and get no clear button. Assignee and labels are optional
+          and stand out once set. */}
       <ModalToolbar ref={toolbarRef}>
-        <FilterChip
-          name={t("fields.type")}
-          label={typeName(type)}
-          icon={<TypeIcon type={type} size={14} color={typeColor(type)} />}
-          active={false}
-          width={190}
-          data-field-nav
-        >
-          {(closeMenu) => (
-            <SelectMenu
-              items={issueTypes.map((x) => ({
-                value: x.id,
-                label: x.name,
-                icon: <TypeIcon type={x.id} size={15} color={x.color} />,
-              }))}
-              value={type}
-              onPick={(v) => {
-                setType(v as string);
-                closeMenu();
-              }}
-              onClose={closeMenu}
-            />
-          )}
-        </FilterChip>
-
-        <FilterChip
-          name={t("fields.status")}
-          label={statusName(status)}
-          icon={
-            <StatusIcon status={status} size={14} color={statusColor(status)} />
-          }
-          active={false}
-          width={200}
-          data-field-nav
-        >
-          {(closeMenu) => (
-            <SelectMenu
-              items={statuses.map((s) => ({
-                value: s.id,
-                label: statusName(s.id),
-                icon: <StatusIcon status={s.id} size={15} color={s.color} />,
-              }))}
-              value={status}
-              onPick={(v) => {
-                setStatus(v as string);
-                closeMenu();
-              }}
-              onClose={closeMenu}
-            />
-          )}
-        </FilterChip>
-
-        <FilterChip
-          name={t("fields.priority")}
-          label={priorityName(priority)}
-          icon={<PriorityIcon priority={priority} size={14} />}
-          active={false}
-          width={190}
-          data-field-nav
-        >
-          {(closeMenu) => (
-            <SelectMenu
-              items={priorities.map((p) => ({
-                value: p.id,
-                label: priorityName(p.id),
-                icon: <PriorityIcon priority={p.id} size={15} />,
-              }))}
-              value={priority}
-              onPick={(v) => {
-                setPriority(v as number);
-                closeMenu();
-              }}
-              onClose={closeMenu}
-            />
-          )}
-        </FilterChip>
-
-        <FilterChip
-          name={t("fields.assignee")}
-          label={assigneeUser ? assigneeUser.firstName : t("fields.assignee")}
-          icon={
-            assigneeUser ? (
-              <Avatar avatar={assigneeUser} size={15} />
-            ) : (
-              <Icon icon="lucide:circle-dashed" width={14} />
-            )
-          }
-          active={!!assigneeUser}
-          onClear={() => setAssignee(null)}
-          width={220}
-          data-field-nav
-        >
-          {(closeMenu) => (
-            <SelectMenu
-              items={[
-                {
-                  value: null,
-                  label: t("fields.unassigned"),
-                  icon: <Avatar avatar={null} size={18} />,
-                },
-                ...members.map((u) => ({
-                  value: u.id,
-                  label: fullName(u),
-                  icon: <Avatar avatar={u} size={18} />,
-                })),
-              ]}
-              value={assignee}
-              onPick={(v) => {
-                setAssignee(v as string | null);
-                closeMenu();
-              }}
-              onClose={closeMenu}
-              searchable
-            />
-          )}
-        </FilterChip>
-
-        <FilterChip
-          name={labelName}
-          label={labelLabel}
-          icon={labelIcon}
-          active={labels.length > 0}
-          onClear={() => setLabels([])}
-          maxWidth={320}
-          data-field-nav
-        >
-          {(closeMenu) => (
-            <LabelPickerMenu
-              allLabels={combinedLabels}
-              selected={labels}
-              projectId={project.id}
-              projectName={project.name}
-              workspaceId={workspaceId}
-              onPick={(id) =>
-                setLabels((cur) =>
-                  cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
-                )
-              }
-              onCreated={(label) => setLocalLabels((cur) => [...cur, label])}
-              onClose={closeMenu}
-              keepOpen
-            />
-          )}
-        </FilterChip>
+        <ChipOverflow
+          items={chips}
+          moreLabel={t("issues.moreFields")}
+          backLabel={t("filters.back")}
+        />
       </ModalToolbar>
-
-      {fields.length > 0 && (
-        <ModalToolbar ref={fieldsRef} divider={false}>
-          {fields.map((field) => (
-            <FieldChip
-              key={field.id}
-              field={field}
-              value={answers[field.id] ?? null}
-              members={members}
-              onChange={(value) => setAnswer(field.id, value)}
-            />
-          ))}
-        </ModalToolbar>
-      )}
 
       <ModalFooter
         hint={

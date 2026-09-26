@@ -31,11 +31,12 @@ import {
   PHONE_QUERY,
   useMediaQuery,
 } from "@/lib/utils/useMediaQuery";
+import { useRowFit } from "@/lib/utils/useRowFit";
 import { useTimeAgo } from "@/lib/utils/useTimeAgo";
 import type { IssueDetail, Label as LabelType } from "@/types";
 import styles from "./boardCard.module.scss";
 import { CardQuickActions } from "./CardQuickActions";
-import { useRowFit } from "./useRowFit";
+
 import { useTextEnd } from "./useTextEnd";
 
 interface BoardCardProps {

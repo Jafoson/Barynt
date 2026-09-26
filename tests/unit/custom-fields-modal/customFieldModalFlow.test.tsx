@@ -75,6 +75,7 @@ import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader
 import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal } from "@/components/ui/layout/Modal/Modal";
 import { CustomFieldModal } from "@/features/custom-fields/components/CustomFieldModal/CustomFieldModal";
+import { FieldIconPicker } from "@/features/custom-fields/components/FieldIconPicker/FieldIconPicker";
 import type {
   CustomFieldManageRow,
   CustomFieldResult,
@@ -172,6 +173,15 @@ const submit = () => {
 const settled = async () => {
   while (hooks.started.length > 0) await Promise.all(hooks.started.splice(0));
 };
+const picker = () =>
+  elements(render()).find((e) => e.type === FieldIconPicker)?.props as
+    | {
+        value: string | null;
+        type: string;
+        disabled: boolean;
+        onChange: (icon: string | null) => void;
+      }
+    | undefined;
 const addOptionButton = () =>
   buttons().find((e) => e.props.children === "customFields.addOption")
     ?.props as { onClick: () => void; disabled: boolean };
@@ -184,6 +194,7 @@ function existing(
     key: "customer",
     name: "Customer",
     description: "Who asked",
+    icon: null,
     type: "text",
     config: { maxLength: 80 },
     position: 0,
@@ -262,6 +273,7 @@ describe("the window for a new field", () => {
       name: "Customer",
       key: undefined,
       description: "Who asked",
+      icon: null,
       type: "text",
       config: { maxLength: 200 },
     });
@@ -405,6 +417,56 @@ describe("the window for a new field", () => {
   });
 });
 
+describe("the icon", () => {
+  it("is offered on a new field, none chosen, for the type that is on", () => {
+    expect(picker()?.value).toBeNull();
+    expect(picker()?.type).toBe("text");
+    type("customFields.type", "date");
+    expect(picker()?.type).toBe("date");
+  });
+
+  it("is sent with a new field when one is chosen, and null when not", async () => {
+    type("customFields.name", "Customer");
+    picker()?.onChange("lucide:flag");
+    expect(picker()?.value).toBe("lucide:flag");
+    submit();
+    await settled();
+    expect(mockCreate.mock.calls[0][1].icon).toBe("lucide:flag");
+  });
+
+  it("is sent as null when none is chosen", async () => {
+    type("customFields.name", "Customer");
+    submit();
+    await settled();
+    expect(mockCreate.mock.calls[0][1].icon).toBeNull();
+  });
+
+  it("is a change of the form on its own: Save turns on, and off when it is put back", () => {
+    field = existing();
+    expect(saveButton().disabled).toBe(true);
+    picker()?.onChange("lucide:star");
+    expect(saveButton().disabled).toBe(false);
+    picker()?.onChange(null);
+    expect(saveButton().disabled).toBe(true);
+  });
+
+  it("starts as the field's own when one is changed, and goes with the change", async () => {
+    field = existing({ icon: "lucide:star" });
+    expect(picker()?.value).toBe("lucide:star");
+    picker()?.onChange(null);
+    submit();
+    await settled();
+    expect(mockChange.mock.calls[0][1].icon).toBeNull();
+  });
+
+  it("is off while a save is running", () => {
+    hooks.pending = true;
+    expect(picker()?.disabled).toBe(true);
+    hooks.pending = false;
+    expect(picker()?.disabled).toBe(false);
+  });
+});
+
 describe("what each type asks for", () => {
   it("asks a text field for its longest answer only", () => {
     expect(control("customFields.maxLength")).toBeDefined();
@@ -533,6 +595,7 @@ describe("the window for a field that exists", () => {
     expect(mockChange.mock.calls[0][1]).toEqual({
       name: "Client",
       description: "Who asked",
+      icon: null,
       config: { maxLength: 80 },
     });
     expect(mockCreate).not.toHaveBeenCalled();

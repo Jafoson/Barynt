@@ -127,6 +127,9 @@ const SEGMENTS: string[][] = [
   // What a board or list shows of the custom fields: the real preference readers
   // (`features/issues/queries`) and the loader against a stand-in database; `tests/unit/issues` binds
   // that module to its own.
+  // The composer's one-line row of chips with its "more" menu (`components/ui/layout/ChipOverflow`): it
+  // replaces `react`'s `useState` and `useRowFit`.
+  ["tests/unit/chip-overflow/"],
   ["tests/unit/custom-fields-view/"],
   // Choosing them (`features/issues/actions`): its own database stand-in, like `custom-fields-create`.
   ["tests/unit/custom-fields-view-actions/"],

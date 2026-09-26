@@ -15,6 +15,7 @@ import {
   changeCustomField,
   createCustomField,
 } from "@/features/custom-fields/actions";
+import { FieldIconPicker } from "@/features/custom-fields/components/FieldIconPicker/FieldIconPicker";
 import {
   type FieldForm,
   groupIssues,
@@ -244,6 +245,13 @@ export function CustomFieldModal({
               </option>
             ))}
           </Select>
+
+          <FieldIconPicker
+            value={form.icon}
+            type={form.type}
+            disabled={isPending}
+            onChange={(icon) => change("icon", icon)}
+          />
 
           {form.type === "text" && (
             <Input

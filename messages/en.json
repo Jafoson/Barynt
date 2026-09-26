@@ -708,7 +708,8 @@
     "moveTo": "Move to…",
     "movedTo": "Moved to {group}",
     "boardColumns": "Board columns",
-    "toCreate": "to create"
+    "toCreate": "to create",
+    "moreFields": "More"
   },
   "realtime": {
     "staleGlobal": "There are changes.",
@@ -857,6 +858,8 @@
     "fromProjectsDesc": "These labels belong to individual projects and apply only there. They are edited in that project's settings — the row takes you there."
   },
   "customFields": {
+    "icon": "Icon",
+    "iconOfType": "Icon of its type",
     "notSet": "Not set",
     "none": "None",
     "unknownPerson": "Former member",

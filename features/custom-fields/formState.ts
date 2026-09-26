@@ -31,6 +31,8 @@ export interface FieldForm {
   key: string;
   type: CustomFieldType;
   description: string;
+  /** One of the icons of the list, or `null` for the icon of the type. */
+  icon: string | null;
   maxLength: string;
   integer: boolean;
   min: string;
@@ -55,6 +57,7 @@ export function initialForm(field?: CustomFieldRow): FieldForm {
     key: "",
     type: "text",
     description: "",
+    icon: null,
     maxLength: String(DEFAULT_TEXT_LENGTH),
     integer: false,
     min: "",
@@ -69,6 +72,7 @@ export function initialForm(field?: CustomFieldRow): FieldForm {
     key: field.key,
     type: field.type,
     description: field.description,
+    icon: field.icon,
   };
   if (field.type === "text") {
     form.maxLength = String((field.config as TextConfig).maxLength);
@@ -129,6 +133,7 @@ export function toCreateInput(form: FieldForm) {
     name: form.name,
     key: form.key.trim() === "" ? undefined : form.key.trim(),
     description: form.description,
+    icon: form.icon,
     type: form.type,
     config: configOf(form),
   };
@@ -139,6 +144,7 @@ export function toChangeInput(form: FieldForm) {
   return {
     name: form.name,
     description: form.description,
+    icon: form.icon,
     config: configOf(form),
   };
 }

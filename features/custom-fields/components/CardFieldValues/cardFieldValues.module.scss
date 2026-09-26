@@ -28,6 +28,13 @@
   max-width: 100%;
 }
 
+/* A field with an icon shows it instead of its name, like a built-in field on a card. */
+.icon {
+  flex: none;
+  align-self: center;
+  color: var(--outline);
+}
+
 /* The field's name is a hint, the answer is what matters. */
 .name {
   flex: none;

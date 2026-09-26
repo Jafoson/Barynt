@@ -48,6 +48,7 @@ function fieldRow(id: string, more: Record<string, unknown> = {}) {
     key: id,
     name: id,
     description: "",
+    icon: null,
     type: "text",
     config: { maxLength: 20 },
     position: 0,

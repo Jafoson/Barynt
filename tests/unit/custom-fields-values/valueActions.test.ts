@@ -80,6 +80,7 @@ function fieldRow(more: Record<string, unknown> = {}) {
     key: "customer",
     name: "Customer",
     description: "",
+    icon: null,
     type: "text",
     config: { maxLength: 20 },
     position: 0,

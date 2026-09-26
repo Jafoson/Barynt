@@ -35,6 +35,7 @@ function field(
     key: "k",
     name: "The field",
     description: "",
+    icon: null,
     type,
     config,
     position: 0,

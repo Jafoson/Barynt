@@ -69,6 +69,14 @@
   overflow-wrap: anywhere;
 }
 
+/* The icon a field was given, in front of its name. */
+.nameIcon {
+  display: inline-block;
+  vertical-align: -0.15em;
+  margin-inline-end: 0.375rem;
+  color: var(--on-surface-variant);
+}
+
 .desc {
   font-size: var(--text-sm);
   color: var(--on-surface-variant);

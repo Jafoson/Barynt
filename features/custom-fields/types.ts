@@ -11,6 +11,8 @@ export interface CustomFieldRow {
   key: string;
   name: string;
   description: string;
+  /** One of `CUSTOM_FIELD_ICONS`, or `null` for the icon of its type (`fieldIcon`). */
+  icon: string | null;
   type: CustomFieldType;
   /** In its normal form; never throws to read (`fieldConfigOrDefault`). */
   config: CustomFieldConfig;
