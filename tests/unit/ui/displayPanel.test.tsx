@@ -114,6 +114,7 @@ describe("DisplayPanel", () => {
         key: id,
         name,
         description: "",
+        icon: null,
         type: "text",
         config: { maxLength: 20 },
         position: 0,
@@ -122,10 +123,7 @@ describe("DisplayPanel", () => {
         workspaceId: "w",
         projectId: null,
       }) as never;
-    const withFields = (
-      count: number,
-      shown: string[],
-    ): React.ComponentProps<typeof DisplayPanel>["state"] => ({
+    const withFields = (count: number, shown: string[]): DisplayState => ({
       ...state,
       customFields: Array.from({ length: count }, (_, i) =>
         field(`f${i}`, `Field ${i}`),
@@ -164,6 +162,26 @@ describe("DisplayPanel", () => {
       const html = render({ state: withFields(8, ["f0"]) });
       const section = html.slice(html.indexOf("display.customFieldsTitle"));
       expect(/disabled/.test(section)).toBe(false);
+    });
+
+    it("draws the icon of a field that has one before its name, and none for one that has not", () => {
+      const withIcons = {
+        ...withFields(2, []),
+        customFields: [
+          { ...(field("f0", "With") as object), icon: "lucide:flag" } as never,
+          field("f1", "Without"),
+        ],
+      };
+      const html = render({ state: withIcons });
+      const section = html.slice(html.indexOf("display.customFieldsTitle"));
+      expect(section).toContain('data-icon="lucide:flag"');
+      expect(section.match(/data-icon="lucide:flag"/g)).toHaveLength(1);
+      // The field without one gets none of its own; the only other icon is the reset button's.
+      expect(
+        (section.match(/data-icon="[^"]+"/g) ?? []).filter(
+          (icon) => icon !== 'data-icon="lucide:rotate-ccw"',
+        ),
+      ).toHaveLength(1);
     });
 
     it("hides the section while a list is open", () => {

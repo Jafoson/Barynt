@@ -19,6 +19,7 @@ import type {
   CustomFieldsView,
 } from "@/features/custom-fields/types";
 import { useOpenCustomFieldModal } from "@/features/custom-fields/useOpenCustomFieldModal";
+import { fieldIcon } from "@/lib/custom-fields/icons";
 import {
   CUSTOM_FIELD_TYPE_ICONS,
   MAX_CUSTOM_FIELDS_PER_WORKSPACE,
@@ -108,7 +109,12 @@ export function CustomFields({ view, embedded = false }: Props) {
 
   const nameCell = (row: CustomFieldRow) => (
     <div className={styles.name}>
-      <span className={styles.title}>{row.name}</span>
+      <span className={styles.title}>
+        {row.icon && (
+          <Icon icon={fieldIcon(row)} width={14} className={styles.nameIcon} />
+        )}
+        {row.name}
+      </span>
       {row.description && (
         <span className={styles.desc}>{row.description}</span>
       )}

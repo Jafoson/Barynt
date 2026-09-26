@@ -356,6 +356,8 @@ of a `Label`) and **answered** per issue (`CustomFieldValue`, `(issueId, fieldId
 - **On cards and rows** a custom field is **opt-in per person and view** (`shownCustomFields` on the two view preference models, ids, at most six; the built-in card fields are the other way round): the four board/list pages call `getViewCustomFields` (`features/issues/viewCustomFields.ts`; nothing is read
   beyond the preference when nothing is shown), the Display panel (`ViewSettings`, chips under "Custom fields") saves through `setIssueViewCustomFields`/`setMyIssuesViewCustomFields`, `CardFieldValues` draws (`IssueLookups.customFields` on the board, a `customFields` prop on the list). **A Server Action runs before the page is rendered, so `getCurrentWorkspaceId()` is `null` in it**: an action that needs the workspace takes it as an argument
   (the "my issues" display actions do, and check `currentUserCanEnterWorkspace`); reading it from the request store made them silently write nothing.
+- **Icons**: a field's `icon` is one of `CUSTOM_FIELD_ICONS` (`lib/custom-fields/icons.ts`: **a list of literals**, since the icon bundle only sees literals; add one → `bun run icons:build`) or `null` for its type's (`fieldIcon`); it can be changed after creation (`FieldIconPicker` in the field's window), and is drawn in the composer's chip, the Display panel, the issue's row, and instead of the name on a card or row.
+- **The composer's chips are one line**: `ChipOverflow` (`components/ui/layout`) takes a list of `OverflowChip` descriptions (the built-in chips in `CreateIssueModal` and `fieldChipItem` for a custom field), shows as many as fit and puts the rest in a "More" dropdown where a field opens in place. A component that measures chips with icons must **measure again after the first paint** (iconify's `Icon` renders an empty placeholder first).
 - **`customfield.manage`** (WORKSPACE and PROJECT, `owner`/`admin`/`manager` and `project_admin`) defines fields; **filling one in is `issue.update.*`**. It is a new permission: an
   existing dev database needs the `provisionSystemRbac` snippet below.
 
@@ -666,6 +668,8 @@ tests/
       valueActions.test.ts        ← answering a field: who may, which fields an issue has, the checks, the write, the log (own process: mocks the db, permissions, the issue audit helper)
     custom-fields-create/
       createIssue.test.ts         ← creating an issue with answers: checked before anything is written, a field that no longer applies is left out, one log entry (own process: `features/issues/actions` bound to this file's stand-ins)
+    chip-overflow/
+      chipOverflow.test.tsx       ← the composer's one-line row with its "More" menu (own process: replaces `react`'s `useState`/`useEffect` and `useRowFit`)
     custom-fields-view/ · custom-fields-view-actions/
       viewCustomFields.test.ts / viewPreferenceActions.test.ts  ← what a board or list shows of the custom fields (the real preference readers and loader against a stand-in database), and choosing them plus the other display settings of "my issues" (own processes: `features/issues/queries` and `actions` bound to their own stand-ins)
     custom-fields-issue/

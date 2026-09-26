@@ -972,6 +972,13 @@
 }
 
 /* A custom field's answer, with a link beside it for an address and its refusal under it. */
+/* A custom field's own icon, in front of its name. */
+.customIcon {
+  display: inline-block;
+  vertical-align: -0.125em;
+  margin-inline-end: 0.25rem;
+}
+
 .customValue {
   display: flex;
   flex-wrap: wrap;

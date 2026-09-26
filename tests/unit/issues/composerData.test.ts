@@ -112,6 +112,7 @@ describe("getIssueComposerData() — the custom fields a new issue can have", ()
     key: id,
     name: id,
     description: "",
+    icon: null,
     type: "text",
     config: { maxLength: 20 },
     position: 0,

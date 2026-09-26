@@ -47,6 +47,7 @@ function dbRow(more: Record<string, unknown> = {}) {
     key: "customer",
     name: "Customer",
     description: "Who pays",
+    icon: null,
     type: "text",
     config: { maxLength: 60 },
     position: 0,
@@ -93,12 +94,25 @@ beforeEach(() => {
 });
 
 describe("a field as the screens read it", () => {
+  it("has the icon it was given, and none for one that is not on the list any more", () => {
+    expect(rowOf(dbRow({ icon: "lucide:flag" }))?.icon).toBe("lucide:flag");
+    expect(rowOf(dbRow({ icon: "lucide:gone" }))?.icon).toBeNull();
+    expect(rowOf(dbRow({ icon: null }))?.icon).toBeNull();
+  });
+
+  it("asks for the icon when it reads the fields", async () => {
+    held = holds("project.view");
+    await getFieldsOfProject(PROJECT);
+    expect(mockDefFindMany.mock.calls[0][0].select.icon).toBe(true);
+  });
+
   it("has what the database has, in its normal form, and says whether it is archived", () => {
     expect(rowOf(dbRow())).toEqual({
       id: "cf-1",
       key: "customer",
       name: "Customer",
       description: "Who pays",
+      icon: null,
       type: "text",
       config: { maxLength: 60 },
       position: 0,

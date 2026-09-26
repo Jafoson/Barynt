@@ -1,5 +1,7 @@
+import { Icon } from "@iconify/react";
 import { FieldValueView } from "@/features/custom-fields/components/FieldValueView/FieldValueView";
 import type { CustomFieldRow } from "@/features/custom-fields/types";
+import { fieldIcon } from "@/lib/custom-fields/icons";
 import type { FieldValue } from "@/lib/custom-fields/types";
 import type { User } from "@/types";
 import styles from "./cardFieldValues.module.scss";
@@ -23,7 +25,16 @@ export function CardFieldValues({ entries, members, layout }: Props) {
     <ul className={[styles.list, styles[layout]].join(" ")}>
       {entries.map(({ field, value }) => (
         <li key={field.id} className={styles.item} title={field.name}>
-          <span className={styles.name}>{field.name}</span>
+          {field.icon ? (
+            <Icon
+              icon={fieldIcon(field)}
+              width={12}
+              className={styles.icon}
+              aria-label={field.name}
+            />
+          ) : (
+            <span className={styles.name}>{field.name}</span>
+          )}
           <FieldValueView field={field} value={value} members={members} />
         </li>
       ))}

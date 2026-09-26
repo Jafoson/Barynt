@@ -88,6 +88,7 @@ function field(
     key: id,
     name: `Field ${id}`,
     description: "",
+    icon: null,
     type: "text",
     config: { maxLength: 200 },
     position: 0,
@@ -361,6 +362,19 @@ describe("the lists", () => {
     const t = table(ACTIVE) as TableProps;
     const cell = elements(column(t, "name")?.cell(t.rows[0]) as ReactNode);
     expect(cell.filter((e) => e.type === "span")).toHaveLength(1);
+  });
+
+  it("show the icon a field was given before its name, and none for one that has none", () => {
+    current = view({
+      fields: [field("a", { icon: "lucide:flag" }), field("b", { icon: null })],
+    });
+    const t = table(ACTIVE) as TableProps;
+    const icons = (row: Row) =>
+      elements(column(t, "name")?.cell(row) as ReactNode)
+        .map((e) => (e.props as { icon?: string }).icon)
+        .filter(Boolean);
+    expect(icons(t.rows[0])).toEqual(["lucide:flag"]);
+    expect(icons(t.rows[1])).toEqual([]);
   });
 
   it("draw the icon of the field's type", () => {

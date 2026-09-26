@@ -40,6 +40,7 @@ import {
 } from "@/features/projects/detail-fields";
 import { useRouter } from "@/i18n/navigation";
 import { useModal } from "@/lib/context";
+import { fieldIcon } from "@/lib/custom-fields/icons";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
 import { FilterOptions } from "./FilterPopup";
@@ -728,6 +729,11 @@ export function DisplayPanel({
                   disabled={
                     !shown &&
                     state.shownCustomFields.length >= MAX_SHOWN_CUSTOM_FIELDS
+                  }
+                  icon={
+                    field.icon ? (
+                      <Icon icon={fieldIcon(field)} width={13} />
+                    ) : undefined
                   }
                   onClick={() => onToggleCustomField(field.id)}
                 >

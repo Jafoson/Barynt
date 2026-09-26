@@ -1,5 +1,6 @@
 import "server-only";
 import { fieldConfigOrDefault } from "@/lib/custom-fields/config";
+import { isFieldIcon } from "@/lib/custom-fields/icons";
 import {
   isCustomFieldType,
   MAX_CUSTOM_FIELDS_PER_WORKSPACE,
@@ -26,6 +27,7 @@ interface DbRow {
   key: string;
   name: string;
   description: string;
+  icon: string | null;
   type: string;
   config: unknown;
   position: number;
@@ -40,6 +42,7 @@ export const FIELD_SELECT = {
   key: true,
   name: true,
   description: true,
+  icon: true,
   type: true,
   config: true,
   position: true,
@@ -57,6 +60,7 @@ export function rowOf(row: DbRow): CustomFieldRow | null {
     key: row.key,
     name: row.name,
     description: row.description,
+    icon: isFieldIcon(row.icon) ? row.icon : null,
     type: row.type,
     config: fieldConfigOrDefault(row.type, row.config),
     position: row.position,

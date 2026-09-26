@@ -84,6 +84,7 @@ function fieldRow(id: string, more: Record<string, unknown> = {}) {
     key: id,
     name: `Field ${id}`,
     description: "",
+    icon: null,
     type: "text",
     config: { maxLength: 10 },
     position: 0,

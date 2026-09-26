@@ -1,0 +1,81 @@
+/* One line, never wrapped: what does not fit goes into the "more" menu. Until the measuring pass has run
+   (and without JavaScript) every chip is in the row and whatever sticks out is clipped. */
+.row {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  overflow: hidden;
+
+  /* Chips keep their own width: a squeezed one would be measured squeezed. */
+  > * {
+    flex: none;
+  }
+}
+
+/* The "more" button while the widths are measured: out of the flow, but still measurable (`display:
+   none` would have no size). */
+.probe {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem;
+}
+
+.item,
+.back {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 2rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  color: var(--on-surface);
+  text-align: start;
+
+  &:hover {
+    background: var(--surface-container-highest);
+  }
+}
+
+.back {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.itemIcon {
+  display: inline-flex;
+  flex: none;
+  color: var(--on-surface-variant);
+}
+
+.itemName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* What is set, in the primary color like a chip that is on. */
+.itemValue {
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--primary);
+  font-size: var(--text-sm);
+}

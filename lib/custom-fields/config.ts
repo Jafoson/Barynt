@@ -1,4 +1,5 @@
 import { slugify } from "@/lib/slug";
+import { type CustomFieldIcon, isFieldIcon } from "./icons";
 import {
   type ConfigByType,
   type CustomFieldConfig,
@@ -295,6 +296,8 @@ export interface DefinitionInput {
   /** Left out, it is made of the name. */
   key?: unknown;
   description?: unknown;
+  /** One of `CUSTOM_FIELD_ICONS`, or left out for the icon of its type. */
+  icon?: unknown;
   type: unknown;
   config?: unknown;
 }
@@ -303,6 +306,8 @@ export interface Definition {
   name: string;
   key: string;
   description: string;
+  /** `null` = the icon of its type. */
+  icon: CustomFieldIcon | null;
   type: CustomFieldType;
   config: CustomFieldConfig;
 }
@@ -357,6 +362,12 @@ export function parseDefinition(
     });
   }
 
+  let icon: CustomFieldIcon | null = null;
+  if (input.icon !== undefined && input.icon !== null && input.icon !== "") {
+    if (isFieldIcon(input.icon)) icon = input.icon;
+    else issues.push({ path: "icon", message: "is not one of the icons" });
+  }
+
   let type: CustomFieldType | null = null;
   let config: CustomFieldConfig | null = null;
   if (isCustomFieldType(input.type)) {
@@ -377,6 +388,7 @@ export function parseDefinition(
       name,
       key,
       description: typeof description === "string" ? description.trim() : "",
+      icon,
       type,
       config,
     },

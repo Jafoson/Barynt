@@ -143,6 +143,7 @@ export async function createCustomField(
         key,
         name: definition.name,
         description: definition.description,
+        icon: definition.icon,
         type: definition.type,
         config: definition.config as unknown as Prisma.InputJsonValue,
         position: (existing._max.position ?? -1) + 1,
@@ -181,6 +182,7 @@ async function loadField(fieldId: unknown) {
       key: true,
       name: true,
       description: true,
+      icon: true,
       type: true,
       config: true,
       position: true,
@@ -203,6 +205,8 @@ async function loadField(fieldId: unknown) {
 export interface CustomFieldChange {
   name?: unknown;
   description?: unknown;
+  /** One of the icons, or `null` for the icon of its type; left out it stays. */
+  icon?: unknown;
   config?: unknown;
 }
 
@@ -228,6 +232,7 @@ export async function changeCustomField(
     name: change?.name ?? row.name,
     key: row.key,
     description: change?.description ?? row.description,
+    icon: change?.icon !== undefined ? change.icon : row.icon,
     type: row.type,
     config: change?.config ?? row.config,
   });
@@ -271,6 +276,7 @@ export async function changeCustomField(
   const changed: string[] = [];
   if (definition.name !== row.name) changed.push("name");
   if (definition.description !== row.description) changed.push("description");
+  if (definition.icon !== row.icon) changed.push("icon");
   if (JSON.stringify(definition.config) !== JSON.stringify(row.config)) {
     changed.push("config");
   }
@@ -281,6 +287,7 @@ export async function changeCustomField(
     data: {
       name: definition.name,
       description: definition.description,
+      icon: definition.icon,
       config: definition.config as unknown as Prisma.InputJsonValue,
     },
   });

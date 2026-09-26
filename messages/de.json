@@ -708,7 +708,8 @@
     "moveTo": "Verschieben nach…",
     "movedTo": "Verschoben nach {group}",
     "boardColumns": "Board-Spalten",
-    "toCreate": "zum Erstellen"
+    "toCreate": "zum Erstellen",
+    "moreFields": "Mehr"
   },
   "realtime": {
     "staleGlobal": "Es gibt Änderungen.",
@@ -857,6 +858,8 @@
     "fromProjectsDesc": "Diese Labels gehören einzelnen Projekten und gelten nur dort. Geändert werden sie in den Einstellungen des jeweiligen Projekts — die Zeile führt hin."
   },
   "customFields": {
+    "icon": "Symbol",
+    "iconOfType": "Symbol des Typs",
     "notSet": "Nicht gesetzt",
     "none": "Keine Angabe",
     "unknownPerson": "Ehemaliges Mitglied",

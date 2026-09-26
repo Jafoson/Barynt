@@ -124,7 +124,7 @@ What the screens read is in [`features/custom-fields/queries.ts`](../features/cu
 
 ## Answering a field while an issue is created
 
-- The composer shows the fields that apply to its project as **chips in a second toolbar** under the attribute chips (`FieldChip`: the field's name until it has an answer, then the answer, highlighted, with a clear button; the detail view's `FieldEditor` opens). The composer's data carries the fields
+- The composer shows the fields that apply to its project as **chips in the same row** as the attribute chips (`fieldChipItem`: the field's name until it has an answer, then the answer, on, with a clear button; the detail view's `FieldEditor` opens). The row is **one line** (`ChipOverflow`): as many chips as fit, then a **"More"** button whose dropdown lists the rest as rows; a row opens its field inside the dropdown (with a way back), so it is picked exactly as the chip would have been. What fits is measured (`useRowFit`, in `lib/utils`, also used for a card's labels); the widths are read again once the row has mounted, because the icons draw an empty placeholder in their first render and the chips end up wider. The composer's data carries the fields
   (`IssueComposerData.customFields`, from `getFieldsForNewIssues`: workspace-wide plus those of the projects where this person may create, archived left out; none where nothing can be created). Switching the project drops the answers of the old project's own fields
   (`answersForProject`), like it does for its labels. The state is pure (`composerAnswers.ts`).
 - `createIssue` takes `customFields` (by field id) and **checks them before anything is written** (`resolveNewAnswers`, the same resolver as an answer on an existing issue): an answer that does not fit refuses the whole creation with `{ error }` (the composer shows it in its footer and stays as it is),
@@ -138,6 +138,12 @@ What the screens read is in [`features/custom-fields/queries.ts`](../features/cu
 - **Drawing**: `CardFieldValues` shows each answer with the field's name before it, small and quiet (`FieldValueView` inside): below the labels on a board card, in a column of its own in a list row (on a phone or tablet its own line at the bottom of the card). It is read-only: the card opens the issue, and the answer is changed there. An issue with no answer to a shown field shows nothing.
 - **Saved by** `setIssueViewCustomFields` and `setMyIssuesViewCustomFields` (personal settings: signed in, nothing more; the list is cut down by `sanitizeShownFields`).
 - **The `my issues` display actions take the workspace as an argument** (`setMyIssuesViewFieldVisibility`, `setMyIssuesViewGroups`, `setMyIssuesViewCustomFields`; the Topbar binds it): a Server Action runs before the page it was called from is rendered, so `getCurrentWorkspaceId()` is `null` in it and the old versions silently wrote nothing (the display settings of "my issues" never saved). The workspace is client data, so the action asks that this person can enter it.
+
+## Icons
+
+- A field can be given an **icon**, one of a fixed list (`CUSTOM_FIELD_ICONS`, `lib/custom-fields/icons.ts`), so it reads like a built-in field. `null` means the icon of its type (`fieldIcon`). The list is **literals, not any icon name**: the icon bundle only knows names it can read as string literals (`bun run icons:build`), and a picker can only show a list; a name that is not on it is refused (`icon` is one of the definition's parts, `path: "icon"`), and a stored one that left the list falls back to the type's, never to nothing.
+- It is chosen in the field's window (`FieldIconPicker`, a grid: the type's icon first, then the list; choosing the one that is on takes it off) and can be changed later, unlike the key and the type. It is part of `customfield.updated` (`changed` names `icon`).
+- Where it is drawn: the composer's chip and the Display panel's chip (instead of the type's), before the name in the field's row on the issue and in the management list, and **on a card or a row instead of the field's name** (named in its hover text and for a screen reader). A field without one shows its name there, as before.
 
 ## Who may do what
 

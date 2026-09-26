@@ -26,6 +26,7 @@ function row(
     key: "customer",
     name: "Customer",
     description: "Who asked",
+    icon: null,
     type,
     config,
     position: 0,
@@ -46,6 +47,7 @@ describe("the form for a new field", () => {
       key: "",
       type: "text",
       description: "",
+      icon: null,
       maxLength: "200",
       integer: false,
       min: "",
@@ -125,6 +127,31 @@ describe("the form for a field that exists", () => {
 
   it("makes a new row key each time", () => {
     expect(optionUid()).not.toBe(optionUid());
+  });
+});
+
+describe("the icon", () => {
+  it("starts as none for a new field, and is the field's own for one that exists", () => {
+    expect(blank().icon).toBeNull();
+    expect(
+      initialForm(row("text", { maxLength: 5 }, { icon: "lucide:flag" })).icon,
+    ).toBe("lucide:flag");
+    expect(initialForm(row("text", { maxLength: 5 })).icon).toBeNull();
+  });
+
+  it("goes into what a new field is created with, and into a change", () => {
+    const form = { ...blank(), name: "N", icon: "lucide:star" };
+    expect(toCreateInput(form).icon).toBe("lucide:star");
+    expect(toChangeInput(form).icon).toBe("lucide:star");
+    expect(toCreateInput({ ...form, icon: null }).icon).toBeNull();
+    expect(toChangeInput({ ...form, icon: null }).icon).toBeNull();
+  });
+
+  it("counts as a change of the form", () => {
+    const start = initialForm(row("text", { maxLength: 5 }));
+    expect(isDirty(start, { ...start, icon: "lucide:star" })).toBe(true);
+    expect(isDirty({ ...start, icon: "lucide:star" }, start)).toBe(true);
+    expect(isDirty(start, { ...start, icon: null })).toBe(false);
   });
 });
 
@@ -208,6 +235,7 @@ describe("what a new field is created with", () => {
       name: "Customer",
       key: undefined,
       description: "Who asked",
+      icon: null,
       type: "url",
       config: {},
     });
@@ -242,6 +270,7 @@ describe("what changing a field hands over", () => {
     expect(input).toEqual({
       name: "Client",
       description: "d",
+      icon: null,
       config: { integer: false, min: 1, max: null },
     });
     expect(Object.keys(input)).not.toContain("key");

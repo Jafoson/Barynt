@@ -38,6 +38,7 @@ function field(
     key: "k",
     name: "K",
     description: "",
+    icon: null,
     type,
     config,
     position: 0,
