@@ -32,6 +32,8 @@ interface TopbarClientProps {
   /** Groups this person hid in this view, as `hidden-groups.ts` entries (BARY-47). */
   hiddenGroups: string[];
   hideEmptyGroups: boolean;
+  /** Sub-issues as cards of their own — board only. */
+  showSubIssues: boolean;
   /** This person's hidden board-card/list-row fields for this view (BARY-33). */
   hiddenCardFields: string[];
   onDisplayChange: (
@@ -53,6 +55,7 @@ export function TopbarClient({
   issueTypes,
   hiddenGroups,
   hideEmptyGroups,
+  showSubIssues,
   hiddenCardFields,
   onDisplayChange,
   onGroupsChange,
@@ -174,6 +177,7 @@ export function TopbarClient({
             view={view}
             hiddenGroups={hiddenGroups}
             hideEmptyGroups={hideEmptyGroups}
+            showSubIssues={showSubIssues}
             onGroupsChange={onGroupsChange}
           />
         </div>

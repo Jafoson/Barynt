@@ -1855,6 +1855,8 @@ export async function setMyIssuesViewFieldVisibility(
 export interface ViewGroupsPatch {
   hiddenGroups?: string[];
   hideEmptyGroups?: boolean;
+  /** Sub-issues as cards of their own (board only). */
+  showSubIssues?: boolean;
 }
 
 function groupsData(patch: ViewGroupsPatch) {
@@ -1864,6 +1866,9 @@ function groupsData(patch: ViewGroupsPatch) {
     }),
     ...(patch.hideEmptyGroups !== undefined && {
       hideEmptyGroups: patch.hideEmptyGroups === true,
+    }),
+    ...(patch.showSubIssues !== undefined && {
+      showSubIssues: patch.showSubIssues === true,
     }),
   };
 }

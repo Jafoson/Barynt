@@ -182,6 +182,7 @@
     "groupsTitle": "Angezeigte Gruppen",
     "groupsAll": "Alle",
     "hideEmptyGroups": "Leere Gruppen automatisch ausblenden",
+    "showSubIssues": "Unteraufgaben anzeigen",
     "reset": "Zurücksetzen"
   },
   "settings": {

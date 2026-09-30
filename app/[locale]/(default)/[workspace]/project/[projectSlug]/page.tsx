@@ -34,14 +34,15 @@ export default async function BoardPage({
   const project = projects.find((p) => p.slug === projectSlug);
   if (!project) notFound();
 
-  const [issues, statuses, composer, hiddenCardFields, groups] =
-    await Promise.all([
-      getIssuesByProject(project.id, filters),
-      getWorkspaceStatuses(),
-      getIssueComposerData(),
-      getIssueViewPreference(project.id, "board"),
-      getIssueViewGroups(project.id, "board"),
-    ]);
+  const groups = await getIssueViewGroups(project.id, "board");
+  const [issues, statuses, composer, hiddenCardFields] = await Promise.all([
+    getIssuesByProject(project.id, filters, {
+      subIssues: groups.showSubIssues,
+    }),
+    getWorkspaceStatuses(),
+    getIssueComposerData(),
+    getIssueViewPreference(project.id, "board"),
+  ]);
   if (!composer) notFound();
 
   return (

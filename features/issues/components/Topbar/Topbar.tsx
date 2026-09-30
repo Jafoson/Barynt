@@ -88,6 +88,7 @@ export async function Topbar({ count, view, projectId }: TopbarProps) {
         issueTypes={issueTypes}
         hiddenGroups={groups.hiddenGroups}
         hideEmptyGroups={groups.hideEmptyGroups}
+        showSubIssues={groups.showSubIssues}
         onDisplayChange={onDisplayChange}
         onGroupsChange={onGroupsChange}
       />

@@ -623,9 +623,20 @@ async function resolveIssueFilters(
   };
 }
 
+/** What a board/list query leaves out beyond the URL filters. */
+export interface IssueListOptions {
+  /**
+   * Sub-issues (`parentId` set) as rows of their own. The board leaves them
+   * out unless the person switches them on (`showSubIssues`); the list keeps
+   * them.
+   */
+  subIssues?: boolean;
+}
+
 export async function getIssuesByProject(
   projectId: string,
   filters: IssueFilters = {},
+  { subIssues = true }: IssueListOptions = {},
 ): Promise<IssueDetail[]> {
   // The issues are the project's content — without `project.view` they
   // don't exist. This also applies to `blocked`: the role forbids
@@ -636,7 +647,7 @@ export async function getIssuesByProject(
 
   const rows = await db.issue.findMany({
     // The scope sits behind the filters: no slug in the URL can override it.
-    where: { ...where, projectId },
+    where: { ...where, projectId, ...(!subIssues && { parentId: null }) },
     include: {
       comments: {
         orderBy: { created: "asc" },
@@ -675,6 +686,7 @@ export async function getMyIssues(
   userId: string,
   workspaceId: string,
   filters: IssueFilters = {},
+  { subIssues = true }: IssueListOptions = {},
 ): Promise<IssueDetail[]> {
   const visible = await accessibleProjectIds(userId, workspaceId);
   if (visible.size === 0) return [];
@@ -693,7 +705,12 @@ export async function getMyIssues(
   const rows = await db.issue.findMany({
     // Assignee and scope sit behind the filters — an `?assignee=` in the
     // address can't turn "my" tasks into someone else's.
-    where: { ...where, assigneeId: userId, projectId: { in: scoped } },
+    where: {
+      ...where,
+      assigneeId: userId,
+      projectId: { in: scoped },
+      ...(!subIssues && { parentId: null }),
+    },
     include: {
       comments: {
         orderBy: { created: "asc" },
@@ -1254,11 +1271,14 @@ export const getMyIssuesViewPreference = cache(
 export interface ViewGroupPreference {
   hiddenGroups: string[];
   hideEmptyGroups: boolean;
+  /** Sub-issues as cards of their own — only the board reads it. */
+  showSubIssues: boolean;
 }
 
 const NO_GROUP_PREFERENCE: ViewGroupPreference = {
   hiddenGroups: [],
   hideEmptyGroups: false,
+  showSubIssues: false,
 };
 
 /** A project's board or list, as this person has set up its groups. */
@@ -1271,7 +1291,11 @@ export const getIssueViewGroups = cache(
     if (!userId) return NO_GROUP_PREFERENCE;
     const pref = await db.issueViewPreference.findUnique({
       where: { userId_projectId_view: { userId, projectId, view } },
-      select: { hiddenGroups: true, hideEmptyGroups: true },
+      select: {
+        hiddenGroups: true,
+        hideEmptyGroups: true,
+        showSubIssues: true,
+      },
     });
     return pref ?? NO_GROUP_PREFERENCE;
   },
@@ -1285,7 +1309,11 @@ export const getMyIssuesViewGroups = cache(
     if (!userId || !workspaceId) return NO_GROUP_PREFERENCE;
     const pref = await db.myIssuesViewPreference.findUnique({
       where: { userId_workspaceId_view: { userId, workspaceId, view } },
-      select: { hiddenGroups: true, hideEmptyGroups: true },
+      select: {
+        hiddenGroups: true,
+        hideEmptyGroups: true,
+        showSubIssues: true,
+      },
     });
     return pref ?? NO_GROUP_PREFERENCE;
   },

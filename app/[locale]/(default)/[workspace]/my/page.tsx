@@ -36,14 +36,15 @@ export default async function MyPage({
   const session = await getSession();
   if (!session) redirect(`/${locale}/login`);
 
-  const [issues, statuses, composer, hiddenCardFields, groups] =
-    await Promise.all([
-      getMyIssues(session.userId, workspace, filters),
-      getWorkspaceStatuses(),
-      getIssueComposerData(),
-      getMyIssuesViewPreference("board"),
-      getMyIssuesViewGroups("board"),
-    ]);
+  const groups = await getMyIssuesViewGroups("board");
+  const [issues, statuses, composer, hiddenCardFields] = await Promise.all([
+    getMyIssues(session.userId, workspace, filters, {
+      subIssues: groups.showSubIssues,
+    }),
+    getWorkspaceStatuses(),
+    getIssueComposerData(),
+    getMyIssuesViewPreference("board"),
+  ]);
   if (!composer) notFound();
 
   return (

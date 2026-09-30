@@ -123,6 +123,8 @@ interface ViewSettingsProps {
   hiddenGroups: string[];
   /** Empty groups hide themselves (BARY-47). */
   hideEmptyGroups: boolean;
+  /** Sub-issues as cards of their own — only offered on the board. */
+  showSubIssues: boolean;
   onGroupsChange: (
     patch: ViewGroupsPatch,
   ) => Promise<{ ok: true } | { error: string }>;
@@ -148,6 +150,7 @@ export function ViewSettings({
   view,
   hiddenGroups,
   hideEmptyGroups,
+  showSubIssues,
   onGroupsChange,
 }: ViewSettingsProps) {
   const t = useTranslations();
@@ -178,10 +181,13 @@ export function ViewSettings({
 
   const [hideEmpty, setHideEmpty] = useState(hideEmptyGroups);
 
+  const [subIssues, setSubIssues] = useState(showSubIssues);
+
   const saveGroups = (patch: ViewGroupsPatch) => {
     if (patch.hiddenGroups) setHiddenGroupList(patch.hiddenGroups);
     if (patch.hideEmptyGroups !== undefined)
       setHideEmpty(patch.hideEmptyGroups);
+    if (patch.showSubIssues !== undefined) setSubIssues(patch.showSubIssues);
     startTransition(async () => {
       await onGroupsChange(patch);
       router.refresh();
@@ -195,6 +201,8 @@ export function ViewSettings({
     });
 
   const toggleHideEmpty = () => saveGroups({ hideEmptyGroups: !hideEmpty });
+
+  const toggleSubIssues = () => saveGroups({ showSubIssues: !subIssues });
 
   const toggleField = (key: CardFieldKey) => {
     const next = new Set(hidden);
@@ -210,8 +218,12 @@ export function ViewSettings({
     onSortChange("manual");
     onGroupChange("status");
     save(new Set());
-    if (hiddenGroupList.length > 0 || hideEmpty)
-      saveGroups({ hiddenGroups: [], hideEmptyGroups: false });
+    if (hiddenGroupList.length > 0 || hideEmpty || subIssues)
+      saveGroups({
+        hiddenGroups: [],
+        hideEmptyGroups: false,
+        showSubIssues: false,
+      });
   };
 
   const { openModal } = useModal();
@@ -230,8 +242,10 @@ export function ViewSettings({
     view,
     hiddenGroups: hiddenGroupList,
     hideEmptyGroups: hideEmpty,
+    showSubIssues: subIssues,
     toggleGroup,
     toggleHideEmpty,
+    toggleSubIssues,
     setGroup: onGroupChange,
     setSort: onSortChange,
     toggleField,
@@ -246,8 +260,10 @@ export function ViewSettings({
     view,
     hiddenGroups: hiddenGroupList,
     hideEmptyGroups: hideEmpty,
+    showSubIssues: subIssues,
     toggleGroup,
     toggleHideEmpty,
+    toggleSubIssues,
     setGroup: onGroupChange,
     setSort: onSortChange,
     toggleField,
@@ -298,12 +314,14 @@ export function ViewSettings({
               view,
               hiddenGroups: hiddenGroupList,
               hideEmptyGroups: hideEmpty,
+              showSubIssues: subIssues,
             }}
             onGroup={onGroupChange}
             onSort={onSortChange}
             onToggleField={toggleField}
             onToggleGroup={toggleGroup}
             onToggleHideEmpty={toggleHideEmpty}
+            onToggleSubIssues={toggleSubIssues}
             onReset={reset}
             facet={facet}
             onFacetChange={setFacet}
@@ -325,8 +343,10 @@ interface SheetSource {
   view: GroupView;
   hiddenGroups: string[];
   hideEmptyGroups: boolean;
+  showSubIssues: boolean;
   toggleGroup: (group: GroupDef) => void;
   toggleHideEmpty: () => void;
+  toggleSubIssues: () => void;
   setGroup: (key: GroupKey) => void;
   setSort: (key: SortKey) => void;
   toggleField: (key: CardFieldKey) => void;
@@ -344,6 +364,8 @@ export interface DisplayState {
   view: GroupView;
   hiddenGroups: string[];
   hideEmptyGroups: boolean;
+  /** Sub-issues as cards of their own — the switch only shows on the board. */
+  showSubIssues: boolean;
 }
 
 /**
@@ -364,6 +386,7 @@ function ViewSheet({
   const [hidden, setHidden] = useState(latest.current.hidden);
   const [hiddenGroups, setHiddenGroups] = useState(latest.current.hiddenGroups);
   const [hideEmpty, setHideEmpty] = useState(latest.current.hideEmptyGroups);
+  const [subIssues, setSubIssues] = useState(latest.current.showSubIssues);
   const [facet, setFacet] = useState<DisplayFacet | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const swipe = useSwipeToClose(close, bodyRef);
@@ -377,6 +400,7 @@ function ViewSheet({
     view: latest.current.view,
     hiddenGroups,
     hideEmptyGroups: hideEmpty,
+    showSubIssues: subIssues,
   };
   const facetTitle =
     facet === "group"
@@ -392,6 +416,7 @@ function ViewSheet({
     setHidden(new Set());
     setHiddenGroups([]);
     setHideEmpty(false);
+    setSubIssues(false);
     latest.current.reset();
   };
 
@@ -442,6 +467,10 @@ function ViewSheet({
               setHideEmpty((prev) => !prev);
               latest.current.toggleHideEmpty();
             }}
+            onToggleSubIssues={() => {
+              setSubIssues((prev) => !prev);
+              latest.current.toggleSubIssues();
+            }}
             onReset={resetToDefaults}
             facet={facet}
             onFacetChange={setFacet}
@@ -462,6 +491,7 @@ interface DisplayPanelProps {
   onToggleField: (key: CardFieldKey) => void;
   onToggleGroup: (group: GroupDef) => void;
   onToggleHideEmpty: () => void;
+  onToggleSubIssues: () => void;
   onReset: () => void;
   /** The list that's open, or `null` for the rows. */
   facet: DisplayFacet | null;
@@ -486,6 +516,7 @@ export function DisplayPanel({
   onToggleField,
   onToggleGroup,
   onToggleHideEmpty,
+  onToggleSubIssues,
   onReset,
   facet,
   onFacetChange,
@@ -626,6 +657,19 @@ export function DisplayPanel({
           labelHidden
         />
       </div>
+
+      {/* The list keeps sub-issues regardless — only the board can leave them out. */}
+      {state.view === "board" && (
+        <div className={`${styles.row} ${styles.switchRow}`}>
+          <span className={styles.rowLabel}>{t("display.showSubIssues")}</span>
+          <Switch
+            checked={state.showSubIssues}
+            onChange={onToggleSubIssues}
+            label={t("display.showSubIssues")}
+            labelHidden
+          />
+        </div>
+      )}
 
       <div className={styles.section}>
         <span className={styles.sectionTitle}>{t("display.fieldsTitle")}</span>

@@ -86,6 +86,14 @@ describe("getMyIssues()", () => {
     ]);
   });
 
+  it("leaves sub-issues out when asked to (board default)", async () => {
+    await getMyIssues("u-1", "ws-1", {}, { subIssues: false });
+    expect(lastWhere().parentId).toBeNull();
+
+    await getMyIssues("u-1", "ws-1");
+    expect(lastWhere()).not.toHaveProperty("parentId");
+  });
+
   it("takes the status filter from the URL", async () => {
     await getMyIssues("u-1", "ws-1", { status: "todo,in_progress" });
 

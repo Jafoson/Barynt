@@ -182,6 +182,7 @@
     "groupsTitle": "Shown groups",
     "groupsAll": "All",
     "hideEmptyGroups": "Hide empty groups automatically",
+    "showSubIssues": "Show sub-issues",
     "reset": "Reset"
   },
   "settings": {

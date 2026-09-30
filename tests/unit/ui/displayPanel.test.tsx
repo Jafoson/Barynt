@@ -41,6 +41,7 @@ const state: DisplayState = {
   view: "list",
   hiddenGroups: ["status:done", "priority:3"],
   hideEmptyGroups: false,
+  showSubIssues: false,
 };
 
 function render(
@@ -54,6 +55,7 @@ function render(
       onToggleField={() => {}}
       onToggleGroup={() => {}}
       onToggleHideEmpty={() => {}}
+      onToggleSubIssues={() => {}}
       onReset={() => {}}
       facet={null}
       onFacetChange={() => {}}
@@ -92,6 +94,13 @@ describe("DisplayPanel", () => {
     expect(render()).toContain('aria-checked="false"');
     expect(render({ state: { ...state, hideEmptyGroups: true } })).toContain(
       "checked",
+    );
+  });
+
+  it("offers the sub-issues switch on the board only", () => {
+    expect(render()).not.toContain("display.showSubIssues");
+    expect(render({ state: { ...state, view: "board" } })).toContain(
+      "display.showSubIssues",
     );
   });
 
