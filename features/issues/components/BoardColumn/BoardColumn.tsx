@@ -162,18 +162,20 @@ export function BoardColumn({
             </React.Fragment>
           );
         })}
-        {canCreate && (
-          <button
-            type="button"
-            className={styles.addCard}
-            title={newIssueLabel}
-            onClick={showCreateIssueModal}
-          >
-            <Icon icon="lucide:plus" width={15} />
-            <span>{newIssueLabel}</span>
-          </button>
-        )}
       </div>
+      {/* Outside the scrolling list: at the end of a long column it would sit
+          below the fold and only show up after scrolling all the way down. */}
+      {canCreate && (
+        <button
+          type="button"
+          className={styles.addCard}
+          title={newIssueLabel}
+          onClick={showCreateIssueModal}
+        >
+          <Icon icon="lucide:plus" width={15} />
+          <span>{newIssueLabel}</span>
+        </button>
+      )}
     </div>
   );
 }

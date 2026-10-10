@@ -5,7 +5,11 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
-import { issuePath } from "@/features/issues/issue-links";
+import {
+  isBrowserClick,
+  issuePath,
+  useIssueOpen,
+} from "@/features/issues/issue-links";
 import { Link } from "@/i18n/navigation";
 import { useModal } from "@/lib/context";
 import type { User } from "@/types";
@@ -18,12 +22,13 @@ interface OpenPageButtonProps {
 }
 
 /**
- * Leads from the panel and dialog to the issue's full page.
+ * Leads from the panel and dialog to the issue's full page — in a new tab,
+ * so the view behind the panel (filters, scroll position) stays as it was.
  *
- * A link, not a button with `router.push`: the page is a place, and it
- * should be possible to open it with a Cmd-click in a new tab too.
- * Appearance and dimensions come from `.headerLink` — the same as the ghost
- * buttons next to it.
+ * A link, not a button: the `href` keeps middle click and "open link in new
+ * tab" working untouched; only the plain left click is taken over, to open
+ * one of the app's own tabs (`openPageInNewTab`). Appearance and dimensions
+ * come from `.headerLink` — the same as the ghost buttons next to it.
  */
 export function OpenPageButton({
   workspaceId,
@@ -31,11 +36,17 @@ export function OpenPageButton({
 }: OpenPageButtonProps) {
   const t = useTranslations();
   const label = t("actions.openPage");
+  const { openPageInNewTab } = useIssueOpen(workspaceId);
 
   return (
     <Link
       href={issuePath(workspaceId, identifier)}
       className={styles.headerLink}
+      onClick={(event) => {
+        if (isBrowserClick(event)) return;
+        event.preventDefault();
+        openPageInNewTab(identifier);
+      }}
       aria-label={label}
       title={label}
     >

@@ -94,11 +94,14 @@
 }
 
 .addCard {
+  flex: none;
+  /* Same side inset as `.cards`, so it lines up with the cards above. */
+  width: calc(100% - 1.25rem);
+  margin: 0 0.625rem 0.625rem;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
-  width: 100%;
   padding: 0.75rem 0;
   font-size: 0.7812rem;
   font-weight: 500;
@@ -106,15 +109,13 @@
   border: 1px dashed var(--outline-variant);
   border-radius: var(--radius);
   cursor: pointer;
-  opacity: 0;
+  /* Always there, just quiet — a control that only exists under the pointer
+     is easy to take for missing (and can't be found by keyboard or touch). */
+  opacity: .55;
   transition: opacity .12s, color .12s, background .12s, border-color .12s;
 
-  .col:hover & {
-    opacity: 1;
-  }
-
-  /* No hover to reveal it on a touch screen — it'd never show. */
-  @include bp.no-hover {
+  .col:hover &,
+  &:hover {
     opacity: 1;
   }
 
