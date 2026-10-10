@@ -9,19 +9,9 @@ import { type GroupDef, isCustomGroupKey } from "@/features/issues/group";
 
 /** The icon in front of a board column / list group name — depends on what is grouped by. */
 export function GroupIcon({ group, size }: { group: GroupDef; size: number }) {
-  // A choice of a custom field: a filled dot in its colour where it has one,
-  // a dashed circle for "no value".
-  if (isCustomGroupKey(group.key)) {
-    return group.id === "none" ? (
-      <Icon icon="lucide:circle-dashed" width={size} />
-    ) : (
-      <Icon
-        icon="lucide:circle"
-        width={size}
-        style={group.color ? { color: group.color } : undefined}
-      />
-    );
-  }
+  // A choice of a custom field has no icon: the name says it all, and a
+  // generic circle in front of every column only adds noise.
+  if (isCustomGroupKey(group.key)) return null;
   switch (group.key) {
     case "status":
       return <StatusIcon status={group.id} size={size} color={group.color} />;
