@@ -47,6 +47,7 @@ model Workspace {
   members       WorkspaceMember[]
   projects      Project[]
   labels        Label[]
+  customFields  CustomField[]
   teams         Team[]
   invitations   Invitation[]
   statuses      WorkspaceStatus[]
@@ -719,6 +720,7 @@ model Project {
   issues        Issue[]
   teams         TeamProject[]
   labels        Label[]
+  customFields  CustomField[]
   members       ProjectMember[]
   invitations   Invitation[]
   // Workspace-Labels, die in diesem Projekt nicht angeboten werden.
@@ -1056,6 +1058,86 @@ model ProjectHiddenLabel {
   @@index([labelId])
 }
 
+// ─── Benutzerdefinierte Felder ────────────────────────────────────────────────
+
+/// Welche Art Wert ein Feld trägt. Der Typ bestimmt, wie `IssueFieldValue.value`
+/// aussieht (siehe dort) und welches Eingabeelement die Oberfläche zeigt.
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  URL
+  USER
+}
+
+/// Ein Feld, das ein Workspace oder ein Projekt an seinen Issues führt.
+///
+/// Wie bei `Label` entscheidet `projectId`, wo es gilt: leer heißt „in jedem
+/// Projekt des Workspace", gesetzt heißt „nur in diesem Projekt". Dieselbe
+/// Berechtigung (`customfield.manage`) greift auf beiden Ebenen, der Kontext
+/// sagt, welche.
+///
+/// `key` ist der stabile Name nach außen (API, MCP, Webhooks, Plugins) und
+/// ändert sich nicht, wenn jemand das Feld umbenennt. Er ist je Workspace
+/// eindeutig, damit ein Workspace-Feld und ein Projekt-Feld nie denselben
+/// Schlüssel tragen.
+///
+/// Archivieren blendet das Feld aus Auswahl und Anzeige aus, behält aber die
+/// Werte: wie bei den Labels gibt es hier keine Historie, ein Löschen wäre
+/// unwiederbringlich.
+model CustomField {
+  id          String          @id
+  workspaceId String
+  projectId   String?
+  key         String
+  name        String
+  description String          @default("")
+  type        CustomFieldType
+  /// Nur für SELECT und MULTI_SELECT: `[{ "id": "o_…", "label": "…", "color": "#…" }]`.
+  /// Die Id ist stabil, damit ein Umbenennen den gespeicherten Wert nicht trifft.
+  options     Json            @default("[]")
+  position    Int             @default(0)
+  archivedAt  DateTime?
+  created     DateTime        @default(now())
+  updated     DateTime        @updatedAt
+
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project   Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  values    IssueFieldValue[]
+
+  @@unique([workspaceId, key])
+  @@index([workspaceId])
+  @@index([projectId])
+}
+
+/// Der Wert eines Feldes an einem Issue. `value` ist je nach Typ:
+///
+///   TEXT, URL     → string
+///   NUMBER        → number
+///   DATE          → "YYYY-MM-DD" (nur der Kalendertag, keine Zeitzone)
+///   SELECT        → Options-Id (string)
+///   MULTI_SELECT  → Options-Ids (string[])
+///   CHECKBOX      → boolean
+///   USER          → User-Id (string)
+///
+/// Geprüft wird das beim Schreiben (`lib/custom-fields`), nicht von der
+/// Datenbank — `Json` kennt keinen Typ.
+model IssueFieldValue {
+  issueId String
+  fieldId String
+  value   Json
+  updated DateTime @updatedAt
+
+  issue Issue       @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  field CustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@id([issueId, fieldId])
+  @@index([fieldId])
+}
+
 /// Wie ein Issue oder Kommentar entstanden ist — für die kleine Quelle-Badge
 /// neben Reporter/Autor in der UI (nach dem Vorbild von GitLabs Pipeline-
 /// Quellen wie „API"/„Web"). `APP` ist der Normalfall (die eigentliche
@@ -1181,6 +1263,10 @@ model Issue {
   /// Beziehungen, bei denen dieses Issue das Ziel ist — z. B. "wird von X
   /// blockiert".
   relationsTo   IssueRelation[] @relation("IssueRelationTarget")
+  /// Werte der benutzerdefinierten Felder (`CustomField`) — eine Zeile je
+  /// Feld, das an diesem Issue einen Wert hat. Fehlt die Zeile, ist das
+  /// Feld leer.
+  fieldValues   IssueFieldValue[]
 
   @@unique([projectId, key])
   @@index([projectId, status])

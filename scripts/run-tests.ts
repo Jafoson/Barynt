@@ -54,7 +54,12 @@ const SEGMENTS: string[][] = [
   // mocks nothing). See the "always use `bun run test`" races in CLAUDE.md.
   ["tests/unit/realtime"],
   ["tests/unit/session"],
-  ["tests/unit/richtext", "tests/unit/table", "tests/unit/ui"],
+  [
+    "tests/unit/richtext",
+    "tests/unit/table",
+    "tests/unit/ui",
+    "tests/unit/customfields",
+  ],
   ["tests/unit/account"],
   ["tests/unit/notifications"],
   ["tests/unit/mail/send.test.ts"],
