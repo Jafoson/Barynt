@@ -43,7 +43,8 @@
     "noWorkspaces": "Noch kein Workspace",
     "noWorkspacesDescCreate": "Du gehörst noch keinem Workspace an. Erstelle einen, um loszulegen.",
     "noWorkspacesDescLocked": "Du gehörst noch keinem Workspace an. Bitte einen Admin, dich einzuladen.",
-    "navigation": "Navigation"
+    "navigation": "Navigation",
+    "customFields": "Eigene Felder"
   },
   "actions": {
     "addLabel": "Label hinzufügen",
@@ -1216,7 +1217,12 @@
       "issueStoryPointsChanged": "Story Points geändert",
       "issueEstimateHoursChanged": "Zeitschätzung geändert",
       "labelCreated": "Label angelegt",
-      "labelDeleted": "Label gelöscht"
+      "labelDeleted": "Label gelöscht",
+      "customFieldCreated": "Benutzerdefiniertes Feld angelegt",
+      "customFieldUpdated": "Benutzerdefiniertes Feld geändert",
+      "customFieldArchived": "Benutzerdefiniertes Feld archiviert",
+      "customFieldRestored": "Benutzerdefiniertes Feld wiederhergestellt",
+      "customFieldDeleted": "Benutzerdefiniertes Feld gelöscht"
     }
   },
   "dashboard": {
@@ -1396,5 +1402,59 @@
     "issuePageOpenMode": "„Vollständig öffnen“ im Issue",
     "issuePageOpenModeDesc": "Was der Knopf oben im Issue-Detail (und die Taste O) tut: die ganze Seite des Issues öffnen.",
     "openSameTab": "Im selben Tab"
+  },
+  "customFields": {
+    "title": "Benutzerdefinierte Felder",
+    "subtitleWorkspace": "Felder, die jedes Issue dieses Workspace tragen kann. Sie gelten in allen Projekten.",
+    "subtitleProject": "Felder für die Issues von „{project}“. Die Felder des Workspace gelten hier ebenfalls.",
+    "newField": "Neues Feld",
+    "colName": "Feld",
+    "colType": "Typ",
+    "colUsage": "Nutzung",
+    "usage": "{count, plural, one {# Issue} other {# Issues}}",
+    "unused": "Nicht in Benutzung",
+    "archived": "Archiviert",
+    "emptyTitle": "Noch keine Felder",
+    "emptyDesc": "Lege ein Feld an, etwa Kunde, Version oder Link, und fülle es an jedem Issue aus.",
+    "inheritedTitle": "Aus dem Workspace",
+    "inheritedDesc": "Diese Felder kommen aus dem Workspace und werden dort in den Einstellungen geändert.",
+    "editTitle": "Feld bearbeiten",
+    "newTitle": "Neues Feld",
+    "name": "Name",
+    "namePlaceholder": "z. B. Kunde",
+    "description": "Beschreibung",
+    "descriptionPlaceholder": "Wird als Hinweis neben dem Feld gezeigt",
+    "type": "Typ",
+    "typeLocked": "Der Typ lässt sich nicht mehr ändern. Lege stattdessen ein neues Feld an und archiviere dieses.",
+    "key": "Schlüssel",
+    "options": "Auswahl",
+    "optionPlaceholder": "Auswahl",
+    "addOption": "Auswahl hinzufügen",
+    "removeOption": "Auswahl entfernen",
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten",
+    "archive": "Archivieren",
+    "restore": "Wiederherstellen",
+    "deleteTitle": "„{name}“ löschen?",
+    "deleteDesc": "{count, plural, =0 {Das Feld ist nirgends ausgefüllt.} one {Es ist an # Issue ausgefüllt. Der Wert geht verloren.} other {Es ist an # Issues ausgefüllt. Die Werte gehen verloren.}} Archiviere das Feld stattdessen, um die Werte zu behalten.",
+    "types": {
+      "TEXT": "Text",
+      "NUMBER": "Zahl",
+      "DATE": "Datum",
+      "SELECT": "Einfachauswahl",
+      "MULTI_SELECT": "Mehrfachauswahl",
+      "CHECKBOX": "Kontrollkästchen",
+      "URL": "Link",
+      "USER": "Person"
+    },
+    "errors": {
+      "name_invalid": "Gib dem Feld einen Namen mit höchstens 60 Zeichen.",
+      "description_invalid": "Die Beschreibung darf höchstens 300 Zeichen haben.",
+      "type_invalid": "Wähle einen Typ.",
+      "options_invalid": "Füge mindestens eine Auswahl mit Namen hinzu. Höchstens 50.",
+      "limit_reached": "Dieser Workspace hat die Grenze von 100 aktiven Feldern erreicht.",
+      "not_found": "Dieses Feld gibt es nicht mehr.",
+      "failed": "Das Feld konnte nicht gespeichert werden. Versuche es erneut."
+    }
   }
 }

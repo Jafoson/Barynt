@@ -25,6 +25,7 @@ export type NavLabelKey =
   | "roles"
   | "labels"
   | "fields"
+  | "customFields"
   | "workspaces"
   | "account"
   | "navigation"
@@ -115,11 +116,13 @@ export const GLOBAL_NAV: NavEntry[] = [
 export const WORKSPACE_SETTINGS_PERMISSIONS: Permission[] = [
   "role.manage",
   "label.create",
+  "customfield.manage",
   "workspace.update",
 ];
 export const PROJECT_SETTINGS_PERMISSIONS: Permission[] = [
   "role.manage",
   "label.create",
+  "customfield.manage",
   "project.update",
 ];
 
@@ -334,6 +337,12 @@ export const PROJECT_SETTINGS_NAV: NavEntry[] = [
   { section: "labels", icon: "lucide:tag", labelKey: "labels" },
   { section: "fields", icon: "lucide:layout-list", labelKey: "fields" },
   {
+    section: "custom-fields",
+    icon: "lucide:text-cursor-input",
+    labelKey: "customFields",
+    permission: "customfield.manage",
+  },
+  {
     section: "activity",
     icon: "lucide:scroll-text",
     labelKey: "activity",
@@ -355,6 +364,12 @@ export const WORKSPACE_SETTINGS_NAV: NavEntry[] = [
   { section: "", icon: "lucide:settings", labelKey: "general" },
   { section: "projects", icon: "lucide:folders", labelKey: "projects" },
   { section: "labels", icon: "lucide:tag", labelKey: "labels" },
+  {
+    section: "custom-fields",
+    icon: "lucide:text-cursor-input",
+    labelKey: "customFields",
+    permission: "customfield.manage",
+  },
   {
     section: "webhooks",
     icon: "lucide:webhook",
