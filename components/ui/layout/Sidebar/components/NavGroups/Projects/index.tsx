@@ -1,15 +1,12 @@
 import { getTranslations } from "next-intl/server";
+import { getMyPreferences } from "@/features/account/queries";
 import { NewProjectButton } from "@/features/projects/components/NewProjectButton/NewProjectButton";
 import {
   getCurrentWorkspace,
   getWorkspaceProjects,
 } from "@/features/workspaces/queries";
-import {
-  navEntryAllowed,
-  PROJECT_NAV,
-  PROJECT_OVERVIEW_NAV,
-  projectPath,
-} from "@/lib/nav";
+import { db } from "@/lib/db";
+import { navEntryAllowed, PROJECT_NAV, projectPath } from "@/lib/nav";
 import { getAccess } from "@/lib/permissions";
 import styles from "../../../sidebar.module.scss";
 import TabList, { type TabGroup } from "../components/TabList";
@@ -19,10 +16,39 @@ export default async function NavGroupProjects() {
   const workspace = await getCurrentWorkspace();
   if (!workspace) return null;
 
-  const [projects, access] = await Promise.all([
-    getWorkspaceProjects(),
-    getAccess({ workspaceId: workspace.id }),
-  ]);
+  const [visibleProjects, access, { projectLanding, projectOrder }] =
+    await Promise.all([
+      getWorkspaceProjects(),
+      getAccess({ workspaceId: workspace.id }),
+      getMyPreferences(),
+    ]);
+
+  // The list arrives alphabetical. "Newest first" needs the creation time,
+  // which the shared project shape doesn't carry — read here, for the one
+  // place that orders by it.
+  let projects = visibleProjects;
+  if (projectOrder === "newest" && projects.length > 1) {
+    const created = new Map(
+      (
+        await db.project.findMany({
+          where: { id: { in: projects.map((p) => p.id) } },
+          select: { id: true, createdAt: true },
+        })
+      ).map((row) => [row.id, row.createdAt.getTime()]),
+    );
+    projects = [...projects].sort(
+      (a, b) => (created.get(b.id) ?? 0) - (created.get(a.id) ?? 0),
+    );
+  }
+
+  // The project's row: where a click on its name leads (the person's
+  // choice). Every one of these is also an entry in the group below.
+  const landingSection =
+    projectLanding === "list"
+      ? "list"
+      : projectLanding === "dashboard"
+        ? "overview"
+        : "";
 
   // Each project has its own role — the visibility of "Settings"
   // (`role.manage`/`label.create`/`project.update`) depends on the project
@@ -38,7 +64,7 @@ export default async function NavGroupProjects() {
     const projPath = projectPath(workspace.id, p.slug, "");
     const pAccess = projectAccess[i];
     return {
-      href: `${projPath}/${PROJECT_OVERVIEW_NAV.section}`,
+      href: projectPath(workspace.id, p.slug, landingSection),
       activeHref: `${projPath}/*`,
       label: p.name,
       color: p.color,

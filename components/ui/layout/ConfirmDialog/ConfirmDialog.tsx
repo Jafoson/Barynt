@@ -6,6 +6,7 @@ import { ModalFooter } from "@/components/ui/layout/Modal/components/ModalFooter
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
 import { useModal } from "@/lib/context";
+import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import styles from "./confirmDialog.module.scss";
 
@@ -18,8 +19,16 @@ export interface ConfirmOptions {
   /**
    * The confirmation leads to a loss (discard, delete) and is rendered in
    * red. Default: false.
+   *
+   * A person can switch the question off for these (`confirmDestructive`
+   * in their settings) — then the answer is "yes" without asking.
    */
   danger?: boolean;
+  /**
+   * Asked even when the person has turned confirmations off: for things
+   * that can't be taken back and aren't part of everyday cleanup.
+   */
+  always?: boolean;
 }
 
 /**
@@ -40,10 +49,16 @@ export interface ConfirmOptions {
  */
 export function useConfirm() {
   const { openModal } = useModal();
+  const { confirmDestructive } = usePreferences();
 
   return useCallback(
     (options: ConfirmOptions) =>
       new Promise<boolean>((resolve) => {
+        if (!confirmDestructive && options.danger && !options.always) {
+          resolve(true);
+          return;
+        }
+
         // The dialog can end in two ways — answered or dismissed.
         // Both converge here, and the first one wins.
         let answered = false;
@@ -66,7 +81,7 @@ export function useConfirm() {
           { label: options.title, onClose: () => settle(false) },
         );
       }),
-    [openModal],
+    [openModal, confirmDestructive],
   );
 }
 

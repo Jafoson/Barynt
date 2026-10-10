@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getMyPreferences } from "@/features/account/queries";
 import { IssuePeek } from "@/features/issues/components/IssuePeek/IssuePeek";
 import { ListView } from "@/features/issues/components/ListView/ListView";
 import { Topbar } from "@/features/issues/components/Topbar/Topbar";
@@ -25,6 +26,8 @@ export default async function ListPage({
   const { workspace, projectSlug } = await params;
   const filters = await searchParams;
   setCurrentWorkspaceId(workspace);
+  // The grouping and order a view opens with when the address names none.
+  const defaults = await getMyPreferences();
 
   const projects = await getWorkspaceProjects();
   const project = projects.find((p) => p.slug === projectSlug);
@@ -48,8 +51,8 @@ export default async function ListPage({
         hiddenCardFields={hiddenCardFields}
         hiddenGroups={groups.hiddenGroups}
         hideEmptyGroups={groups.hideEmptyGroups}
-        sortKey={sortKeyFromParam(filters.sort)}
-        groupKey={groupKeyFromParam(filters.group)}
+        sortKey={sortKeyFromParam(filters.sort ?? defaults.defaultSort)}
+        groupKey={groupKeyFromParam(filters.group ?? defaults.defaultGrouping)}
       />
       {/* Opens the clicked issue as a side panel (`?issue=` in the URL). */}
       <IssuePeek data={composer} />

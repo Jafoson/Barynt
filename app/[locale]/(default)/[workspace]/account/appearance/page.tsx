@@ -4,7 +4,7 @@ import { setCurrentWorkspaceId } from "@/lib/current-workspace";
 
 export const dynamic = "force-dynamic";
 
-/** Theme and language. */
+/** Theme, language, date and time. */
 export default async function AccountAppearancePage({
   params,
 }: {
@@ -15,5 +15,15 @@ export default async function AccountAppearancePage({
 
   const preferences = await getMyPreferences();
 
-  return <AccountAppearance theme={preferences.theme} />;
+  return (
+    <AccountAppearance
+      theme={preferences.theme}
+      dateTime={{
+        dateFormat: preferences.dateFormat,
+        weekStart: preferences.weekStart,
+        timeZone: preferences.timeZone,
+      }}
+      timeZones={Intl.supportedValuesOf("timeZone")}
+    />
+  );
 }

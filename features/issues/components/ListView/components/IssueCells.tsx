@@ -6,6 +6,7 @@ import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import { Input } from "@/components/ui/atoms/Input/Input";
 import { Label } from "@/components/ui/atoms/Label/Label";
 import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
+import { Stamp } from "@/components/ui/atoms/Stamp/Stamp";
 import {
   DueDateBadge,
   LabelIcon,
@@ -16,6 +17,7 @@ import {
 } from "@/features/issues/components/IssueIcons/IssueIcons";
 import { ValuePopover } from "@/features/issues/components/ValuePopover/ValuePopover";
 import { useIssuePatch } from "@/features/issues/useIssuePatch";
+import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import type {
   Issue,
   IssueDetail,
@@ -341,6 +343,11 @@ export function LabelsCell({
  */
 export function UpdatedCell({ issue }: { issue: Issue }) {
   const format = useFormatter();
+  const { dateFormat } = usePreferences();
+
+  if (dateFormat === "absolute") {
+    return <Stamp className={styles.date} ts={issue.updated} />;
+  }
 
   return (
     <span

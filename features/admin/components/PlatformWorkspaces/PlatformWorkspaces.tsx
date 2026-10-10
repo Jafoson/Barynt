@@ -100,6 +100,7 @@ export function PlatformWorkspaces({
         confirmLabel: t("platformWorkspaces.suspend"),
         cancelLabel: t("actions.cancel"),
         danger: true,
+        always: true,
       });
       if (!ok) return;
     }

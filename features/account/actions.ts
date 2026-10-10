@@ -4,6 +4,20 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { unstable_update } from "@/auth";
 import {
+  type BehaviorPreferences,
+  DATE_FORMATS,
+  GROUP_KEYS,
+  ISSUE_OPEN_MODES,
+  ISSUE_PAGE_OPEN_MODES,
+  isTimeZone,
+  PROJECT_LANDINGS,
+  PROJECT_ORDERS,
+  SORT_KEYS,
+  START_PAGES,
+  toShortcutOverrides,
+  WEEK_STARTS,
+} from "@/features/account/preferences";
+import {
   NOTIFICATION_CHANNELS,
   NOTIFICATION_EVENTS,
   type NotificationKey,
@@ -50,7 +64,7 @@ const NOTIFICATION_KEYS = new Set<string>(
  */
 async function writePreferences(
   userId: string,
-  data: Record<string, string | boolean>,
+  data: Record<string, string | boolean | null | Record<string, string>>,
 ): Promise<void> {
   await db.userPreferences.upsert({
     where: { userId },
@@ -200,6 +214,99 @@ export async function updateAppearance(data: {
     ...(data.theme !== undefined ? { theme: data.theme } : {}),
   });
 
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** Which values each choice-type behavior setting accepts. */
+const BEHAVIOR_CHOICES: Partial<
+  Record<keyof BehaviorPreferences, readonly string[]>
+> = {
+  projectLanding: PROJECT_LANDINGS,
+  startPage: START_PAGES,
+  issueOpenMode: ISSUE_OPEN_MODES,
+  issuePageOpenMode: ISSUE_PAGE_OPEN_MODES,
+  defaultGrouping: GROUP_KEYS,
+  defaultSort: SORT_KEYS,
+  projectOrder: PROJECT_ORDERS,
+  dateFormat: DATE_FORMATS,
+  weekStart: WEEK_STARTS,
+};
+
+const BEHAVIOR_FLAGS = [
+  "defaultShowSubIssues",
+  "sidebarCollapsed",
+  "confirmDestructive",
+] as const;
+
+/** A shortcut spec as `useShortcut` reads it: `c`, `mod+k`, `g+d`, `shift+?`. */
+const SHORTCUT_SPEC = /^(?:(?:mod|shift|alt)\+)*[^+\s]+(?:\+[^+\s])?$/i;
+
+/**
+ * Behavior settings: where clicks lead, how issues open, defaults for
+ * views, date format, zone, own shortcuts, confirmations.
+ *
+ * Takes any subset; whatever isn't named stays as it is. Unknown values are
+ * rejected as a whole — a half-applied change would be harder to explain
+ * than a refusal. Like `updateAppearance`, this only ever writes the row of
+ * whoever is logged in.
+ */
+export async function updateBehavior(
+  data: Partial<BehaviorPreferences>,
+): Promise<Result> {
+  const session = await getSession();
+  if (!session) return { error: NOT_LOGGED_IN };
+
+  const write: Record<
+    string,
+    string | boolean | null | Record<string, string>
+  > = {};
+
+  for (const [key, allowed] of Object.entries(BEHAVIOR_CHOICES)) {
+    const value = data[key as keyof BehaviorPreferences];
+    if (value === undefined) continue;
+    if (typeof value !== "string" || !allowed?.includes(value)) {
+      return { error: `Unknown value for ${key}.` };
+    }
+    write[key] = value;
+  }
+
+  for (const key of BEHAVIOR_FLAGS) {
+    const value = data[key];
+    if (value === undefined) continue;
+    if (typeof value !== "boolean")
+      return { error: `Unknown value for ${key}.` };
+    write[key] = value;
+  }
+
+  if (data.timeZone !== undefined) {
+    if (data.timeZone !== null && !isTimeZone(data.timeZone)) {
+      return { error: "Unknown time zone." };
+    }
+    write.timeZone = data.timeZone;
+  }
+
+  if (data.shortcutOverrides !== undefined) {
+    const overrides = toShortcutOverrides(data.shortcutOverrides);
+    // Every entry must be a spec the matcher can read, and no two shortcuts
+    // may end up on the same keys — the second one would never fire.
+    const seen = new Set<string>();
+    for (const spec of Object.values(overrides)) {
+      if (!SHORTCUT_SPEC.test(spec)) return { error: "Invalid shortcut." };
+      const normalized = spec.toLowerCase();
+      if (seen.has(normalized)) {
+        return { error: "Two shortcuts can't share the same keys." };
+      }
+      seen.add(normalized);
+    }
+    write.shortcutOverrides = overrides;
+  }
+
+  if (Object.keys(write).length === 0) return { ok: true };
+
+  await writePreferences(session.userId, write);
+
+  // Shell, sidebar and the views all read these on the server.
   revalidatePath("/", "layout");
   return { ok: true };
 }

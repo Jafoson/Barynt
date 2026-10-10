@@ -22,13 +22,15 @@ interface OpenPageButtonProps {
 }
 
 /**
- * Leads from the panel and dialog to the issue's full page — in a new tab,
- * so the view behind the panel (filters, scroll position) stays as it was.
+ * Leads from the panel and dialog to the issue's full page — by default in a
+ * new tab of Barynt's own, so the view behind the panel (filters, scroll
+ * position) stays as it was. Each person can pick a browser tab or the same
+ * tab instead (`issuePageOpenMode`).
  *
  * A link, not a button: the `href` keeps middle click and "open link in new
- * tab" working untouched; only the plain left click is taken over, to open
- * one of the app's own tabs (`openPageInNewTab`). Appearance and dimensions
- * come from `.headerLink` — the same as the ghost buttons next to it.
+ * tab" working untouched; only the plain left click is taken over
+ * (`openFullPage`). Appearance and dimensions come from `.headerLink` — the
+ * same as the ghost buttons next to it.
  */
 export function OpenPageButton({
   workspaceId,
@@ -36,7 +38,7 @@ export function OpenPageButton({
 }: OpenPageButtonProps) {
   const t = useTranslations();
   const label = t("actions.openPage");
-  const { openPageInNewTab } = useIssueOpen(workspaceId);
+  const { openFullPage } = useIssueOpen(workspaceId);
 
   return (
     <Link
@@ -45,7 +47,7 @@ export function OpenPageButton({
       onClick={(event) => {
         if (isBrowserClick(event)) return;
         event.preventDefault();
-        openPageInNewTab(identifier);
+        openFullPage(identifier);
       }}
       aria-label={label}
       title={label}

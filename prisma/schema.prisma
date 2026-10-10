@@ -380,6 +380,62 @@ model UserPreferences {
   /// auch nicht auf einem anderen Gerät; deshalb hier und nicht im Browser.
   passkeyNudgeHidden Boolean @default(false)
 
+  // ─── Verhalten: Navigation, Issues öffnen, Ansichten ──────────────────────
+  // Wie bei `theme`: ein Wert pro Person, die Spalte trägt den Standard. Die
+  // erlaubten Werte stehen in `features/account/preferences.ts`; geprüft wird
+  // dort und in `updateBehavior`, nicht in der Datenbank.
+
+  /// Wohin ein Klick auf den Projektnamen in der Seitenleiste führt:
+  /// "board" | "list" | "dashboard".
+  projectLanding String @default("board")
+
+  /// Wo man nach dem Anmelden landet: "workspace" (Workspace-Start) | "my" |
+  /// "inbox" | "dashboard".
+  startPage String @default("workspace")
+
+  /// Was ein Klick auf ein Issue tut: "panel" | "page" | "tab" (neuer Tab in
+  /// Barynt) | "browserTab".
+  issueOpenMode String @default("panel")
+
+  /// Was der Knopf "Vollständig öffnen" im Issue-Detail tut: "tab" (neuer Tab
+  /// in Barynt) | "browserTab" | "page" (gleicher Tab).
+  issuePageOpenMode String @default("tab")
+
+  /// Gruppierung und Sortierung für Ansichten, in denen die URL nichts
+  /// vorgibt — dieselben Schlüssel wie `?group=` und `?sort=`.
+  defaultGrouping String @default("status")
+  defaultSort     String @default("manual")
+
+  /// Sub-Issues im Board zeigen, solange eine Ansicht nichts Eigenes hat
+  /// (`IssueViewPreference.showSubIssues`).
+  defaultShowSubIssues Boolean @default(false)
+
+  /// Seitenleiste beim ersten Besuch als Icon-Leiste. Danach gilt, was die
+  /// Person im Browser eingestellt hat (Cookie).
+  sidebarCollapsed Boolean @default(false)
+
+  /// Reihenfolge der Projekte in der Seitenleiste: "name" | "newest".
+  projectOrder String @default("name")
+
+  // ─── Darstellung: Datum und Zeit ──────────────────────────────────────────
+
+  /// "relative" ("vor 2 T.") | "absolute" (festes Datum).
+  dateFormat String @default("relative")
+
+  /// "monday" | "sunday" — erster Tag im Kalender.
+  weekStart String @default("monday")
+
+  /// IANA-Zeitzone ("Europe/Berlin"); `null` = die des Browsers/Servers.
+  timeZone String?
+
+  // ─── Eingabe ──────────────────────────────────────────────────────────────
+
+  /// Eigene Tastenkürzel: `{ "<Standard-Kürzel>": "<eigenes Kürzel>" }`.
+  shortcutOverrides Json @default("{}")
+
+  /// Vor dem Löschen und anderen unumkehrbaren Aktionen nachfragen.
+  confirmDestructive Boolean @default(true)
+
   // Benachrichtigungen, je Anlass einmal für die App und einmal für die Mail.
   // Es gibt noch keinen Mailversand; die Spalten stehen trotzdem hier, damit die
   // Wahl schon getroffen werden kann und nicht später nachgeholt werden muss.

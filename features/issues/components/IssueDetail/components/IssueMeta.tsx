@@ -5,6 +5,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import type { IssueComposerData } from "@/features/issues/types";
+import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import { fullName } from "@/lib/utils/string";
 import { useTimeAgo } from "@/lib/utils/useTimeAgo";
 import type { Issue } from "@/types";
@@ -47,6 +48,7 @@ export function IssueMeta({ issue, data, layout }: IssueMetaProps) {
   const t = useTranslations();
   const format = useFormatter();
   const timeAgo = useTimeAgo();
+  const { dateFormat } = usePreferences();
 
   const project = projects.find((p) => p.id === issue.project);
   const reporter = members.find((m) => m.id === issue.reporter) ?? null;
@@ -79,11 +81,12 @@ export function IssueMeta({ issue, data, layout }: IssueMetaProps) {
 
       <Row label={t("fields.created")}>
         <span className={`${styles.value} ${styles.valueMuted}`}>
-          {format.dateTime(issue.created, {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })}
+          {format.dateTime(
+            issue.created,
+            dateFormat === "absolute"
+              ? { dateStyle: "long", timeStyle: "short" }
+              : { day: "numeric", month: "long", year: "numeric" },
+          )}
         </span>
       </Row>
 
@@ -96,7 +99,12 @@ export function IssueMeta({ issue, data, layout }: IssueMetaProps) {
           })}
           suppressHydrationWarning
         >
-          {timeAgo(issue.updated)}
+          {dateFormat === "absolute"
+            ? format.dateTime(issue.updated, {
+                dateStyle: "long",
+                timeStyle: "short",
+              })
+            : timeAgo(issue.updated)}
         </span>
       </Row>
     </>

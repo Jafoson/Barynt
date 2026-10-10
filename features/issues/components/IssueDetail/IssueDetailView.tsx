@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/atoms/EmptyState/EmptyState";
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
 import { Modal } from "@/components/ui/layout/Modal/Modal";
 import { Resizer } from "@/components/ui/layout/Resizer/Resizer";
-import { issuePath } from "@/features/issues/issue-links";
+import { issuePath, useIssueOpen } from "@/features/issues/issue-links";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
 import { visibleDetailFields } from "@/features/projects/detail-fields";
 import { getPathname, useRouter } from "@/i18n/navigation";
@@ -312,6 +312,7 @@ export function IssueDetailView({
   const { toast } = useUI();
   const locale = useLocale() as Locale;
   const router = useRouter();
+  const { openFullPage } = useIssueOpen(data.workspaceId);
   useFieldNav(hasOpenModal);
 
   // Mirrors Linear's own bindings — a bare click target for either doesn't
@@ -344,7 +345,7 @@ export function IssueDetailView({
   // Same target as `OpenPageButton`, just from the keyboard — leaves the
   // panel/dialog behind for the full page (its URL carries no `?issue=`,
   // so `IssuePeek` simply stops rendering it once there).
-  useShortcut("o", () => router.push(issuePath(data.workspaceId, identifier)), {
+  useShortcut("o", () => openFullPage(identifier), {
     enabled: !hasOpenModal,
   });
   // Panel <-> large dialog, both ways — the same toggle as the header's

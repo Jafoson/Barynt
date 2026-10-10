@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { enabledOAuthProviders, oidcProviderName } from "@/auth.config";
+import { DEFAULT_BEHAVIOR, toBehavior } from "@/features/account/preferences";
 import type {
   AccountConnectionsView,
   AccountProfileView,
@@ -45,6 +46,7 @@ export const OIDC_PROVIDER_ID = "oidc";
 /** What applies as long as nobody has set anything. Same values as the
  *  `@default`s in `prisma/schema.prisma`. */
 export const DEFAULT_PREFERENCES: Preferences = {
+  ...DEFAULT_BEHAVIOR,
   theme: "dark",
   adminNoticeHidden: false,
   passkeyNudgeHidden: false,
@@ -91,10 +93,40 @@ export const getMyPreferences = cache(async (): Promise<Preferences> => {
     theme,
     adminNoticeHidden,
     passkeyNudgeHidden,
+    projectLanding,
+    startPage,
+    issueOpenMode,
+    issuePageOpenMode,
+    defaultGrouping,
+    defaultSort,
+    defaultShowSubIssues,
+    sidebarCollapsed,
+    projectOrder,
+    dateFormat,
+    weekStart,
+    timeZone,
+    shortcutOverrides,
+    confirmDestructive,
     ...notifications
   } = row;
   return {
     ...notifications,
+    ...toBehavior({
+      projectLanding,
+      startPage,
+      issueOpenMode,
+      issuePageOpenMode,
+      defaultGrouping,
+      defaultSort,
+      defaultShowSubIssues,
+      sidebarCollapsed,
+      projectOrder,
+      dateFormat,
+      weekStart,
+      timeZone,
+      shortcutOverrides,
+      confirmDestructive,
+    }),
     theme: theme as Preferences["theme"],
     adminNoticeHidden,
     passkeyNudgeHidden,

@@ -30,6 +30,12 @@ interface EditableTextProps {
   className?: string;
   /** Read-only: no focus, no buttons, `onCommit` is never called. */
   readOnly?: boolean;
+  /**
+   * One line, buttons beside the field: the text scrolls sideways instead of
+   * wrapping, and the row never grows. For quick edits in a list row or on
+   * a card, where there's no room for a taller field.
+   */
+  inline?: boolean;
 }
 
 /**
@@ -52,6 +58,7 @@ export function EditableText({
   cancelLabel = "Cancel",
   className,
   readOnly = false,
+  inline,
 }: EditableTextProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [draft, setDraft] = useState(value);
@@ -145,7 +152,10 @@ export function EditableText({
   }
 
   return (
-    <div className={[styles.wrap, className].filter(Boolean).join(" ")}>
+    <div
+      className={[styles.wrap, className].filter(Boolean).join(" ")}
+      data-inline={inline || undefined}
+    >
       <div className={styles.field} data-value={draft}>
         <textarea
           ref={inputRef}

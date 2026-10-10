@@ -93,11 +93,19 @@
   }
 }
 
-.addCard {
+/* Pinned to the bottom of the scrolling list: directly under the last card
+   in a short column, always in view in a long one. The solid background
+   keeps cards scrolling beneath it from showing through. */
+.addSlot {
+  position: sticky;
+  bottom: 0;
   flex: none;
-  /* Same side inset as `.cards`, so it lines up with the cards above. */
-  width: calc(100% - 1.25rem);
-  margin: 0 0.625rem 0.625rem;
+  padding-block: 0.25rem 0;
+  background: var(--background);
+}
+
+.addCard {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;

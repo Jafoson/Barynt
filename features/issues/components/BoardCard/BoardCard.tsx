@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { type CSSProperties, useRef, useState } from "react";
 import { Label } from "@/components/ui/atoms/Label/Label";
+import { Stamp } from "@/components/ui/atoms/Stamp/Stamp";
 import {
   type CardFieldKey,
   visibleCardFields,
@@ -29,7 +30,6 @@ import {
   PHONE_QUERY,
   useMediaQuery,
 } from "@/lib/utils/useMediaQuery";
-import { useTimeAgo } from "@/lib/utils/useTimeAgo";
 import type { IssueDetail, Label as LabelType } from "@/types";
 import styles from "./boardCard.module.scss";
 import { CardQuickActions } from "./CardQuickActions";
@@ -104,7 +104,6 @@ export function BoardCard({
   onMoveTo,
 }: BoardCardProps) {
   const t = useTranslations();
-  const timeAgo = useTimeAgo();
   const { patch } = useIssuePatch(issue.id);
   const [isEditing, setIsEditing] = useState(false);
   const { openModal } = useModal();
@@ -357,9 +356,7 @@ export function BoardCard({
         {showField("dueDate") && issue.dueDate !== null && (
           <DueDateBadge dueDate={issue.dueDate} />
         )}
-        <span className={styles.time} suppressHydrationWarning>
-          {timeAgo(issue.updated)}
-        </span>
+        <Stamp className={styles.time} ts={issue.updated} />
         {issue.comments.length > 0 && (
           <span className={styles.comments}>
             <Icon icon="lucide:message-square" width={12} aria-hidden="true" />

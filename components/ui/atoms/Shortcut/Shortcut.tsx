@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
+import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import { formatShortcut } from "@/lib/shortcuts/format";
 import { useHasKeyboard } from "@/lib/shortcuts/useHasKeyboard";
 import styles from "./shortcut.module.scss";
@@ -13,6 +14,12 @@ interface ShortcutProps {
    */
   keys: string | string[];
   className?: string;
+  /**
+   * Show the spec exactly as given — for a key that isn't bound through
+   * `useShortcut` (the editor's own keymap) and so can't have been changed
+   * by the person, or one that is already their effective choice.
+   */
+  raw?: boolean;
 }
 
 /**
@@ -26,9 +33,13 @@ interface ShortcutProps {
  * instead: one extra render, no mismatch, and the badge is rarely the
  * first thing painted anyway.
  */
-export function Shortcut({ keys, className }: ShortcutProps) {
+export function Shortcut({ keys, className, raw }: ShortcutProps) {
   const hasKeyboard = useHasKeyboard();
-  const specs = Array.isArray(keys) ? keys : [keys];
+  // Shows what is actually bound: a person's own keys where they set any.
+  const { shortcutOverrides } = usePreferences();
+  const specs = (Array.isArray(keys) ? keys : [keys]).map((spec) =>
+    raw ? spec : (shortcutOverrides[spec] ?? spec),
+  );
   // Collapsed into one string: a fresh array literal from an inline caller
   // would otherwise look like a new value on every render and re-run the
   // effect for nothing. JSON, not `join(",")`: a spec can itself contain a

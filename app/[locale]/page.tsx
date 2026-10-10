@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getMyPreferences } from "@/features/account/queries";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { canCreateWorkspace, getSystemSettings } from "@/lib/system-settings";
@@ -31,7 +32,14 @@ export default async function LocaleRootPage({
     select: { workspaceId: true },
   });
 
-  if (membership) redirect(`/${locale}/${membership.workspaceId}`);
+  if (membership) {
+    // Where this person wants to start. Everything but the workspace's own
+    // start page lives right below it, so the target exists in any
+    // workspace they belong to.
+    const { startPage } = await getMyPreferences();
+    const section = startPage === "workspace" ? "" : `/${startPage}`;
+    redirect(`/${locale}/${membership.workspaceId}${section}`);
+  }
 
   // No membership, and workspace creation is off with a default configured
   // (`lib/system-settings.ts`) — join that workspace instead of sending the

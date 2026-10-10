@@ -1,0 +1,49 @@
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* The keys are a button: clicking it starts listening for the new ones. */
+.key {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.875rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: none;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+
+  &:hover {
+    background: var(--surface-container-high);
+    border-color: var(--outline-variant);
+  }
+
+  // Focus is always `--tertiary` across the app, never another accent.
+  &:focus-visible {
+    outline: none;
+    border-color: var(--tertiary);
+  }
+
+  &[data-recording] {
+    border-color: var(--tertiary);
+    background: var(--surface-container-high);
+  }
+}
+
+.press {
+  font-size: var(--text-sm);
+  color: var(--on-surface-variant);
+}
+
+.hint {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0 0.125rem;
+  color: var(--on-surface-variant);
+  font-size: var(--text-sm);
+}

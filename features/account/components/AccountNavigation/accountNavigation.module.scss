@@ -1,0 +1,11 @@
+/* A note, not an error: it sits below the lists, in the color of secondary
+   text, and takes up no surface of its own. */
+.note {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0 0.125rem;
+  color: var(--on-surface-variant);
+  font-size: var(--text-sm);
+}

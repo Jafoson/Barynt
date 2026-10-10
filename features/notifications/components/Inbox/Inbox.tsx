@@ -19,7 +19,7 @@ import type {
 } from "@/features/notifications/types";
 import { Link, useRouter } from "@/i18n/navigation";
 import { projectPath, workspacePath } from "@/lib/nav";
-import { timeAgo } from "@/lib/utils/date";
+import { useTimeAgo } from "@/lib/utils/useTimeAgo";
 import type { Status } from "@/types";
 import styles from "./inbox.module.scss";
 
@@ -43,6 +43,7 @@ const EVENT_ICON: Record<NotificationEvent, string> = {
 
 export function Inbox({ notifications, workspaceId, filter, statuses }: Props) {
   const t = useTranslations();
+  const timeAgo = useTimeAgo();
   const router = useRouter();
   const issueOpen = useIssueOpen(workspaceId);
   const [, startTransition] = useTransition();

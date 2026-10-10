@@ -1,0 +1,26 @@
+.select {
+  height: 2rem;
+  max-width: 100%;
+  padding: 0 0.625rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--outline-variant);
+  background: var(--surface);
+  color: var(--on-surface);
+  font-size: var(--text-sm);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: var(--outline);
+  }
+
+  // Focus is always `--tertiary` across the app, never another accent.
+  &:focus-visible {
+    outline: none;
+    border-color: var(--tertiary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

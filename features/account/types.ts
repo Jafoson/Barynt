@@ -6,6 +6,7 @@
 // instead is the state of the account — which passkeys and sign-in methods
 // are attached to it, whether the address has been verified.
 
+import type { BehaviorPreferences } from "@/features/account/preferences";
 import type { ApiScope } from "@/lib/api/scopes";
 
 /** The chosen theme — lands as `data-theme` on the document. */
@@ -36,7 +37,7 @@ export type NotificationKey = `${NotificationEvent}${NotificationChannel}`;
 export type NotificationSettings = Record<NotificationKey, boolean>;
 
 /** What someone has set for themselves — with the defaults if nothing yet. */
-export interface Preferences extends NotificationSettings {
+export interface Preferences extends NotificationSettings, BehaviorPreferences {
   theme: Theme;
   /** Whether the notice in the platform area has been dismissed. */
   adminNoticeHidden: boolean;

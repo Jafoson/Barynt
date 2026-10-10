@@ -43,6 +43,7 @@ export function IssueTitleField({
       <EditableText
         autoFocus
         singleLine
+        inline
         value={value}
         label={t("fields.title")}
         placeholder={t("placeholders.issueTitle")}

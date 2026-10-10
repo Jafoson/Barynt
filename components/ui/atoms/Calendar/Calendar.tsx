@@ -2,6 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useState } from "react";
+import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import { toIso } from "@/lib/richtext/date";
 import styles from "./calendar.module.scss";
 
@@ -17,8 +18,9 @@ import styles from "./calendar.module.scss";
  * the server.
  */
 
-/** Monday first — the week convention used here. */
-const FIRST_DAY = 1;
+/** `Date.getDay()` value of the week's first day: Monday unless chosen otherwise. */
+const MONDAY = 1;
+const SUNDAY = 0;
 
 interface CalendarProps {
   /** Initial value as an ISO date. */
@@ -41,10 +43,10 @@ function initialMonth(value: string | undefined): Date {
  * the first week and followed by the start of the last. This keeps the grid
  * always rectangular.
  */
-function weeksOf(month: Date): Date[][] {
+function weeksOf(month: Date, firstDay: number): Date[][] {
   const first = new Date(month.getFullYear(), month.getMonth(), 1);
   // How many days of the previous month spill into the first row.
-  const lead = (first.getDay() - FIRST_DAY + 7) % 7;
+  const lead = (first.getDay() - firstDay + 7) % 7;
 
   const start = new Date(first);
   start.setDate(first.getDate() - lead);
@@ -76,7 +78,8 @@ export function Calendar({
   const [month, setMonth] = useState(() => initialMonth(value));
 
   const today = isoOf(new Date());
-  const weeks = weeksOf(month);
+  const { weekStart } = usePreferences();
+  const weeks = weeksOf(month, weekStart === "sunday" ? SUNDAY : MONDAY);
 
   const shift = (by: number) =>
     setMonth((m) => new Date(m.getFullYear(), m.getMonth() + by, 1));

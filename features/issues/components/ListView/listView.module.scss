@@ -1,4 +1,6 @@
 @use "breakpoints" as bp;
+@use "sass:list";
+@use "sass:map";
 
 /* Cells and group headers of the issue list. Grid, row height, hover, and
    sticky behavior come from the Table component. */
@@ -11,6 +13,128 @@
   flex: 1;
   min-height: 0;
   padding: 0.75rem 1rem 1rem;
+
+  /* The list answers to its own width, not the window's: an open side
+     panel narrows it just as much as a small window does. */
+  container-type: inline-size;
+}
+
+/* ---------- Narrow list: columns drop out by priority ----------
+
+   Always there: key, title, assignee (far right), status. Going narrower,
+   the least important go first: labels, age, then priority, due date and
+   points, last project and type. When the list is grouped by status, the
+   status column is redundant and never shown.
+
+   A hidden column leaves its grid track too — a mere `display: none` on
+   the cells would shift the rest into the wrong tracks. The exception is
+   priority: its cell carries the drag handle, so it stays, collapsed to
+   nothing (the handle is positioned against the row and isn't clipped).
+   Desktop layout only; the card rows below take over at tablet width. */
+$tracks: (
+  priority: auto,
+  identifier: auto,
+  project: max-content,
+  status: auto,
+  type: auto,
+  title: minmax(0, 1fr),
+  labels: max-content,
+  assignee: auto,
+  storyPoints: max-content,
+  dueDate: max-content,
+  updated: max-content,
+);
+
+/* Which columns are gone at which list width (≤), cumulative. */
+$steps: (
+  60rem: (labels),
+  52rem: (updated),
+  44rem: (priority, dueDate, storyPoints),
+  36rem: (project, type),
+);
+
+@function track-list($hidden, $with-project) {
+  $out: ();
+  @each $col, $track in $tracks {
+    @if $col == priority and list.index($hidden, $col) != null {
+      $out: list.append($out, 0, space);
+    } @else if
+      list.index($hidden, $col) ==
+      null and
+      ($col != project or $with-project)
+    {
+      $out: list.append($out, $track, space);
+    }
+  }
+  @return $out;
+}
+
+/* One rule set for all four combinations of "cross-project" and "grouped
+   by status". */
+@mixin hide-columns($hidden) {
+  @each $with-project in (false, true) {
+    @each $by-status in (false, true) {
+      $cols: $hidden;
+      @if $by-status {
+        $cols: list.join($cols, (status), comma);
+      }
+      $sel: ".content";
+      @if $with-project {
+        $sel: $sel + "[data-project]";
+      }
+      @if $by-status {
+        $sel: $sel + "[data-by-status]";
+      }
+
+      @if list.length($cols) > 0 {
+        #{$sel} table {
+          grid-template-columns: track-list($cols, $with-project);
+        }
+      }
+    }
+  }
+
+  @each $col in $hidden {
+    @if $col == priority {
+      .content td[data-col="priority"],
+      .content th[data-col="priority"] {
+        min-width: 0;
+        max-width: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+    } @else {
+      .content td[data-col="#{$col}"],
+      .content th[data-col="#{$col}"] {
+        display: none;
+      }
+    }
+  }
+}
+
+@include bp.desktop {
+  .content[data-by-status] :is(td, th)[data-col="status"] {
+    display: none;
+  }
+
+  /* Grouped by status: the column is gone at every width. */
+  @each $with-project in (false, true) {
+    $sel: ".content[data-by-status]";
+    @if $with-project {
+      $sel: $sel + "[data-project]";
+    }
+    #{$sel} table {
+      grid-template-columns: track-list((status), $with-project);
+    }
+  }
+
+  $hidden: ();
+  @each $width, $cols in $steps {
+    $hidden: list.join($hidden, $cols, comma);
+    @container (max-width: #{$width}) {
+      @include hide-columns($hidden);
+    }
+  }
 }
 
 /* ---------- Cells ---------- */

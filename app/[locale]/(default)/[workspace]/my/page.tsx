@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { getMyPreferences } from "@/features/account/queries";
 import { Board } from "@/features/issues/components/Board/Board";
 import { BoardUnlessPhone } from "@/features/issues/components/Board/BoardUnlessPhone";
 import { IssuePeek } from "@/features/issues/components/IssuePeek/IssuePeek";
@@ -32,6 +33,8 @@ export default async function MyPage({
   const { locale, workspace } = await params;
   const filters = await searchParams;
   setCurrentWorkspaceId(workspace);
+  // The grouping and order a view opens with when the address names none.
+  const defaults = await getMyPreferences();
 
   const session = await getSession();
   if (!session) redirect(`/${locale}/login`);
@@ -58,8 +61,10 @@ export default async function MyPage({
           hiddenCardFields={hiddenCardFields}
           hiddenGroups={groups.hiddenGroups}
           hideEmptyGroups={groups.hideEmptyGroups}
-          sortKey={sortKeyFromParam(filters.sort)}
-          groupKey={groupKeyFromParam(filters.group)}
+          sortKey={sortKeyFromParam(filters.sort ?? defaults.defaultSort)}
+          groupKey={groupKeyFromParam(
+            filters.group ?? defaults.defaultGrouping,
+          )}
         />
       </BoardUnlessPhone>
       {/* Opens the clicked issue as a side panel (`?issue=` in the URL). */}

@@ -5,6 +5,7 @@ import { useLocale } from "next-intl";
 import { openInBarayntTab } from "@/components/ui/layout/TabBar/tabEvents";
 import { getPathname, usePathname, useRouter } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
+import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import { COMPACT_QUERY } from "@/lib/utils/useMediaQuery";
 import { rememberIssueOrigin } from "./issue-origin";
 
@@ -60,17 +61,19 @@ export function isBrowserClick(event: React.MouseEvent): boolean {
  * The two ways to open an issue — from list, board, inbox, and "my issues"
  * alike.
  *
- * The ordinary click puts the panel over whichever view you're currently
- * on (`?issue=` in the URL, nothing more is needed). Ctrl/Cmd and middle
- * click mean something different: they want the issue alongside, without
- * leaving the list — that's what the full page is for, and the new tab is
- * the answer the browser has always given to that.
+ * The ordinary click does what the person chose (`issueOpenMode`): by
+ * default the panel over whichever view you're currently on (`?issue=` in
+ * the URL, nothing more is needed), otherwise the full page — here, in a
+ * new Barynt tab, or in a new browser tab. Ctrl/Cmd and middle click always
+ * mean the browser's own: they want the issue alongside, without leaving
+ * the list.
  */
 export function useIssueOpen(workspaceId: string) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const locale = useLocale() as Locale;
+  const { issueOpenMode, issuePageOpenMode } = usePreferences();
 
   /** The issue currently shown in the panel — `null` while none is open. */
   const openIssue = searchParams.get(ISSUE_PARAM);
@@ -83,16 +86,21 @@ export function useIssueOpen(workspaceId: string) {
    * nowhere would be the only alternative — forcing a trip to the cross at
    * the other end of the window instead.
    */
+  /** The full page, in this tab — remembering where it was opened from. */
+  const openPage = (identifier: string) => {
+    // Remember the view it came from — the page's back arrow returns there.
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete(ISSUE_PARAM);
+    const query = params.toString();
+    rememberIssueOrigin(identifier, `${pathname}${query ? `?${query}` : ""}`);
+    router.push(issuePath(workspaceId, identifier));
+  };
+
   const openPanel = (identifier: string) => {
     // A phone or tablet has no room beside the list: the issue opens as its
     // own page, which looks the same there as the panel does on a desktop.
     if (window.matchMedia(COMPACT_QUERY).matches) {
-      // Remember the view it came from — the page's back arrow returns there.
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete(ISSUE_PARAM);
-      const query = params.toString();
-      rememberIssueOrigin(identifier, `${pathname}${query ? `?${query}` : ""}`);
-      router.push(issuePath(workspaceId, identifier));
+      openPage(identifier);
       return;
     }
     if (identifier === openIssue) {
@@ -113,8 +121,57 @@ export function useIssueOpen(workspaceId: string) {
   const openPageInNewTab = (identifier: string) => {
     const path = issuePath(workspaceId, identifier);
     if (openInBarayntTab(path)) return;
-    const href = getPathname({ href: path, locale });
+    openPageInBrowserTab(identifier);
+  };
+
+  /** The full page in a tab of the browser itself, outside Barynt's tab bar. */
+  const openPageInBrowserTab = (identifier: string) => {
+    const href = getPathname({
+      href: issuePath(workspaceId, identifier),
+      locale,
+    });
     window.open(href, "_blank", "noopener,noreferrer");
+  };
+
+  /**
+   * "Open the full page" from the issue's own header or keyboard: where that
+   * page goes is the person's choice (`issuePageOpenMode`) — a Barynt tab, a
+   * browser tab, or this one.
+   */
+  const openFullPage = (identifier: string) => {
+    switch (issuePageOpenMode) {
+      case "page":
+        openPage(identifier);
+        return;
+      case "browserTab":
+        openPageInBrowserTab(identifier);
+        return;
+      default:
+        openPageInNewTab(identifier);
+    }
+  };
+
+  /**
+   * What a plain click, Enter, or "Open" does: the person's choice. The
+   * panel's own movement (following the cursor with `j`/`k` while it is
+   * open) keeps calling `openPanel` — it is about that panel specifically.
+   */
+  const open = (identifier: string) => {
+    // On a phone or tablet there's no side panel (see `openPanel`): "panel"
+    // already means the page there, anything else is an explicit choice.
+    switch (issueOpenMode) {
+      case "page":
+        openPage(identifier);
+        return;
+      case "tab":
+        openPageInNewTab(identifier);
+        return;
+      case "browserTab":
+        openPageInBrowserTab(identifier);
+        return;
+      default:
+        openPanel(identifier);
+    }
   };
 
   /**
@@ -134,9 +191,16 @@ export function useIssueOpen(workspaceId: string) {
     onClick: (event: React.MouseEvent) => {
       if (isBrowserClick(event)) return;
       event.preventDefault();
-      openPanel(identifier);
+      open(identifier);
     },
   });
 
-  return { linkProps, openIssue, openPanel, openPageInNewTab };
+  return {
+    linkProps,
+    openIssue,
+    open,
+    openFullPage,
+    openPanel,
+    openPageInNewTab,
+  };
 }

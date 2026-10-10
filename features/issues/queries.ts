@@ -1281,6 +1281,22 @@ const NO_GROUP_PREFERENCE: ViewGroupPreference = {
   showSubIssues: false,
 };
 
+/**
+ * What a view starts with when its owner never changed anything in it:
+ * nothing hidden, and sub-issues as their own account-wide default says.
+ * Once a view has a row of its own, that row decides.
+ */
+async function groupDefaults(userId: string): Promise<ViewGroupPreference> {
+  const row = await db.userPreferences.findUnique({
+    where: { userId },
+    select: { defaultShowSubIssues: true },
+  });
+  return {
+    ...NO_GROUP_PREFERENCE,
+    showSubIssues: row?.defaultShowSubIssues ?? false,
+  };
+}
+
 /** A project's board or list, as this person has set up its groups. */
 export const getIssueViewGroups = cache(
   async (
@@ -1297,7 +1313,7 @@ export const getIssueViewGroups = cache(
         showSubIssues: true,
       },
     });
-    return pref ?? NO_GROUP_PREFERENCE;
+    return pref ?? (await groupDefaults(userId));
   },
 );
 
@@ -1315,6 +1331,6 @@ export const getMyIssuesViewGroups = cache(
         showSubIssues: true,
       },
     });
-    return pref ?? NO_GROUP_PREFERENCE;
+    return pref ?? (await groupDefaults(userId));
   },
 );

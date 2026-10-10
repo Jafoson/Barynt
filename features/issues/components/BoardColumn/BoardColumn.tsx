@@ -162,20 +162,23 @@ export function BoardColumn({
             </React.Fragment>
           );
         })}
+        {/* Right after the last card, so it follows the column's content
+            instead of sitting at the screen's bottom edge. In a long column
+            it sticks to the bottom of the list and stays reachable. */}
+        {canCreate && (
+          <div className={styles.addSlot}>
+            <button
+              type="button"
+              className={styles.addCard}
+              title={newIssueLabel}
+              onClick={showCreateIssueModal}
+            >
+              <Icon icon="lucide:plus" width={15} />
+              <span>{newIssueLabel}</span>
+            </button>
+          </div>
+        )}
       </div>
-      {/* Outside the scrolling list: at the end of a long column it would sit
-          below the fold and only show up after scrolling all the way down. */}
-      {canCreate && (
-        <button
-          type="button"
-          className={styles.addCard}
-          title={newIssueLabel}
-          onClick={showCreateIssueModal}
-        >
-          <Icon icon="lucide:plus" width={15} />
-          <span>{newIssueLabel}</span>
-        </button>
-      )}
     </div>
   );
 }

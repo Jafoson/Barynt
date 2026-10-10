@@ -17,6 +17,7 @@ import {
   statusIdToSlug,
   statusSlugToId,
 } from "@/lib/filter-slugs";
+import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import type { Label, Priority, Project, User } from "@/types";
 
 export type FilterKey =
@@ -162,12 +163,15 @@ export function useTopbar({
     filters.storyPoints.length +
     filters.dueDate.length;
 
+  // Without `?sort=`/`?group=` the person's own defaults apply — the same
+  // fallback the pages use, so the control shows what the view really does.
+  const { defaultSort, defaultGrouping } = usePreferences();
   const sortKey: SortKey = sortKeyFromParam(
-    searchParams.get("sort") ?? undefined,
+    searchParams.get("sort") ?? defaultSort,
   );
 
   const groupKey: GroupKey = groupKeyFromParam(
-    searchParams.get("group") ?? undefined,
+    searchParams.get("group") ?? defaultGrouping,
   );
 
   // internal id (as passed by the filter UI) → URL slug

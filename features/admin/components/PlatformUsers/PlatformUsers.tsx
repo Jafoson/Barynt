@@ -96,6 +96,7 @@ export function PlatformUsers({
         confirmLabel: t("platform.deactivate"),
         cancelLabel: t("actions.cancel"),
         danger: true,
+        always: true,
       });
       if (!ok) return;
     }

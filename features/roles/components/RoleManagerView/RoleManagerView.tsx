@@ -144,6 +144,7 @@ export function RoleManagerView({
       confirmLabel: t("roles.leaveConfirm"),
       cancelLabel: t("roles.leaveStay"),
       danger: true,
+      always: true,
     }),
   );
 

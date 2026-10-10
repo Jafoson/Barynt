@@ -3,6 +3,7 @@ import { Logo } from "@/components/ui/atoms/Logo/Logo";
 import { Toast } from "@/components/ui/atoms/Toast/Toast";
 import { Sidebar } from "@/components/ui/layout/Sidebar/Sidebar";
 import { ShortcutsHelpTrigger } from "@/features/account/components/AccountShortcuts/ShortcutsHelpTrigger";
+import { getMyPreferences } from "@/features/account/queries";
 import { CommandPaletteTrigger } from "@/features/issues/components/CommandPalette/CommandPaletteTrigger";
 import { NewIssueFab } from "@/features/issues/components/NewIssueButton/NewIssueFab";
 import { GoToShortcuts } from "@/features/workspaces/components/GoToShortcuts/GoToShortcuts";
@@ -30,7 +31,13 @@ export async function AppShell({
   // Read here so a collapsed sidebar is already collapsed in the first
   // byte of HTML — no flash of the sidebar sliding away after hydration.
   const cookieStore = await cookies();
-  const initialCollapsed = cookieStore.get(NAV_COLLAPSED_COOKIE)?.value === "1";
+  // What the browser last had wins; without a cookie yet (first visit, a new
+  // device) the person's own default decides.
+  const collapsedCookie = cookieStore.get(NAV_COLLAPSED_COOKIE)?.value;
+  const initialCollapsed =
+    collapsedCookie === undefined
+      ? (await getMyPreferences()).sidebarCollapsed
+      : collapsedCookie === "1";
   const initialWidthRem = parseNavWidth(
     cookieStore.get(NAV_WIDTH_COOKIE)?.value,
   );

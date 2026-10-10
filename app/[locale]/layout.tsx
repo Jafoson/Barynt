@@ -3,10 +3,12 @@ import { Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
+import { toBehavior } from "@/features/account/preferences";
 import { getMyPreferences } from "@/features/account/queries";
 import { routing } from "@/i18n/routing";
 import { DockProvider, ModalProvider } from "@/lib/context";
 import { IconBundle } from "@/lib/icons/IconBundle";
+import { PreferencesProvider } from "@/lib/preferences/PreferencesContext";
 import { UIProvider } from "@/lib/ui-store";
 
 // Design tokens — imported first so they're available everywhere
@@ -69,7 +71,8 @@ export default async function LocaleLayout({
   // Set server-side instead of via a browser script: the attribute is already
   // present in the document's first byte this way. "System" is resolved by CSS
   // (styles/colors.scss).
-  const { theme } = await getMyPreferences();
+  const preferences = await getMyPreferences();
+  const { theme } = preferences;
 
   return (
     <html
@@ -81,13 +84,15 @@ export default async function LocaleLayout({
         <IconBundle />
         {/* Messages/locale are picked up automatically from the server configuration. */}
         <NextIntlClientProvider>
-          <UIProvider>
-            {/* The dock sits inside the modal provider: its panel needs to
-                know whether a modal is stacked above it so it can yield Escape. */}
-            <ModalProvider>
-              <DockProvider>{children}</DockProvider>
-            </ModalProvider>
-          </UIProvider>
+          <PreferencesProvider value={toBehavior(preferences)}>
+            <UIProvider>
+              {/* The dock sits inside the modal provider: its panel needs to
+                  know whether a modal is stacked above it so it can yield Escape. */}
+              <ModalProvider>
+                <DockProvider>{children}</DockProvider>
+              </ModalProvider>
+            </UIProvider>
+          </PreferencesProvider>
         </NextIntlClientProvider>
       </body>
     </html>

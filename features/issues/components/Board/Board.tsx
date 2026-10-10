@@ -296,7 +296,7 @@ export function Board({
   const openFocused = () => {
     const pos = findPosition();
     if (!pos) return;
-    issueOpen.openPanel(identifier(columns[pos.col].issues[pos.row]));
+    issueOpen.open(identifier(columns[pos.col].issues[pos.row]));
   };
 
   // j/k always move the board cursor, even with a panel open — that's the
@@ -369,7 +369,7 @@ export function Board({
                 identifier(issue) === issueOpen.openIssue
               }
               isCardFocused={(issue) => issue.id === focusedId}
-              onCardOpen={(issue) => issueOpen.openPanel(identifier(issue))}
+              onCardOpen={(issue) => issueOpen.open(identifier(issue))}
               onCardOpenInNewTab={(issue) =>
                 issueOpen.openPageInNewTab(identifier(issue))
               }

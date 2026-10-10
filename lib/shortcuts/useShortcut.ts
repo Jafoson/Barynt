@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePreferences } from "@/lib/preferences/PreferencesContext";
 
 const KEY_EVENT_NAMES: Record<string, string> = {
   enter: "Enter",
@@ -84,10 +85,15 @@ interface UseShortcutOptions {
  * render so the listener itself never needs to be re-attached.
  */
 export function useShortcut(
-  spec: string,
+  defaultSpec: string,
   handler: (e: KeyboardEvent) => void,
   { enabled = true, allowInEditable = false }: UseShortcutOptions = {},
 ) {
+  // The caller names the shortcut by its default keys; a person's own
+  // choice (`shortcutOverrides`, keyed by those defaults) replaces them
+  // here, so no call site needs to know about it.
+  const { shortcutOverrides } = usePreferences();
+  const spec = shortcutOverrides[defaultSpec] ?? defaultSpec;
   const handlerRef = useRef(handler);
   useEffect(() => {
     handlerRef.current = handler;
@@ -139,9 +145,20 @@ export function useShortcutSequence(
   bindings: Record<string, () => void>,
   { enabled = true, windowMs = 1000 }: UseShortcutSequenceOptions = {},
 ) {
-  const bindingsRef = useRef(bindings);
+  // A "g+d" the person changed to "g+x" answers to "x" instead. Only the
+  // second key can be changed — the prefix is what arms the sequence.
+  const { shortcutOverrides } = usePreferences();
+  const remapped: Record<string, () => void> = {};
+  for (const [key, handler] of Object.entries(bindings)) {
+    const own = shortcutOverrides[`${prefixKey}+${key}`];
+    const target = own?.split("+").pop();
+    remapped[target && own?.startsWith(`${prefixKey}+`) ? target : key] =
+      handler;
+  }
+
+  const bindingsRef = useRef(remapped);
   useEffect(() => {
-    bindingsRef.current = bindings;
+    bindingsRef.current = remapped;
   });
 
   useEffect(() => {

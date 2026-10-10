@@ -151,6 +151,37 @@ leaves every icon empty (BARY-45).
 - A new icon *set* (a prefix other than lucide/logos/material-symbols/mdi)
   needs its `@iconify-json/<prefix>` as a devDependency.
 
+## Personal behavior settings (`UserPreferences`)
+
+Per-person settings that change how the app acts, not just how it looks.
+Account section **Navigation** (`account/navigation`), plus date/time in
+**Appearance** and own shortcuts / confirmations in **Shortcuts**.
+
+| Setting | Column | Read where |
+|---|---|---|
+| Click on a project name | `projectLanding` (`board`/`list`/`dashboard`) | `Sidebar/NavGroups/Projects` — the row's `href` |
+| Start page after sign-in | `startPage` | `app/[locale]/page.tsx` redirect |
+| Open issue | `issueOpenMode` (`panel`/`page`/`tab`/`browserTab`) | `useIssueOpen().open` (`features/issues/issue-links.ts`) |
+| "Open full page" in the issue header / `O` | `issuePageOpenMode` (`tab`/`browserTab`/`page`) | `useIssueOpen().openFullPage` — `OpenPageButton`, `IssueDetailView` |
+| Default grouping / order | `defaultGrouping`, `defaultSort` | the four view pages + `useTopbar`, as fallback to `?group=`/`?sort=` |
+| Sub-issues default | `defaultShowSubIssues` | `getIssueViewGroups` / `getMyIssuesViewGroups`, only while a view has no row of its own |
+| Sidebar collapsed / project order | `sidebarCollapsed`, `projectOrder` | `AppShell` (cookie wins, then this), `Projects` |
+| Date display, week start, time zone | `dateFormat`, `weekStart`, `timeZone` | `useTimeAgo`, `Calendar`, `i18n/request.ts` (`timeZone`) |
+| Own shortcuts | `shortcutOverrides` (`{ defaultSpec: ownSpec }`) | `useShortcut`, `useShortcutSequence`, `Shortcut` |
+| Ask before deleting | `confirmDestructive` | `useConfirm` — `danger` confirms resolve `true`, unless `always` |
+
+- Allowed values live in `features/account/preferences.ts` (one list per
+  setting); `updateBehavior` validates against them, `toBehavior` narrows a
+  row on read. A new option goes in that list, the settings UI and `messages/*`.
+- Client components read them through `usePreferences()`
+  (`lib/preferences/PreferencesContext`, filled in the root layout). Outside a
+  provider it answers with `DEFAULT_BEHAVIOR`.
+- Shortcuts are keyed by their **default** spec, so call sites keep passing the
+  default (`useShortcut("c", …)`). A binding outside `useShortcut` (the
+  editor's own keymap) isn't remappable — show it with `<Shortcut raw />`.
+- The project dashboard is `…/project/<slug>/overview`; its sidebar entry is
+  labelled "Dashboard" (`PROJECT_OVERVIEW_NAV`).
+
 ## Email (`lib/mail`)
 
 SMTP, configured exclusively through the environment (`SMTP_HOST`, `SMTP_PORT`,

@@ -27,6 +27,7 @@ export type NavLabelKey =
   | "fields"
   | "workspaces"
   | "account"
+  | "navigation"
   | "appearance"
   | "notifications"
   | "security"
@@ -262,6 +263,20 @@ export const ADMIN_NAV: NavEntry[] = [
 ];
 
 /**
+ * A project's dashboard — `…/project/<slug>/overview`.
+ *
+ * It is a sidebar entry of its own (Board, Issues, Dashboard, …), and the
+ * project's row can lead there too — which of the three a click on the name
+ * opens is each person's choice (`projectLanding`). The section name stays
+ * `overview`: it is in shared links and open tabs already.
+ */
+export const PROJECT_OVERVIEW_NAV: NavEntry = {
+  section: "overview",
+  icon: "lucide:layout-dashboard",
+  labelKey: "dashboard",
+};
+
+/**
  * Per-project sub-nav — `/<workspaceId>/project/<slug>` (empty section = board)
  * or `/<workspaceId>/project/<slug>/<section>`.
  *
@@ -273,6 +288,7 @@ export const ADMIN_NAV: NavEntry[] = [
 export const PROJECT_NAV: NavEntry[] = [
   { section: "", icon: "lucide:square-kanban", labelKey: "board" },
   { section: "list", icon: "lucide:list", labelKey: "issues" },
+  PROJECT_OVERVIEW_NAV,
   { section: "members", icon: "lucide:users", labelKey: "members" },
   {
     section: "settings",
@@ -283,31 +299,11 @@ export const PROJECT_NAV: NavEntry[] = [
 ];
 
 /**
- * A project's home page — `…/project/<slug>/overview`.
- *
- * It lives in no sidebar, because it *is* the project row: whoever clicks a
- * project without meaning a specific section lands here. A second entry
- * below it would point at the same address as the row above it.
- *
- * The entry exists anyway, because an open tab and a shared link need a
- * name and an icon — the same role as `ROLES_NAV` and `ACCOUNT_NAV` one
- * level up.
- */
-export const PROJECT_OVERVIEW_NAV: NavEntry = {
-  section: "overview",
-  icon: "lucide:layout-dashboard",
-  labelKey: "overview",
-};
-
-/**
  * All sections under `…/project/<slug>/…` — the list the tab bar resolves
  * the name and icon of any project address from. The counterpart to
  * `WORKSPACE_SECTIONS` one level down.
  */
-export const PROJECT_SECTIONS: NavEntry[] = [
-  PROJECT_OVERVIEW_NAV,
-  ...PROJECT_NAV,
-];
+export const PROJECT_SECTIONS: NavEntry[] = PROJECT_NAV;
 
 /**
  * The sections of the project settings — `…/project/<slug>/settings/<section>`,
@@ -408,6 +404,7 @@ export const WORKSPACE_SETTINGS_NAV: NavEntry[] = [
  */
 export const ACCOUNT_SETTINGS_NAV: NavEntry[] = [
   { section: "", icon: "lucide:user", labelKey: "general" },
+  { section: "navigation", icon: "lucide:compass", labelKey: "navigation" },
   { section: "appearance", icon: "lucide:palette", labelKey: "appearance" },
   { section: "notifications", icon: "lucide:bell", labelKey: "notifications" },
   { section: "security", icon: "lucide:shield-check", labelKey: "security" },

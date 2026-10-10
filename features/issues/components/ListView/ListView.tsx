@@ -266,7 +266,7 @@ export function ListView({
 
   const openFocused = () => {
     const row = flatRows.find((r) => r.id === focusedId);
-    if (row) issueOpen.openPanel(identifier(row));
+    if (row) issueOpen.open(identifier(row));
   };
 
   // j/k always move the row cursor, even with a panel open — that's the
@@ -470,7 +470,12 @@ export function ListView({
   });
 
   return (
-    <div className={styles.content} ref={containerRef}>
+    <div
+      className={styles.content}
+      ref={containerRef}
+      data-project={projectId === undefined ? "" : undefined}
+      data-by-status={groupKey === "status" ? "" : undefined}
+    >
       <Table
         fill
         variant="card"
@@ -491,7 +496,7 @@ export function ListView({
             moveTargets={shownDefs}
             currentGroupId={groupIdOf(issue, groupKey)}
             onMoveTo={(groupId) => moveRow(issue, groupId)}
-            onOpen={() => issueOpen.openPanel(identifier(issue))}
+            onOpen={() => issueOpen.open(identifier(issue))}
             onOpenInNewTab={() => issueOpen.openPageInNewTab(identifier(issue))}
             onEditTitle={() => setEditing(issue.id)}
           />
