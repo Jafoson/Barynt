@@ -7,10 +7,12 @@
 
 .chip {
   display: inline-flex;
-  align-items: baseline;
+  /* Centred, not on the baseline: a picture or an avatar in front of a value
+     is taller than the text and would otherwise sit off the middle. */
+  align-items: center;
   gap: 0.25rem;
   max-width: 100%;
-  padding: 0.0625rem 0.375rem;
+  padding: 0.125rem 0.375rem;
   border-radius: var(--radius-sm);
   background: var(--surface-container-high);
   font-size: var(--text-xs);
@@ -40,10 +42,19 @@
   color: var(--on-surface-variant);
 }
 
-/* One chosen option: its icon or image, then its name. */
+/* The chosen options of a choice field, side by side. */
+.choices {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.125rem 0.375rem;
+  min-width: 0;
+}
+
+/* One chosen option: its icon or image, then its name, on one line. */
 .choice {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  margin-inline-end: 0.25rem;
+  line-height: 1.4;
 }

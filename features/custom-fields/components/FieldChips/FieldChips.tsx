@@ -78,17 +78,19 @@ export function FieldChips({ issue, fields, members, max = 3 }: Props) {
               />
             )}
             {showName && <span className={styles.name}>{field.name}</span>}
-            <span className={styles.value}>
-              {picked.length > 0
-                ? picked.map((option, i) => (
-                    <span key={option.id} className={styles.choice}>
-                      <OptionVisual option={option} size={12} />
-                      {option.label}
-                      {i < picked.length - 1 ? "," : ""}
-                    </span>
-                  ))
-                : shown}
-            </span>
+            {picked.length > 0 ? (
+              <span className={styles.choices}>
+                {picked.map((option, i) => (
+                  <span key={option.id} className={styles.choice}>
+                    <OptionVisual option={option} size={14} />
+                    {option.label}
+                    {i < picked.length - 1 ? "," : ""}
+                  </span>
+                ))}
+              </span>
+            ) : (
+              <span className={styles.value}>{shown}</span>
+            )}
           </span>
         );
       })}
