@@ -152,8 +152,10 @@ export function groupDefs(
     const field = groupField(key, customFields);
     if (!field || !isGroupableField(field)) return [];
     // Every choice is a group even while empty, so there is somewhere to
-    // drop a card; issues without a value gather in the last one.
+    // drop a card. Issues without a value gather in the first one, at the
+    // left: it is the state every issue starts in.
     return [
+      { key, id: NONE, label: labels.noValue, alwaysShow: true },
       ...field.options.map((o) => ({
         key,
         id: o.id,
@@ -161,7 +163,6 @@ export function groupDefs(
         color: o.color ?? undefined,
         alwaysShow: true,
       })),
-      { key, id: NONE, label: labels.noValue, alwaysShow: true },
     ];
   }
   switch (key) {

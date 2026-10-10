@@ -95,12 +95,17 @@ describe("groupIdsOf", () => {
 });
 
 describe("groupDefs for a custom field", () => {
-  it("lists every choice, then the no-value group", () => {
+  it("starts with the no-value group, then lists every choice", () => {
     const defs = groupDefs("cf:f_team", lookups, labels, []);
-    expect(defs.map((d) => d.id)).toEqual(["o_p", "o_k", "none"]);
-    expect(defs[0]).toMatchObject({ label: "Peter", color: "#ff0000" });
-    expect(defs[2].label).toBe("No value");
+    expect(defs.map((d) => d.id)).toEqual(["none", "o_p", "o_k"]);
+    expect(defs[0].label).toBe("No value");
+    expect(defs[1]).toMatchObject({ label: "Peter", color: "#ff0000" });
     expect(defs.every((d) => d.alwaysShow)).toBe(true);
+  });
+
+  it("does the same for a single choice", () => {
+    const defs = groupDefs("cf:f_size", lookups, labels, []);
+    expect(defs.map((d) => d.id)).toEqual(["none", "o_p", "o_k"]);
   });
 
   it("has no groups for a field that is missing", () => {
@@ -113,7 +118,7 @@ describe("groupDefs for a custom field", () => {
       alwaysShow: false,
     }));
     const shown = visibleGroups(defs, [issue({ f_team: ["o_k"] }), issue({})]);
-    expect(shown.map((d) => d.id)).toEqual(["o_k", "none"]);
+    expect(shown.map((d) => d.id)).toEqual(["none", "o_k"]);
     // The second value of a multi-choice issue counts as well.
     const both = visibleGroups(defs, [issue({ f_team: ["o_k", "o_p"] })]);
     expect(both.map((d) => d.id)).toEqual(["o_p", "o_k"]);
