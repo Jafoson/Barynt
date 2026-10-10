@@ -89,6 +89,11 @@ export const AUDIT_ACTIONS = {
   "issue.estimateHours.changed": "Time estimate changed",
   "label.created": "Label created",
   "label.deleted": "Label deleted",
+  "customfield.created": "Custom field created",
+  "customfield.updated": "Custom field changed",
+  "customfield.archived": "Custom field archived",
+  "customfield.restored": "Custom field restored",
+  "customfield.deleted": "Custom field deleted",
 } as const;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
@@ -122,7 +127,8 @@ export type AuditTargetType =
   | "mailTemplate"
   | "systemSettings"
   | "issue"
-  | "label";
+  | "label"
+  | "customField";
 
 export interface AuditTarget {
   type: AuditTargetType;

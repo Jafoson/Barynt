@@ -61,6 +61,9 @@ const SEGMENTS: string[][] = [
     "tests/unit/customfields",
   ],
   ["tests/unit/account"],
+  // Mocks `@/lib/db`, `@/lib/permissions` and `@/lib/audit` — own process,
+  // like the other action tests that replace `@/lib/permissions`.
+  ["tests/unit/customfields/actions.test.ts"],
   ["tests/unit/notifications"],
   ["tests/unit/mail/send.test.ts"],
   [

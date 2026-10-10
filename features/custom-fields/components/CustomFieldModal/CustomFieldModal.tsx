@@ -1,0 +1,270 @@
+"use client";
+
+import { Icon } from "@iconify/react";
+import { useTranslations } from "next-intl";
+import { useRef, useState, useTransition } from "react";
+import { Button } from "@/components/ui/atoms/Button/Button";
+import { Input } from "@/components/ui/atoms/Input/Input";
+import { NativeSelect } from "@/components/ui/atoms/NativeSelect/NativeSelect";
+import {
+  ModalFooter,
+  ModalShortcut,
+} from "@/components/ui/layout/Modal/components/ModalFooter";
+import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
+import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
+import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
+import {
+  createCustomField,
+  updateCustomField,
+} from "@/features/custom-fields/actions";
+import type { CustomFieldRow } from "@/features/custom-fields/types";
+import {
+  CUSTOM_FIELD_TYPES,
+  type CustomFieldType,
+  FIELD_LIMITS,
+  usesOptions,
+} from "@/lib/custom-fields";
+import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
+import styles from "./customFieldModal.module.scss";
+
+export interface CustomFieldModalProps {
+  workspaceId: string;
+  /** The project the new field belongs to; without it a workspace field. */
+  projectId?: string | null;
+  /** Set = editing, unset = creating. */
+  field?: CustomFieldRow;
+  onDone: () => void;
+  close: () => void;
+  sheet?: boolean;
+}
+
+interface OptionDraft {
+  /** Existing choices keep their id so stored values stay attached. */
+  id?: string;
+  label: string;
+}
+
+/**
+ * Create and edit share one dialog. When editing, the type is fixed (values
+ * already stored under it would not fit another) and so is the key (what
+ * integrations address the field by) — both are shown, not offered.
+ */
+export function CustomFieldModal({
+  workspaceId,
+  projectId,
+  field,
+  onDone,
+  close,
+  sheet,
+}: CustomFieldModalProps) {
+  const t = useTranslations();
+  const [isPending, startTransition] = useTransition();
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const swipe = useSwipeToClose(close, bodyRef);
+
+  const [name, setName] = useState(field?.name ?? "");
+  const [description, setDescription] = useState(field?.description ?? "");
+  const [type, setType] = useState<CustomFieldType>(field?.type ?? "TEXT");
+  const [options, setOptions] = useState<OptionDraft[]>(
+    field?.options.map((o) => ({ id: o.id, label: o.label })) ?? [],
+  );
+  const [error, setError] = useState("");
+
+  const trimmed = name.trim();
+  const hasOptions = usesOptions(type);
+  const title = field
+    ? t("customFields.editTitle")
+    : t("customFields.newTitle");
+
+  const setOption = (index: number, label: string) =>
+    setOptions((list) =>
+      list.map((o, i) => (i === index ? { ...o, label } : o)),
+    );
+
+  const submit = () => {
+    if (!trimmed || isPending) return;
+    const choices = hasOptions
+      ? options
+          .map((o) => ({ ...o, label: o.label.trim() }))
+          .filter((o) => o.label !== "")
+      : [];
+
+    startTransition(async () => {
+      try {
+        const result = field
+          ? await updateCustomField(field.id, {
+              name: trimmed,
+              description,
+              ...(hasOptions ? { options: choices } : {}),
+            })
+          : await createCustomField({
+              workspaceId,
+              projectId: projectId ?? null,
+              name: trimmed,
+              description,
+              type,
+              options: choices,
+            });
+        if ("error" in result) {
+          setError(t(`customFields.errors.${result.error}`));
+          return;
+        }
+        onDone();
+        close();
+      } catch {
+        setError(t("customFields.errors.failed"));
+      }
+    });
+  };
+
+  return (
+    <Modal
+      width={480}
+      variant={sheet ? "sheet" : "dialog"}
+      style={sheet ? swipe.style : undefined}
+      {...(sheet ? swipe.handlers : {})}
+    >
+      {sheet ? (
+        <SheetHeader
+          title={title}
+          onClose={close}
+          closeLabel={t("actions.cancel")}
+        />
+      ) : (
+        <ModalHeader
+          title={title}
+          onClose={close}
+          closeLabel={t("actions.cancel")}
+        />
+      )}
+
+      <ModalBody ref={bodyRef}>
+        <form
+          className={styles.form}
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
+          <Input
+            label={t("customFields.name")}
+            value={name}
+            autoFocus={!sheet}
+            maxLength={FIELD_LIMITS.name}
+            placeholder={t("customFields.namePlaceholder")}
+            onChange={(e) => {
+              setName(e.target.value);
+              setError("");
+            }}
+          />
+
+          <Input
+            label={t("customFields.description")}
+            value={description}
+            maxLength={FIELD_LIMITS.description}
+            placeholder={t("customFields.descriptionPlaceholder")}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+
+          <div className={styles.field}>
+            <span className={styles.fieldLabel}>{t("customFields.type")}</span>
+            <NativeSelect
+              label={t("customFields.type")}
+              value={type}
+              disabled={Boolean(field)}
+              onChange={(value) => setType(value as CustomFieldType)}
+              items={CUSTOM_FIELD_TYPES.map((value) => ({
+                value,
+                label: t(`customFields.types.${value}`),
+              }))}
+            />
+            {field && (
+              <p className={styles.hint}>{t("customFields.typeLocked")}</p>
+            )}
+          </div>
+
+          {field && (
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>{t("customFields.key")}</span>
+              <span className={styles.key}>{field.key}</span>
+            </div>
+          )}
+
+          {hasOptions && (
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>
+                {t("customFields.options")}
+              </span>
+              <div className={styles.options}>
+                {options.map((option, index) => (
+                  <div
+                    className={styles.option}
+                    key={option.id ?? `new-${index}`}
+                  >
+                    <Input
+                      aria-label={t("customFields.optionPlaceholder")}
+                      value={option.label}
+                      maxLength={FIELD_LIMITS.optionLabel}
+                      placeholder={t("customFields.optionPlaceholder")}
+                      onChange={(e) => setOption(index, e.target.value)}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      icon={<Icon icon="lucide:x" width={15} />}
+                      title={t("customFields.removeOption")}
+                      aria-label={t("customFields.removeOption")}
+                      onClick={() =>
+                        setOptions((list) => list.filter((_, i) => i !== index))
+                      }
+                    />
+                  </div>
+                ))}
+                {options.length < FIELD_LIMITS.options && (
+                  <div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      icon={<Icon icon="lucide:plus" width={15} />}
+                      onClick={() =>
+                        setOptions((list) => [...list, { label: "" }])
+                      }
+                    >
+                      {t("customFields.addOption")}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <p className={styles.error} role="alert">
+              {error}
+            </p>
+          )}
+
+          {/* Submit via Enter — the button below sits outside the form. */}
+          <button type="submit" hidden />
+        </form>
+      </ModalBody>
+
+      <ModalFooter hint={<ModalShortcut keys="enter" />}>
+        {!sheet && (
+          <Button variant="ghost" disabled={isPending} onClick={close}>
+            {t("actions.cancel")}
+          </Button>
+        )}
+        <Button
+          variant="primary"
+          disabled={!trimmed || isPending}
+          onClick={submit}
+        >
+          {field ? t("actions.save") : t("actions.create")}
+        </Button>
+      </ModalFooter>
+    </Modal>
+  );
+}
