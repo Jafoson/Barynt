@@ -74,13 +74,7 @@ export function FieldChoiceMenu({
     label,
   }));
 
-  const items: ISelectItem[] = [
-    ...(!multi && ids.length > 0
-      ? [{ value: null, label: t("customFields.noValue") }]
-      : []),
-    ...options,
-    ...draftItems,
-  ];
+  const items: ISelectItem[] = [...options, ...draftItems];
 
   const selected = multi
     ? [...ids, ...draftItems.map((d) => d.value)]
@@ -88,7 +82,9 @@ export function FieldChoiceMenu({
 
   const pick = (picked: string | number | null) => {
     if (!multi) {
-      onChange(picked === null ? null : picked);
+      // Picking the chosen value again takes it off, so there is no separate
+      // "not set" row.
+      onChange(picked === null || ids[0] === picked ? null : picked);
       close();
       return;
     }
