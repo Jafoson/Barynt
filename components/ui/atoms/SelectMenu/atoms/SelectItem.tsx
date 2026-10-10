@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@iconify/react";
 import type { ISelectItem } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import styles from "../SelectMenu.module.scss";
 
@@ -9,9 +10,17 @@ interface SelectItemProps {
   onPick: (value: string | number | null) => void;
   onClose?: () => void;
   multi?: boolean;
+  checkMark?: boolean;
 }
 
-function SelectItem({ it, isSel, onPick, onClose, multi }: SelectItemProps) {
+function SelectItem({
+  it,
+  isSel,
+  onPick,
+  onClose,
+  multi,
+  checkMark,
+}: SelectItemProps) {
   return (
     <button
       type="button"
@@ -27,6 +36,14 @@ function SelectItem({ it, isSel, onPick, onClose, multi }: SelectItemProps) {
       {it.icon}
       <span className={styles.label}>{it.label}</span>
       {it.hint && <span className="faint">{it.hint}</span>}
+      {checkMark && isSel(it.value) && (
+        <Icon
+          icon="lucide:check"
+          width={15}
+          className={styles.check}
+          aria-hidden="true"
+        />
+      )}
     </button>
   );
 }

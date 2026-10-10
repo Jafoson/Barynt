@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/atoms/Input/Input";
 import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
-import { AddValue } from "@/features/custom-fields/components/AddValue/AddValue";
+import { FieldChoiceMenu } from "@/features/custom-fields/components/FieldChoiceMenu/FieldChoiceMenu";
 import {
   fieldsFor,
   useFieldText,
@@ -19,7 +19,6 @@ import {
 import { ValuePopover } from "@/features/issues/components/ValuePopover/ValuePopover";
 import type { IssueComposerData } from "@/features/issues/types";
 import type { FieldDefinition } from "@/lib/custom-fields";
-import styles from "./createFieldChips.module.scss";
 
 /**
  * What the dialog holds for a field before the issue exists: a value as the
@@ -100,38 +99,19 @@ export function CreateFieldChips({
             data-field-nav
           >
             {(closeMenu) => {
-              if (field.type === "SELECT" || field.type === "USER") {
-                const items =
-                  field.type === "SELECT"
-                    ? field.options.map((o) => ({
-                        value: o.id,
-                        label: o.label,
-                      }))
-                    : members.map((m) => ({
-                        value: m.id,
-                        label: `${m.firstName} ${m.lastName}`,
-                      }));
+              if (
+                field.type === "SELECT" ||
+                field.type === "MULTI_SELECT" ||
+                field.type === "USER"
+              ) {
                 return (
-                  <>
-                    <SelectMenu
-                      items={items}
-                      value={typeof value === "string" ? value : null}
-                      onPick={(v) => {
-                        onChange(field.id, v as string);
-                        closeMenu();
-                      }}
-                      onClose={closeMenu}
-                      searchable={items.length > 8}
-                    />
-                    {field.type === "SELECT" && field.allowCustomOptions && (
-                      <AddValue
-                        onAdd={(label) => {
-                          onChange(field.id, { create: label });
-                          closeMenu();
-                        }}
-                      />
-                    )}
-                  </>
+                  <FieldChoiceMenu
+                    field={field}
+                    members={members}
+                    value={value}
+                    onChange={(next) => onChange(field.id, next)}
+                    close={closeMenu}
+                  />
                 );
               }
 
@@ -151,98 +131,6 @@ export function CreateFieldChips({
                     }}
                     onClose={closeMenu}
                   />
-                );
-              }
-
-              if (field.type === "MULTI_SELECT") {
-                type Pending = { ids: string[]; created: string[] };
-                const list = Array.isArray(value) ? value : [];
-                const initial: Pending = {
-                  ids: list.filter((v): v is string => typeof v === "string"),
-                  created: list.flatMap((v) => (isCreate(v) ? [v.create] : [])),
-                };
-                return (
-                  <ValuePopover<Pending>
-                    initialValue={initial}
-                    clearable={list.length > 0}
-                    onConfirm={(next) => {
-                      const all = [
-                        ...next.ids,
-                        ...next.created.map((label) => ({ create: label })),
-                      ];
-                      onChange(field.id, all.length > 0 ? all : null);
-                    }}
-                    onClear={() => onChange(field.id, null)}
-                    close={closeMenu}
-                  >
-                    {(picked, setPicked) => (
-                      <>
-                        <div className={styles.choices}>
-                          {field.options.map((option) => {
-                            const on = picked.ids.includes(option.id);
-                            return (
-                              <button
-                                key={option.id}
-                                type="button"
-                                aria-pressed={on}
-                                className={styles.choice}
-                                onClick={() =>
-                                  setPicked({
-                                    ...picked,
-                                    ids: on
-                                      ? picked.ids.filter(
-                                          (id) => id !== option.id,
-                                        )
-                                      : [...picked.ids, option.id],
-                                  })
-                                }
-                              >
-                                <span className={styles.check}>
-                                  {on && (
-                                    <Icon icon="lucide:check" width={14} />
-                                  )}
-                                </span>
-                                {option.label}
-                              </button>
-                            );
-                          })}
-                          {picked.created.map((label) => (
-                            <button
-                              key={`new-${label}`}
-                              type="button"
-                              aria-pressed
-                              className={styles.choice}
-                              onClick={() =>
-                                setPicked({
-                                  ...picked,
-                                  created: picked.created.filter(
-                                    (l) => l !== label,
-                                  ),
-                                })
-                              }
-                            >
-                              <span className={styles.check}>
-                                <Icon icon="lucide:check" width={14} />
-                              </span>
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                        {field.allowCustomOptions && (
-                          <AddValue
-                            onAdd={(label) =>
-                              setPicked({
-                                ...picked,
-                                created: picked.created.includes(label)
-                                  ? picked.created
-                                  : [...picked.created, label],
-                              })
-                            }
-                          />
-                        )}
-                      </>
-                    )}
-                  </ValuePopover>
                 );
               }
 

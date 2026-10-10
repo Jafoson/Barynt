@@ -1489,7 +1489,7 @@
     },
     "allowCustom": "Allow own values",
     "allowCustomDesc": "Anyone who can edit an issue can add a new value while filling it in. It is then available to everyone.",
-    "addValue": "New value",
-    "addValueAction": "Add"
+    "createValue": "Add “{value}”",
+    "searchValues": "Search values…"
   }
 }

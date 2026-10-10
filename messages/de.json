@@ -1489,7 +1489,7 @@
     },
     "allowCustom": "Eigene Werte erlauben",
     "allowCustomDesc": "Wer ein Issue bearbeiten darf, kann beim Ausfüllen einen neuen Wert hinzufügen. Er steht danach für alle zur Auswahl.",
-    "addValue": "Neuer Wert",
-    "addValueAction": "Hinzufügen"
+    "createValue": "„{value}“ hinzufügen",
+    "searchValues": "Werte suchen…"
   }
 }
