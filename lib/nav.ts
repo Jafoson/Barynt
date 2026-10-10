@@ -265,7 +265,7 @@ export const ADMIN_NAV: NavEntry[] = [
 /**
  * A project's dashboard — `…/project/<slug>/overview`.
  *
- * It is a sidebar entry of its own (Board, Issues, Dashboard, …), and the
+ * It is the first sidebar entry of its own (Dashboard, Board, Issues, …), and the
  * project's row can lead there too — which of the three a click on the name
  * opens is each person's choice (`projectLanding`). The section name stays
  * `overview`: it is in shared links and open tabs already.
@@ -286,9 +286,9 @@ export const PROJECT_OVERVIEW_NAV: NavEntry = {
  * under `settings` (`PROJECT_SETTINGS_NAV`).
  */
 export const PROJECT_NAV: NavEntry[] = [
+  PROJECT_OVERVIEW_NAV,
   { section: "", icon: "lucide:square-kanban", labelKey: "board" },
   { section: "list", icon: "lucide:list", labelKey: "issues" },
-  PROJECT_OVERVIEW_NAV,
   { section: "members", icon: "lucide:users", labelKey: "members" },
   {
     section: "settings",
