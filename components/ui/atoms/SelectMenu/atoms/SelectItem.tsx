@@ -25,7 +25,15 @@ function SelectItem({
     <button
       type="button"
       key={String(it.value)}
-      className={`${styles.menuItem} ${isSel(it.value) ? styles.active : ""}`}
+      // With a check mark the selection is already marked at the end of the
+      // row; the filled background would say it twice.
+      className={`${styles.menuItem} ${
+        isSel(it.value)
+          ? checkMark
+            ? styles.activeChecked
+            : styles.active
+          : ""
+      }`}
       // Lets `SelectMenu`'s Up/Down/Tab roving find every item in one query.
       data-select-item
       onClick={() => {
