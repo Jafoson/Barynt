@@ -39,3 +39,11 @@
 .more {
   color: var(--on-surface-variant);
 }
+
+/* One chosen option: its icon or image, then its name. */
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-inline-end: 0.25rem;
+}

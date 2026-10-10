@@ -34,18 +34,33 @@ mock.module("@/lib/permissions", () => ({
 }));
 
 mock.module("@/lib/audit", () => ({ recordAudit: mock(async () => {}) }));
+mock.module("@/lib/storage", () => ({
+  finalizeAvatarUpload: mock(async () => ({ ok: true })),
+  deleteAvatarObject: mock(async () => {}),
+  requestAvatarUpload: mock(async () => ({
+    ok: true,
+    key: "fieldoptions/ws-1/new.png",
+    uploadUrl: "https://storage.example/put",
+  })),
+}));
 mock.module("next/cache", () => ({ revalidatePath: mock() }));
 
 import {
   createCustomField,
   deleteCustomField,
   reorderCustomFields,
+  requestOptionImageUpload,
   setCustomFieldArchived,
   updateCustomField,
 } from "@/features/custom-fields/actions";
 import { recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/permissions";
+import {
+  deleteAvatarObject,
+  finalizeAvatarUpload,
+  requestAvatarUpload,
+} from "@/lib/storage";
 
 const cf = db.customField as unknown as Record<string, ReturnType<typeof mock>>;
 const project = db.project.findUnique as ReturnType<typeof mock>;
@@ -246,6 +261,133 @@ describe("createCustomField() icon, date mode and own values", () => {
       allowCustomOptions: true,
     });
     expect(cf.create.mock.calls[1][0].data.allowCustomOptions).toBe(false);
+  });
+});
+
+describe("option images", () => {
+  const finalize = finalizeAvatarUpload as ReturnType<typeof mock>;
+  const dropObject = deleteAvatarObject as ReturnType<typeof mock>;
+  const requestUpload = requestAvatarUpload as ReturnType<typeof mock>;
+
+  beforeEach(() => {
+    reset();
+    finalize.mockClear();
+    dropObject.mockClear();
+    requestUpload.mockClear();
+  });
+
+  it("keeps an uploaded image after checking it belongs to the workspace", async () => {
+    const r = await createCustomField({
+      workspaceId: "ws-1",
+      name: "Team",
+      type: "SELECT",
+      options: [{ label: "A", image: "fieldoptions/ws-1/a.png" }],
+    });
+    expect(r).toMatchObject({ ok: true });
+    expect(finalize.mock.calls[0]).toEqual([
+      "fieldoption",
+      "ws-1",
+      "fieldoptions/ws-1/a.png",
+    ]);
+    expect(cf.create.mock.calls[0][0].data.options[0].image).toBe(
+      "fieldoptions/ws-1/a.png",
+    );
+  });
+
+  it("refuses a key of another workspace without asking storage", async () => {
+    const r = await createCustomField({
+      workspaceId: "ws-1",
+      name: "Team",
+      type: "SELECT",
+      options: [{ label: "A", image: "fieldoptions/ws-OTHER/a.png" }],
+    });
+    expect(r).toEqual({ error: "image_invalid" });
+    expect(finalize).not.toHaveBeenCalled();
+    expect(cf.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses an image storage does not have", async () => {
+    finalize.mockResolvedValueOnce({ error: "Upload not found" });
+    const r = await createCustomField({
+      workspaceId: "ws-1",
+      name: "Team",
+      type: "SELECT",
+      options: [{ label: "A", image: "fieldoptions/ws-1/missing.png" }],
+    });
+    expect(r).toEqual({ error: "image_invalid" });
+  });
+
+  it("does not check a key the field already carried, and removes dropped images", async () => {
+    cf.findUnique.mockResolvedValue({
+      id: "f1",
+      workspaceId: "ws-1",
+      projectId: null,
+      name: "Team",
+      type: "SELECT",
+      options: [
+        {
+          id: "o_a",
+          label: "A",
+          color: null,
+          image: "fieldoptions/ws-1/keep.png",
+        },
+        {
+          id: "o_b",
+          label: "B",
+          color: null,
+          image: "fieldoptions/ws-1/gone.png",
+        },
+      ],
+    });
+    const r = await updateCustomField("f1", {
+      options: [{ id: "o_a", label: "A", image: "fieldoptions/ws-1/keep.png" }],
+    });
+    expect(r).toEqual({ ok: true });
+    expect(finalize).not.toHaveBeenCalled();
+    expect(dropObject.mock.calls.map((c) => c[0])).toEqual([
+      "fieldoptions/ws-1/gone.png",
+    ]);
+  });
+
+  it("removes the images of a deleted field", async () => {
+    cf.findUnique
+      .mockResolvedValueOnce({
+        id: "f1",
+        workspaceId: "ws-1",
+        projectId: null,
+        name: "Team",
+      })
+      .mockResolvedValueOnce({
+        options: [{ id: "o_a", label: "A", image: "fieldoptions/ws-1/a.png" }],
+      });
+    await deleteCustomField("f1");
+    expect(dropObject.mock.calls.map((c) => c[0])).toEqual([
+      "fieldoptions/ws-1/a.png",
+    ]);
+  });
+
+  it("issues an upload URL in the workspace's name and refuses large files", async () => {
+    const ok = await requestOptionImageUpload({
+      workspaceId: "ws-1",
+      contentType: "image/png",
+      contentLength: 1000,
+    });
+    expect(ok).toMatchObject({ ok: true });
+    expect(requestUpload.mock.calls[0][0]).toMatchObject({
+      kind: "fieldoption",
+      ownerId: "ws-1",
+    });
+    expect(perm.mock.calls.at(-1)).toEqual([
+      "customfield.manage",
+      { workspaceId: "ws-1" },
+    ]);
+
+    const big = await requestOptionImageUpload({
+      workspaceId: "ws-1",
+      contentType: "image/png",
+      contentLength: 2 * 1024 * 1024,
+    });
+    expect(big).toEqual({ error: "too_large" });
   });
 });
 

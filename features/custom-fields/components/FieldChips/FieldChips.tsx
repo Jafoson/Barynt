@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
+import { OptionVisual } from "@/features/custom-fields/components/OptionVisual/OptionVisual";
 import { fieldsFor, useFieldText } from "@/features/custom-fields/format";
 import type { IssueLookups } from "@/features/issues/types";
 import type { FieldDefinition } from "@/lib/custom-fields";
@@ -34,7 +35,18 @@ export function FieldChips({ issue, fields, members, max = 3 }: Props) {
     // A checkbox that is off says nothing worth a chip.
     if (field.type === "CHECKBOX" && value === false) return [];
     const shown = text(field, value, members);
-    return shown === "" ? [] : [{ field, shown }];
+    // The chosen options of a choice field, to show their icons or images.
+    const ids =
+      field.type === "SELECT"
+        ? [value]
+        : field.type === "MULTI_SELECT" && Array.isArray(value)
+          ? value
+          : [];
+    const picked = ids.flatMap((id) => {
+      const option = field.options.find((o) => o.id === id);
+      return option ? [option] : [];
+    });
+    return shown === "" ? [] : [{ field, shown, picked }];
   });
 
   if (filled.length === 0) return null;
@@ -43,7 +55,7 @@ export function FieldChips({ issue, fields, members, max = 3 }: Props) {
 
   return (
     <div className={styles.chips}>
-      {visible.map(({ field, shown }) => {
+      {visible.map(({ field, shown, picked }) => {
         // What stands before the value is the person's choice. A field
         // without an icon shows its name where the icon was asked for, so a
         // chip is never a bare value.
@@ -66,7 +78,17 @@ export function FieldChips({ issue, fields, members, max = 3 }: Props) {
               />
             )}
             {showName && <span className={styles.name}>{field.name}</span>}
-            <span className={styles.value}>{shown}</span>
+            <span className={styles.value}>
+              {picked.length > 0
+                ? picked.map((option, i) => (
+                    <span key={option.id} className={styles.choice}>
+                      <OptionVisual option={option} size={12} />
+                      {option.label}
+                      {i < picked.length - 1 ? "," : ""}
+                    </span>
+                  ))
+                : shown}
+            </span>
           </span>
         );
       })}

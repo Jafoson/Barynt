@@ -7,6 +7,7 @@
 // that writes a field value goes through `validateFieldValue` first.
 
 import { type DateMode, isTimeOfDay, normalizeInstant } from "./datetime";
+import { isCustomFieldIcon } from "./icons";
 
 export { DATE_MODES, type DateMode, isDateMode } from "./datetime";
 export { CUSTOM_FIELD_ICONS, isCustomFieldIcon } from "./icons";
@@ -36,6 +37,15 @@ export interface FieldOption {
   id: string;
   label: string;
   color: string | null;
+  /** One of `CUSTOM_FIELD_ICONS`. Shown in front of the choice. */
+  icon?: string | null;
+  /**
+   * An uploaded image, as the object key in storage (`fieldoptions/…`). It
+   * wins over `icon`. Never leaves the server as it is: pages get `imageUrl`.
+   */
+  image?: string | null;
+  /** The image as a (presigned) URL — filled in when definitions are loaded. */
+  imageUrl?: string | null;
 }
 
 /** What a field value looks like once validated. `null` means "no value". */
@@ -85,6 +95,10 @@ export const FIELD_LIMITS = {
   optionLabel: 60,
   /** NUMBER stays within what a JSON double stores exactly enough for display. */
   numberAbs: 1e15,
+  /** Longest object key an option image may have. */
+  imageKey: 200,
+  /** Largest option image, in bytes. A small picture next to a label. */
+  imageBytes: 1024 * 1024,
   /** Active (non-archived) fields a workspace may define. */
   fieldsPerWorkspace: 100,
 } as const;
@@ -103,10 +117,16 @@ export function toOptions(json: unknown): FieldOption[] {
   const out: FieldOption[] = [];
   for (const raw of json) {
     if (typeof raw !== "object" || raw === null) continue;
-    const { id, label, color } = raw as Record<string, unknown>;
+    const { id, label, color, icon, image } = raw as Record<string, unknown>;
     if (typeof id !== "string" || id === "") continue;
     if (typeof label !== "string" || label === "") continue;
-    out.push({ id, label, color: typeof color === "string" ? color : null });
+    out.push({
+      id,
+      label,
+      color: typeof color === "string" ? color : null,
+      icon: typeof icon === "string" && icon !== "" ? icon : null,
+      image: typeof image === "string" && image !== "" ? image : null,
+    });
   }
   return out;
 }
@@ -273,6 +293,10 @@ export function validateOptions(
     return { ok: false, error: "a choice label is empty or too long" };
   if (new Set(options.map((o) => o.id)).size !== options.length)
     return { ok: false, error: "choice ids must be unique" };
+  if (options.some((o) => o.icon && !isCustomFieldIcon(o.icon)))
+    return { ok: false, error: "a choice has an icon that is not in the list" };
+  if (options.some((o) => (o.image?.length ?? 0) > FIELD_LIMITS.imageKey))
+    return { ok: false, error: "a choice has an invalid image" };
   return { ok: true, options };
 }
 

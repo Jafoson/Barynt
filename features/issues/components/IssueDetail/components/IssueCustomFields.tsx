@@ -8,6 +8,7 @@ import { Label as LabelChip } from "@/components/ui/atoms/Label/Label";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import { FieldChoiceMenu } from "@/features/custom-fields/components/FieldChoiceMenu/FieldChoiceMenu";
+import { OptionVisual } from "@/features/custom-fields/components/OptionVisual/OptionVisual";
 import {
   fieldsFor,
   useFieldText,
@@ -100,6 +101,14 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
         >
           {String(value)}
         </a>
+      ) : field.type === "SELECT" ? (
+        <span className={`${styles.valueText} ${fieldStyles.withVisual}`}>
+          {(() => {
+            const option = field.options.find((o) => o.id === value);
+            return option ? <OptionVisual option={option} size={14} /> : null;
+          })()}
+          {text(field, value, data.members)}
+        </span>
       ) : (
         <span className={styles.valueText}>
           {text(field, value, data.members)}
@@ -172,12 +181,14 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
         <LabelChip
           key={option.id}
           color={option.color ?? undefined}
+          hasIcon={Boolean(option.icon || option.imageUrl)}
           size="sm"
           onRemove={
             canEdit ? () => removeChoice(option.id, option.label) : undefined
           }
           removeLabel={t("actions.removeLabel", { name: option.label })}
         >
+          <OptionVisual option={option} size={13} />
           {option.label}
         </LabelChip>
       ));

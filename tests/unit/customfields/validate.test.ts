@@ -196,7 +196,7 @@ describe("toOptions", () => {
         { id: "", label: "B" },
         { id: "c" },
       ]),
-    ).toEqual([{ id: "a", label: "A", color: null }]);
+    ).toEqual([{ id: "a", label: "A", color: null, icon: null, image: null }]);
     expect(toOptions("nope")).toEqual([]);
   });
 });
@@ -226,5 +226,49 @@ describe("narrowFieldValue", () => {
     for (const raw of [null, undefined, {}, [1], [], Number.NaN, () => 1]) {
       expect(narrowFieldValue(raw)).toBeNull();
     }
+  });
+});
+
+describe("options with an icon or an image", () => {
+  it("keeps icon and image through toOptions", () => {
+    expect(
+      toOptions([
+        {
+          id: "a",
+          label: "A",
+          icon: "lucide:user",
+          image: "fieldoptions/w/x.png",
+        },
+        { id: "b", label: "B" },
+      ]),
+    ).toEqual([
+      {
+        id: "a",
+        label: "A",
+        color: null,
+        icon: "lucide:user",
+        image: "fieldoptions/w/x.png",
+      },
+      { id: "b", label: "B", color: null, icon: null, image: null },
+    ]);
+  });
+
+  it("accepts an icon from the list and rejects any other", () => {
+    expect(
+      validateOptions("SELECT", [{ id: "a", label: "A", icon: "lucide:user" }])
+        .ok,
+    ).toBe(true);
+    expect(
+      validateOptions("SELECT", [{ id: "a", label: "A", icon: "lucide:nope" }])
+        .ok,
+    ).toBe(false);
+  });
+
+  it("rejects an absurdly long image key", () => {
+    expect(
+      validateOptions("SELECT", [
+        { id: "a", label: "A", image: "x".repeat(201) },
+      ]).ok,
+    ).toBe(false);
   });
 });

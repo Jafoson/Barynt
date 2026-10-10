@@ -104,6 +104,9 @@ export interface GroupDef {
   id: string;
   label: string;
   color?: string;
+  /** For a choice of a custom field: its icon or uploaded image, if it has one. */
+  icon?: string | null;
+  imageUrl?: string | null;
   member?: User;
   /** Shown even when empty (a workflow status, a priority) — the rest only with issues. */
   alwaysShow: boolean;
@@ -161,6 +164,8 @@ export function groupDefs(
         id: o.id,
         label: o.label,
         color: o.color ?? undefined,
+        icon: o.icon ?? null,
+        imageUrl: o.imageUrl ?? null,
         alwaysShow: true,
       })),
     ];

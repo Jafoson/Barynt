@@ -18,6 +18,7 @@ import {
   createCustomField,
   updateCustomField,
 } from "@/features/custom-fields/actions";
+import { OptionVisualPicker } from "@/features/custom-fields/components/OptionVisualPicker/OptionVisualPicker";
 import type { CustomFieldRow } from "@/features/custom-fields/types";
 import {
   CUSTOM_FIELD_ICONS,
@@ -46,6 +47,9 @@ interface OptionDraft {
   /** Existing choices keep their id so stored values stay attached. */
   id?: string;
   label: string;
+  icon: string | null;
+  image: string | null;
+  imageUrl: string | null;
 }
 
 /**
@@ -75,7 +79,13 @@ export function CustomFieldModal({
     field?.allowCustomOptions ?? false,
   );
   const [options, setOptions] = useState<OptionDraft[]>(
-    field?.options.map((o) => ({ id: o.id, label: o.label })) ?? [],
+    field?.options.map((o) => ({
+      id: o.id,
+      label: o.label,
+      icon: o.icon ?? null,
+      image: o.image ?? null,
+      imageUrl: o.imageUrl ?? null,
+    })) ?? [],
   );
   const [error, setError] = useState("");
 
@@ -94,7 +104,12 @@ export function CustomFieldModal({
     if (!trimmed || isPending) return;
     const choices = hasOptions
       ? options
-          .map((o) => ({ ...o, label: o.label.trim() }))
+          .map((o) => ({
+            id: o.id,
+            label: o.label.trim(),
+            icon: o.icon,
+            image: o.image,
+          }))
           .filter((o) => o.label !== "")
       : [];
 
@@ -279,6 +294,18 @@ export function CustomFieldModal({
                     className={styles.option}
                     key={option.id ?? `new-${index}`}
                   >
+                    <OptionVisualPicker
+                      value={option}
+                      workspaceId={workspaceId}
+                      projectId={projectId}
+                      onChange={(visual) =>
+                        setOptions((list) =>
+                          list.map((o, i) =>
+                            i === index ? { ...o, ...visual } : o,
+                          ),
+                        )
+                      }
+                    />
                     <Input
                       aria-label={t("customFields.optionPlaceholder")}
                       value={option.label}
@@ -307,7 +334,15 @@ export function CustomFieldModal({
                       type="button"
                       icon={<Icon icon="lucide:plus" width={15} />}
                       onClick={() =>
-                        setOptions((list) => [...list, { label: "" }])
+                        setOptions((list) => [
+                          ...list,
+                          {
+                            label: "",
+                            icon: null,
+                            image: null,
+                            imageUrl: null,
+                          },
+                        ])
                       }
                     >
                       {t("customFields.addOption")}

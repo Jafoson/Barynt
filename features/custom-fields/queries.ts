@@ -1,12 +1,13 @@
 import "server-only";
 import { cache } from "react";
+import { optionsWithImageUrls } from "@/features/custom-fields/images";
 import type {
   CustomFieldRow,
   CustomFieldsView,
 } from "@/features/custom-fields/types";
 import { getWorkspaceProjects } from "@/features/workspaces/queries";
 import { getCurrentWorkspaceId } from "@/lib/current-workspace";
-import { type FieldDefinition, toOptions } from "@/lib/custom-fields";
+import type { FieldDefinition } from "@/lib/custom-fields";
 import { db } from "@/lib/db";
 import { accessFor, currentUserId } from "@/lib/permissions";
 
@@ -20,14 +21,14 @@ function loadFields(where: { workspaceId: string; projectId: string | null }) {
   });
 }
 
-function toRow(f: FieldRecord): CustomFieldRow {
+async function toRow(f: FieldRecord): Promise<CustomFieldRow> {
   return {
     id: f.id,
     key: f.key,
     name: f.name,
     description: f.description,
     type: f.type,
-    options: toOptions(f.options),
+    options: await optionsWithImageUrls(f.options),
     icon: f.icon,
     dateMode: f.dateMode,
     allowCustomOptions: f.allowCustomOptions,
@@ -66,8 +67,8 @@ export const getCustomFieldsView = cache(
       ]);
       return {
         name: project.name,
-        own: own.map(toRow),
-        inherited: inherited.map(toRow),
+        own: await Promise.all(own.map(toRow)),
+        inherited: await Promise.all(inherited.map(toRow)),
       };
     }
 
@@ -77,7 +78,7 @@ export const getCustomFieldsView = cache(
       workspaceId: scope.workspaceId,
       projectId: null,
     });
-    return { name: "", own: own.map(toRow), inherited: [] };
+    return { name: "", own: await Promise.all(own.map(toRow)), inherited: [] };
   },
 );
 
@@ -102,17 +103,23 @@ export const getWorkspaceCustomFields = cache(
       },
       orderBy: [{ position: "asc" }, { created: "asc" }],
     });
-    return rows.map((f) => ({
-      id: f.id,
-      key: f.key,
-      name: f.name,
-      description: f.description,
-      type: f.type,
-      options: toOptions(f.options),
-      icon: f.icon,
-      dateMode: f.dateMode,
-      allowCustomOptions: f.allowCustomOptions,
-      projectId: f.projectId,
-    }));
+    return Promise.all(
+      rows.map(async (f) => ({
+        id: f.id,
+        key: f.key,
+        name: f.name,
+        description: f.description,
+        type: f.type,
+        // The storage key stays on the server; the page gets the URL.
+        options: (await optionsWithImageUrls(f.options)).map((o) => ({
+          ...o,
+          image: null,
+        })),
+        icon: f.icon,
+        dateMode: f.dateMode,
+        allowCustomOptions: f.allowCustomOptions,
+        projectId: f.projectId,
+      })),
+    );
   },
 );

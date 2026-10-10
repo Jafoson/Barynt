@@ -37,7 +37,13 @@ export interface ApiCustomField {
   description: string;
   type: CustomFieldType;
   /** Only for SELECT and MULTI_SELECT. */
-  options: { id: string; label: string; color: string | null }[];
+  options: {
+    id: string;
+    label: string;
+    color: string | null;
+    /** An icon name such as `lucide:user`, or `null`. */
+    icon: string | null;
+  }[];
   /** An icon name such as `lucide:user`, or `null`. */
   icon: string | null;
   /** DATE: `DATE` (`YYYY-MM-DD`), `DATETIME` (ISO instant in UTC) or `TIME` (`HH:mm`). */
@@ -66,7 +72,14 @@ export function toApiCustomField(f: {
     name: f.name,
     description: f.description,
     type: f.type,
-    options: usesOptions(f.type) ? toOptions(f.options) : [],
+    options: usesOptions(f.type)
+      ? toOptions(f.options).map((o) => ({
+          id: o.id,
+          label: o.label,
+          color: o.color,
+          icon: o.icon ?? null,
+        }))
+      : [],
     icon: f.icon,
     dateMode: f.dateMode,
     allowCustomOptions: f.allowCustomOptions,

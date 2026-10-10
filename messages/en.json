@@ -1473,7 +1473,8 @@
       "not_found": "This field no longer exists.",
       "failed": "The field couldn't be saved. Try again.",
       "icon_invalid": "That icon isn't in the list.",
-      "date_mode_invalid": "Choose date, date and time, or time only."
+      "date_mode_invalid": "Choose date, date and time, or time only.",
+      "image_invalid": "An image wasn't accepted. Upload it again."
     },
     "noValue": "Not set",
     "yes": "Yes",
@@ -1490,6 +1491,13 @@
     "allowCustom": "Allow own values",
     "allowCustomDesc": "Anyone who can edit an issue can add a new value while filling it in. It is then available to everyone.",
     "createValue": "Add “{value}”",
-    "searchValues": "Search values…"
+    "searchValues": "Search values…",
+    "optionVisual": "Icon or image",
+    "uploadImage": "Upload image",
+    "removeVisual": "Remove",
+    "imageHint": "PNG, JPEG, WebP or GIF, up to 1 MB.",
+    "imageTooLarge": "The image is too large, up to 1 MB.",
+    "imageType": "PNG, JPEG, WebP or GIF only.",
+    "imageFailed": "The image couldn't be uploaded."
   }
 }

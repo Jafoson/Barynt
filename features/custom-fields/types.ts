@@ -37,6 +37,7 @@ export type CustomFieldError =
   | "type_invalid"
   | "options_invalid"
   | "icon_invalid"
+  | "image_invalid"
   | "date_mode_invalid"
   | "limit_reached"
   | "not_found";
@@ -49,4 +50,7 @@ export interface OptionInput {
   id?: string;
   label: string;
   color?: string | null;
+  icon?: string | null;
+  /** The object key from `requestOptionImageUpload`, or an unchanged stored one. */
+  image?: string | null;
 }

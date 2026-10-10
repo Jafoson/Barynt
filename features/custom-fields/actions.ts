@@ -21,6 +21,12 @@ import {
 } from "@/lib/custom-fields";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/permissions";
+import {
+  deleteAvatarObject,
+  finalizeAvatarUpload,
+  requestAvatarUpload,
+} from "@/lib/storage";
+import { isOwnAvatarKey } from "@/lib/storage/keys";
 import { uid } from "@/lib/utils/id";
 
 // Defining a field is one permission, `customfield.manage`, checked in the
@@ -72,12 +78,50 @@ function withIds(options: OptionInput[] | undefined) {
     id: o.id && o.id !== "" ? o.id : uid("o_"),
     label: typeof o.label === "string" ? o.label : "",
     color: o.color ?? null,
+    icon: o.icon ?? null,
+    image: o.image ?? null,
   }));
 }
 
 /** Prisma's Json input wants plain objects, not an interface type. */
 function plainOptions(options: FieldOption[]) {
-  return options.map((o) => ({ id: o.id, label: o.label, color: o.color }));
+  return options.map((o) => ({
+    id: o.id,
+    label: o.label,
+    color: o.color,
+    icon: o.icon ?? null,
+    image: o.image ?? null,
+  }));
+}
+
+/** The storage keys of the images the options carry. */
+function imageKeys(options: FieldOption[]): Set<string> {
+  return new Set(options.flatMap((o) => (o.image ? [o.image] : [])));
+}
+
+/**
+ * Checks the images of options about to be stored: a key that is not
+ * already one of the field's own must belong to this workspace's option
+ * images and exist in storage within the size limit. A key typed in by a
+ * client can't point at someone else's object.
+ */
+async function imagesAreValid(
+  workspaceId: string,
+  options: FieldOption[],
+  known: Set<string>,
+): Promise<boolean> {
+  for (const key of imageKeys(options)) {
+    if (known.has(key)) continue;
+    if (!isOwnAvatarKey("fieldoption", workspaceId, key)) return false;
+    const result = await finalizeAvatarUpload("fieldoption", workspaceId, key);
+    if ("error" in result) return false;
+  }
+  return true;
+}
+
+/** Removes the objects of images that no option carries any more. */
+async function dropImages(keys: Iterable<string>) {
+  for (const key of keys) await deleteAvatarObject(key);
 }
 
 function cleanName(value: unknown): string | null {
@@ -145,6 +189,10 @@ export async function createCustomField(input: {
 
   const dateMode = input.dateMode ?? "DATE";
   if (!isDateMode(dateMode)) return { error: "date_mode_invalid" };
+
+  if (!(await imagesAreValid(scope.workspaceId, options.options, new Set()))) {
+    return { error: "image_invalid" };
+  }
 
   const active = await db.customField.count({
     where: { workspaceId: scope.workspaceId, archivedAt: null },
@@ -259,13 +307,21 @@ export async function updateCustomField(
   }
 
   let removed: string[] = [];
+  let droppedImages: string[] = [];
   if (patch.options !== undefined && usesOptions(field.type)) {
     const options = validateOptions(field.type, withIds(patch.options));
     if (!options.ok) return { error: "options_invalid" };
+    const before = toOptions(field.options);
     const kept = new Set(options.options.map((o) => o.id));
-    removed = toOptions(field.options)
-      .map((o) => o.id)
-      .filter((optionId) => !kept.has(optionId));
+    removed = before.map((o) => o.id).filter((optionId) => !kept.has(optionId));
+
+    // Only new keys are checked; the ones the field already had are its own.
+    const had = imageKeys(before);
+    if (!(await imagesAreValid(scope.workspaceId, options.options, had))) {
+      return { error: "image_invalid" };
+    }
+    const now = imageKeys(options.options);
+    droppedImages = [...had].filter((key) => !now.has(key));
     data.options = plainOptions(options.options);
   }
 
@@ -304,6 +360,9 @@ export async function updateCustomField(
       }
     }
   });
+
+  // Best effort, after the change is stored: a leftover object is harmless.
+  await dropImages(droppedImages);
 
   await audit(
     "customfield.updated",
@@ -388,8 +447,41 @@ export async function deleteCustomField(
   const { field, scope } = found;
   const actorId = await requirePermission("customfield.manage", ctxOf(scope));
 
+  const row = await db.customField.findUnique({
+    where: { id },
+    select: { options: true },
+  });
   await db.customField.delete({ where: { id } });
+  await dropImages(imageKeys(toOptions(row?.options)));
   await audit("customfield.deleted", actorId, field, scope);
   refresh();
   return { ok: true };
+}
+
+/**
+ * First step of putting an image on a choice: checks the right to manage
+ * fields where this field lives, and the type and size, then issues a
+ * presigned PUT URL. The browser uploads straight to storage and sends the
+ * returned key back with the next save; `createCustomField` and
+ * `updateCustomField` check it before they keep it.
+ */
+export async function requestOptionImageUpload(input: {
+  workspaceId: string;
+  projectId?: string | null;
+  contentType: string;
+  contentLength: number;
+}): Promise<{ ok: true; key: string; uploadUrl: string } | { error: string }> {
+  const scope = await scopeForNew(input);
+  if (!scope) return { error: "not_found" };
+  await requirePermission("customfield.manage", ctxOf(scope));
+
+  if (input.contentLength > FIELD_LIMITS.imageBytes) {
+    return { error: "too_large" };
+  }
+  return requestAvatarUpload({
+    kind: "fieldoption",
+    ownerId: scope.workspaceId,
+    contentType: input.contentType,
+    contentLength: input.contentLength,
+  });
 }

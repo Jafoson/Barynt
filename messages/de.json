@@ -1473,7 +1473,8 @@
       "not_found": "Dieses Feld gibt es nicht mehr.",
       "failed": "Das Feld konnte nicht gespeichert werden. Versuche es erneut.",
       "icon_invalid": "Dieses Icon gibt es nicht in der Auswahl.",
-      "date_mode_invalid": "Wähle, ob Datum, Datum und Uhrzeit oder nur Uhrzeit."
+      "date_mode_invalid": "Wähle, ob Datum, Datum und Uhrzeit oder nur Uhrzeit.",
+      "image_invalid": "Ein Bild wurde nicht übernommen. Lade es noch einmal hoch."
     },
     "noValue": "Nicht gesetzt",
     "yes": "Ja",
@@ -1490,6 +1491,13 @@
     "allowCustom": "Eigene Werte erlauben",
     "allowCustomDesc": "Wer ein Issue bearbeiten darf, kann beim Ausfüllen einen neuen Wert hinzufügen. Er steht danach für alle zur Auswahl.",
     "createValue": "„{value}“ hinzufügen",
-    "searchValues": "Werte suchen…"
+    "searchValues": "Werte suchen…",
+    "optionVisual": "Icon oder Bild",
+    "uploadImage": "Bild hochladen",
+    "removeVisual": "Entfernen",
+    "imageHint": "PNG, JPEG, WebP oder GIF, höchstens 1 MB.",
+    "imageTooLarge": "Das Bild ist zu groß, höchstens 1 MB.",
+    "imageType": "Nur PNG, JPEG, WebP oder GIF.",
+    "imageFailed": "Das Bild konnte nicht hochgeladen werden."
   }
 }

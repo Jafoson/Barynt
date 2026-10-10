@@ -8,6 +8,7 @@ import {
   type ISelectItem,
   SelectMenu,
 } from "@/components/ui/atoms/SelectMenu/SelectMenu";
+import { OptionVisual } from "@/features/custom-fields/components/OptionVisual/OptionVisual";
 import type { IssueComposerData } from "@/features/issues/types";
 import type { FieldDefinition } from "@/lib/custom-fields";
 
@@ -61,7 +62,11 @@ export function FieldChoiceMenu({
           label: `${m.firstName} ${m.lastName}`,
           icon: <Avatar avatar={m} size={18} />,
         }))
-      : field.options.map((o) => ({ value: o.id, label: o.label }));
+      : field.options.map((o) => ({
+          value: o.id,
+          label: o.label,
+          icon: <OptionVisual option={o} />,
+        }));
 
   // A choice typed in but not made yet shows as selected until it exists.
   const draftItems: ISelectItem[] = drafts.map((label) => ({
