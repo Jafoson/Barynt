@@ -93,15 +93,11 @@
   }
 }
 
-/* Pinned to the bottom of the scrolling list: directly under the last card
-   in a short column, always in view in a long one. The solid background
-   keeps cards scrolling beneath it from showing through. */
+/* Plain last item of the card list: directly under the last card, never
+   floating over the cards above it. In a long column it comes into view
+   when scrolling to the end; the header's "+" is always reachable. */
 .addSlot {
-  position: sticky;
-  bottom: 0;
   flex: none;
-  padding-block: 0.25rem 0;
-  background: var(--background);
 }
 
 .addCard {

@@ -163,8 +163,7 @@ export function BoardColumn({
           );
         })}
         {/* Right after the last card, so it follows the column's content
-            instead of sitting at the screen's bottom edge. In a long column
-            it sticks to the bottom of the list and stays reachable. */}
+            instead of floating over the cards. */}
         {canCreate && (
           <div className={styles.addSlot}>
             <button
