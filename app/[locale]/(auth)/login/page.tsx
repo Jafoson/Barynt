@@ -5,10 +5,13 @@ import {
   oidcProviderName,
   passkeyLoginEnabled,
   passkeyRegistrationEnabled,
+  registrationEnabled,
 } from "@/auth.config";
 import { LoginForm } from "@/features/auth/components/LoginForm/LoginForm";
+import { db } from "@/lib/db";
 import { isMailConfigured } from "@/lib/mail/send";
 import { getSession } from "@/lib/session";
+import { isFirstAccount } from "@/lib/user-provisioning";
 
 export default async function LoginPage({
   searchParams,
@@ -38,6 +41,14 @@ export default async function LoginPage({
           : t("signInError");
   }
 
+  // "Register with passkey" only makes sense while new accounts are allowed:
+  // with `AUTH_REGISTRATION_ENABLED=false` it could only end in AccessDenied.
+  // Same exception as the `signIn` callback in `auth.ts`: an instance without
+  // any account yet still has to be able to create its first one.
+  const canRegisterWithPasskey =
+    passkeyRegistrationEnabled &&
+    (registrationEnabled || (await isFirstAccount(db)));
+
   return (
     <LoginForm
       callbackUrl={callbackUrl}
@@ -45,7 +56,7 @@ export default async function LoginPage({
       oidcLabel={oidcProviderName}
       mailConfigured={isMailConfigured()}
       passkeyLoginEnabled={passkeyLoginEnabled}
-      passkeyRegistrationEnabled={passkeyRegistrationEnabled}
+      passkeyRegistrationEnabled={canRegisterWithPasskey}
       initialError={initialError}
     />
   );
