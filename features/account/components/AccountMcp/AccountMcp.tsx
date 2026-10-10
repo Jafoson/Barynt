@@ -10,7 +10,6 @@ import {
   type SettingsRow,
 } from "@/components/ui/layout/SettingsList/SettingsList";
 import { Link } from "@/i18n/navigation";
-import { appUrl } from "@/lib/app-url";
 import styles from "./accountMcp.module.scss";
 import { McpDocs } from "./McpDocs";
 
@@ -19,6 +18,10 @@ interface Props {
    *  component doesn't. Same convention as `AccountSecurity`'s
    *  `connectionsHref`. */
   apiKeysHref: string;
+  /** Absolute MCP endpoint. Built on the server (`appUrl("/api/mcp")`): this
+   *  is a client component, where `AUTH_URL` isn't available and `appUrl()`
+   *  would fall back to `http://localhost:3000`. */
+  mcpUrl: string;
 }
 
 /**
@@ -31,9 +34,8 @@ interface Props {
  * REST ones), so this page only explains the endpoint and links there for
  * the actual key.
  */
-export function AccountMcp({ apiKeysHref }: Props) {
+export function AccountMcp({ apiKeysHref, mcpUrl }: Props) {
   const t = useTranslations();
-  const mcpUrl = appUrl("/api/mcp");
 
   const connectionRows: SettingsRow[] = [
     {

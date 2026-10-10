@@ -1,4 +1,5 @@
 import { AccountMcp } from "@/features/account/components/AccountMcp/AccountMcp";
+import { appUrl } from "@/lib/app-url";
 import { setCurrentWorkspaceId } from "@/lib/current-workspace";
 import { accountPath } from "@/lib/nav";
 
@@ -13,5 +14,10 @@ export default async function AccountMcpPage({
   const { workspace } = await params;
   setCurrentWorkspaceId(workspace);
 
-  return <AccountMcp apiKeysHref={accountPath(workspace, "api-keys")} />;
+  return (
+    <AccountMcp
+      apiKeysHref={accountPath(workspace, "api-keys")}
+      mcpUrl={appUrl("/api/mcp")}
+    />
+  );
 }

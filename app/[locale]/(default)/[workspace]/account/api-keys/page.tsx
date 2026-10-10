@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { AccountApiKeys } from "@/features/account/components/AccountApiKeys/AccountApiKeys";
 import { getMyApiKeys } from "@/features/account/queries";
+import { appUrl } from "@/lib/app-url";
 import { setCurrentWorkspaceId } from "@/lib/current-workspace";
 
 export const dynamic = "force-dynamic";
@@ -17,5 +18,5 @@ export default async function AccountApiKeysPage({
   const view = await getMyApiKeys();
   if (!view) notFound();
 
-  return <AccountApiKeys {...view} />;
+  return <AccountApiKeys {...view} baseUrl={appUrl("/api/v1")} />;
 }

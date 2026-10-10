@@ -19,7 +19,6 @@ import {
 import { createApiKey, revokeApiKey } from "@/features/account/actions";
 import type { ApiKeysView } from "@/features/account/types";
 import type { ApiScope } from "@/lib/api/scopes";
-import { appUrl } from "@/lib/app-url";
 import { useModal } from "@/lib/context";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useTimeAgo } from "@/lib/utils/useTimeAgo";
@@ -43,7 +42,13 @@ import { type NewApiKeyInput, NewApiKeyModal } from "./NewApiKeyModal";
  * keys stay in the list (shown as such) rather than disappearing — a
  * record of what used to have access, not just what still does.
  */
-export function AccountApiKeys({ keys }: ApiKeysView) {
+export function AccountApiKeys({
+  keys,
+  baseUrl,
+}: ApiKeysView & {
+  /** Built on the server — `appUrl()` has no `AUTH_URL` in a client component. */
+  baseUrl: string;
+}) {
   const t = useTranslations();
   const format = useFormatter();
   const timeAgo = useTimeAgo();
@@ -185,8 +190,6 @@ export function AccountApiKeys({ keys }: ApiKeysView) {
       ),
     },
   }));
-
-  const baseUrl = appUrl("/api/v1");
 
   const accessRows: SettingsRow[] = [
     {
