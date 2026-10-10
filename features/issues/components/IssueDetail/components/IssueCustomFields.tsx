@@ -237,12 +237,10 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
                   </button>,
                 )}
             </div>
-            {picked.length > 0 ? (
+            {picked.length > 0 && (
               <div className={`${styles.labelsList} ${styles.labelsListAside}`}>
                 {chips}
               </div>
-            ) : (
-              <span className={styles.labelsEmpty}>{t("fields.none")}</span>
             )}
           </div>
         );
