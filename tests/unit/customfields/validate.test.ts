@@ -392,3 +392,17 @@ describe("link fields", () => {
     expect(url("https://example.com", rules).ok).toBe(false);
   });
 });
+
+describe("link input", () => {
+  const field = { type: "URL" } as never;
+  it("starts with https:// and treats a bare scheme as empty", async () => {
+    const { toInputString, fromInputString, linkProblem } = await import(
+      "@/features/custom-fields/input"
+    );
+    expect(toInputString(field, null, "UTC")).toBe("https://");
+    expect(fromInputString(field, "https://", "UTC")).toBeNull();
+    expect(fromInputString(field, "http://", "UTC")).toBeNull();
+    expect(linkProblem(field, "https://")).toBeNull();
+    expect(fromInputString(field, "http://a.de", "UTC")).toBe("http://a.de");
+  });
+});

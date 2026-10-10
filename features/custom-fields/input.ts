@@ -28,13 +28,22 @@ export function inputVariant(field: FieldDefinition): InputVariant {
   return "text";
 }
 
+/** What an empty link input starts with. */
+export const LINK_PREFIX = "https://";
+
+/** A link input that holds nothing but a scheme is still empty. */
+const bareScheme = (text: string) => /^https?:\/\/$/i.test(text.trim());
+
 /** The stored value as the input element wants it. */
 export function toInputString(
   field: FieldDefinition,
   value: FieldValue | null,
   timeZone: string,
 ): string {
-  if (value === null || value === undefined) return "";
+  // An empty link field starts with the scheme typed in; it can be changed.
+  if (value === null || value === undefined) {
+    return field.type === "URL" ? LINK_PREFIX : "";
+  }
   if (field.type === "DATE" && field.dateMode === "DATETIME") {
     return typeof value === "string"
       ? (utcToZonedLocal(value, timeZone) ?? "")
@@ -54,6 +63,7 @@ export function fromInputString(
 ): string | null {
   const trimmed = text.trim();
   if (trimmed === "") return null;
+  if (field.type === "URL" && bareScheme(trimmed)) return null;
   if (field.type === "DATE" && field.dateMode === "DATETIME") {
     return zonedLocalToUtc(trimmed, timeZone);
   }
@@ -80,7 +90,9 @@ export function linkProblem(
   text: string,
 ): "linkInvalid" | "linkNotHttps" | "linkNotAllowedHost" | null {
   const trimmed = text.trim();
-  if (field.type !== "URL" || trimmed === "") return null;
+  if (field.type !== "URL" || trimmed === "" || bareScheme(trimmed)) {
+    return null;
+  }
   const result = checkLink(trimmed, {
     httpsOnly: field.linkHttpsOnly,
     hosts: field.linkHosts,

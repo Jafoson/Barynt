@@ -138,9 +138,11 @@ export function CreateFieldChips({
 
               return (
                 <ValuePopover<string>
-                  initialValue={
-                    has ? toInputString(field, value as never, timeZone) : ""
-                  }
+                  initialValue={toInputString(
+                    field,
+                    has ? (value as never) : null,
+                    timeZone,
+                  )}
                   clearable={has}
                   validate={(next) => {
                     const problem = linkProblem(field, next);
