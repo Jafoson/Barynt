@@ -14,9 +14,12 @@ import {
   isCustomFieldIcon,
   isCustomFieldType,
   isDateMode,
+  isNumberMode,
   isOptionVisual,
   isReservedFieldKey,
   limitOptionVisuals,
+  NUMBER_DECIMALS_RANGE,
+  type NumberMode,
   type OptionVisualKind,
   toOptions,
   usesOptions,
@@ -95,6 +98,45 @@ function plainOptions(options: FieldOption[]) {
     icon: o.icon ?? null,
     image: o.image ?? null,
   }));
+}
+
+/**
+ * The number settings as they are stored, or `null` if one is not valid:
+ * a mode from the list, places only with DECIMAL (1 to 6, 2 when none is
+ * given), a short unit without line breaks.
+ */
+function cleanNumberSettings(input: {
+  numberMode?: string;
+  numberDecimals?: number | null;
+  numberUnit?: string | null;
+}): { mode: NumberMode; decimals: number | null; unit: string | null } | null {
+  const mode = input.numberMode ?? "FREE";
+  if (!isNumberMode(mode)) return null;
+
+  let decimals: number | null = null;
+  if (mode === "DECIMAL") {
+    const d = input.numberDecimals ?? NUMBER_DECIMALS_RANGE.default;
+    if (
+      !Number.isInteger(d) ||
+      d < NUMBER_DECIMALS_RANGE.min ||
+      d > NUMBER_DECIMALS_RANGE.max
+    ) {
+      return null;
+    }
+    decimals = d;
+  }
+
+  const raw = input.numberUnit;
+  let unit: string | null = null;
+  if (raw !== undefined && raw !== null) {
+    if (typeof raw !== "string") return null;
+    const text = raw.trim();
+    if (text.length > FIELD_LIMITS.numberUnit || /[\r\n]/.test(text)) {
+      return null;
+    }
+    unit = text === "" ? null : text;
+  }
+  return { mode, decimals, unit };
 }
 
 /** The kinds a client asked for, or `null` if one is unknown. */
@@ -181,6 +223,10 @@ export async function createCustomField(input: {
   allowCustomOptions?: boolean;
   /** Only for a choice field: `icon`, `image`, `color`. */
   optionVisuals?: string[];
+  /** Only for a number field. */
+  numberMode?: string;
+  numberDecimals?: number | null;
+  numberUnit?: string | null;
 }): Promise<CustomFieldResult<{ id: string; key: string }>> {
   const scope = await scopeForNew(input);
   if (!scope) return { error: "not_found" };
@@ -210,6 +256,9 @@ export async function createCustomField(input: {
 
   const dateMode = input.dateMode ?? "DATE";
   if (!isDateMode(dateMode)) return { error: "date_mode_invalid" };
+
+  const number = cleanNumberSettings(input);
+  if (!number) return { error: "number_invalid" };
 
   if (!(await imagesAreValid(scope.workspaceId, options.options, new Set()))) {
     return { error: "image_invalid" };
@@ -244,6 +293,10 @@ export async function createCustomField(input: {
         ? input.allowCustomOptions === true
         : false,
       optionVisuals: shownVisuals,
+      // Only a number field has a number mode; others keep the defaults.
+      numberMode: input.type === "NUMBER" ? number.mode : "FREE",
+      numberDecimals: input.type === "NUMBER" ? number.decimals : null,
+      numberUnit: input.type === "NUMBER" ? number.unit : null,
       options: plainOptions(options.options),
       position: (last._max.position ?? -1) + 1,
     },
@@ -295,6 +348,9 @@ export async function updateCustomField(
     icon?: string | null;
     allowCustomOptions?: boolean;
     optionVisuals?: string[];
+    numberMode?: string;
+    numberDecimals?: number | null;
+    numberUnit?: string | null;
   },
 ): Promise<CustomFieldResult> {
   const found = await loadField(id);
@@ -309,6 +365,9 @@ export async function updateCustomField(
     icon?: string | null;
     allowCustomOptions?: boolean;
     optionVisuals?: OptionVisualKind[];
+    numberMode?: NumberMode;
+    numberDecimals?: number | null;
+    numberUnit?: string | null;
   } = {};
   if (patch.name !== undefined) {
     const name = cleanName(patch.name);
@@ -329,6 +388,19 @@ export async function updateCustomField(
   }
   if (patch.allowCustomOptions !== undefined && usesOptions(field.type)) {
     data.allowCustomOptions = patch.allowCustomOptions === true;
+  }
+
+  if (
+    field.type === "NUMBER" &&
+    (patch.numberMode !== undefined ||
+      patch.numberDecimals !== undefined ||
+      patch.numberUnit !== undefined)
+  ) {
+    const number = cleanNumberSettings(patch);
+    if (!number) return { error: "number_invalid" };
+    data.numberMode = number.mode;
+    data.numberDecimals = number.decimals;
+    data.numberUnit = number.unit;
   }
 
   // What a choice may carry: the new setting, else the stored one.

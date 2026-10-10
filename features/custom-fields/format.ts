@@ -65,10 +65,22 @@ export function useFieldText() {
         const member = members.find((m) => m.id === value);
         return member ? `${member.firstName} ${member.lastName}` : "";
       }
-      case "NUMBER":
-        return typeof value === "number"
-          ? new Intl.NumberFormat(locale).format(value)
-          : String(value);
+      case "NUMBER": {
+        if (typeof value !== "number") return String(value);
+        // Places as the field fixes them; a free field shows what was typed.
+        const places = field.numberDecimals ?? 2;
+        const options: Intl.NumberFormatOptions =
+          field.numberMode === "DECIMAL"
+            ? { minimumFractionDigits: places, maximumFractionDigits: places }
+            : field.numberMode === "INTEGER"
+              ? { maximumFractionDigits: 0 }
+              : { maximumFractionDigits: 10 };
+        const formatted = new Intl.NumberFormat(locale, options).format(value);
+        // A narrow no-break space keeps "50 %" on one line.
+        return field.numberUnit
+          ? `${formatted}\u202F${field.numberUnit}`
+          : formatted;
+      }
       default:
         return String(value);
     }

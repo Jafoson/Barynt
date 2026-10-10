@@ -1097,6 +1097,20 @@ enum CustomFieldDateMode {
   TIME
 }
 
+/// Welche Zahlen ein Zahlenfeld annimmt. Anders als der Datum-Modus lässt sich
+/// das nachträglich ändern: es betrifft, was neu eingegeben wird, nicht wie
+/// ein gespeicherter Wert gelesen wird.
+///
+///   INTEGER   → nur ganze Zahlen
+///   DECIMAL   → Kommazahlen mit fester Zahl von Nachkommastellen
+///               (`numberDecimals`); eine Eingabe wird darauf gerundet
+///   FREE      → beides, die Person entscheidet bei jeder Eingabe
+enum CustomFieldNumberMode {
+  INTEGER
+  DECIMAL
+  FREE
+}
+
 /// Ein Feld, das ein Workspace oder ein Projekt an seinen Issues führt.
 ///
 /// Wie bei `Label` entscheidet `projectId`, wo es gilt: leer heißt „in jedem
@@ -1137,6 +1151,12 @@ model CustomField {
   /// "image", "color". Leer heißt: nur den Namen. Beim Speichern werden
   /// Angaben entfernt, die hier nicht (mehr) erlaubt sind.
   optionVisuals String[]       @default([])
+  /// Nur für NUMBER.
+  numberMode  CustomFieldNumberMode @default(FREE)
+  /// Nur für NUMBER mit DECIMAL: Nachkommastellen, 1 bis 6.
+  numberDecimals Int?
+  /// Nur für NUMBER: ein Zusatz, der am Ende des Werts steht ("%", "$", "kg").
+  numberUnit  String?
   position    Int             @default(0)
   archivedAt  DateTime?
   created     DateTime        @default(now())

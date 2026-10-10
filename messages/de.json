@@ -1475,7 +1475,8 @@
       "icon_invalid": "Dieses Icon gibt es nicht in der Auswahl.",
       "date_mode_invalid": "Wähle, ob Datum, Datum und Uhrzeit oder nur Uhrzeit.",
       "image_invalid": "Ein Bild wurde nicht übernommen. Lade es noch einmal hoch.",
-      "visuals_invalid": "Wähle Icon, Bild oder Farbe."
+      "visuals_invalid": "Wähle Icon, Bild oder Farbe.",
+      "number_invalid": "Prüfe Zahlenart, Nachkommastellen (1 bis 6) und den Zusatz (höchstens 8 Zeichen)."
     },
     "noValue": "Nicht gesetzt",
     "yes": "Ja",
@@ -1502,6 +1503,15 @@
     "visualIcon": "Icon",
     "visualImage": "Bild",
     "visualColor": "Farbe",
-    "dropImage": "Bild hierher ziehen oder klicken zum Hinzufügen"
+    "dropImage": "Bild hierher ziehen oder klicken zum Hinzufügen",
+    "numberMode": "Zahlenart",
+    "numberModes": {
+      "FREE": "Frei, bei jeder Eingabe",
+      "INTEGER": "Ganze Zahl",
+      "DECIMAL": "Kommazahl"
+    },
+    "numberDecimals": "Nachkommastellen",
+    "numberUnit": "Zusatz hinter dem Wert",
+    "numberUnitPlaceholder": "z. B. %, €, $, kg"
   }
 }

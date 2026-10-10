@@ -33,6 +33,9 @@ async function toRow(f: FieldRecord): Promise<CustomFieldRow> {
     dateMode: f.dateMode,
     allowCustomOptions: f.allowCustomOptions,
     optionVisuals: f.optionVisuals.filter(isOptionVisual),
+    numberMode: f.numberMode,
+    numberDecimals: f.numberDecimals,
+    numberUnit: f.numberUnit,
     archived: f.archivedAt !== null,
     valueCount: f._count.values,
   };
@@ -120,6 +123,9 @@ export const getWorkspaceCustomFields = cache(
         dateMode: f.dateMode,
         allowCustomOptions: f.allowCustomOptions,
         optionVisuals: f.optionVisuals.filter(isOptionVisual),
+        numberMode: f.numberMode,
+        numberDecimals: f.numberDecimals,
+        numberUnit: f.numberUnit,
         projectId: f.projectId,
       })),
     );

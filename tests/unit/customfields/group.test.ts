@@ -30,6 +30,9 @@ const multi: FieldDefinition = {
   dateMode: "DATE",
   allowCustomOptions: false,
   optionVisuals: [],
+  numberMode: "FREE",
+  numberDecimals: null,
+  numberUnit: null,
   projectId: null,
 };
 const single: FieldDefinition = { ...multi, id: "f_size", type: "SELECT" };

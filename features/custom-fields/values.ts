@@ -6,6 +6,7 @@ import {
   FIELD_LIMITS,
   type FieldOption,
   type FieldValue,
+  type NumberMode,
   narrowFieldValue,
   toOptions,
   usesOptions,
@@ -65,6 +66,8 @@ interface ResolvedField {
   type: string;
   options: unknown;
   dateMode?: string;
+  numberMode?: string;
+  numberDecimals?: number | null;
 }
 
 /** What a client sends to add a choice while filling a field in. */
@@ -159,6 +162,8 @@ export async function resolveFieldValues(
         type: field.type as CustomFieldType,
         options: [...known, ...added],
         dateMode: field.dateMode,
+        numberMode: field.numberMode as NumberMode | undefined,
+        numberDecimals: field.numberDecimals,
       },
       raw,
     );

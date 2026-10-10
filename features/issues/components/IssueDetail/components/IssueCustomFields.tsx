@@ -16,6 +16,7 @@ import {
 } from "@/features/custom-fields/format";
 import {
   fromInputString,
+  inputStep,
   inputVariant,
   toInputString,
 } from "@/features/custom-fields/input";
@@ -332,6 +333,12 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
               {(pending, setPending) => (
                 <Input
                   variant={inputVariant(field)}
+                  step={inputStep(field)}
+                  iconRight={
+                    field.type === "NUMBER" && field.numberUnit ? (
+                      <span>{field.numberUnit}</span>
+                    ) : undefined
+                  }
                   size="sm"
                   value={pending}
                   autoFocus

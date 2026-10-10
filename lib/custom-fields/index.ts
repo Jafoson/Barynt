@@ -32,6 +32,25 @@ export function isCustomFieldType(value: unknown): value is CustomFieldType {
   );
 }
 
+/** Which numbers a NUMBER field takes. */
+export const NUMBER_MODES = ["FREE", "INTEGER", "DECIMAL"] as const;
+export type NumberMode = (typeof NUMBER_MODES)[number];
+
+export function isNumberMode(value: unknown): value is NumberMode {
+  return (
+    typeof value === "string" &&
+    (NUMBER_MODES as readonly string[]).includes(value)
+  );
+}
+
+/** Decimal places a DECIMAL field can be set to. */
+export const NUMBER_DECIMALS_RANGE = { min: 1, max: 6, default: 2 } as const;
+
+/** Rounds `n` to `places` decimals. */
+export function roundTo(n: number, places: number): number {
+  return Number(n.toFixed(places));
+}
+
 /** What a choice of a field may carry besides its name. */
 export const OPTION_VISUALS = ["icon", "image", "color"] as const;
 export type OptionVisualKind = (typeof OPTION_VISUALS)[number];
@@ -100,6 +119,12 @@ export interface FieldDefinition {
   allowCustomOptions: boolean;
   /** SELECT and MULTI_SELECT: what a choice may carry besides its name. */
   optionVisuals: OptionVisualKind[];
+  /** NUMBER only. */
+  numberMode: NumberMode;
+  /** NUMBER with DECIMAL: places after the point. */
+  numberDecimals: number | null;
+  /** NUMBER: text after the value ("%", "$"). */
+  numberUnit: string | null;
   /** `null` = a workspace field, which applies in every project. */
   projectId: string | null;
 }
@@ -131,6 +156,8 @@ export const FIELD_LIMITS = {
   imageKey: 200,
   /** Largest option image, in bytes. A small picture next to a label. */
   imageBytes: 1024 * 1024,
+  /** Longest text after a number. */
+  numberUnit: 8,
   /** Active (non-archived) fields a workspace may define. */
   fieldsPerWorkspace: 100,
 } as const;
@@ -208,7 +235,13 @@ const good = (value: FieldValue | null): ValidateResult => ({
  * a database question and is answered by whoever writes the value.
  */
 export function validateFieldValue(
-  field: { type: CustomFieldType; options?: unknown; dateMode?: DateMode },
+  field: {
+    type: CustomFieldType;
+    options?: unknown;
+    dateMode?: DateMode;
+    numberMode?: NumberMode;
+    numberDecimals?: number | null;
+  },
   input: unknown,
 ): ValidateResult {
   if (input === null || input === undefined) return good(null);
@@ -241,6 +274,13 @@ export function validateFieldValue(
       if (!Number.isFinite(n)) return bad("expected a number");
       if (Math.abs(n) > FIELD_LIMITS.numberAbs)
         return bad("number is too large");
+      if (field.numberMode === "INTEGER" && !Number.isInteger(n))
+        return bad("expected a whole number");
+      if (field.numberMode === "DECIMAL") {
+        // The field fixes the places; what is typed is rounded to them.
+        const places = field.numberDecimals ?? NUMBER_DECIMALS_RANGE.default;
+        return good(roundTo(n, places));
+      }
       return good(n);
     }
 

@@ -1475,7 +1475,8 @@
       "icon_invalid": "That icon isn't in the list.",
       "date_mode_invalid": "Choose date, date and time, or time only.",
       "image_invalid": "An image wasn't accepted. Upload it again.",
-      "visuals_invalid": "Choose icon, image or colour."
+      "visuals_invalid": "Choose icon, image or colour.",
+      "number_invalid": "Check the kind of number, the decimal places (1 to 6) and the text (up to 8 characters)."
     },
     "noValue": "Not set",
     "yes": "Yes",
@@ -1502,6 +1503,15 @@
     "visualIcon": "Icon",
     "visualImage": "Image",
     "visualColor": "Colour",
-    "dropImage": "Drop an image here or click to add"
+    "dropImage": "Drop an image here or click to add",
+    "numberMode": "Kind of number",
+    "numberModes": {
+      "FREE": "Free, decided on each entry",
+      "INTEGER": "Whole number",
+      "DECIMAL": "Decimal number"
+    },
+    "numberDecimals": "Decimal places",
+    "numberUnit": "Text after the value",
+    "numberUnitPlaceholder": "e.g. %, €, $, kg"
   }
 }

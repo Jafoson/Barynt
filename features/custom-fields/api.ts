@@ -52,6 +52,11 @@ export interface ApiCustomField {
   allowCustomOptions: boolean;
   /** What a choice may carry: `icon`, `image`, `color`. */
   optionVisuals: string[];
+  /** NUMBER: `FREE`, `INTEGER` or `DECIMAL` (with `numberDecimals` places). */
+  numberMode: "FREE" | "INTEGER" | "DECIMAL";
+  numberDecimals: number | null;
+  /** NUMBER: text that stands after the value, e.g. `%`. */
+  numberUnit: string | null;
   /** `null` = workspace-wide, otherwise the one project it belongs to. */
   projectId: string | null;
 }
@@ -67,6 +72,9 @@ export function toApiCustomField(f: {
   dateMode: "DATE" | "DATETIME" | "TIME";
   allowCustomOptions: boolean;
   optionVisuals: string[];
+  numberMode: "FREE" | "INTEGER" | "DECIMAL";
+  numberDecimals: number | null;
+  numberUnit: string | null;
   projectId: string | null;
 }): ApiCustomField {
   return {
@@ -87,6 +95,9 @@ export function toApiCustomField(f: {
     dateMode: f.dateMode,
     allowCustomOptions: f.allowCustomOptions,
     optionVisuals: f.optionVisuals,
+    numberMode: f.numberMode,
+    numberDecimals: f.numberDecimals,
+    numberUnit: f.numberUnit,
     projectId: f.projectId,
   };
 }

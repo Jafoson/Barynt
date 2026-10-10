@@ -313,3 +313,49 @@ describe("option colours and the kinds a field allows", () => {
     });
   });
 });
+
+describe("number modes", () => {
+  it("INTEGER takes whole numbers only", () => {
+    const f = { type: "NUMBER", numberMode: "INTEGER" } as const;
+    expect(validateFieldValue(f, 12)).toEqual({ ok: true, value: 12 });
+    expect(validateFieldValue(f, "7")).toEqual({ ok: true, value: 7 });
+    expect(validateFieldValue(f, 1.5).ok).toBe(false);
+    expect(validateFieldValue(f, "2,5").ok).toBe(false);
+  });
+
+  it("DECIMAL rounds to the places of the field", () => {
+    const f = {
+      type: "NUMBER",
+      numberMode: "DECIMAL",
+      numberDecimals: 2,
+    } as const;
+    expect(validateFieldValue(f, 12.346)).toEqual({ ok: true, value: 12.35 });
+    expect(validateFieldValue(f, "3,1")).toEqual({ ok: true, value: 3.1 });
+    expect(validateFieldValue(f, 5)).toEqual({ ok: true, value: 5 });
+    const one = {
+      type: "NUMBER",
+      numberMode: "DECIMAL",
+      numberDecimals: 1,
+    } as const;
+    expect(validateFieldValue(one, 0.26)).toEqual({ ok: true, value: 0.3 });
+  });
+
+  it("DECIMAL without places uses two", () => {
+    expect(
+      validateFieldValue({ type: "NUMBER", numberMode: "DECIMAL" }, 1.239),
+    ).toEqual({ ok: true, value: 1.24 });
+  });
+
+  it("FREE and no mode take anything", () => {
+    for (const f of [
+      { type: "NUMBER", numberMode: "FREE" },
+      { type: "NUMBER" },
+    ] as const) {
+      expect(validateFieldValue(f, 1.23456)).toEqual({
+        ok: true,
+        value: 1.23456,
+      });
+      expect(validateFieldValue(f, 4)).toEqual({ ok: true, value: 4 });
+    }
+  });
+});

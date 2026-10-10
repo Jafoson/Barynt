@@ -28,6 +28,9 @@ import {
   DATE_MODES,
   type DateMode,
   FIELD_LIMITS,
+  NUMBER_DECIMALS_RANGE,
+  NUMBER_MODES,
+  type NumberMode,
   OPTION_VISUALS,
   type OptionVisualKind,
   usesOptions,
@@ -82,6 +85,13 @@ export function CustomFieldModal({
   const [allowCustom, setAllowCustom] = useState(
     field?.allowCustomOptions ?? false,
   );
+  const [numberMode, setNumberMode] = useState<NumberMode>(
+    field?.numberMode ?? "FREE",
+  );
+  const [numberDecimals, setNumberDecimals] = useState(
+    field?.numberDecimals ?? NUMBER_DECIMALS_RANGE.default,
+  );
+  const [numberUnit, setNumberUnit] = useState(field?.numberUnit ?? "");
   // What a choice may carry besides its name.
   const [visuals, setVisuals] = useState<OptionVisualKind[]>(
     field?.optionVisuals ?? [],
@@ -137,6 +147,14 @@ export function CustomFieldModal({
               name: trimmed,
               description,
               icon,
+              ...(type === "NUMBER"
+                ? {
+                    numberMode,
+                    numberDecimals:
+                      numberMode === "DECIMAL" ? numberDecimals : null,
+                    numberUnit,
+                  }
+                : {}),
               ...(hasOptions
                 ? {
                     options: choices,
@@ -154,6 +172,14 @@ export function CustomFieldModal({
               options: choices,
               icon,
               ...(type === "DATE" ? { dateMode } : {}),
+              ...(type === "NUMBER"
+                ? {
+                    numberMode,
+                    numberDecimals:
+                      numberMode === "DECIMAL" ? numberDecimals : null,
+                    numberUnit,
+                  }
+                : {}),
               ...(hasOptions
                 ? { allowCustomOptions: allowCustom, optionVisuals: visuals }
                 : {}),
@@ -235,6 +261,56 @@ export function CustomFieldModal({
               <p className={styles.hint}>{t("customFields.typeLocked")}</p>
             )}
           </div>
+
+          {type === "NUMBER" && (
+            <>
+              <div className={styles.field}>
+                <span className={styles.fieldLabel}>
+                  {t("customFields.numberMode")}
+                </span>
+                <NativeSelect
+                  label={t("customFields.numberMode")}
+                  value={numberMode}
+                  onChange={(value) => setNumberMode(value as NumberMode)}
+                  items={NUMBER_MODES.map((value) => ({
+                    value,
+                    label: t(`customFields.numberModes.${value}`),
+                  }))}
+                />
+              </div>
+              {numberMode === "DECIMAL" && (
+                <div className={styles.field}>
+                  <span className={styles.fieldLabel}>
+                    {t("customFields.numberDecimals")}
+                  </span>
+                  <NativeSelect
+                    label={t("customFields.numberDecimals")}
+                    value={String(numberDecimals)}
+                    onChange={(value) => setNumberDecimals(Number(value))}
+                    items={Array.from(
+                      {
+                        length:
+                          NUMBER_DECIMALS_RANGE.max -
+                          NUMBER_DECIMALS_RANGE.min +
+                          1,
+                      },
+                      (_, i) => {
+                        const n = NUMBER_DECIMALS_RANGE.min + i;
+                        return { value: String(n), label: String(n) };
+                      },
+                    )}
+                  />
+                </div>
+              )}
+              <Input
+                label={t("customFields.numberUnit")}
+                value={numberUnit}
+                maxLength={FIELD_LIMITS.numberUnit}
+                placeholder={t("customFields.numberUnitPlaceholder")}
+                onChange={(e) => setNumberUnit(e.target.value)}
+              />
+            </>
+          )}
 
           {type === "DATE" && (
             <div className={styles.field}>

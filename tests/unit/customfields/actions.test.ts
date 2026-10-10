@@ -484,6 +484,93 @@ describe("what a choice may carry", () => {
   });
 });
 
+describe("number settings", () => {
+  beforeEach(reset);
+
+  it("stores mode, places and unit for a number field", async () => {
+    await createCustomField({
+      workspaceId: "ws-1",
+      name: "Share",
+      type: "NUMBER",
+      numberMode: "DECIMAL",
+      numberDecimals: 1,
+      numberUnit: "  %  ",
+    });
+    expect(cf.create.mock.calls[0][0].data).toMatchObject({
+      numberMode: "DECIMAL",
+      numberDecimals: 1,
+      numberUnit: "%",
+    });
+  });
+
+  it("defaults to a free number and keeps places only with DECIMAL", async () => {
+    await createCustomField({
+      workspaceId: "ws-1",
+      name: "Amount",
+      type: "NUMBER",
+      numberDecimals: 3,
+    });
+    expect(cf.create.mock.calls[0][0].data).toMatchObject({
+      numberMode: "FREE",
+      numberDecimals: null,
+      numberUnit: null,
+    });
+  });
+
+  it("gives other types no number settings", async () => {
+    await createCustomField({
+      workspaceId: "ws-1",
+      name: "Note",
+      type: "TEXT",
+      numberMode: "INTEGER",
+      numberUnit: "kg",
+    });
+    expect(cf.create.mock.calls[0][0].data).toMatchObject({
+      numberMode: "FREE",
+      numberUnit: null,
+    });
+  });
+
+  it("rejects an unknown mode, wrong places and a long or multi-line unit", async () => {
+    const base = { workspaceId: "ws-1", name: "N", type: "NUMBER" };
+    for (const extra of [
+      { numberMode: "ROMAN" },
+      { numberMode: "DECIMAL", numberDecimals: 0 },
+      { numberMode: "DECIMAL", numberDecimals: 7 },
+      { numberMode: "DECIMAL", numberDecimals: 1.5 },
+      { numberUnit: "123456789" },
+      { numberUnit: "a\nb" },
+    ]) {
+      expect(await createCustomField({ ...base, ...extra })).toEqual({
+        error: "number_invalid",
+      });
+    }
+    expect(cf.create).not.toHaveBeenCalled();
+  });
+
+  it("changes the settings of an existing number field", async () => {
+    cf.findUnique.mockResolvedValue({
+      id: "f1",
+      workspaceId: "ws-1",
+      projectId: null,
+      name: "N",
+      type: "NUMBER",
+      options: [],
+      optionVisuals: [],
+    });
+    const r = await updateCustomField("f1", {
+      numberMode: "INTEGER",
+      numberUnit: "kg",
+    });
+    expect(r).toEqual({ ok: true });
+    expect(tx.customField.update.mock.calls[0][0].data).toMatchObject({
+      numberMode: "INTEGER",
+      numberDecimals: null,
+      numberUnit: "kg",
+    });
+  });
+});
+
 describe("updateCustomField()", () => {
   beforeEach(reset);
 

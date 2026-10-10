@@ -55,3 +55,13 @@ export function fromInputString(
   }
   return trimmed;
 }
+
+/** The `step` of a number input: whole numbers, fixed places, or anything. */
+export function inputStep(field: FieldDefinition): string | undefined {
+  if (field.type !== "NUMBER") return undefined;
+  if (field.numberMode === "INTEGER") return "1";
+  if (field.numberMode === "DECIMAL") {
+    return String(10 ** -(field.numberDecimals ?? 2));
+  }
+  return "any";
+}
