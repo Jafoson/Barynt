@@ -4,7 +4,9 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import { Input } from "@/components/ui/atoms/Input/Input";
+import { Label as LabelChip } from "@/components/ui/atoms/Label/Label";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
+import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import { FieldChoiceMenu } from "@/features/custom-fields/components/FieldChoiceMenu/FieldChoiceMenu";
 import {
   fieldsFor,
@@ -69,6 +71,7 @@ function Row({
 export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
   const t = useTranslations();
   const text = useFieldText();
+  const confirm = useConfirm();
   const timeZone = useFieldTimeZone();
   const canEdit = issue.access.canEdit;
   const fields = fieldsFor(data.customFields, issue.project);
@@ -140,14 +143,140 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
       </button>
     );
 
+    // Several choices show the way labels do: a chip each, with a cross to
+    // take one off, and the plus that opens the picker. In the narrow
+    // sidebar the chips sit below the name, in the column next to it.
+    if (field.type === "MULTI_SELECT") {
+      const picked = (Array.isArray(value) ? value : [])
+        .filter((v): v is string => typeof v === "string")
+        .flatMap((id) => {
+          const option = field.options.find((o) => o.id === id);
+          return option ? [option] : [];
+        });
+
+      const removeChoice = async (id: string, name: string) => {
+        // Same guard as the labels: Backspace on a focused chip is one
+        // keystroke, easy to hit while arrowing through the row.
+        const ok = await confirm({
+          title: t("actions.removeLabel", { name }),
+          confirmLabel: t("actions.remove"),
+          cancelLabel: t("actions.cancel"),
+          danger: true,
+        });
+        if (!ok) return;
+        const next = picked.map((o) => o.id).filter((x) => x !== id);
+        set(field, next.length > 0 ? next : null);
+      };
+
+      const chips = picked.map((option) => (
+        <LabelChip
+          key={option.id}
+          color={option.color ?? "var(--outline)"}
+          size="sm"
+          onRemove={
+            canEdit ? () => removeChoice(option.id, option.label) : undefined
+          }
+          removeLabel={t("actions.removeLabel", { name: option.label })}
+        >
+          {option.label}
+        </LabelChip>
+      ));
+
+      const picker = (trigger: React.ReactElement) => (
+        <InlinePicker
+          width={260}
+          align={layout === "aside" ? "end" : "start"}
+          stop
+          trigger={trigger}
+          title={field.name}
+        >
+          {(close) => (
+            <FieldChoiceMenu
+              field={field}
+              members={data.members}
+              value={value}
+              onChange={(next) => set(field, next)}
+              close={close}
+            />
+          )}
+        </InlinePicker>
+      );
+
+      const head = (
+        <span
+          className={styles.rowLabel}
+          title={field.description || undefined}
+        >
+          {field.icon && (
+            <Icon
+              icon={field.icon}
+              width={13}
+              aria-hidden="true"
+              className={fieldStyles.labelIcon}
+            />
+          )}
+          {field.name}
+        </span>
+      );
+
+      if (layout === "aside") {
+        return (
+          <div key={field.id} className={styles.labels}>
+            <div className={styles.labelsHead}>
+              {head}
+              {canEdit &&
+                picker(
+                  <button
+                    type="button"
+                    className={styles.iconBtn}
+                    aria-label={field.name}
+                    title={field.name}
+                    data-field-nav
+                  >
+                    <Icon icon="lucide:plus" width={14} />
+                  </button>,
+                )}
+            </div>
+            {picked.length > 0 ? (
+              <div className={`${styles.labelsList} ${styles.labelsListAside}`}>
+                {chips}
+              </div>
+            ) : (
+              <span className={styles.labelsEmpty}>{t("fields.none")}</span>
+            )}
+          </div>
+        );
+      }
+
+      return (
+        <div key={field.id} className={styles.row}>
+          {head}
+          <div className={`${styles.rowValue} ${styles.labelsList}`}>
+            {chips}
+            {canEdit &&
+              picker(
+                <button
+                  type="button"
+                  className={styles.addLabel}
+                  aria-label={field.name}
+                  title={field.name}
+                  data-field-nav
+                >
+                  <Icon icon="lucide:plus" width={13} aria-hidden="true" />
+                  {picked.length === 0 && (
+                    <span>{t("customFields.noValue")}</span>
+                  )}
+                </button>,
+              )}
+          </div>
+        </div>
+      );
+    }
+
     // A choice, several choices or a person: the same menu the labels and
     // the assignee use. A single pick commits and closes, a multi list
     // writes on every toggle.
-    if (
-      field.type === "SELECT" ||
-      field.type === "MULTI_SELECT" ||
-      field.type === "USER"
-    ) {
+    if (field.type === "SELECT" || field.type === "USER") {
       return (
         <Row
           key={field.id}
