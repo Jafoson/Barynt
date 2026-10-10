@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { ColorPicker } from "@/components/ui/atoms/ColorPicker/ColorPicker";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
+import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { requestOptionImageUpload } from "@/features/custom-fields/actions";
 import { OptionVisual } from "@/features/custom-fields/components/OptionVisual/OptionVisual";
 import {
@@ -52,6 +53,23 @@ export function OptionVisualPicker({
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Which kind is open when more than one is allowed: the one the choice
+  // already uses, else the first.
+  const initialKind: OptionVisualKind =
+    value.imageUrl && kinds.includes("image")
+      ? "image"
+      : value.icon && kinds.includes("icon")
+        ? "icon"
+        : value.color && kinds.includes("color")
+          ? "color"
+          : (kinds[0] ?? "icon");
+  const [kind, setKind] = useState<OptionVisualKind>(initialKind);
+  const kindLabel = (k: OptionVisualKind) =>
+    k === "icon"
+      ? t("customFields.visualIcon")
+      : k === "image"
+        ? t("customFields.visualImage")
+        : t("customFields.visualColor");
 
   const upload = async (file: File) => {
     setError("");
@@ -123,7 +141,18 @@ export function OptionVisualPicker({
     >
       {(close) => (
         <div className={styles.panel}>
-          {kinds.includes("icon") && (
+          {/* Several kinds allowed: pick the kind first, like the other
+              settings that offer more than one way. */}
+          {kinds.length > 1 && (
+            <SegmentedControl
+              variant="surface"
+              value={kind}
+              onChange={(v) => setKind(v as OptionVisualKind)}
+              items={kinds.map((k) => ({ value: k, label: kindLabel(k) }))}
+            />
+          )}
+
+          {kind === "icon" && kinds.includes("icon") && (
             <div className={styles.grid}>
               {CUSTOM_FIELD_ICONS.map((name) => (
                 <button
@@ -148,30 +177,41 @@ export function OptionVisualPicker({
               ))}
             </div>
           )}
-          {kinds.includes("color") && (
+
+          {kind === "color" && kinds.includes("color") && (
             <div>
               <ColorPicker
                 size="sm"
                 value={value.color ?? undefined}
-                onChange={(color) => onChange({ ...value, color })}
+                onChange={(color) => {
+                  onChange({ ...value, color });
+                  close();
+                }}
                 swatchLabel={(c) => c}
               />
             </div>
           )}
-          <div className={styles.actions}>
-            {kinds.includes("image") && (
-              <Button
-                type="button"
-                variant="elevated"
-                size="sm"
-                disabled={busy}
-                icon={<Icon icon="lucide:upload" width={14} />}
-                onClick={() => input.current?.click()}
-              >
-                {t("customFields.uploadImage")}
-              </Button>
-            )}
-            {has && (
+
+          {kind === "image" && kinds.includes("image") && (
+            <>
+              <div className={styles.actions}>
+                <Button
+                  type="button"
+                  variant="elevated"
+                  size="sm"
+                  disabled={busy}
+                  icon={<Icon icon="lucide:upload" width={14} />}
+                  onClick={() => input.current?.click()}
+                >
+                  {t("customFields.uploadImage")}
+                </Button>
+              </div>
+              <p className={styles.hint}>{t("customFields.imageHint")}</p>
+            </>
+          )}
+
+          {has && (
+            <div className={styles.actions}>
               <Button
                 type="button"
                 variant="ghost"
@@ -189,10 +229,7 @@ export function OptionVisualPicker({
               >
                 {t("customFields.removeVisual")}
               </Button>
-            )}
-          </div>
-          {kinds.includes("image") && (
-            <p className={styles.hint}>{t("customFields.imageHint")}</p>
+            </div>
           )}
           {error && (
             <p className={styles.error} role="alert">
