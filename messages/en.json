@@ -1222,7 +1222,8 @@
       "customFieldUpdated": "Custom field changed",
       "customFieldArchived": "Custom field archived",
       "customFieldRestored": "Custom field restored",
-      "customFieldDeleted": "Custom field deleted"
+      "customFieldDeleted": "Custom field deleted",
+      "issueFieldChanged": "Custom field changed"
     }
   },
   "dashboard": {
@@ -1455,6 +1456,9 @@
       "limit_reached": "This workspace has reached the limit of 100 active fields.",
       "not_found": "This field no longer exists.",
       "failed": "The field couldn't be saved. Try again."
-    }
+    },
+    "noValue": "Not set",
+    "yes": "Yes",
+    "no": "No"
   }
 }

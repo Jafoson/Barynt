@@ -235,6 +235,10 @@ export const AUDIT_ACTION_META = {
     icon: "lucide:hourglass",
     message: "issueEstimateHoursChanged",
   },
+  "issue.field.changed": {
+    icon: "lucide:text-cursor-input",
+    message: "issueFieldChanged",
+  },
   "label.created": { icon: "lucide:tag", message: "labelCreated" },
   "label.deleted": { icon: "lucide:tag", message: "labelDeleted" },
   "customfield.created": {

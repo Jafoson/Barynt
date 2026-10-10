@@ -78,6 +78,7 @@ function composer(...creatableProjectIds: string[]): IssueComposerData {
     },
     projects: PROJECTS,
     members: [],
+    customFields: [],
     labels: [],
     statuses: [STATUS],
     priorities: [],
@@ -103,6 +104,7 @@ const column = (data: IssueComposerData) =>
         members: [],
         labels: [],
         issueTypes: data.issueTypes,
+        customFields: [],
       }}
       composer={data}
       hiddenCardFields={[]}
