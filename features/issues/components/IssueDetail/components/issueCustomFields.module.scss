@@ -20,3 +20,23 @@
   align-items: center;
   gap: 0.375rem;
 }
+
+/* A link: the chip opens the editor, the arrow next to it the page. */
+.linkRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.openLink {
+  display: inline-flex;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  color: var(--on-surface-variant);
+
+  &:hover {
+    color: var(--primary);
+    background: var(--surface-container, transparent);
+  }
+}

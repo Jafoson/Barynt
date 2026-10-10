@@ -1480,6 +1480,7 @@
       "link_invalid": "Check the allowed sites (up to 20, each like example.com)."
     },
     "noValue": "Not set",
+    "openLink": "Open link",
     "linkInvalid": "That is not a valid link.",
     "linkNotHttps": "Only https links are allowed.",
     "linkNotAllowedHost": "This site is not allowed here.",

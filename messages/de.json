@@ -1480,6 +1480,7 @@
       "link_invalid": "Prüfe die erlaubten Seiten (höchstens 20, jeweils z. B. example.com)."
     },
     "noValue": "Nicht gesetzt",
+    "openLink": "Link öffnen",
     "linkInvalid": "Das ist kein gültiger Link.",
     "linkNotHttps": "Nur https-Links sind erlaubt.",
     "linkNotAllowedHost": "Diese Seite ist hier nicht erlaubt.",

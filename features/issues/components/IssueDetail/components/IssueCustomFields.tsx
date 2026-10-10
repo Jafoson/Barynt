@@ -72,6 +72,15 @@ function Row({
  * the value against the field's definition and the person's right to edit
  * the issue.
  */
+/** A link as a chip shows it: the site, without "www." and the path. */
+function linkLabel(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
 export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
   const t = useTranslations();
   const text = useFieldText();
@@ -95,16 +104,14 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
       value === null ? (
         empty
       ) : field.type === "URL" ? (
-        <a
-          className={`${fieldStyles.link} ${fieldStyles.withVisual}`}
-          href={String(value)}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {field.linkFavicon && <SiteIcon url={String(value)} />}
-          {String(value)}
-        </a>
+        <LabelChip size="sm" hasIcon title={String(value)}>
+          {field.linkFavicon ? (
+            <SiteIcon url={String(value)} size={13} />
+          ) : (
+            <Icon icon="lucide:link" width={13} aria-hidden="true" />
+          )}
+          {linkLabel(String(value))}
+        </LabelChip>
       ) : field.type === "SELECT" ? (
         <span className={`${styles.valueText} ${fieldStyles.withVisual}`}>
           {(() => {
@@ -322,40 +329,55 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
         icon={field.icon}
         hint={field.description}
       >
-        <InlinePicker width={260} stop trigger={trigger} title={field.name}>
-          {(close) => (
-            <ValuePopover<string>
-              initialValue={toInputString(field, value, timeZone)}
-              clearable={value !== null}
-              validate={(next) => {
-                const problem = linkProblem(field, next);
-                return problem ? t(`customFields.${problem}`) : null;
-              }}
-              onConfirm={(next) =>
-                set(field, fromInputString(field, next, timeZone))
-              }
-              onClear={() => set(field, null)}
-              close={close}
+        <span className={fieldStyles.linkRow}>
+          <InlinePicker width={260} stop trigger={trigger} title={field.name}>
+            {(close) => (
+              <ValuePopover<string>
+                initialValue={toInputString(field, value, timeZone)}
+                clearable={value !== null}
+                validate={(next) => {
+                  const problem = linkProblem(field, next);
+                  return problem ? t(`customFields.${problem}`) : null;
+                }}
+                onConfirm={(next) =>
+                  set(field, fromInputString(field, next, timeZone))
+                }
+                onClear={() => set(field, null)}
+                close={close}
+              >
+                {(pending, setPending) => (
+                  <Input
+                    variant={inputVariant(field)}
+                    step={inputStep(field)}
+                    iconRight={
+                      field.type === "NUMBER" && field.numberUnit ? (
+                        <span>{field.numberUnit}</span>
+                      ) : undefined
+                    }
+                    size="sm"
+                    value={pending}
+                    autoFocus
+                    aria-label={field.name}
+                    onChange={(e) => setPending(e.target.value)}
+                  />
+                )}
+              </ValuePopover>
+            )}
+          </InlinePicker>
+          {field.type === "URL" && typeof value === "string" && (
+            <a
+              className={fieldStyles.openLink}
+              href={value}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t("customFields.openLink")}
+              title={t("customFields.openLink")}
+              onClick={(e) => e.stopPropagation()}
             >
-              {(pending, setPending) => (
-                <Input
-                  variant={inputVariant(field)}
-                  step={inputStep(field)}
-                  iconRight={
-                    field.type === "NUMBER" && field.numberUnit ? (
-                      <span>{field.numberUnit}</span>
-                    ) : undefined
-                  }
-                  size="sm"
-                  value={pending}
-                  autoFocus
-                  aria-label={field.name}
-                  onChange={(e) => setPending(e.target.value)}
-                />
-              )}
-            </ValuePopover>
+              <Icon icon="lucide:external-link" width={14} aria-hidden="true" />
+            </a>
           )}
-        </InlinePicker>
+        </span>
       </Row>
     );
   };
