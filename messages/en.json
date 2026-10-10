@@ -1493,7 +1493,6 @@
     "createValue": "Add “{value}”",
     "searchValues": "Search values…",
     "optionVisual": "Icon or image",
-    "uploadImage": "Upload image",
     "removeVisual": "Remove",
     "imageHint": "PNG, JPEG, WebP or GIF, up to 1 MB.",
     "imageTooLarge": "The image is too large, up to 1 MB.",
@@ -1502,6 +1501,7 @@
     "optionVisuals": "Choices can carry",
     "visualIcon": "Icon",
     "visualImage": "Image",
-    "visualColor": "Colour"
+    "visualColor": "Colour",
+    "dropImage": "Drop an image here or click to add"
   }
 }

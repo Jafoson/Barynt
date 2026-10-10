@@ -52,6 +52,7 @@ export function OptionVisualPicker({
   const t = useTranslations();
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState("");
   // Which kind is open when more than one is allowed: the one the choice
   // already uses, else the first.
@@ -194,17 +195,37 @@ export function OptionVisualPicker({
 
           {kind === "image" && kinds.includes("image") && (
             <>
-              <div className={styles.actions}>
-                <Button
+              {/* Same box as the issue's attachments: drop a file on it or
+                  click it. */}
+              {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop target — the interaction itself sits in the button within it */}
+              <div
+                className={styles.dropzone}
+                data-drag-over={dragOver ? "" : undefined}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOver(true);
+                }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOver(false);
+                  const file = e.dataTransfer.files[0];
+                  if (file) upload(file).then(() => undefined);
+                }}
+              >
+                <button
                   type="button"
-                  variant="elevated"
-                  size="sm"
+                  className={styles.dropAction}
                   disabled={busy}
-                  icon={<Icon icon="lucide:upload" width={14} />}
                   onClick={() => input.current?.click()}
                 >
-                  {t("customFields.uploadImage")}
-                </Button>
+                  <Icon
+                    icon="lucide:image-plus"
+                    width={22}
+                    aria-hidden="true"
+                  />
+                  <span>{t("customFields.dropImage")}</span>
+                </button>
               </div>
               <p className={styles.hint}>{t("customFields.imageHint")}</p>
             </>
