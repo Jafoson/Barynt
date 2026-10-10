@@ -1522,6 +1522,10 @@
     "linkHttpsOnly": "Nur https zulassen",
     "linkFavicon": "Icon der Seite anzeigen",
     "linkFaviconHint": "Das Icon holt der Barynt-Server, nicht dein Browser: Die Seite erfährt weder deine IP noch dass du sie ansiehst.",
+    "linkFetchTitle": "Titel von der Seite holen, wenn keiner eingetragen ist",
+    "linkFetchTitleHint": "Der Barynt-Server ruft die Seite ab und liest den Titel; die Seite sieht den Server, nicht dich.",
+    "linkTitle": "Titel",
+    "linkTitlePlaceholder": "Leer lassen: Titel der Seite",
     "numberUnitPlaceholder": "z. B. %, €, $, kg"
   }
 }

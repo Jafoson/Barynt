@@ -39,6 +39,7 @@ async function toRow(f: FieldRecord): Promise<CustomFieldRow> {
     linkHttpsOnly: f.linkHttpsOnly,
     linkHosts: f.linkHosts,
     linkFavicon: f.linkFavicon,
+    linkFetchTitle: f.linkFetchTitle,
     archived: f.archivedAt !== null,
     valueCount: f._count.values,
   };
@@ -132,6 +133,7 @@ export const getWorkspaceCustomFields = cache(
         linkHttpsOnly: f.linkHttpsOnly,
         linkHosts: f.linkHosts,
         linkFavicon: f.linkFavicon,
+        linkFetchTitle: f.linkFetchTitle,
         projectId: f.projectId,
       })),
     );

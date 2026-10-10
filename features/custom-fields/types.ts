@@ -23,6 +23,7 @@ export interface CustomFieldRow {
   linkHttpsOnly: boolean;
   linkHosts: string[];
   linkFavicon: boolean;
+  linkFetchTitle: boolean;
   archived: boolean;
   /** How many issues have a value in this field. */
   valueCount: number;

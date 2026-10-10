@@ -36,6 +36,7 @@ const multi: FieldDefinition = {
   linkHttpsOnly: false,
   linkHosts: [],
   linkFavicon: false,
+  linkFetchTitle: true,
   projectId: null,
 };
 const single: FieldDefinition = { ...multi, id: "f_size", type: "SELECT" };

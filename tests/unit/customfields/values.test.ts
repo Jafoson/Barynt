@@ -277,4 +277,55 @@ describe("writeIssueFieldValues()", () => {
     await writeIssueFieldValues(ISSUE, { f1: "09:30" }, "u1");
     expect(upsert.mock.calls[0][0].update.value).toBe("09:30");
   });
+
+  describe("link titles", () => {
+    beforeEach(() => {
+      fields.mockResolvedValue([def({ type: "URL" })]);
+    });
+
+    it("stores a title beside the link", async () => {
+      await writeIssueFieldValues(
+        ISSUE,
+        { f1: "https://a.dev", "f1#title": "  Docs  " },
+        "u1",
+      );
+      expect(upsert.mock.calls[0][0].create).toMatchObject({
+        value: "https://a.dev",
+        title: "Docs",
+      });
+    });
+
+    it("keeps the title when only the link changes", async () => {
+      before.mockResolvedValue([
+        { fieldId: "f1", value: "https://a.dev", title: "Docs" },
+      ]);
+      await writeIssueFieldValues(ISSUE, { f1: "https://b.dev" }, "u1");
+      expect(upsert.mock.calls[0][0].update).toMatchObject({
+        value: "https://b.dev",
+        title: "Docs",
+      });
+    });
+
+    it("changes only the title of a stored link, without a log entry", async () => {
+      before.mockResolvedValue([
+        { fieldId: "f1", value: "https://a.dev", title: null },
+      ]);
+      await writeIssueFieldValues(ISSUE, { "f1#title": "Docs" }, "u1");
+      expect(upsert.mock.calls[0][0].update).toMatchObject({ title: "Docs" });
+      expect(audit).not.toHaveBeenCalled();
+    });
+
+    it("drops the title with the link and refuses a title on another type", async () => {
+      before.mockResolvedValue([
+        { fieldId: "f1", value: "https://a.dev", title: "Docs" },
+      ]);
+      await writeIssueFieldValues(ISSUE, { f1: null, "f1#title": null }, "u1");
+      expect(del).toHaveBeenCalled();
+
+      fields.mockResolvedValue([def({ type: "TEXT" })]);
+      await expect(
+        writeIssueFieldValues(ISSUE, { "f1#title": "x" }, "u1"),
+      ).rejects.toBeInstanceOf(FieldValueError);
+    });
+  });
 });

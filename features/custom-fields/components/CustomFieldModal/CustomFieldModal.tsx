@@ -98,6 +98,7 @@ export function CustomFieldModal({
     (field?.linkHosts ?? []).join(", "),
   );
   const [favicon, setFavicon] = useState(field?.linkFavicon ?? false);
+  const [fetchTitle, setFetchTitle] = useState(field?.linkFetchTitle ?? true);
   // What a choice may carry besides its name.
   const [visuals, setVisuals] = useState<OptionVisualKind[]>(
     field?.optionVisuals ?? [],
@@ -166,6 +167,7 @@ export function CustomFieldModal({
                     linkHttpsOnly: httpsOnly,
                     linkHosts: hostsText.split(/[\s,;]+/).filter(Boolean),
                     linkFavicon: favicon,
+                    linkFetchTitle: fetchTitle,
                   }
                 : {}),
               ...(hasOptions
@@ -190,6 +192,7 @@ export function CustomFieldModal({
                     linkHttpsOnly: httpsOnly,
                     linkHosts: hostsText.split(/[\s,;]+/).filter(Boolean),
                     linkFavicon: favicon,
+                    linkFetchTitle: fetchTitle,
                   }
                 : {}),
               ...(type === "NUMBER"
@@ -355,6 +358,16 @@ export function CustomFieldModal({
                 />
                 <p className={styles.hint}>
                   {t("customFields.linkFaviconHint")}
+                </p>
+              </div>
+              <div className={styles.field}>
+                <Switch
+                  checked={fetchTitle}
+                  onChange={setFetchTitle}
+                  label={t("customFields.linkFetchTitle")}
+                />
+                <p className={styles.hint}>
+                  {t("customFields.linkFetchTitleHint")}
                 </p>
               </div>
             </>

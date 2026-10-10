@@ -109,7 +109,13 @@ function cleanLinkSettings(input: {
   linkHttpsOnly?: boolean;
   linkHosts?: string[];
   linkFavicon?: boolean;
-}): { httpsOnly: boolean; hosts: string[]; favicon: boolean } | null {
+  linkFetchTitle?: boolean;
+}): {
+  httpsOnly: boolean;
+  hosts: string[];
+  favicon: boolean;
+  fetchTitle: boolean;
+} | null {
   const rawHosts = input.linkHosts ?? [];
   if (!Array.isArray(rawHosts) || rawHosts.length > FIELD_LIMITS.linkHosts) {
     return null;
@@ -133,6 +139,7 @@ function cleanLinkSettings(input: {
     httpsOnly: input.linkHttpsOnly === true,
     hosts,
     favicon: input.linkFavicon === true,
+    fetchTitle: input.linkFetchTitle !== false,
   };
 }
 
@@ -267,6 +274,7 @@ export async function createCustomField(input: {
   linkHttpsOnly?: boolean;
   linkHosts?: string[];
   linkFavicon?: boolean;
+  linkFetchTitle?: boolean;
 }): Promise<CustomFieldResult<{ id: string; key: string }>> {
   const scope = await scopeForNew(input);
   if (!scope) return { error: "not_found" };
@@ -342,6 +350,7 @@ export async function createCustomField(input: {
       linkHttpsOnly: input.type === "URL" ? link.httpsOnly : false,
       linkHosts: input.type === "URL" ? link.hosts : [],
       linkFavicon: input.type === "URL" ? link.favicon : false,
+      linkFetchTitle: input.type === "URL" ? link.fetchTitle : true,
       options: plainOptions(options.options),
       position: (last._max.position ?? -1) + 1,
     },
@@ -366,6 +375,7 @@ async function loadField(id: string) {
       linkHttpsOnly: true,
       linkHosts: true,
       linkFavicon: true,
+      linkFetchTitle: true,
     },
   });
   if (!field) return null;
@@ -402,6 +412,7 @@ export async function updateCustomField(
     linkHttpsOnly?: boolean;
     linkHosts?: string[];
     linkFavicon?: boolean;
+    linkFetchTitle?: boolean;
   },
 ): Promise<CustomFieldResult> {
   const found = await loadField(id);
@@ -422,6 +433,7 @@ export async function updateCustomField(
     linkHttpsOnly?: boolean;
     linkHosts?: string[];
     linkFavicon?: boolean;
+    linkFetchTitle?: boolean;
   } = {};
   if (patch.name !== undefined) {
     const name = cleanName(patch.name);
@@ -461,17 +473,20 @@ export async function updateCustomField(
     field.type === "URL" &&
     (patch.linkHttpsOnly !== undefined ||
       patch.linkHosts !== undefined ||
-      patch.linkFavicon !== undefined)
+      patch.linkFavicon !== undefined ||
+      patch.linkFetchTitle !== undefined)
   ) {
     const link = cleanLinkSettings({
       linkHttpsOnly: patch.linkHttpsOnly ?? field.linkHttpsOnly,
       linkHosts: patch.linkHosts ?? field.linkHosts,
       linkFavicon: patch.linkFavicon ?? field.linkFavicon,
+      linkFetchTitle: patch.linkFetchTitle ?? field.linkFetchTitle,
     });
     if (!link) return { error: "link_invalid" };
     data.linkHttpsOnly = link.httpsOnly;
     data.linkHosts = link.hosts;
     data.linkFavicon = link.favicon;
+    data.linkFetchTitle = link.fetchTitle;
   }
 
   // What a choice may carry: the new setting, else the stored one.

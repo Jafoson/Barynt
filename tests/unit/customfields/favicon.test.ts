@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { isPlainHost, isPrivateAddress } from "@/lib/favicon";
+import { isPlainHost, isPrivateAddress } from "@/lib/public-fetch";
 
 describe("isPrivateAddress", () => {
   it("flags local and private addresses", () => {
@@ -34,5 +34,20 @@ describe("isPlainHost", () => {
     expect(isPlainHost("127.0.0.1")).toBe(false);
     expect(isPlainHost("a.com/../x")).toBe(false);
     expect(isPlainHost("evil.com:8080")).toBe(false);
+  });
+});
+
+describe("titleOfHtml", () => {
+  it("reads og:title before <title>, decodes entities, squeezes space", async () => {
+    const { titleOfHtml } = await import("@/lib/link-title");
+    expect(titleOfHtml("<head><title> Foo &amp;\n  Bar </title></head>")).toBe(
+      "Foo & Bar",
+    );
+    expect(
+      titleOfHtml(
+        '<meta property="og:title" content="Social"><title>Plain</title>',
+      ),
+    ).toBe("Social");
+    expect(titleOfHtml("<p>no title</p>")).toBeNull();
   });
 });

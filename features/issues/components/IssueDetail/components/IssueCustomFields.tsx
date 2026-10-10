@@ -8,8 +8,9 @@ import { Label as LabelChip } from "@/components/ui/atoms/Label/Label";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import { FieldChoiceMenu } from "@/features/custom-fields/components/FieldChoiceMenu/FieldChoiceMenu";
+import { LinkChip } from "@/features/custom-fields/components/LinkChip/LinkChip";
+import { LinkValuePopover } from "@/features/custom-fields/components/LinkValuePopover/LinkValuePopover";
 import { OptionVisual } from "@/features/custom-fields/components/OptionVisual/OptionVisual";
-import { SiteIcon } from "@/features/custom-fields/components/SiteIcon/SiteIcon";
 import {
   fieldsFor,
   useFieldText,
@@ -24,7 +25,7 @@ import {
 } from "@/features/custom-fields/input";
 import { ValuePopover } from "@/features/issues/components/ValuePopover/ValuePopover";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
-import type { FieldDefinition } from "@/lib/custom-fields";
+import { type FieldDefinition, titleKey } from "@/lib/custom-fields";
 import type { IssueDetail } from "@/types";
 import styles from "../issueDetail.module.scss";
 import type { IssueDetailLayout } from "../types";
@@ -72,15 +73,6 @@ function Row({
  * the value against the field's definition and the person's right to edit
  * the issue.
  */
-/** A link as a chip shows it: the site, without "www." and the path. */
-function linkLabel(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
-}
-
 export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
   const t = useTranslations();
   const text = useFieldText();
@@ -104,14 +96,16 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
       value === null ? (
         empty
       ) : field.type === "URL" ? (
-        <LabelChip size="sm" hasIcon title={String(value)}>
-          {field.linkFavicon ? (
-            <SiteIcon url={String(value)} size={13} />
-          ) : (
-            <Icon icon="lucide:link" width={13} aria-hidden="true" />
-          )}
-          {linkLabel(String(value))}
-        </LabelChip>
+        <LinkChip
+          url={String(value)}
+          title={
+            typeof issue.fieldValues[titleKey(field.id)] === "string"
+              ? (issue.fieldValues[titleKey(field.id)] as string)
+              : null
+          }
+          favicon={field.linkFavicon}
+          fetchTitle={field.linkFetchTitle}
+        />
       ) : field.type === "SELECT" ? (
         <span className={`${styles.valueText} ${fieldStyles.withVisual}`}>
           {(() => {
@@ -319,7 +313,67 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
       );
     }
 
-    // TEXT, URL, NUMBER and the three date modes: typed in, saved with the
+    // A link: the link and a title of its own, saved together.
+    if (field.type === "URL") {
+      const stored = issue.fieldValues[titleKey(field.id)];
+      return (
+        <Row
+          key={field.id}
+          label={field.name}
+          icon={field.icon}
+          hint={field.description}
+        >
+          <span className={fieldStyles.linkRow}>
+            <InlinePicker width={260} stop trigger={trigger} title={field.name}>
+              {(close) => (
+                <LinkValuePopover
+                  field={field}
+                  url={toInputString(field, value, timeZone)}
+                  title={typeof stored === "string" ? stored : ""}
+                  clearable={value !== null}
+                  onConfirm={(url, title) =>
+                    onPatch({
+                      fieldValues: {
+                        [field.id]: url,
+                        [titleKey(field.id)]: title,
+                      },
+                    })
+                  }
+                  onClear={() =>
+                    onPatch({
+                      fieldValues: {
+                        [field.id]: null,
+                        [titleKey(field.id)]: null,
+                      },
+                    })
+                  }
+                  close={close}
+                />
+              )}
+            </InlinePicker>
+            {typeof value === "string" && (
+              <a
+                className={fieldStyles.openLink}
+                href={value}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={t("customFields.openLink")}
+                title={t("customFields.openLink")}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Icon
+                  icon="lucide:external-link"
+                  width={14}
+                  aria-hidden="true"
+                />
+              </a>
+            )}
+          </span>
+        </Row>
+      );
+    }
+
+    // TEXT, NUMBER and the three date modes: typed in, saved with the
     // button so a value that is still being typed never reaches the server.
     // An instant is entered in the person's own zone and stored in UTC.
     return (
@@ -364,19 +418,6 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
               </ValuePopover>
             )}
           </InlinePicker>
-          {field.type === "URL" && typeof value === "string" && (
-            <a
-              className={fieldStyles.openLink}
-              href={value}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={t("customFields.openLink")}
-              title={t("customFields.openLink")}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Icon icon="lucide:external-link" width={14} aria-hidden="true" />
-            </a>
-          )}
         </span>
       </Row>
     );

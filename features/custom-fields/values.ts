@@ -6,6 +6,7 @@ import {
   FIELD_LIMITS,
   type FieldOption,
   type FieldValue,
+  fieldIdOfTitleKey,
   type NumberMode,
   narrowFieldValue,
   toOptions,
@@ -108,11 +109,20 @@ export async function resolveFieldValues(
   fields: Map<string, ResolvedField>;
   next: Map<string, FieldValue | null>;
   newOptions: Map<string, FieldOption[]>;
+  titles: Map<string, string | null>;
 }> {
-  const ids = Object.keys(values);
+  // A link's own title rides beside its value under `titleKey(fieldId)`.
+  const titleInputs = new Map<string, unknown>();
+  const valueInputs: Record<string, unknown> = {};
+  for (const [key, v] of Object.entries(values)) {
+    const base = fieldIdOfTitleKey(key);
+    if (base) titleInputs.set(base, v);
+    else valueInputs[key] = v;
+  }
+  const ids = Object.keys(valueInputs);
   const fields = await db.customField.findMany({
     where: {
-      id: { in: ids },
+      id: { in: [...ids, ...titleInputs.keys()] },
       workspaceId: scope.workspaceId,
       archivedAt: null,
       OR: [{ projectId: null }, { projectId: scope.projectId }],
@@ -127,7 +137,7 @@ export async function resolveFieldValues(
     const field = byId.get(id);
     if (!field) throw new FieldValueError(id, "unknown_field");
 
-    let raw = values[id];
+    let raw = valueInputs[id];
     const known = toOptions(field.options);
     const added: FieldOption[] = [];
 
@@ -176,6 +186,23 @@ export async function resolveFieldValues(
     if (added.length > 0) newOptions.set(id, added);
   }
 
+  const titles = new Map<string, string | null>();
+  for (const [id, raw] of titleInputs) {
+    if (byId.get(id)?.type !== "URL") {
+      throw new FieldValueError(id, "unknown_field");
+    }
+    if (raw === null || raw === undefined) {
+      titles.set(id, null);
+      continue;
+    }
+    if (typeof raw !== "string") throw new FieldValueError(id, "invalid_value");
+    const title = raw.trim();
+    if (title.length > FIELD_LIMITS.linkTitle || /[\r\n]/.test(title)) {
+      throw new FieldValueError(id, "invalid_value");
+    }
+    titles.set(id, title === "" ? null : title);
+  }
+
   const people = [...next.entries()].flatMap(([id, v]) =>
     byId.get(id)?.type === "USER" && typeof v === "string" ? [v] : [],
   );
@@ -194,7 +221,7 @@ export async function resolveFieldValues(
         throw new FieldValueError(id, "invalid_value");
     }
   }
-  return { fields: byId, next, newOptions };
+  return { fields: byId, next, newOptions, titles };
 }
 
 /**
@@ -211,31 +238,57 @@ export async function writeIssueFieldValues(
   values: Record<string, unknown>,
   actorId: string,
 ): Promise<void> {
-  const ids = Object.keys(values);
-  if (ids.length === 0) return;
+  if (Object.keys(values).length === 0) return;
 
   const {
     fields: byId,
     next,
     newOptions,
+    titles,
   } = await resolveFieldValues(
     { workspaceId: issue.project.workspaceId, projectId: issue.projectId },
     values,
   );
 
+  const touched = [...new Set([...next.keys(), ...titles.keys()])];
   const before = await db.issueFieldValue.findMany({
-    where: { issueId: issue.id, fieldId: { in: ids } },
-    select: { fieldId: true, value: true },
+    where: { issueId: issue.id, fieldId: { in: touched } },
+    select: { fieldId: true, value: true, title: true },
   });
   const beforeBy = new Map(
     before.map((r) => [r.fieldId, narrowFieldValue(r.value)]),
   );
+  const titleBefore = new Map(before.map((r) => [r.fieldId, r.title ?? null]));
 
-  const changed = [...next.entries()].filter(
-    ([id, value]) =>
-      JSON.stringify(beforeBy.get(id) ?? null) !== JSON.stringify(value),
+  // What each touched field ends up as. A value sent without a title keeps
+  // the title it had; a title sent alone belongs to the stored link.
+  const final = new Map<
+    string,
+    { value: FieldValue | null; title: string | null }
+  >();
+  for (const fieldId of touched) {
+    const value = next.has(fieldId)
+      ? (next.get(fieldId) ?? null)
+      : (beforeBy.get(fieldId) ?? null);
+    const title =
+      value === null
+        ? null
+        : titles.has(fieldId)
+          ? (titles.get(fieldId) ?? null)
+          : (titleBefore.get(fieldId) ?? null);
+    final.set(fieldId, { value, title });
+  }
+
+  const changed = [...final.entries()].filter(
+    ([id, f]) =>
+      JSON.stringify(beforeBy.get(id) ?? null) !== JSON.stringify(f.value) ||
+      (titleBefore.get(id) ?? null) !== f.title,
   );
   if (changed.length === 0) return;
+  const valueChanged = changed.filter(
+    ([id, f]) =>
+      JSON.stringify(beforeBy.get(id) ?? null) !== JSON.stringify(f.value),
+  );
 
   // A choice added while filling in becomes a choice of the field, stored in
   // the same transaction as the value that uses it.
@@ -254,7 +307,7 @@ export async function writeIssueFieldValues(
 
   await db.$transaction([
     ...optionWrites,
-    ...changed.map(([fieldId, value]) =>
+    ...changed.map(([fieldId, { value, title }]) =>
       value === null
         ? db.issueFieldValue.deleteMany({
             where: { issueId: issue.id, fieldId },
@@ -265,8 +318,9 @@ export async function writeIssueFieldValues(
               issueId: issue.id,
               fieldId,
               value: value as Prisma.InputJsonValue,
+              title,
             },
-            update: { value: value as Prisma.InputJsonValue },
+            update: { value: value as Prisma.InputJsonValue, title },
           }),
     ),
   ]);
@@ -287,7 +341,7 @@ export async function writeIssueFieldValues(
     });
   }
 
-  for (const [fieldId, value] of changed) {
+  for (const [fieldId, { value }] of valueChanged) {
     const field = byId.get(fieldId);
     if (!field) continue;
     // A choice shows by its label, not its internal id.

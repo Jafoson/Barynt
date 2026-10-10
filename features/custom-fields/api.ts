@@ -63,6 +63,8 @@ export interface ApiCustomField {
   linkHosts: string[];
   /** URL: whether the site's icon is shown next to the link. */
   linkFavicon: boolean;
+  /** URL: whether the page title is shown when a link has none of its own. */
+  linkFetchTitle: boolean;
   /** `null` = workspace-wide, otherwise the one project it belongs to. */
   projectId: string | null;
 }
@@ -84,6 +86,7 @@ export function toApiCustomField(f: {
   linkHttpsOnly: boolean;
   linkHosts: string[];
   linkFavicon: boolean;
+  linkFetchTitle: boolean;
   projectId: string | null;
 }): ApiCustomField {
   return {
@@ -110,6 +113,7 @@ export function toApiCustomField(f: {
     linkHttpsOnly: f.linkHttpsOnly,
     linkHosts: f.linkHosts,
     linkFavicon: f.linkFavicon,
+    linkFetchTitle: f.linkFetchTitle,
     projectId: f.projectId,
   };
 }

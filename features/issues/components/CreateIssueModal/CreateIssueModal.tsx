@@ -42,6 +42,7 @@ import { IssueRichText } from "@/features/issues/components/IssueRichText/IssueR
 import { LabelPickerMenu } from "@/features/issues/components/LabelPickerMenu/LabelPickerMenu";
 import type { IssueComposerData } from "@/features/issues/types";
 import { uploadIssueAttachment } from "@/features/issues/uploadAttachment";
+import { titleKey } from "@/lib/custom-fields";
 import { remapAttachmentIds } from "@/lib/richtext/attachments";
 import { emptyDoc } from "@/lib/richtext/doc";
 import type { PMDoc } from "@/lib/richtext/types";
@@ -278,7 +279,15 @@ export function CreateIssueModal({
         // project may belong to a field that no longer applies.
         fieldValues: Object.fromEntries(
           fieldsFor(data.customFields, project.id).flatMap((f) =>
-            f.id in fieldValues ? [[f.id, fieldValues[f.id]]] : [],
+            f.id in fieldValues
+              ? [
+                  [f.id, fieldValues[f.id]],
+                  // A link's own title goes with it.
+                  ...(titleKey(f.id) in fieldValues
+                    ? [[titleKey(f.id), fieldValues[titleKey(f.id)]]]
+                    : []),
+                ]
+              : [],
           ),
         ),
       });

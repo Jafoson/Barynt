@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/atoms/Input/Input";
 import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import { FieldChoiceMenu } from "@/features/custom-fields/components/FieldChoiceMenu/FieldChoiceMenu";
+import { LinkValuePopover } from "@/features/custom-fields/components/LinkValuePopover/LinkValuePopover";
 import {
   fieldsFor,
   useFieldText,
@@ -20,7 +21,7 @@ import {
 } from "@/features/custom-fields/input";
 import { ValuePopover } from "@/features/issues/components/ValuePopover/ValuePopover";
 import type { IssueComposerData } from "@/features/issues/types";
-import type { FieldDefinition } from "@/lib/custom-fields";
+import { type FieldDefinition, titleKey } from "@/lib/custom-fields";
 
 /**
  * What the dialog holds for a field before the issue exists: a value as the
@@ -96,7 +97,10 @@ export function CreateFieldChips({
             label={has ? draftText(field, value) : field.name}
             icon={<Icon icon={field.icon ?? ICONS[field.type]} width={14} />}
             active={has}
-            onClear={() => onChange(field.id, null)}
+            onClear={() => {
+              onChange(field.id, null);
+              if (field.type === "URL") onChange(titleKey(field.id), null);
+            }}
             width={240}
             data-field-nav
           >
@@ -132,6 +136,31 @@ export function CreateFieldChips({
                       closeMenu();
                     }}
                     onClose={closeMenu}
+                  />
+                );
+              }
+
+              if (field.type === "URL") {
+                const own = values[titleKey(field.id)];
+                return (
+                  <LinkValuePopover
+                    field={field}
+                    url={toInputString(
+                      field,
+                      has ? (value as never) : null,
+                      timeZone,
+                    )}
+                    title={typeof own === "string" ? own : ""}
+                    clearable={has}
+                    onConfirm={(url, title) => {
+                      onChange(field.id, url);
+                      onChange(titleKey(field.id), title);
+                    }}
+                    onClear={() => {
+                      onChange(field.id, null);
+                      onChange(titleKey(field.id), null);
+                    }}
+                    close={closeMenu}
                   />
                 );
               }

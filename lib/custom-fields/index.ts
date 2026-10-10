@@ -131,6 +131,8 @@ export interface FieldDefinition {
   linkHosts: string[];
   /** URL: show the site's icon next to the link. */
   linkFavicon: boolean;
+  /** URL: without a title of their own, take the page's title. */
+  linkFetchTitle: boolean;
   /** `null` = a workspace field, which applies in every project. */
   projectId: string | null;
 }
@@ -167,6 +169,8 @@ export const FIELD_LIMITS = {
   /** Sites a link field may be limited to, and the length of one. */
   linkHosts: 20,
   linkHost: 100,
+  /** A title chosen for a link. */
+  linkTitle: 200,
   /** Active (non-archived) fields a workspace may define. */
   fieldsPerWorkspace: 100,
 } as const;
@@ -216,6 +220,18 @@ export function isCalendarDate(value: string): boolean {
     date.getUTCMonth() === mo - 1 &&
     date.getUTCDate() === d
   );
+}
+
+/**
+ * A link's own title travels beside its value, in the same map, under this
+ * key (`{ [fieldId]: url, [titleKey(fieldId)]: "Title" }`) — in a patch, a
+ * draft and the issue the page gets. Field ids never contain a `#`.
+ */
+export const titleKey = (fieldId: string): string => `${fieldId}#title`;
+
+/** The field a `titleKey` belongs to, or `null` for any other key. */
+export function fieldIdOfTitleKey(key: string): string | null {
+  return key.endsWith("#title") ? key.slice(0, -"#title".length) : null;
 }
 
 /**

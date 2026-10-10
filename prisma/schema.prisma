@@ -1165,6 +1165,9 @@ model CustomField {
   /// Nur für URL: das Icon der Seite neben dem Link zeigen — über den
   /// eigenen Server geholt, nie direkt vom Browser der Person.
   linkFavicon Boolean         @default(false)
+  /// Nur für URL: ohne eigenen Titel den Titel der Seite holen (über den
+  /// eigenen Server, wie das Icon).
+  linkFetchTitle Boolean      @default(true)
   position    Int             @default(0)
   archivedAt  DateTime?
   created     DateTime        @default(now())
@@ -1195,6 +1198,8 @@ model IssueFieldValue {
   issueId String
   fieldId String
   value   Json
+  /// Nur für URL: ein selbst gewählter Titel für den Link.
+  title   String?
   updated DateTime @updatedAt
 
   issue Issue       @relation(fields: [issueId], references: [id], onDelete: Cascade)

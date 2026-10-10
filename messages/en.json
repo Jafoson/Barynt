@@ -1522,6 +1522,10 @@
     "linkHttpsOnly": "Allow https only",
     "linkFavicon": "Show the site's icon",
     "linkFaviconHint": "The icon is fetched by the Barynt server, not your browser: the site learns neither your IP nor that you looked at it.",
+    "linkFetchTitle": "Fetch the page's title when none is given",
+    "linkFetchTitleHint": "The Barynt server requests the page and reads its title; the site sees the server, not you.",
+    "linkTitle": "Title",
+    "linkTitlePlaceholder": "Leave empty: the page's title",
     "numberUnitPlaceholder": "e.g. %, €, $, kg"
   }
 }
