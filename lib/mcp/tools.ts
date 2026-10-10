@@ -22,8 +22,10 @@ import {
 import {
   getIssueForUser,
   listCommentsForUser,
+  listCustomFieldsForUser,
   listIssuesForUser,
   listLabelsForUser,
+  listProjectCustomFieldsForUser,
   listProjectMembersForUser,
   listProjectsForUser,
   listWorkspaceMembersForUser,
@@ -270,6 +272,29 @@ export function registerBaryntTools(server: McpServer): void {
   );
 
   server.registerTool(
+    "list_custom_fields",
+    {
+      title: "List custom fields",
+      description:
+        "List the custom fields of a workspace (workspace-wide plus those of projects the caller can see), or, with projectId, the ones that apply to that project. Issues carry their values under `customFields`, keyed by field key.",
+      inputSchema: z.object({
+        workspaceId: z.string().optional(),
+        projectId: z.string().optional(),
+      }),
+    },
+    async ({ workspaceId, projectId }, ctx) => {
+      const auth = await authorize(ctx, "issues:read");
+      if (!auth.ok) return auth.result;
+      const data = projectId
+        ? await listProjectCustomFieldsForUser(auth.auth.userId, projectId)
+        : workspaceId
+          ? await listCustomFieldsForUser(auth.auth.userId, workspaceId)
+          : null;
+      return data ? jsonResult(data) : notFoundResult();
+    },
+  );
+
+  server.registerTool(
     "create_label",
     {
       title: "Create label",
@@ -355,6 +380,12 @@ export function registerBaryntTools(server: McpServer): void {
           .string()
           .optional()
           .describe("Opaque cursor from a previous call's `nextCursor`."),
+        customFieldFilters: z
+          .record(z.string(), z.string())
+          .optional()
+          .describe(
+            'Exact-match filters on custom fields, by field key, e.g. {"customer": "Acme"}. All must match.',
+          ),
         limit: limitSchema,
         fields: z
           .string()
@@ -364,12 +395,16 @@ export function registerBaryntTools(server: McpServer): void {
           ),
       }),
     },
-    async ({ projectId, limit, fields, ...filters }, ctx) => {
+    async (
+      { projectId, limit, fields, customFieldFilters, ...filters },
+      ctx,
+    ) => {
       const auth = await authorize(ctx, "issues:read");
       if (!auth.ok) return auth.result;
 
       const page = await listIssuesForUser(auth.auth.userId, projectId, {
         ...filters,
+        fieldFilters: customFieldFilters,
         take: limit ?? 25,
       });
       if (!page) return notFoundResult();
@@ -428,6 +463,12 @@ export function registerBaryntTools(server: McpServer): void {
           .optional()
           .describe(
             "Which unit estimateHours was entered in. Defaults to hours.",
+          ),
+        customFields: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe(
+            "Custom field values by field key (see list_custom_fields). A choice by id or label; null clears a value.",
           ),
       }),
     },
@@ -513,6 +554,12 @@ export function registerBaryntTools(server: McpServer): void {
           .optional()
           .describe(
             "Relabels estimateHours's display unit. Defaults to hours when set alongside a new estimateHours.",
+          ),
+        customFields: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe(
+            "Custom field values by field key (see list_custom_fields). A choice by id or label; null clears a value.",
           ),
       }),
     },

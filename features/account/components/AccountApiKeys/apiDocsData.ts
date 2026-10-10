@@ -254,6 +254,11 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
         queryParams: [
           { name: "status", type: "string", desc: "Filter by status key." },
           {
+            name: "field.<key>",
+            type: "string",
+            desc: "Filter by a custom field, by its key, e.g. field.customer=Acme. Exact match; a choice by id or label. Several field.* filters must all match; an unknown key returns an empty list.",
+          },
+          {
             name: "assignee",
             type: "string",
             desc: "Filter by assignee user id.",
@@ -304,7 +309,8 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
       "estimateUnit": "days",
       "parent": null,
       "children": [],
-      "relations": []
+      "relations": [],
+      "customFields": { "customer": "Acme", "size": { "id": "o_s", "label": "Small" } }
     }
   ],
   "nextCursor": "eyJpZCI6ImlfNGsybjF4In0"
@@ -339,6 +345,11 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
             name: "type",
             type: "string",
             desc: 'An issue type key. Default "feature".',
+          },
+          {
+            name: "customFields",
+            type: "object",
+            desc: 'Custom field values by field key, e.g. {"customer": "Acme"}. A choice by id or label; null clears a value. See GET /api/v1/projects/{id}/custom-fields. Responses carry the values under customFields; a choice comes as {id, label}.',
           },
           {
             name: "parentId",
@@ -400,7 +411,8 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
     "estimateUnit": null,
     "parent": null,
     "children": [],
-    "relations": []
+    "relations": [],
+    "customFields": { "customer": "Acme" }
   }
 }`,
       },
@@ -481,6 +493,11 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           { name: "labels", type: "string[]", desc: "Label ids." },
           { name: "type", type: "string", desc: "An issue type key." },
           {
+            name: "customFields",
+            type: "object",
+            desc: 'Custom field values by field key, e.g. {"customer": "Acme"}. A choice by id or label; null clears a value. See GET /api/v1/projects/{id}/custom-fields. Responses carry the values under customFields; a choice comes as {id, label}.',
+          },
+          {
             name: "parentId",
             type: "string | null",
             desc: "Sets the issue's parent (sub-issue of); null clears it. Rejected (422) if it would create a cycle.",
@@ -518,6 +535,43 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
         response: `{
   "data": { "id": "i_4k2n1x" }
 }`,
+      },
+      {
+        method: "GET",
+        path: "/api/v1/workspaces/{id}/custom-fields",
+        scope: "issues:read",
+        desc: "List a workspace's custom fields: workspace-wide ones plus those of projects you can see. Defining or changing fields happens in the app.",
+        pathParams: [idParam("workspace")],
+        response: `{
+  "data": [
+    {
+      "id": "cf_1a2b3c",
+      "key": "customer",
+      "name": "Customer",
+      "description": "",
+      "type": "TEXT",
+      "options": [],
+      "projectId": null
+    },
+    {
+      "id": "cf_4d5e6f",
+      "key": "size",
+      "name": "Size",
+      "description": "",
+      "type": "SELECT",
+      "options": [{ "id": "o_s", "label": "Small", "color": null }],
+      "projectId": null
+    }
+  ]
+}`,
+      },
+      {
+        method: "GET",
+        path: "/api/v1/projects/{id}/custom-fields",
+        scope: "issues:read",
+        desc: "List the custom fields that apply to one project: the workspace's fields and the project's own. Types: TEXT, NUMBER, DATE (YYYY-MM-DD), SELECT, MULTI_SELECT, CHECKBOX, URL, USER (a user id).",
+        pathParams: [idParam("project")],
+        response: `{ "data": [ /* same shape as the workspace endpoint */ ] }`,
       },
       {
         method: "POST",

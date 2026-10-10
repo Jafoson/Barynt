@@ -67,6 +67,8 @@ const SEGMENTS: string[][] = [
   // Mocks `@/lib/db` with a different shape than `actions.test.ts` and
   // `@/features/issues/audit` — a process of its own.
   ["tests/unit/customfields/values.test.ts"],
+  // Same reason again: its own `@/lib/db` and audit mocks.
+  ["tests/unit/customfields/api.test.ts"],
   ["tests/unit/notifications"],
   ["tests/unit/mail/send.test.ts"],
   [
