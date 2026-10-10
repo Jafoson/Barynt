@@ -14,6 +14,7 @@ import {
   type TableDndAnnouncement,
   useTableDnd,
 } from "@/components/ui/layout/Table/useTableDnd";
+import { FieldChips } from "@/features/custom-fields/components/FieldChips/FieldChips";
 import { reorderIssue, updateIssue } from "@/features/issues/actions";
 import {
   isCardFieldKey,
@@ -379,6 +380,19 @@ export function ListView({
         isFieldVisible(issue, "labels") ? (
           <LabelsCell issue={issue} labels={labels} />
         ) : null,
+    },
+    {
+      id: "fields",
+      width: "max-content",
+      align: "end",
+      cell: (issue) => (
+        <FieldChips
+          issue={issue}
+          fields={composer.customFields}
+          members={members}
+          max={2}
+        />
+      ),
     },
     // Only in the card rows of a phone/tablet — on a desktop the table has no
     // column for it.

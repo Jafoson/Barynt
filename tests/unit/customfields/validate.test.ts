@@ -3,6 +3,7 @@ import {
   fieldKeyFromName,
   isCalendarDate,
   isReservedFieldKey,
+  narrowFieldValue,
   toOptions,
   validateFieldValue,
   validateOptions,
@@ -210,5 +211,20 @@ describe("fieldKeyFromName", () => {
   it("knows the issue's own property names", () => {
     expect(isReservedFieldKey("status")).toBe(true);
     expect(isReservedFieldKey("customer_id")).toBe(false);
+  });
+});
+
+describe("narrowFieldValue", () => {
+  it("keeps the shapes a field can hold", () => {
+    expect(narrowFieldValue("x")).toBe("x");
+    expect(narrowFieldValue(3.5)).toBe(3.5);
+    expect(narrowFieldValue(false)).toBe(false);
+    expect(narrowFieldValue(["a", "b"])).toEqual(["a", "b"]);
+  });
+
+  it("turns anything else into no value", () => {
+    for (const raw of [null, undefined, {}, [1], [], Number.NaN, () => 1]) {
+      expect(narrowFieldValue(raw)).toBeNull();
+    }
   });
 });

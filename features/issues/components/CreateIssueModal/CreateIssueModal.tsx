@@ -21,6 +21,8 @@ import {
   ModalBody,
   ModalToolbar,
 } from "@/components/ui/layout/Modal/Modal";
+import { CreateFieldChips } from "@/features/custom-fields/components/CreateFieldChips/CreateFieldChips";
+import { fieldsFor } from "@/features/custom-fields/format";
 import {
   addIssueLinkAttachment,
   createIssue,
@@ -37,6 +39,7 @@ import { IssueRichText } from "@/features/issues/components/IssueRichText/IssueR
 import { LabelPickerMenu } from "@/features/issues/components/LabelPickerMenu/LabelPickerMenu";
 import type { IssueComposerData } from "@/features/issues/types";
 import { uploadIssueAttachment } from "@/features/issues/uploadAttachment";
+import type { FieldValue } from "@/lib/custom-fields";
 import { remapAttachmentIds } from "@/lib/richtext/attachments";
 import { emptyDoc } from "@/lib/richtext/doc";
 import type { PMDoc } from "@/lib/richtext/types";
@@ -117,6 +120,9 @@ export function CreateIssueModal({
   const [type, setType] = useState(issueTypes[0]?.id ?? "feature");
   const [assignee, setAssignee] = useState<string | null>(null);
   const [labels, setLabels] = useState<string[]>([]);
+  const [fieldValues, setFieldValues] = useState<Record<string, FieldValue>>(
+    {},
+  );
   const [localLabels, setLocalLabels] = useState<Label[]>([]);
 
   /**
@@ -266,6 +272,13 @@ export function CreateIssueModal({
         type,
         projectId: project.id,
         reporterId: me.id,
+        // Only fields of this project: a value picked before switching the
+        // project may belong to a field that no longer applies.
+        fieldValues: Object.fromEntries(
+          fieldsFor(data.customFields, project.id).flatMap((f) =>
+            f.id in fieldValues ? [[f.id, fieldValues[f.id]]] : [],
+          ),
+        ),
       });
 
       // Draft images/links only turn into real `Attachment` rows now that
@@ -606,6 +619,19 @@ export function CreateIssueModal({
             />
           )}
         </FilterChip>
+
+        <CreateFieldChips
+          projectId={project.id}
+          fields={data.customFields}
+          members={members}
+          values={fieldValues}
+          onChange={(fieldId, value) =>
+            setFieldValues((cur) => {
+              const { [fieldId]: _dropped, ...rest } = cur;
+              return value === null ? rest : { ...rest, [fieldId]: value };
+            })
+          }
+        />
       </ModalToolbar>
 
       <ModalFooter

@@ -68,6 +68,7 @@ export function Board({
     members: composer.members,
     labels: composer.labels,
     issueTypes: composer.issueTypes,
+    customFields: composer.customFields,
   };
   const t = useTranslations();
   const { toast } = useUI();

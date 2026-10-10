@@ -6,6 +6,10 @@ import {
   getIssueUnchecked,
 } from "@/features/api-v1/queries";
 import {
+  resolveFieldValues,
+  writeIssueFieldValues,
+} from "@/features/custom-fields/values";
+import {
   issueRef,
   issueTypeName,
   priorityName,
@@ -320,6 +324,21 @@ export async function updateIssue(id: string, patch: IssuePatch) {
   // (Re-)assigning an issue additionally requires the assign permission.
   if (patch.assignee !== undefined) {
     await requirePermission("issue.assign", ctx);
+  }
+
+  // Custom field values go first: a value that doesn't fit throws before
+  // anything else of this patch is written.
+  if (patch.fieldValues !== undefined) {
+    await writeIssueFieldValues(
+      {
+        id,
+        key: issue.key,
+        projectId: issue.projectId,
+        project: issue.project,
+      },
+      patch.fieldValues,
+      actorId,
+    );
   }
 
   await db.issue.update({
@@ -752,11 +771,28 @@ export async function createIssue(data: {
   storyPoints?: number | null;
   estimateHours?: number | null;
   estimateUnit?: EstimateUnit | null;
+  /** Custom field values by field id, checked against the definitions. */
+  fieldValues?: Record<string, unknown>;
 }) {
   // The reporter is always the logged-in user — not the client parameter.
   const userId = await requirePermission("issue.create", {
     projectId: data.projectId,
   });
+
+  // A value that doesn't fit stops the whole creation here, before a key is
+  // claimed — otherwise a rejected field would leave an issue without it.
+  const fieldValues = data.fieldValues ?? {};
+  if (Object.keys(fieldValues).length > 0) {
+    const project = await db.project.findUnique({
+      where: { id: data.projectId },
+      select: { workspaceId: true },
+    });
+    if (!project) throw new PermissionError("issue.create");
+    await resolveFieldValues(
+      { workspaceId: project.workspaceId, projectId: data.projectId },
+      fieldValues,
+    );
+  }
 
   // Atomically claim the next key for this project. The counter only ever
   // increments, so deleted keys are never reused and each key stays unique.
@@ -793,6 +829,19 @@ export async function createIssue(data: {
         data.estimateHours != null ? (data.estimateUnit ?? "hours") : null,
     },
   });
+
+  if (Object.keys(fieldValues).length > 0) {
+    await writeIssueFieldValues(
+      {
+        id,
+        key: lastIssueKey,
+        projectId: data.projectId,
+        project: { workspaceId, prefix },
+      },
+      fieldValues,
+      userId,
+    );
+  }
 
   if (data.assignee && data.assignee !== userId) {
     await notify({
