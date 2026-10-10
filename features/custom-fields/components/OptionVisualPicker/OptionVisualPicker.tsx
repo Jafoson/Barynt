@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { ColorPicker } from "@/components/ui/atoms/ColorPicker/ColorPicker";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
+import { NativeSelect } from "@/components/ui/atoms/NativeSelect/NativeSelect";
 import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { requestOptionImageUpload } from "@/features/custom-fields/actions";
 import { OptionVisual } from "@/features/custom-fields/components/OptionVisual/OptionVisual";
@@ -15,6 +16,7 @@ import {
   type OptionVisualKind,
 } from "@/lib/custom-fields";
 import { AVATAR_MIME_EXTENSIONS } from "@/lib/storage/validation";
+import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import styles from "./optionVisualPicker.module.scss";
 
 export interface OptionVisualValue {
@@ -50,6 +52,7 @@ export function OptionVisualPicker({
   onChange,
 }: Props) {
   const t = useTranslations();
+  const isPhone = useMediaQuery(PHONE_QUERY);
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -123,7 +126,7 @@ export function OptionVisualPicker({
 
   return (
     <InlinePicker
-      width={280}
+      width={isPhone ? 280 : 380}
       trigger={
         <button
           type="button"
@@ -140,17 +143,27 @@ export function OptionVisualPicker({
       }
     >
       {(close) => (
-        <div className={styles.panel}>
+        <div className={`${styles.panel} ${isPhone ? "" : styles.panelWide}`}>
           {/* Several kinds allowed: pick the kind first, like the other
               settings that offer more than one way. */}
-          {kinds.length > 1 && (
-            <SegmentedControl
-              variant="surface"
-              value={kind}
-              onChange={(v) => setKind(v as OptionVisualKind)}
-              items={kinds.map((k) => ({ value: k, label: kindLabel(k) }))}
-            />
-          )}
+          {kinds.length > 1 &&
+            (isPhone ? (
+              <SegmentedControl
+                variant="surface"
+                value={kind}
+                onChange={(v) => setKind(v as OptionVisualKind)}
+                items={kinds.map((k) => ({ value: k, label: kindLabel(k) }))}
+              />
+            ) : (
+              // On a larger screen a dropdown field: it takes the full
+              // width and doesn't crowd a row of three buttons.
+              <NativeSelect
+                label={t("customFields.optionVisual")}
+                value={kind}
+                onChange={(v) => setKind(v as OptionVisualKind)}
+                items={kinds.map((k) => ({ value: k, label: kindLabel(k) }))}
+              />
+            ))}
 
           {kind === "icon" && kinds.includes("icon") && (
             <div className={styles.grid}>
