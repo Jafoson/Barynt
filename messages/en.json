@@ -1476,9 +1476,13 @@
       "date_mode_invalid": "Choose date, date and time, or time only.",
       "image_invalid": "An image wasn't accepted. Upload it again.",
       "visuals_invalid": "Choose icon, image or colour.",
-      "number_invalid": "Check the kind of number, the decimal places (1 to 6) and the text (up to 8 characters)."
+      "number_invalid": "Check the kind of number, the decimal places (1 to 6) and the text (up to 8 characters).",
+      "link_invalid": "Check the allowed sites (up to 20, each like example.com)."
     },
     "noValue": "Not set",
+    "linkInvalid": "That is not a valid link.",
+    "linkNotHttps": "Only https links are allowed.",
+    "linkNotAllowedHost": "This site is not allowed here.",
     "yes": "Yes",
     "no": "No",
     "icon": "Icon",
@@ -1512,6 +1516,11 @@
     },
     "numberDecimals": "Decimal places",
     "numberUnit": "Text after the value",
+    "linkHosts": "Allowed sites (empty = any)",
+    "linkHostsPlaceholder": "e.g. github.com, gitlab.com",
+    "linkHttpsOnly": "Allow https only",
+    "linkFavicon": "Show the site's icon",
+    "linkFaviconHint": "The icon is fetched by the Barynt server, not your browser: the site learns neither your IP nor that you looked at it.",
     "numberUnitPlaceholder": "e.g. %, €, $, kg"
   }
 }

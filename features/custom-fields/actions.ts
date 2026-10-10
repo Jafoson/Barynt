@@ -20,6 +20,7 @@ import {
   limitOptionVisuals,
   NUMBER_DECIMALS_RANGE,
   type NumberMode,
+  normalizeHost,
   type OptionVisualKind,
   toOptions,
   usesOptions,
@@ -98,6 +99,41 @@ function plainOptions(options: FieldOption[]) {
     icon: o.icon ?? null,
     image: o.image ?? null,
   }));
+}
+
+/**
+ * The link settings as they are stored, or `null` if one is not valid: up to
+ * 20 sites, each a bare host ("example.com"), no duplicates.
+ */
+function cleanLinkSettings(input: {
+  linkHttpsOnly?: boolean;
+  linkHosts?: string[];
+  linkFavicon?: boolean;
+}): { httpsOnly: boolean; hosts: string[]; favicon: boolean } | null {
+  const rawHosts = input.linkHosts ?? [];
+  if (!Array.isArray(rawHosts) || rawHosts.length > FIELD_LIMITS.linkHosts) {
+    return null;
+  }
+  const hosts: string[] = [];
+  for (const raw of rawHosts) {
+    if (typeof raw !== "string") return null;
+    const host = normalizeHost(raw);
+    if (host === "") continue;
+    if (
+      host.length > FIELD_LIMITS.linkHost ||
+      !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(
+        host,
+      )
+    ) {
+      return null;
+    }
+    if (!hosts.includes(host)) hosts.push(host);
+  }
+  return {
+    httpsOnly: input.linkHttpsOnly === true,
+    hosts,
+    favicon: input.linkFavicon === true,
+  };
 }
 
 /**
@@ -227,6 +263,10 @@ export async function createCustomField(input: {
   numberMode?: string;
   numberDecimals?: number | null;
   numberUnit?: string | null;
+  /** Only for a link field. */
+  linkHttpsOnly?: boolean;
+  linkHosts?: string[];
+  linkFavicon?: boolean;
 }): Promise<CustomFieldResult<{ id: string; key: string }>> {
   const scope = await scopeForNew(input);
   if (!scope) return { error: "not_found" };
@@ -259,6 +299,8 @@ export async function createCustomField(input: {
 
   const number = cleanNumberSettings(input);
   if (!number) return { error: "number_invalid" };
+  const link = cleanLinkSettings(input);
+  if (!link) return { error: "link_invalid" };
 
   if (!(await imagesAreValid(scope.workspaceId, options.options, new Set()))) {
     return { error: "image_invalid" };
@@ -297,6 +339,9 @@ export async function createCustomField(input: {
       numberMode: input.type === "NUMBER" ? number.mode : "FREE",
       numberDecimals: input.type === "NUMBER" ? number.decimals : null,
       numberUnit: input.type === "NUMBER" ? number.unit : null,
+      linkHttpsOnly: input.type === "URL" ? link.httpsOnly : false,
+      linkHosts: input.type === "URL" ? link.hosts : [],
+      linkFavicon: input.type === "URL" ? link.favicon : false,
       options: plainOptions(options.options),
       position: (last._max.position ?? -1) + 1,
     },
@@ -318,6 +363,9 @@ async function loadField(id: string) {
       type: true,
       options: true,
       optionVisuals: true,
+      linkHttpsOnly: true,
+      linkHosts: true,
+      linkFavicon: true,
     },
   });
   if (!field) return null;
@@ -351,6 +399,9 @@ export async function updateCustomField(
     numberMode?: string;
     numberDecimals?: number | null;
     numberUnit?: string | null;
+    linkHttpsOnly?: boolean;
+    linkHosts?: string[];
+    linkFavicon?: boolean;
   },
 ): Promise<CustomFieldResult> {
   const found = await loadField(id);
@@ -368,6 +419,9 @@ export async function updateCustomField(
     numberMode?: NumberMode;
     numberDecimals?: number | null;
     numberUnit?: string | null;
+    linkHttpsOnly?: boolean;
+    linkHosts?: string[];
+    linkFavicon?: boolean;
   } = {};
   if (patch.name !== undefined) {
     const name = cleanName(patch.name);
@@ -401,6 +455,23 @@ export async function updateCustomField(
     data.numberMode = number.mode;
     data.numberDecimals = number.decimals;
     data.numberUnit = number.unit;
+  }
+
+  if (
+    field.type === "URL" &&
+    (patch.linkHttpsOnly !== undefined ||
+      patch.linkHosts !== undefined ||
+      patch.linkFavicon !== undefined)
+  ) {
+    const link = cleanLinkSettings({
+      linkHttpsOnly: patch.linkHttpsOnly ?? field.linkHttpsOnly,
+      linkHosts: patch.linkHosts ?? field.linkHosts,
+      linkFavicon: patch.linkFavicon ?? field.linkFavicon,
+    });
+    if (!link) return { error: "link_invalid" };
+    data.linkHttpsOnly = link.httpsOnly;
+    data.linkHosts = link.hosts;
+    data.linkFavicon = link.favicon;
   }
 
   // What a choice may carry: the new setting, else the stored one.

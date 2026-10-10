@@ -1476,9 +1476,13 @@
       "date_mode_invalid": "Wähle, ob Datum, Datum und Uhrzeit oder nur Uhrzeit.",
       "image_invalid": "Ein Bild wurde nicht übernommen. Lade es noch einmal hoch.",
       "visuals_invalid": "Wähle Icon, Bild oder Farbe.",
-      "number_invalid": "Prüfe Zahlenart, Nachkommastellen (1 bis 6) und den Zusatz (höchstens 8 Zeichen)."
+      "number_invalid": "Prüfe Zahlenart, Nachkommastellen (1 bis 6) und den Zusatz (höchstens 8 Zeichen).",
+      "link_invalid": "Prüfe die erlaubten Seiten (höchstens 20, jeweils z. B. example.com)."
     },
     "noValue": "Nicht gesetzt",
+    "linkInvalid": "Das ist kein gültiger Link.",
+    "linkNotHttps": "Nur https-Links sind erlaubt.",
+    "linkNotAllowedHost": "Diese Seite ist hier nicht erlaubt.",
     "yes": "Ja",
     "no": "Nein",
     "icon": "Icon",
@@ -1512,6 +1516,11 @@
     },
     "numberDecimals": "Nachkommastellen",
     "numberUnit": "Zusatz hinter dem Wert",
+    "linkHosts": "Erlaubte Seiten (leer = alle)",
+    "linkHostsPlaceholder": "z. B. github.com, gitlab.com",
+    "linkHttpsOnly": "Nur https zulassen",
+    "linkFavicon": "Icon der Seite anzeigen",
+    "linkFaviconHint": "Das Icon holt der Barynt-Server, nicht dein Browser: Die Seite erfährt weder deine IP noch dass du sie ansiehst.",
     "numberUnitPlaceholder": "z. B. %, €, $, kg"
   }
 }

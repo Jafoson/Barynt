@@ -125,6 +125,12 @@ export interface FieldDefinition {
   numberDecimals: number | null;
   /** NUMBER: text after the value ("%", "$"). */
   numberUnit: string | null;
+  /** URL: only https links are accepted. */
+  linkHttpsOnly: boolean;
+  /** URL: the sites a link may point to; empty = any site. */
+  linkHosts: string[];
+  /** URL: show the site's icon next to the link. */
+  linkFavicon: boolean;
   /** `null` = a workspace field, which applies in every project. */
   projectId: string | null;
 }
@@ -158,6 +164,9 @@ export const FIELD_LIMITS = {
   imageBytes: 1024 * 1024,
   /** Longest text after a number. */
   numberUnit: 8,
+  /** Sites a link field may be limited to, and the length of one. */
+  linkHosts: 20,
+  linkHost: 100,
   /** Active (non-archived) fields a workspace may define. */
   fieldsPerWorkspace: 100,
 } as const;
@@ -209,13 +218,66 @@ export function isCalendarDate(value: string): boolean {
   );
 }
 
-function isHttpUrl(value: string): boolean {
+/**
+ * "example.com" is as good a link as "https://example.com": a text without
+ * a scheme gets `https://`. Anything else is left as it is.
+ */
+export function withScheme(text: string): string {
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(text) ? text : `https://${text}`;
+}
+
+/** The host a site setting can be compared with: lower case, no "www.". */
+export function normalizeHost(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/^[a-z][a-z0-9+.-]*:\/\//, "")
+    .replace(/[/?#].*$/, "")
+    .replace(/:\d+$/, "")
+    .replace(/^www\./, "");
+}
+
+/**
+ * Whether `host` is one of `hosts` or below one of them ("docs.example.com"
+ * is allowed by "example.com"). An empty list allows every site.
+ */
+export function hostAllowed(host: string, hosts: readonly string[]): boolean {
+  if (hosts.length === 0) return true;
+  const h = normalizeHost(host);
+  return hosts.some((allowed) => h === allowed || h.endsWith(`.${allowed}`));
+}
+
+/**
+ * The link as it is stored, or why it is not accepted: `invalid` (not a
+ * link at all), `scheme` (http where only https is allowed) or `host` (a
+ * site the field does not allow).
+ */
+export function checkLink(
+  text: string,
+  rules: { httpsOnly?: boolean; hosts?: readonly string[] },
+):
+  | { ok: true; value: string }
+  | { ok: false; reason: "invalid" | "scheme" | "host" } {
+  const candidate = withScheme(text.trim());
+  let url: URL;
   try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:";
+    url = new URL(candidate);
   } catch {
-    return false;
+    return { ok: false, reason: "invalid" };
   }
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    return { ok: false, reason: "invalid" };
+  }
+  if (!url.hostname.includes(".") && url.hostname !== "localhost") {
+    return { ok: false, reason: "invalid" };
+  }
+  if (rules.httpsOnly && url.protocol !== "https:") {
+    return { ok: false, reason: "scheme" };
+  }
+  if (!hostAllowed(url.hostname, rules.hosts ?? [])) {
+    return { ok: false, reason: "host" };
+  }
+  return { ok: true, value: candidate };
 }
 
 const bad = (error: string): ValidateResult => ({ ok: false, error });
@@ -241,6 +303,8 @@ export function validateFieldValue(
     dateMode?: DateMode;
     numberMode?: NumberMode;
     numberDecimals?: number | null;
+    linkHttpsOnly?: boolean;
+    linkHosts?: string[];
   },
   input: unknown,
 ): ValidateResult {
@@ -260,8 +324,21 @@ export function validateFieldValue(
       const text = input.trim();
       if (text === "") return good(null);
       if (text.length > FIELD_LIMITS.text) return bad("link is too long");
-      if (!isHttpUrl(text)) return bad("expected an http or https link");
-      return good(text);
+      const link = checkLink(text, {
+        httpsOnly: field.linkHttpsOnly,
+        hosts: field.linkHosts,
+      });
+      if (!link.ok) {
+        return bad(
+          link.reason === "scheme"
+            ? "only https links are allowed"
+            : link.reason === "host"
+              ? "this site is not allowed"
+              : "expected an http or https link",
+        );
+      }
+      if (link.value.length > FIELD_LIMITS.text) return bad("link is too long");
+      return good(link.value);
     }
 
     case "NUMBER": {

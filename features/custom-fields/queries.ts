@@ -36,6 +36,9 @@ async function toRow(f: FieldRecord): Promise<CustomFieldRow> {
     numberMode: f.numberMode,
     numberDecimals: f.numberDecimals,
     numberUnit: f.numberUnit,
+    linkHttpsOnly: f.linkHttpsOnly,
+    linkHosts: f.linkHosts,
+    linkFavicon: f.linkFavicon,
     archived: f.archivedAt !== null,
     valueCount: f._count.values,
   };
@@ -126,6 +129,9 @@ export const getWorkspaceCustomFields = cache(
         numberMode: f.numberMode,
         numberDecimals: f.numberDecimals,
         numberUnit: f.numberUnit,
+        linkHttpsOnly: f.linkHttpsOnly,
+        linkHosts: f.linkHosts,
+        linkFavicon: f.linkFavicon,
         projectId: f.projectId,
       })),
     );

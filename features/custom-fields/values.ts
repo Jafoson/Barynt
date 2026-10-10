@@ -68,6 +68,8 @@ interface ResolvedField {
   dateMode?: string;
   numberMode?: string;
   numberDecimals?: number | null;
+  linkHttpsOnly?: boolean;
+  linkHosts?: string[];
 }
 
 /** What a client sends to add a choice while filling a field in. */
@@ -164,6 +166,8 @@ export async function resolveFieldValues(
         dateMode: field.dateMode,
         numberMode: field.numberMode as NumberMode | undefined,
         numberDecimals: field.numberDecimals,
+        linkHttpsOnly: field.linkHttpsOnly,
+        linkHosts: field.linkHosts,
       },
       raw,
     );

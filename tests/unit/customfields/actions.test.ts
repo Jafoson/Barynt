@@ -711,3 +711,48 @@ describe("archive and delete", () => {
     expect(cf.delete).not.toHaveBeenCalled();
   });
 });
+
+describe("link settings", () => {
+  beforeEach(reset);
+
+  it("stores https-only, sites (as bare hosts) and favicon for a link field", async () => {
+    await createCustomField({
+      workspaceId: "ws-1",
+      name: "Repo",
+      type: "URL",
+      linkHttpsOnly: true,
+      linkHosts: ["https://www.GitHub.com/x", "gitlab.com", "github.com"],
+      linkFavicon: true,
+    });
+    expect(cf.create.mock.calls[0][0].data).toMatchObject({
+      linkHttpsOnly: true,
+      linkHosts: ["github.com", "gitlab.com"],
+      linkFavicon: true,
+    });
+  });
+
+  it("refuses a site that is no host name", async () => {
+    const result = await createCustomField({
+      workspaceId: "ws-1",
+      name: "Repo",
+      type: "URL",
+      linkHosts: ["not a host"],
+    });
+    expect(result).toEqual({ error: "link_invalid" });
+  });
+
+  it("keeps the settings off other types", async () => {
+    await createCustomField({
+      workspaceId: "ws-1",
+      name: "Note",
+      type: "TEXT",
+      linkHttpsOnly: true,
+      linkHosts: ["github.com"],
+    });
+    expect(cf.create.mock.calls[0][0].data).toMatchObject({
+      linkHttpsOnly: false,
+      linkHosts: [],
+      linkFavicon: false,
+    });
+  });
+});

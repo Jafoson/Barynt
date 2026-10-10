@@ -92,6 +92,12 @@ export function CustomFieldModal({
     field?.numberDecimals ?? NUMBER_DECIMALS_RANGE.default,
   );
   const [numberUnit, setNumberUnit] = useState(field?.numberUnit ?? "");
+  const [httpsOnly, setHttpsOnly] = useState(field?.linkHttpsOnly ?? false);
+  // The allowed sites as one text, separated by commas or spaces.
+  const [hostsText, setHostsText] = useState(
+    (field?.linkHosts ?? []).join(", "),
+  );
+  const [favicon, setFavicon] = useState(field?.linkFavicon ?? false);
   // What a choice may carry besides its name.
   const [visuals, setVisuals] = useState<OptionVisualKind[]>(
     field?.optionVisuals ?? [],
@@ -155,6 +161,13 @@ export function CustomFieldModal({
                     numberUnit,
                   }
                 : {}),
+              ...(type === "URL"
+                ? {
+                    linkHttpsOnly: httpsOnly,
+                    linkHosts: hostsText.split(/[\s,;]+/).filter(Boolean),
+                    linkFavicon: favicon,
+                  }
+                : {}),
               ...(hasOptions
                 ? {
                     options: choices,
@@ -172,6 +185,13 @@ export function CustomFieldModal({
               options: choices,
               icon,
               ...(type === "DATE" ? { dateMode } : {}),
+              ...(type === "URL"
+                ? {
+                    linkHttpsOnly: httpsOnly,
+                    linkHosts: hostsText.split(/[\s,;]+/).filter(Boolean),
+                    linkFavicon: favicon,
+                  }
+                : {}),
               ...(type === "NUMBER"
                 ? {
                     numberMode,
@@ -309,6 +329,34 @@ export function CustomFieldModal({
                 placeholder={t("customFields.numberUnitPlaceholder")}
                 onChange={(e) => setNumberUnit(e.target.value)}
               />
+            </>
+          )}
+
+          {type === "URL" && (
+            <>
+              <Input
+                label={t("customFields.linkHosts")}
+                value={hostsText}
+                placeholder={t("customFields.linkHostsPlaceholder")}
+                onChange={(e) => setHostsText(e.target.value)}
+              />
+              <div className={styles.field}>
+                <Switch
+                  checked={httpsOnly}
+                  onChange={setHttpsOnly}
+                  label={t("customFields.linkHttpsOnly")}
+                />
+              </div>
+              <div className={styles.field}>
+                <Switch
+                  checked={favicon}
+                  onChange={setFavicon}
+                  label={t("customFields.linkFavicon")}
+                />
+                <p className={styles.hint}>
+                  {t("customFields.linkFaviconHint")}
+                </p>
+              </div>
             </>
           )}
 

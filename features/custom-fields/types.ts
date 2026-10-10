@@ -20,6 +20,9 @@ export interface CustomFieldRow {
   numberMode: NumberMode;
   numberDecimals: number | null;
   numberUnit: string | null;
+  linkHttpsOnly: boolean;
+  linkHosts: string[];
+  linkFavicon: boolean;
   archived: boolean;
   /** How many issues have a value in this field. */
   valueCount: number;
@@ -46,6 +49,7 @@ export type CustomFieldError =
   | "image_invalid"
   | "visuals_invalid"
   | "number_invalid"
+  | "link_invalid"
   | "date_mode_invalid"
   | "limit_reached"
   | "not_found";

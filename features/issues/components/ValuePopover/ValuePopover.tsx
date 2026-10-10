@@ -11,6 +11,9 @@ interface ValuePopoverProps<T> {
    *  field currently holds a value there'd be anything to clear. */
   clearable: boolean;
   onConfirm: (value: T) => void;
+  /** Checked before saving: a text means "not accepted, show this" and the
+   *  popover stays open. */
+  validate?: (value: T) => string | null;
   onClear: () => void;
   /** From `InlinePicker`'s render prop — closes the popover after either
    *  button. */
@@ -33,22 +36,37 @@ export function ValuePopover<T>({
   initialValue,
   clearable,
   onConfirm,
+  validate,
   onClear,
   close,
   children,
 }: ValuePopoverProps<T>) {
   const t = useTranslations();
   const [value, setValue] = useState(initialValue);
+  const [problem, setProblem] = useState<string | null>(null);
 
   return (
     <div className={styles.popover}>
-      {children(value, setValue)}
+      {children(value, (next) => {
+        setProblem(null);
+        setValue(next);
+      })}
+      {problem && (
+        <p className={styles.problem} role="alert">
+          {problem}
+        </p>
+      )}
       <div className={styles.actions}>
         <Button
           type="button"
           variant="primary"
           size="sm"
           onClick={() => {
+            const message = validate?.(value) ?? null;
+            if (message) {
+              setProblem(message);
+              return;
+            }
             onConfirm(value);
             close();
           }}

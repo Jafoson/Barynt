@@ -57,6 +57,12 @@ export interface ApiCustomField {
   numberDecimals: number | null;
   /** NUMBER: text that stands after the value, e.g. `%`. */
   numberUnit: string | null;
+  /** URL: only https links are accepted. */
+  linkHttpsOnly: boolean;
+  /** URL: the sites a link may point to; empty = any. */
+  linkHosts: string[];
+  /** URL: whether the site's icon is shown next to the link. */
+  linkFavicon: boolean;
   /** `null` = workspace-wide, otherwise the one project it belongs to. */
   projectId: string | null;
 }
@@ -75,6 +81,9 @@ export function toApiCustomField(f: {
   numberMode: "FREE" | "INTEGER" | "DECIMAL";
   numberDecimals: number | null;
   numberUnit: string | null;
+  linkHttpsOnly: boolean;
+  linkHosts: string[];
+  linkFavicon: boolean;
   projectId: string | null;
 }): ApiCustomField {
   return {
@@ -98,6 +107,9 @@ export function toApiCustomField(f: {
     numberMode: f.numberMode,
     numberDecimals: f.numberDecimals,
     numberUnit: f.numberUnit,
+    linkHttpsOnly: f.linkHttpsOnly,
+    linkHosts: f.linkHosts,
+    linkFavicon: f.linkFavicon,
     projectId: f.projectId,
   };
 }

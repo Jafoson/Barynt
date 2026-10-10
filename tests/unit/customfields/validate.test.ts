@@ -359,3 +359,36 @@ describe("number modes", () => {
     }
   });
 });
+
+describe("link fields", () => {
+  const url = (input: unknown, rules = {}) =>
+    validateFieldValue({ type: "URL", ...rules }, input);
+
+  it("adds https:// to a link typed without a scheme", () => {
+    expect(url("example.com/a")).toEqual({
+      ok: true,
+      value: "https://example.com/a",
+    });
+  });
+
+  it("keeps an http link unless only https is allowed", () => {
+    expect(url("http://example.com").ok).toBe(true);
+    expect(url("http://example.com", { linkHttpsOnly: true }).ok).toBe(false);
+    expect(url("example.com", { linkHttpsOnly: true }).ok).toBe(true);
+  });
+
+  it("rejects other schemes and words that are no site", () => {
+    expect(url("javascript:alert(1)").ok).toBe(false);
+    expect(url("ftp://example.com").ok).toBe(false);
+    expect(url("hello").ok).toBe(false);
+  });
+
+  it("limits the sites, subdomains included", () => {
+    const rules = { linkHosts: ["github.com", "gitlab.com"] };
+    expect(url("https://github.com/x", rules).ok).toBe(true);
+    expect(url("https://www.github.com/x", rules).ok).toBe(true);
+    expect(url("https://docs.gitlab.com", rules).ok).toBe(true);
+    expect(url("https://evilgithub.com", rules).ok).toBe(false);
+    expect(url("https://example.com", rules).ok).toBe(false);
+  });
+});

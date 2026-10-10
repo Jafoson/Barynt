@@ -1,4 +1,8 @@
-import type { FieldDefinition, FieldValue } from "@/lib/custom-fields";
+import {
+  checkLink,
+  type FieldDefinition,
+  type FieldValue,
+} from "@/lib/custom-fields";
 import { utcToZonedLocal, zonedLocalToUtc } from "@/lib/custom-fields/datetime";
 
 // What a single-line editor of a custom field shows and sends back. The
@@ -64,4 +68,27 @@ export function inputStep(field: FieldDefinition): string | undefined {
     return String(10 ** -(field.numberDecimals ?? 2));
   }
   return "any";
+}
+
+/**
+ * Why a link would not be accepted, as a key of `customFields.link*` — or
+ * `null` when it is fine (or empty). The server checks again; this is so
+ * the person sees it before pressing "Save".
+ */
+export function linkProblem(
+  field: FieldDefinition,
+  text: string,
+): "linkInvalid" | "linkNotHttps" | "linkNotAllowedHost" | null {
+  const trimmed = text.trim();
+  if (field.type !== "URL" || trimmed === "") return null;
+  const result = checkLink(trimmed, {
+    httpsOnly: field.linkHttpsOnly,
+    hosts: field.linkHosts,
+  });
+  if (result.ok) return null;
+  return result.reason === "scheme"
+    ? "linkNotHttps"
+    : result.reason === "host"
+      ? "linkNotAllowedHost"
+      : "linkInvalid";
 }

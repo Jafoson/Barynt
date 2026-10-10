@@ -63,6 +63,7 @@ const SEGMENTS: string[][] = [
     "tests/unit/customfields/validate.test.ts",
     "tests/unit/customfields/datetime.test.ts",
     "tests/unit/customfields/group.test.ts",
+    "tests/unit/customfields/favicon.test.ts",
   ],
   ["tests/unit/account"],
   // Mocks `@/lib/db`, `@/lib/permissions` and `@/lib/audit` — own process,

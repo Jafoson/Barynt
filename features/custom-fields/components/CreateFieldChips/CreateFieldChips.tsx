@@ -15,6 +15,7 @@ import {
   fromInputString,
   inputStep,
   inputVariant,
+  linkProblem,
   toInputString,
 } from "@/features/custom-fields/input";
 import { ValuePopover } from "@/features/issues/components/ValuePopover/ValuePopover";
@@ -141,6 +142,10 @@ export function CreateFieldChips({
                     has ? toInputString(field, value as never, timeZone) : ""
                   }
                   clearable={has}
+                  validate={(next) => {
+                    const problem = linkProblem(field, next);
+                    return problem ? t(`customFields.${problem}`) : null;
+                  }}
                   onConfirm={(next) =>
                     onChange(field.id, fromInputString(field, next, timeZone))
                   }

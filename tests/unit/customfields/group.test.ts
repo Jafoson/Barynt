@@ -33,6 +33,9 @@ const multi: FieldDefinition = {
   numberMode: "FREE",
   numberDecimals: null,
   numberUnit: null,
+  linkHttpsOnly: false,
+  linkHosts: [],
+  linkFavicon: false,
   projectId: null,
 };
 const single: FieldDefinition = { ...multi, id: "f_size", type: "SELECT" };

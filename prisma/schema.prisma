@@ -1157,6 +1157,14 @@ model CustomField {
   numberDecimals Int?
   /// Nur für NUMBER: ein Zusatz, der am Ende des Werts steht ("%", "$", "kg").
   numberUnit  String?
+  /// Nur für URL: nur https zulassen (sonst auch http).
+  linkHttpsOnly Boolean       @default(false)
+  /// Nur für URL: erlaubte Seiten ("example.com" gilt auch für Subdomains).
+  /// Leer heißt: jede Seite.
+  linkHosts   String[]        @default([])
+  /// Nur für URL: das Icon der Seite neben dem Link zeigen — über den
+  /// eigenen Server geholt, nie direkt vom Browser der Person.
+  linkFavicon Boolean         @default(false)
   position    Int             @default(0)
   archivedAt  DateTime?
   created     DateTime        @default(now())

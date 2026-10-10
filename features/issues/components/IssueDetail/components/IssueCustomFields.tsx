@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import { FieldChoiceMenu } from "@/features/custom-fields/components/FieldChoiceMenu/FieldChoiceMenu";
 import { OptionVisual } from "@/features/custom-fields/components/OptionVisual/OptionVisual";
+import { SiteIcon } from "@/features/custom-fields/components/SiteIcon/SiteIcon";
 import {
   fieldsFor,
   useFieldText,
@@ -18,6 +19,7 @@ import {
   fromInputString,
   inputStep,
   inputVariant,
+  linkProblem,
   toInputString,
 } from "@/features/custom-fields/input";
 import { ValuePopover } from "@/features/issues/components/ValuePopover/ValuePopover";
@@ -94,12 +96,13 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
         empty
       ) : field.type === "URL" ? (
         <a
-          className={fieldStyles.link}
+          className={`${fieldStyles.link} ${fieldStyles.withVisual}`}
           href={String(value)}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
         >
+          {field.linkFavicon && <SiteIcon url={String(value)} />}
           {String(value)}
         </a>
       ) : field.type === "SELECT" ? (
@@ -324,6 +327,10 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
             <ValuePopover<string>
               initialValue={toInputString(field, value, timeZone)}
               clearable={value !== null}
+              validate={(next) => {
+                const problem = linkProblem(field, next);
+                return problem ? t(`customFields.${problem}`) : null;
+              }}
               onConfirm={(next) =>
                 set(field, fromInputString(field, next, timeZone))
               }
