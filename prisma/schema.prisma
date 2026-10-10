@@ -422,6 +422,17 @@ model UserPreferences {
   /// "monday" | "sunday" — erster Tag im Kalender.
   weekStart String @default("monday")
 
+  /// Wie Datumswerte von Custom Feldern aussehen: "short" | "medium" |
+  /// "long" | "iso".
+  fieldDateFormat String @default("medium")
+
+  /// "24h" | "12h" — für Uhrzeiten in Custom Feldern.
+  fieldTimeFormat String @default("24h")
+
+  /// Was neben dem Wert eines Custom Feldes auf Karte und Zeile steht:
+  /// "icon" (das Icon, ohne Icon der Name) | "name" | "both".
+  fieldLabelMode String @default("icon")
+
   /// IANA-Zeitzone ("Europe/Berlin"); `null` = die des Browsers/Servers.
   timeZone String?
 
@@ -1073,6 +1084,19 @@ enum CustomFieldType {
   USER
 }
 
+/// Was ein Datumsfeld enthält. Nach dem Anlegen fest, wie der Typ: ein
+/// gespeicherter Wert passt nur zu dem Modus, in dem er geschrieben wurde.
+///
+///   DATE      → "YYYY-MM-DD", ein Kalendertag ohne Zeitzone
+///   DATETIME  → "YYYY-MM-DDTHH:mm:00.000Z", ein Zeitpunkt in UTC; angezeigt
+///               und eingegeben wird in der Zeitzone der Person
+///   TIME      → "HH:mm", eine Uhrzeit ohne Datum und ohne Zeitzone
+enum CustomFieldDateMode {
+  DATE
+  DATETIME
+  TIME
+}
+
 /// Ein Feld, das ein Workspace oder ein Projekt an seinen Issues führt.
 ///
 /// Wie bei `Label` entscheidet `projectId`, wo es gilt: leer heißt „in jedem
@@ -1099,6 +1123,16 @@ model CustomField {
   /// Nur für SELECT und MULTI_SELECT: `[{ "id": "o_…", "label": "…", "color": "#…" }]`.
   /// Die Id ist stabil, damit ein Umbenennen den gespeicherten Wert nicht trifft.
   options     Json            @default("[]")
+  /// Optionales Icon aus `lib/custom-fields/icons.ts` ("lucide:user"). Ein
+  /// freier Name würde zur Laufzeit von der Iconify-API geladen, das Bundle
+  /// kennt nur, was im Code als Literal steht.
+  icon        String?
+  /// Nur für DATE.
+  dateMode    CustomFieldDateMode @default(DATE)
+  /// Nur für SELECT und MULTI_SELECT: wer ein Issue bearbeiten darf, darf
+  /// beim Ausfüllen eine neue Auswahl hinzufügen. Sie wird eine Auswahl des
+  /// Feldes, für alle.
+  allowCustomOptions Boolean      @default(false)
   position    Int             @default(0)
   archivedAt  DateTime?
   created     DateTime        @default(now())

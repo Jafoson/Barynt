@@ -38,6 +38,12 @@ export interface ApiCustomField {
   type: CustomFieldType;
   /** Only for SELECT and MULTI_SELECT. */
   options: { id: string; label: string; color: string | null }[];
+  /** An icon name such as `lucide:user`, or `null`. */
+  icon: string | null;
+  /** DATE: `DATE` (`YYYY-MM-DD`), `DATETIME` (ISO instant in UTC) or `TIME` (`HH:mm`). */
+  dateMode: "DATE" | "DATETIME" | "TIME";
+  /** Whether an unknown choice sent for this field is added as a new one. */
+  allowCustomOptions: boolean;
   /** `null` = workspace-wide, otherwise the one project it belongs to. */
   projectId: string | null;
 }
@@ -49,6 +55,9 @@ export function toApiCustomField(f: {
   description: string;
   type: CustomFieldType;
   options: unknown;
+  icon: string | null;
+  dateMode: "DATE" | "DATETIME" | "TIME";
+  allowCustomOptions: boolean;
   projectId: string | null;
 }): ApiCustomField {
   return {
@@ -58,6 +67,9 @@ export function toApiCustomField(f: {
     description: f.description,
     type: f.type,
     options: usesOptions(f.type) ? toOptions(f.options) : [],
+    icon: f.icon,
+    dateMode: f.dateMode,
+    allowCustomOptions: f.allowCustomOptions,
     projectId: f.projectId,
   };
 }
@@ -155,13 +167,24 @@ export async function translateApiFields(
     if (!field) return { ok: false, reason: "unknown_field" };
 
     let value: unknown = raw;
+    // A label that matches no choice becomes a new one, but only when the
+    // field allows people to add their own (`resolveFieldValues` checks it
+    // again and enforces the limits).
+    const choose = (options: FieldOption[], given: unknown): unknown => {
+      const id = optionId(options, given);
+      if (id !== null) return id;
+      if (field.allowCustomOptions && typeof given === "string") {
+        return { create: given };
+      }
+      return null;
+    };
     if (field.type === "SELECT" && raw !== null) {
-      value = optionId(toOptions(field.options), raw);
+      value = choose(toOptions(field.options), raw);
       if (value === null) return { ok: false, reason: "invalid_value" };
     } else if (field.type === "MULTI_SELECT" && raw !== null) {
       if (!Array.isArray(raw)) return { ok: false, reason: "invalid_value" };
       const options = toOptions(field.options);
-      const ids = raw.map((v) => optionId(options, v));
+      const ids = raw.map((v) => choose(options, v));
       if (ids.some((id) => id === null))
         return { ok: false, reason: "invalid_value" };
       value = ids;

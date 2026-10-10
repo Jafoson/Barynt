@@ -11,7 +11,9 @@ import {
   FIELD_LIMITS,
   type FieldOption,
   fieldKeyFromName,
+  isCustomFieldIcon,
   isCustomFieldType,
+  isDateMode,
   isReservedFieldKey,
   toOptions,
   usesOptions,
@@ -118,6 +120,11 @@ export async function createCustomField(input: {
   description?: string;
   type: string;
   options?: OptionInput[];
+  icon?: string | null;
+  /** Only for a date field. Fixed after creation. Default DATE. */
+  dateMode?: string;
+  /** Only for a choice field. */
+  allowCustomOptions?: boolean;
 }): Promise<CustomFieldResult<{ id: string; key: string }>> {
   const scope = await scopeForNew(input);
   if (!scope) return { error: "not_found" };
@@ -131,6 +138,13 @@ export async function createCustomField(input: {
 
   const options = validateOptions(input.type, withIds(input.options));
   if (!options.ok) return { error: "options_invalid" };
+
+  const icon = input.icon ?? null;
+  if (icon !== null && !isCustomFieldIcon(icon))
+    return { error: "icon_invalid" };
+
+  const dateMode = input.dateMode ?? "DATE";
+  if (!isDateMode(dateMode)) return { error: "date_mode_invalid" };
 
   const active = await db.customField.count({
     where: { workspaceId: scope.workspaceId, archivedAt: null },
@@ -154,6 +168,12 @@ export async function createCustomField(input: {
       name,
       description,
       type: input.type,
+      icon,
+      // A mode only means something for a date; other types keep the default.
+      dateMode: input.type === "DATE" ? dateMode : "DATE",
+      allowCustomOptions: usesOptions(input.type)
+        ? input.allowCustomOptions === true
+        : false,
       options: plainOptions(options.options),
       position: (last._max.position ?? -1) + 1,
     },
@@ -197,14 +217,26 @@ async function loadField(id: string) {
  */
 export async function updateCustomField(
   id: string,
-  patch: { name?: string; description?: string; options?: OptionInput[] },
+  patch: {
+    name?: string;
+    description?: string;
+    options?: OptionInput[];
+    icon?: string | null;
+    allowCustomOptions?: boolean;
+  },
 ): Promise<CustomFieldResult> {
   const found = await loadField(id);
   if (!found) return { error: "not_found" };
   const { field, scope } = found;
   const actorId = await requirePermission("customfield.manage", ctxOf(scope));
 
-  const data: { name?: string; description?: string; options?: object[] } = {};
+  const data: {
+    name?: string;
+    description?: string;
+    options?: object[];
+    icon?: string | null;
+    allowCustomOptions?: boolean;
+  } = {};
   if (patch.name !== undefined) {
     const name = cleanName(patch.name);
     if (!name) return { error: "name_invalid" };
@@ -214,6 +246,16 @@ export async function updateCustomField(
     const description = cleanDescription(patch.description);
     if (description === null) return { error: "description_invalid" };
     data.description = description;
+  }
+
+  if (patch.icon !== undefined) {
+    if (patch.icon !== null && !isCustomFieldIcon(patch.icon)) {
+      return { error: "icon_invalid" };
+    }
+    data.icon = patch.icon;
+  }
+  if (patch.allowCustomOptions !== undefined && usesOptions(field.type)) {
+    data.allowCustomOptions = patch.allowCustomOptions === true;
   }
 
   let removed: string[] = [];

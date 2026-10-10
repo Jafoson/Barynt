@@ -1,4 +1,8 @@
-import type { CustomFieldType, FieldOption } from "@/lib/custom-fields";
+import type {
+  CustomFieldType,
+  DateMode,
+  FieldOption,
+} from "@/lib/custom-fields";
 
 export interface CustomFieldRow {
   id: string;
@@ -7,6 +11,9 @@ export interface CustomFieldRow {
   description: string;
   type: CustomFieldType;
   options: FieldOption[];
+  icon: string | null;
+  dateMode: DateMode;
+  allowCustomOptions: boolean;
   archived: boolean;
   /** How many issues have a value in this field. */
   valueCount: number;
@@ -29,6 +36,8 @@ export type CustomFieldError =
   | "description_invalid"
   | "type_invalid"
   | "options_invalid"
+  | "icon_invalid"
+  | "date_mode_invalid"
   | "limit_reached"
   | "not_found";
 

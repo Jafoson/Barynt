@@ -5,7 +5,17 @@ import { useTranslations } from "next-intl";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import { Input } from "@/components/ui/atoms/Input/Input";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
-import { fieldsFor, useFieldText } from "@/features/custom-fields/format";
+import { AddValue } from "@/features/custom-fields/components/AddValue/AddValue";
+import {
+  fieldsFor,
+  useFieldText,
+  useFieldTimeZone,
+} from "@/features/custom-fields/format";
+import {
+  fromInputString,
+  inputVariant,
+  toInputString,
+} from "@/features/custom-fields/input";
 import { ValuePopover } from "@/features/issues/components/ValuePopover/ValuePopover";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
 import type { FieldDefinition } from "@/lib/custom-fields";
@@ -23,16 +33,28 @@ interface Props {
 
 function Row({
   label,
+  icon,
   hint,
   children,
 }: {
   label: string;
+  icon?: string | null;
   hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className={styles.row} title={hint || undefined}>
-      <span className={styles.rowLabel}>{label}</span>
+      <span className={styles.rowLabel}>
+        {icon && (
+          <Icon
+            icon={icon}
+            width={13}
+            aria-hidden="true"
+            className={fieldStyles.labelIcon}
+          />
+        )}
+        {label}
+      </span>
       <div className={styles.rowValue}>{children}</div>
     </div>
   );
@@ -47,6 +69,7 @@ function Row({
 export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
   const t = useTranslations();
   const text = useFieldText();
+  const timeZone = useFieldTimeZone();
   const canEdit = issue.access.canEdit;
   const fields = fieldsFor(data.customFields, issue.project);
 
@@ -82,7 +105,12 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
 
     if (!canEdit) {
       return (
-        <Row key={field.id} label={field.name} hint={field.description}>
+        <Row
+          key={field.id}
+          label={field.name}
+          icon={field.icon}
+          hint={field.description}
+        >
           <span className={styles.valueBtn}>{shown}</span>
         </Row>
       );
@@ -90,7 +118,12 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
 
     if (field.type === "CHECKBOX") {
       return (
-        <Row key={field.id} label={field.name} hint={field.description}>
+        <Row
+          key={field.id}
+          label={field.name}
+          icon={field.icon}
+          hint={field.description}
+        >
           <Switch
             checked={value === true}
             label={field.name}
@@ -118,7 +151,12 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
               label: `${m.firstName} ${m.lastName}`,
             }));
       return (
-        <Row key={field.id} label={field.name} hint={field.description}>
+        <Row
+          key={field.id}
+          label={field.name}
+          icon={field.icon}
+          hint={field.description}
+        >
           <InlinePicker width={240} stop trigger={trigger} title={field.name}>
             {(close) => (
               <div className={fieldStyles.choices} role="listbox">
@@ -155,6 +193,14 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
                     {choice.label}
                   </button>
                 ))}
+                {field.type === "SELECT" && field.allowCustomOptions && (
+                  <AddValue
+                    onAdd={(label) => {
+                      set(field, { create: label });
+                      close();
+                    }}
+                  />
+                )}
               </div>
             )}
           </InlinePicker>
@@ -164,43 +210,95 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
 
     if (field.type === "MULTI_SELECT") {
       const current = Array.isArray(value) ? value : [];
+      // Values typed in while this picker is open: they don't exist as
+      // choices yet, so they travel as `{ create }` and are made on save.
+      type Pending = { ids: string[]; created: string[] };
       return (
-        <Row key={field.id} label={field.name} hint={field.description}>
+        <Row
+          key={field.id}
+          label={field.name}
+          icon={field.icon}
+          hint={field.description}
+        >
           <InlinePicker width={240} stop trigger={trigger} title={field.name}>
             {(close) => (
-              <ValuePopover<string[]>
-                initialValue={current}
+              <ValuePopover<Pending>
+                initialValue={{ ids: current, created: [] }}
                 clearable={current.length > 0}
-                onConfirm={(next) => set(field, next)}
+                onConfirm={(next) => {
+                  const all = [
+                    ...next.ids,
+                    ...next.created.map((label) => ({ create: label })),
+                  ];
+                  set(field, all.length > 0 ? all : null);
+                }}
                 onClear={() => set(field, null)}
                 close={close}
               >
                 {(selected, setSelected) => (
-                  <div className={fieldStyles.choices}>
-                    {field.options.map((option) => {
-                      const on = selected.includes(option.id);
-                      return (
+                  <>
+                    <div className={fieldStyles.choices}>
+                      {field.options.map((option) => {
+                        const on = selected.ids.includes(option.id);
+                        return (
+                          <button
+                            key={option.id}
+                            type="button"
+                            aria-pressed={on}
+                            className={fieldStyles.choice}
+                            onClick={() =>
+                              setSelected({
+                                ...selected,
+                                ids: on
+                                  ? selected.ids.filter(
+                                      (id) => id !== option.id,
+                                    )
+                                  : [...selected.ids, option.id],
+                              })
+                            }
+                          >
+                            <span className={fieldStyles.check}>
+                              {on && <Icon icon="lucide:check" width={14} />}
+                            </span>
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                      {selected.created.map((label) => (
                         <button
-                          key={option.id}
+                          key={`new-${label}`}
                           type="button"
-                          aria-pressed={on}
+                          aria-pressed
                           className={fieldStyles.choice}
                           onClick={() =>
-                            setSelected(
-                              on
-                                ? selected.filter((id) => id !== option.id)
-                                : [...selected, option.id],
-                            )
+                            setSelected({
+                              ...selected,
+                              created: selected.created.filter(
+                                (l) => l !== label,
+                              ),
+                            })
                           }
                         >
                           <span className={fieldStyles.check}>
-                            {on && <Icon icon="lucide:check" width={14} />}
+                            <Icon icon="lucide:check" width={14} />
                           </span>
-                          {option.label}
+                          {label}
                         </button>
-                      );
-                    })}
-                  </div>
+                      ))}
+                    </div>
+                    {field.allowCustomOptions && (
+                      <AddValue
+                        onAdd={(label) =>
+                          setSelected({
+                            ...selected,
+                            created: selected.created.includes(label)
+                              ? selected.created
+                              : [...selected.created, label],
+                          })
+                        }
+                      />
+                    )}
+                  </>
                 )}
               </ValuePopover>
             )}
@@ -209,34 +307,30 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
       );
     }
 
-    // TEXT, URL, NUMBER, DATE: typed in, saved with the button so a value
-    // that is still being typed never reaches the server.
-    const variant =
-      field.type === "NUMBER"
-        ? "number"
-        : field.type === "DATE"
-          ? "date"
-          : "text";
-    const initial =
-      value === null
-        ? ""
-        : field.type === "NUMBER"
-          ? String(value)
-          : String(value);
+    // TEXT, URL, NUMBER and the three date modes: typed in, saved with the
+    // button so a value that is still being typed never reaches the server.
+    // An instant is entered in the person's own zone and stored in UTC.
     return (
-      <Row key={field.id} label={field.name} hint={field.description}>
-        <InlinePicker width={240} stop trigger={trigger} title={field.name}>
+      <Row
+        key={field.id}
+        label={field.name}
+        icon={field.icon}
+        hint={field.description}
+      >
+        <InlinePicker width={260} stop trigger={trigger} title={field.name}>
           {(close) => (
             <ValuePopover<string>
-              initialValue={initial}
+              initialValue={toInputString(field, value, timeZone)}
               clearable={value !== null}
-              onConfirm={(next) => set(field, next === "" ? null : next)}
+              onConfirm={(next) =>
+                set(field, fromInputString(field, next, timeZone))
+              }
               onClear={() => set(field, null)}
               close={close}
             >
               {(pending, setPending) => (
                 <Input
-                  variant={variant}
+                  variant={inputVariant(field)}
                   size="sm"
                   value={pending}
                   autoFocus

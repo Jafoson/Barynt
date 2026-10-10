@@ -6,6 +6,11 @@
 // a value as `Json` and cannot tell a number from a string, so everything
 // that writes a field value goes through `validateFieldValue` first.
 
+import { type DateMode, isTimeOfDay, normalizeInstant } from "./datetime";
+
+export { DATE_MODES, type DateMode, isDateMode } from "./datetime";
+export { CUSTOM_FIELD_ICONS, isCustomFieldIcon } from "./icons";
+
 export const CUSTOM_FIELD_TYPES = [
   "TEXT",
   "NUMBER",
@@ -47,6 +52,12 @@ export interface FieldDefinition {
   description: string;
   type: CustomFieldType;
   options: FieldOption[];
+  /** One of `CUSTOM_FIELD_ICONS`, or none. */
+  icon: string | null;
+  /** Only meaningful for DATE. */
+  dateMode: DateMode;
+  /** SELECT and MULTI_SELECT: may people add a choice while filling in. */
+  allowCustomOptions: boolean;
   /** `null` = a workspace field, which applies in every project. */
   projectId: string | null;
 }
@@ -145,7 +156,7 @@ const good = (value: FieldValue | null): ValidateResult => ({
  * a database question and is answered by whoever writes the value.
  */
 export function validateFieldValue(
-  field: { type: CustomFieldType; options?: unknown },
+  field: { type: CustomFieldType; options?: unknown; dateMode?: DateMode },
   input: unknown,
 ): ValidateResult {
   if (input === null || input === undefined) return good(null);
@@ -185,6 +196,16 @@ export function validateFieldValue(
       if (typeof input !== "string") return bad("expected a date");
       const text = input.trim();
       if (text === "") return good(null);
+      const mode = field.dateMode ?? "DATE";
+      if (mode === "TIME") {
+        if (!isTimeOfDay(text)) return bad("expected a time as HH:mm");
+        return good(text);
+      }
+      if (mode === "DATETIME") {
+        const instant = normalizeInstant(text);
+        if (!instant) return bad("expected a date and time with a zone");
+        return good(instant);
+      }
       if (!isCalendarDate(text)) return bad("expected a date as YYYY-MM-DD");
       return good(text);
     }

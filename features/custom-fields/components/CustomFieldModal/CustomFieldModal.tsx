@@ -6,6 +6,7 @@ import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { Input } from "@/components/ui/atoms/Input/Input";
 import { NativeSelect } from "@/components/ui/atoms/NativeSelect/NativeSelect";
+import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import {
   ModalFooter,
   ModalShortcut,
@@ -19,8 +20,11 @@ import {
 } from "@/features/custom-fields/actions";
 import type { CustomFieldRow } from "@/features/custom-fields/types";
 import {
+  CUSTOM_FIELD_ICONS,
   CUSTOM_FIELD_TYPES,
   type CustomFieldType,
+  DATE_MODES,
+  type DateMode,
   FIELD_LIMITS,
   usesOptions,
 } from "@/lib/custom-fields";
@@ -65,6 +69,11 @@ export function CustomFieldModal({
   const [name, setName] = useState(field?.name ?? "");
   const [description, setDescription] = useState(field?.description ?? "");
   const [type, setType] = useState<CustomFieldType>(field?.type ?? "TEXT");
+  const [icon, setIcon] = useState<string | null>(field?.icon ?? null);
+  const [dateMode, setDateMode] = useState<DateMode>(field?.dateMode ?? "DATE");
+  const [allowCustom, setAllowCustom] = useState(
+    field?.allowCustomOptions ?? false,
+  );
   const [options, setOptions] = useState<OptionDraft[]>(
     field?.options.map((o) => ({ id: o.id, label: o.label })) ?? [],
   );
@@ -95,7 +104,10 @@ export function CustomFieldModal({
           ? await updateCustomField(field.id, {
               name: trimmed,
               description,
-              ...(hasOptions ? { options: choices } : {}),
+              icon,
+              ...(hasOptions
+                ? { options: choices, allowCustomOptions: allowCustom }
+                : {}),
             })
           : await createCustomField({
               workspaceId,
@@ -104,6 +116,9 @@ export function CustomFieldModal({
               description,
               type,
               options: choices,
+              icon,
+              ...(type === "DATE" ? { dateMode } : {}),
+              ...(hasOptions ? { allowCustomOptions: allowCustom } : {}),
             });
         if ("error" in result) {
           setError(t(`customFields.errors.${result.error}`));
@@ -183,10 +198,73 @@ export function CustomFieldModal({
             )}
           </div>
 
+          {type === "DATE" && (
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>
+                {t("customFields.dateMode")}
+              </span>
+              <NativeSelect
+                label={t("customFields.dateMode")}
+                value={dateMode}
+                disabled={Boolean(field)}
+                onChange={(value) => setDateMode(value as DateMode)}
+                items={DATE_MODES.map((value) => ({
+                  value,
+                  label: t(`customFields.dateModes.${value}`),
+                }))}
+              />
+              {field && (
+                <p className={styles.hint}>
+                  {t("customFields.dateModeLocked")}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className={styles.field}>
+            <span className={styles.fieldLabel}>{t("customFields.icon")}</span>
+            <div className={styles.icons}>
+              <button
+                type="button"
+                className={styles.iconBtn}
+                aria-pressed={icon === null}
+                title={t("customFields.noIcon")}
+                aria-label={t("customFields.noIcon")}
+                onClick={() => setIcon(null)}
+              >
+                <Icon icon="lucide:ban" width={16} />
+              </button>
+              {CUSTOM_FIELD_ICONS.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  className={styles.iconBtn}
+                  aria-pressed={icon === name}
+                  title={name.replace("lucide:", "")}
+                  aria-label={name.replace("lucide:", "")}
+                  onClick={() => setIcon(name)}
+                >
+                  <Icon icon={name} width={16} />
+                </button>
+              ))}
+            </div>
+          </div>
+
           {field && (
             <div className={styles.field}>
               <span className={styles.fieldLabel}>{t("customFields.key")}</span>
               <span className={styles.key}>{field.key}</span>
+            </div>
+          )}
+
+          {hasOptions && (
+            <div className={styles.field}>
+              <Switch
+                checked={allowCustom}
+                onChange={setAllowCustom}
+                label={t("customFields.allowCustom")}
+              />
+              <p className={styles.hint}>{t("customFields.allowCustomDesc")}</p>
             </div>
           )}
 

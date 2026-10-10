@@ -18,6 +18,12 @@
   color: var(--on-surface);
 }
 
+.icon {
+  flex: none;
+  align-self: center;
+  color: var(--on-surface-variant);
+}
+
 .name {
   flex: none;
   color: var(--on-surface-variant);

@@ -44,7 +44,7 @@
     "noWorkspacesDescCreate": "You don't belong to a workspace yet. Create one to get started.",
     "noWorkspacesDescLocked": "You don't belong to a workspace yet. Ask an admin to invite you.",
     "navigation": "Navigation",
-    "customFields": "Custom fields"
+    "customFields": "Custom Fields"
   },
   "actions": {
     "addLabel": "Add label",
@@ -1402,12 +1402,28 @@
     "shortcutSequenceHint": "Only the second key can be changed.",
     "issuePageOpenMode": "“Open full page” in an issue",
     "issuePageOpenModeDesc": "What the button at the top of the issue detail (and the O key) does: open the issue's full page.",
-    "openSameTab": "In the same tab"
+    "openSameTab": "In the same tab",
+    "customFieldsTitle": "Custom Fields",
+    "fieldLabelMode": "Label on cards and rows",
+    "fieldLabelModeDesc": "What stands next to a custom field's value. A field without an icon shows its name.",
+    "fieldLabelIcon": "Icon",
+    "fieldLabelName": "Name",
+    "fieldLabelBoth": "Icon and name",
+    "fieldDateFormat": "Date format",
+    "fieldDateFormatDesc": "How date values of custom fields look.",
+    "fieldDateShort": "Short",
+    "fieldDateMedium": "Medium",
+    "fieldDateLong": "Long",
+    "fieldDateIso": "ISO",
+    "fieldTimeFormat": "Time",
+    "fieldTimeFormatDesc": "24-hour or 12-hour display for times in custom fields.",
+    "time24": "24 hours",
+    "time12": "12 hours"
   },
   "customFields": {
-    "title": "Custom fields",
-    "subtitleWorkspace": "Fields every issue in this workspace can carry. They apply in all projects.",
-    "subtitleProject": "Fields for issues of “{project}”. The workspace's fields apply here as well.",
+    "title": "Custom Fields",
+    "subtitleWorkspace": "Custom fields every issue in this workspace can carry. They apply in all projects.",
+    "subtitleProject": "Custom fields for issues of “{project}”. The workspace's fields apply here as well.",
     "newField": "New field",
     "colName": "Field",
     "colType": "Type",
@@ -1455,10 +1471,25 @@
       "options_invalid": "Add at least one choice, each with a name. Up to 50 choices.",
       "limit_reached": "This workspace has reached the limit of 100 active fields.",
       "not_found": "This field no longer exists.",
-      "failed": "The field couldn't be saved. Try again."
+      "failed": "The field couldn't be saved. Try again.",
+      "icon_invalid": "That icon isn't in the list.",
+      "date_mode_invalid": "Choose date, date and time, or time only."
     },
     "noValue": "Not set",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "icon": "Icon",
+    "noIcon": "No icon",
+    "dateMode": "Contains",
+    "dateModeLocked": "What it contains can't be changed, because values may be stored for it. Create a new field instead.",
+    "dateModes": {
+      "DATE": "Date only",
+      "DATETIME": "Date and time",
+      "TIME": "Time only"
+    },
+    "allowCustom": "Allow own values",
+    "allowCustomDesc": "Anyone who can edit an issue can add a new value while filling it in. It is then available to everyone.",
+    "addValue": "New value",
+    "addValueAction": "Add"
   }
 }

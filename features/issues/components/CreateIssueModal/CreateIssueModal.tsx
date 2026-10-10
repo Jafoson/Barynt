@@ -21,7 +21,10 @@ import {
   ModalBody,
   ModalToolbar,
 } from "@/components/ui/layout/Modal/Modal";
-import { CreateFieldChips } from "@/features/custom-fields/components/CreateFieldChips/CreateFieldChips";
+import {
+  CreateFieldChips,
+  type DraftValue,
+} from "@/features/custom-fields/components/CreateFieldChips/CreateFieldChips";
 import { fieldsFor } from "@/features/custom-fields/format";
 import {
   addIssueLinkAttachment,
@@ -39,7 +42,6 @@ import { IssueRichText } from "@/features/issues/components/IssueRichText/IssueR
 import { LabelPickerMenu } from "@/features/issues/components/LabelPickerMenu/LabelPickerMenu";
 import type { IssueComposerData } from "@/features/issues/types";
 import { uploadIssueAttachment } from "@/features/issues/uploadAttachment";
-import type { FieldValue } from "@/lib/custom-fields";
 import { remapAttachmentIds } from "@/lib/richtext/attachments";
 import { emptyDoc } from "@/lib/richtext/doc";
 import type { PMDoc } from "@/lib/richtext/types";
@@ -120,7 +122,7 @@ export function CreateIssueModal({
   const [type, setType] = useState(issueTypes[0]?.id ?? "feature");
   const [assignee, setAssignee] = useState<string | null>(null);
   const [labels, setLabels] = useState<string[]>([]);
-  const [fieldValues, setFieldValues] = useState<Record<string, FieldValue>>(
+  const [fieldValues, setFieldValues] = useState<Record<string, DraftValue>>(
     {},
   );
   const [localLabels, setLocalLabels] = useState<Label[]>([]);

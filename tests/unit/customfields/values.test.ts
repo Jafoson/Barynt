@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 
 mock.module("@/lib/db", () => ({
   db: {
-    customField: { findMany: mock() },
+    customField: {
+      findMany: mock(),
+      update: mock((a: object) => ({ op: "fieldUpdate", ...a })),
+    },
     workspaceMember: { findMany: mock() },
     issueFieldValue: {
       findMany: mock(),
@@ -15,12 +18,14 @@ mock.module("@/lib/db", () => ({
 mock.module("@/features/issues/audit", () => ({
   recordIssueAudit: mock(async () => {}),
 }));
+mock.module("@/lib/audit", () => ({ recordAudit: mock(async () => {}) }));
 
 import {
   FieldValueError,
   writeIssueFieldValues,
 } from "@/features/custom-fields/values";
 import { recordIssueAudit } from "@/features/issues/audit";
+import { recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 
 const fields = db.customField.findMany as ReturnType<typeof mock>;
@@ -30,6 +35,8 @@ const upsert = db.issueFieldValue.upsert as ReturnType<typeof mock>;
 const del = db.issueFieldValue.deleteMany as ReturnType<typeof mock>;
 const tx = db.$transaction as ReturnType<typeof mock>;
 const audit = recordIssueAudit as ReturnType<typeof mock>;
+const fieldAudit = recordAudit as ReturnType<typeof mock>;
+const fieldUpdate = db.customField.update as ReturnType<typeof mock>;
 
 const ISSUE = {
   id: "i1",
@@ -49,7 +56,17 @@ const def = (over: object) => ({
 });
 
 beforeEach(() => {
-  for (const fn of [fields, members, before, upsert, del, tx, audit])
+  for (const fn of [
+    fields,
+    members,
+    before,
+    upsert,
+    del,
+    tx,
+    audit,
+    fieldAudit,
+    fieldUpdate,
+  ])
     fn.mockClear();
   fields.mockResolvedValue([def({})]);
   members.mockResolvedValue([]);
@@ -146,5 +163,118 @@ describe("writeIssueFieldValues()", () => {
     members.mockResolvedValue([{ userId: "u2" }]);
     await writeIssueFieldValues(ISSUE, { f1: "u2" }, "u1");
     expect(upsert).toHaveBeenCalledTimes(1);
+  });
+
+  describe("choices added while filling in", () => {
+    const choiceField = (over: object = {}) =>
+      def({
+        type: "SELECT",
+        name: "Size",
+        options: [{ id: "o_m", label: "Medium", color: null }],
+        allowCustomOptions: true,
+        ...over,
+      });
+
+    it("adds a choice with the value, in the same transaction, and logs it", async () => {
+      fields.mockResolvedValue([choiceField()]);
+      await writeIssueFieldValues(ISSUE, { f1: { create: "Huge" } }, "u1");
+
+      const ops = tx.mock.calls[0][0] as { op: string }[];
+      expect(ops.map((o) => o.op)).toEqual(["fieldUpdate", "upsert"]);
+      const written = fieldUpdate.mock.calls[0][0].data.options;
+      expect(written).toHaveLength(2);
+      expect(written[1]).toMatchObject({ label: "Huge" });
+      const newId = written[1].id;
+      expect(upsert.mock.calls[0][0].update.value).toBe(newId);
+      expect(fieldAudit.mock.calls[0][0]).toMatchObject({
+        action: "customfield.updated",
+        target: { type: "customField", label: "Size: + Huge" },
+      });
+    });
+
+    it("shows the new choice by its name in the issue's log", async () => {
+      fields.mockResolvedValue([choiceField()]);
+      await writeIssueFieldValues(ISSUE, { f1: { create: "Huge" } }, "u1");
+      expect(audit.mock.calls[0][4]).toBe("Size: — → Huge");
+    });
+
+    it("reuses a choice that has the same name, ignoring case", async () => {
+      fields.mockResolvedValue([choiceField()]);
+      await writeIssueFieldValues(ISSUE, { f1: { create: "medium" } }, "u1");
+      expect(fieldUpdate).not.toHaveBeenCalled();
+      expect(upsert.mock.calls[0][0].update.value).toBe("o_m");
+    });
+
+    it("refuses a new choice when the field does not allow it", async () => {
+      fields.mockResolvedValue([choiceField({ allowCustomOptions: false })]);
+      await expect(
+        writeIssueFieldValues(ISSUE, { f1: { create: "Huge" } }, "u1"),
+      ).rejects.toMatchObject({ reason: "invalid_value" });
+      expect(tx).not.toHaveBeenCalled();
+    });
+
+    it("refuses an empty or over-long name and a full list", async () => {
+      fields.mockResolvedValue([choiceField()]);
+      for (const create of ["   ", "x".repeat(61)]) {
+        await expect(
+          writeIssueFieldValues(ISSUE, { f1: { create } }, "u1"),
+        ).rejects.toMatchObject({ reason: "invalid_value" });
+      }
+      const full = Array.from({ length: 50 }, (_, i) => ({
+        id: `o${i}`,
+        label: `L${i}`,
+        color: null,
+      }));
+      fields.mockResolvedValue([choiceField({ options: full })]);
+      await expect(
+        writeIssueFieldValues(ISSUE, { f1: { create: "One more" } }, "u1"),
+      ).rejects.toMatchObject({ reason: "invalid_value" });
+    });
+
+    it("adds several choices to a multi-choice field in one go", async () => {
+      fields.mockResolvedValue([choiceField({ type: "MULTI_SELECT" })]);
+      await writeIssueFieldValues(
+        ISSUE,
+        { f1: ["o_m", { create: "A" }, { create: "B" }] },
+        "u1",
+      );
+      const written = fieldUpdate.mock.calls[0][0].data.options;
+      expect(written.map((o: { label: string }) => o.label)).toEqual([
+        "Medium",
+        "A",
+        "B",
+      ]);
+      const value = upsert.mock.calls[0][0].update.value as string[];
+      expect(value).toHaveLength(3);
+      expect(value[0]).toBe("o_m");
+    });
+
+    it("does not let a choice be created on a field without choices", async () => {
+      fields.mockResolvedValue([def({ allowCustomOptions: true })]);
+      await expect(
+        writeIssueFieldValues(ISSUE, { f1: { create: "x" } }, "u1"),
+      ).rejects.toBeInstanceOf(FieldValueError);
+    });
+  });
+
+  it("logs an instant as UTC text", async () => {
+    fields.mockResolvedValue([
+      def({ type: "DATE", dateMode: "DATETIME", name: "Release" }),
+    ]);
+    await writeIssueFieldValues(
+      ISSUE,
+      { f1: "2026-10-12T14:30:00+02:00" },
+      "u1",
+    );
+    expect(audit.mock.calls[0][4]).toBe("Release: — → 2026-10-12 12:30 UTC");
+  });
+
+  it("checks a date value against the field's mode", async () => {
+    fields.mockResolvedValue([def({ type: "DATE", dateMode: "TIME" })]);
+    await expect(
+      writeIssueFieldValues(ISSUE, { f1: "2026-07-01" }, "u1"),
+    ).rejects.toMatchObject({ reason: "invalid_value" });
+    await writeIssueFieldValues(ISSUE, { f1: "09:30" }, "u1");
+    expect(upsert.mock.calls[0][0].update.value).toBe("09:30");
   });
 });

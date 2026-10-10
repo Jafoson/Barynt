@@ -1,8 +1,10 @@
 "use client";
 
+import { Icon } from "@iconify/react";
 import { fieldsFor, useFieldText } from "@/features/custom-fields/format";
 import type { IssueLookups } from "@/features/issues/types";
 import type { FieldDefinition } from "@/lib/custom-fields";
+import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import type { Issue } from "@/types";
 import styles from "./fieldChips.module.scss";
 
@@ -24,6 +26,7 @@ interface Props {
  */
 export function FieldChips({ issue, fields, members, max = 3 }: Props) {
   const text = useFieldText();
+  const { fieldLabelMode } = usePreferences();
 
   const filled = fieldsFor(fields, issue.project).flatMap((field) => {
     const value = issue.fieldValues?.[field.id];
@@ -40,16 +43,33 @@ export function FieldChips({ issue, fields, members, max = 3 }: Props) {
 
   return (
     <div className={styles.chips}>
-      {visible.map(({ field, shown }) => (
-        <span
-          key={field.id}
-          className={styles.chip}
-          title={`${field.name}: ${shown}`}
-        >
-          <span className={styles.name}>{field.name}</span>
-          <span className={styles.value}>{shown}</span>
-        </span>
-      ))}
+      {visible.map(({ field, shown }) => {
+        // What stands before the value is the person's choice. A field
+        // without an icon shows its name where the icon was asked for, so a
+        // chip is never a bare value.
+        const hasIcon = Boolean(field.icon);
+        const showIcon = hasIcon && fieldLabelMode !== "name";
+        const showName =
+          fieldLabelMode === "name" || fieldLabelMode === "both" || !hasIcon;
+        return (
+          <span
+            key={field.id}
+            className={styles.chip}
+            title={`${field.name}: ${shown}`}
+          >
+            {showIcon && field.icon && (
+              <Icon
+                icon={field.icon}
+                width={12}
+                className={styles.icon}
+                aria-hidden="true"
+              />
+            )}
+            {showName && <span className={styles.name}>{field.name}</span>}
+            <span className={styles.value}>{shown}</span>
+          </span>
+        );
+      })}
       {rest > 0 && (
         <span className={`${styles.chip} ${styles.more}`}>+{rest}</span>
       )}

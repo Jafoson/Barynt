@@ -181,6 +181,74 @@ describe("createCustomField()", () => {
   });
 });
 
+describe("createCustomField() icon, date mode and own values", () => {
+  beforeEach(reset);
+
+  it("stores an icon from the list and rejects any other name", async () => {
+    await createCustomField({
+      workspaceId: "ws-1",
+      name: "Owner",
+      type: "TEXT",
+      icon: "lucide:user",
+    });
+    expect(cf.create.mock.calls[0][0].data.icon).toBe("lucide:user");
+
+    const r = await createCustomField({
+      workspaceId: "ws-1",
+      name: "Owner",
+      type: "TEXT",
+      icon: "lucide:made-up-icon",
+    });
+    expect(r).toEqual({ error: "icon_invalid" });
+  });
+
+  it("keeps the date mode for a date field and ignores it elsewhere", async () => {
+    await createCustomField({
+      workspaceId: "ws-1",
+      name: "Release",
+      type: "DATE",
+      dateMode: "DATETIME",
+    });
+    expect(cf.create.mock.calls[0][0].data.dateMode).toBe("DATETIME");
+
+    await createCustomField({
+      workspaceId: "ws-1",
+      name: "Note",
+      type: "TEXT",
+      dateMode: "TIME",
+    });
+    expect(cf.create.mock.calls[1][0].data.dateMode).toBe("DATE");
+
+    expect(
+      await createCustomField({
+        workspaceId: "ws-1",
+        name: "X",
+        type: "DATE",
+        dateMode: "WEEK",
+      }),
+    ).toEqual({ error: "date_mode_invalid" });
+  });
+
+  it("only a choice field can allow its own values", async () => {
+    await createCustomField({
+      workspaceId: "ws-1",
+      name: "Size",
+      type: "SELECT",
+      options: [{ label: "S" }],
+      allowCustomOptions: true,
+    });
+    expect(cf.create.mock.calls[0][0].data.allowCustomOptions).toBe(true);
+
+    await createCustomField({
+      workspaceId: "ws-1",
+      name: "Text",
+      type: "TEXT",
+      allowCustomOptions: true,
+    });
+    expect(cf.create.mock.calls[1][0].data.allowCustomOptions).toBe(false);
+  });
+});
+
 describe("updateCustomField()", () => {
   beforeEach(reset);
 

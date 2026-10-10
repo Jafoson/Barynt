@@ -104,12 +104,27 @@ export function CustomFields({
 
   const nameCell = (row: CustomFieldRow) => (
     <div className={styles.name}>
-      <span className={styles.nameText}>{row.name}</span>
+      <span className={styles.nameText}>
+        {row.icon && (
+          <Icon
+            icon={row.icon}
+            width={14}
+            aria-hidden="true"
+            className={styles.nameIcon}
+          />
+        )}
+        {row.name}
+      </span>
       <span className={styles.key}>{row.key}</span>
     </div>
   );
   const typeCell = (row: CustomFieldRow) => (
-    <span className={styles.muted}>{t(`customFields.types.${row.type}`)}</span>
+    <span className={styles.muted}>
+      {t(`customFields.types.${row.type}`)}
+      {row.type === "DATE" && row.dateMode !== "DATE"
+        ? ` · ${t(`customFields.dateModes.${row.dateMode}`)}`
+        : ""}
+    </span>
   );
   const usageCell = (row: CustomFieldRow) =>
     row.valueCount === 0 ? (

@@ -20,7 +20,15 @@ import styles from "./accountAppearance.module.scss";
 
 interface Props {
   theme: Theme;
-  dateTime: Pick<BehaviorPreferences, "dateFormat" | "weekStart" | "timeZone">;
+  dateTime: Pick<
+    BehaviorPreferences,
+    | "dateFormat"
+    | "weekStart"
+    | "timeZone"
+    | "fieldDateFormat"
+    | "fieldTimeFormat"
+    | "fieldLabelMode"
+  >;
   /** IANA zone names the choice is made from. */
   timeZones: string[];
 }
@@ -47,9 +55,14 @@ export function AccountAppearance({ theme, dateTime, timeZones }: Props) {
   const [, startTransition] = useTransition();
 
   const [currentTheme, setCurrentTheme] = useState<Theme>(theme);
-  const [when, setWhen] = useBehavior<"dateFormat" | "weekStart" | "timeZone">(
-    dateTime,
-  );
+  const [when, setWhen] = useBehavior<
+    | "dateFormat"
+    | "weekStart"
+    | "timeZone"
+    | "fieldDateFormat"
+    | "fieldTimeFormat"
+    | "fieldLabelMode"
+  >(dateTime);
 
   // The server's list, so what's rendered matches what hydrates; the saved
   // zone is added should that list not carry it (a zone renamed since).
@@ -159,6 +172,69 @@ export function AccountAppearance({ theme, dateTime, timeZones }: Props) {
     },
   ];
 
+  const customFields: SettingsRow[] = [
+    {
+      id: "fieldLabelMode",
+      label: t("behavior.fieldLabelMode"),
+      desc: t("behavior.fieldLabelModeDesc"),
+      control: (
+        <SegmentedControl
+          items={[
+            { value: "icon", label: t("behavior.fieldLabelIcon") },
+            { value: "name", label: t("behavior.fieldLabelName") },
+            { value: "both", label: t("behavior.fieldLabelBoth") },
+          ]}
+          value={when.fieldLabelMode}
+          onChange={(v) =>
+            setWhen({
+              fieldLabelMode: v as BehaviorPreferences["fieldLabelMode"],
+            })
+          }
+        />
+      ),
+    },
+    {
+      id: "fieldDateFormat",
+      label: t("behavior.fieldDateFormat"),
+      desc: t("behavior.fieldDateFormatDesc"),
+      control: (
+        <SegmentedControl
+          items={[
+            { value: "short", label: t("behavior.fieldDateShort") },
+            { value: "medium", label: t("behavior.fieldDateMedium") },
+            { value: "long", label: t("behavior.fieldDateLong") },
+            { value: "iso", label: t("behavior.fieldDateIso") },
+          ]}
+          value={when.fieldDateFormat}
+          onChange={(v) =>
+            setWhen({
+              fieldDateFormat: v as BehaviorPreferences["fieldDateFormat"],
+            })
+          }
+        />
+      ),
+    },
+    {
+      id: "fieldTimeFormat",
+      label: t("behavior.fieldTimeFormat"),
+      desc: t("behavior.fieldTimeFormatDesc"),
+      control: (
+        <SegmentedControl
+          items={[
+            { value: "24h", label: t("behavior.time24") },
+            { value: "12h", label: t("behavior.time12") },
+          ]}
+          value={when.fieldTimeFormat}
+          onChange={(v) =>
+            setWhen({
+              fieldTimeFormat: v as BehaviorPreferences["fieldTimeFormat"],
+            })
+          }
+        />
+      ),
+    },
+  ];
+
   const language: SettingsRow[] = [
     {
       id: "language",
@@ -191,6 +267,10 @@ export function AccountAppearance({ theme, dateTime, timeZones }: Props) {
         <SettingsList title={t("settings.appearance")} rows={appearance} />
         <SettingsList title={t("account.language")} rows={language} />
         <SettingsList title={t("behavior.dateTitle")} rows={dateAndTime} />
+        <SettingsList
+          title={t("behavior.customFieldsTitle")}
+          rows={customFields}
+        />
 
         <p className={styles.note}>
           <Icon icon="lucide:info" width={14} />

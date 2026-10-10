@@ -45,6 +45,9 @@ const withBase = (f: object) => ({
   name: "x",
   description: "",
   archivedAt: null,
+  icon: null,
+  dateMode: "DATE",
+  allowCustomOptions: false,
   ...f,
 });
 
@@ -143,6 +146,24 @@ describe("translateApiFields()", () => {
     const r = await translateApiFields(SCOPE, { tags: ["Small", "o_m"] });
     expect(r).toEqual({ ok: true, values: { f_tags: ["o_s", "o_m"] } });
     expect(await translateApiFields(SCOPE, { tags: "Small" })).toEqual({
+      ok: false,
+      reason: "invalid_value",
+    });
+  });
+});
+
+describe("translateApiFields() with own values", () => {
+  it("turns an unknown label into a new choice when the field allows it", async () => {
+    findMany.mockResolvedValue([
+      withBase({ ...size, allowCustomOptions: true }),
+    ]);
+    const r = await translateApiFields(SCOPE, { size: "Huge" });
+    expect(r).toEqual({ ok: true, values: { f_size: expect.anything() } });
+  });
+
+  it("rejects an unknown label when the field does not", async () => {
+    findMany.mockResolvedValue([withBase(size)]);
+    expect(await translateApiFields(SCOPE, { size: "Huge" })).toEqual({
       ok: false,
       reason: "invalid_value",
     });

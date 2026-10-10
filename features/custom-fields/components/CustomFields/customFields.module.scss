@@ -82,3 +82,9 @@
   font-size: var(--text-sm);
   color: var(--error);
 }
+
+.nameIcon {
+  margin-inline-end: 0.375rem;
+  vertical-align: -0.125em;
+  color: var(--on-surface-variant);
+}

@@ -44,7 +44,7 @@
     "noWorkspacesDescCreate": "Du gehörst noch keinem Workspace an. Erstelle einen, um loszulegen.",
     "noWorkspacesDescLocked": "Du gehörst noch keinem Workspace an. Bitte einen Admin, dich einzuladen.",
     "navigation": "Navigation",
-    "customFields": "Eigene Felder"
+    "customFields": "Custom Felder"
   },
   "actions": {
     "addLabel": "Label hinzufügen",
@@ -1218,12 +1218,12 @@
       "issueEstimateHoursChanged": "Zeitschätzung geändert",
       "labelCreated": "Label angelegt",
       "labelDeleted": "Label gelöscht",
-      "customFieldCreated": "Benutzerdefiniertes Feld angelegt",
-      "customFieldUpdated": "Benutzerdefiniertes Feld geändert",
-      "customFieldArchived": "Benutzerdefiniertes Feld archiviert",
-      "customFieldRestored": "Benutzerdefiniertes Feld wiederhergestellt",
-      "customFieldDeleted": "Benutzerdefiniertes Feld gelöscht",
-      "issueFieldChanged": "Eigenes Feld geändert"
+      "customFieldCreated": "Custom Feld angelegt",
+      "customFieldUpdated": "Custom Feld geändert",
+      "customFieldArchived": "Custom Feld archiviert",
+      "customFieldRestored": "Custom Feld wiederhergestellt",
+      "customFieldDeleted": "Custom Feld gelöscht",
+      "issueFieldChanged": "Custom Feld geändert"
     }
   },
   "dashboard": {
@@ -1402,12 +1402,28 @@
     "shortcutSequenceHint": "Nur die zweite Taste ist änderbar.",
     "issuePageOpenMode": "„Vollständig öffnen“ im Issue",
     "issuePageOpenModeDesc": "Was der Knopf oben im Issue-Detail (und die Taste O) tut: die ganze Seite des Issues öffnen.",
-    "openSameTab": "Im selben Tab"
+    "openSameTab": "Im selben Tab",
+    "customFieldsTitle": "Custom Felder",
+    "fieldLabelMode": "Bezeichnung auf Karte und Zeile",
+    "fieldLabelModeDesc": "Was neben dem Wert eines Custom Feldes steht. Hat ein Feld kein Icon, steht sein Name.",
+    "fieldLabelIcon": "Icon",
+    "fieldLabelName": "Name",
+    "fieldLabelBoth": "Icon und Name",
+    "fieldDateFormat": "Datumsformat",
+    "fieldDateFormatDesc": "Wie Datumswerte von Custom Feldern aussehen.",
+    "fieldDateShort": "Kurz",
+    "fieldDateMedium": "Mittel",
+    "fieldDateLong": "Lang",
+    "fieldDateIso": "ISO",
+    "fieldTimeFormat": "Uhrzeit",
+    "fieldTimeFormatDesc": "24- oder 12-Stunden-Anzeige für Uhrzeiten in Custom Feldern.",
+    "time24": "24 Stunden",
+    "time12": "12 Stunden"
   },
   "customFields": {
-    "title": "Benutzerdefinierte Felder",
-    "subtitleWorkspace": "Felder, die jedes Issue dieses Workspace tragen kann. Sie gelten in allen Projekten.",
-    "subtitleProject": "Felder für die Issues von „{project}“. Die Felder des Workspace gelten hier ebenfalls.",
+    "title": "Custom Felder",
+    "subtitleWorkspace": "Custom Felder, die jedes Issue dieses Workspace tragen kann. Sie gelten in allen Projekten.",
+    "subtitleProject": "Custom Felder für die Issues von „{project}“. Die Felder des Workspace gelten hier ebenfalls.",
     "newField": "Neues Feld",
     "colName": "Feld",
     "colType": "Typ",
@@ -1415,7 +1431,7 @@
     "usage": "{count, plural, one {# Issue} other {# Issues}}",
     "unused": "Nicht in Benutzung",
     "archived": "Archiviert",
-    "emptyTitle": "Noch keine Felder",
+    "emptyTitle": "Noch keine Custom Felder",
     "emptyDesc": "Lege ein Feld an, etwa Kunde, Version oder Link, und fülle es an jedem Issue aus.",
     "inheritedTitle": "Aus dem Workspace",
     "inheritedDesc": "Diese Felder kommen aus dem Workspace und werden dort in den Einstellungen geändert.",
@@ -1455,10 +1471,25 @@
       "options_invalid": "Füge mindestens eine Auswahl mit Namen hinzu. Höchstens 50.",
       "limit_reached": "Dieser Workspace hat die Grenze von 100 aktiven Feldern erreicht.",
       "not_found": "Dieses Feld gibt es nicht mehr.",
-      "failed": "Das Feld konnte nicht gespeichert werden. Versuche es erneut."
+      "failed": "Das Feld konnte nicht gespeichert werden. Versuche es erneut.",
+      "icon_invalid": "Dieses Icon gibt es nicht in der Auswahl.",
+      "date_mode_invalid": "Wähle, ob Datum, Datum und Uhrzeit oder nur Uhrzeit."
     },
     "noValue": "Nicht gesetzt",
     "yes": "Ja",
-    "no": "Nein"
+    "no": "Nein",
+    "icon": "Icon",
+    "noIcon": "Kein Icon",
+    "dateMode": "Inhalt",
+    "dateModeLocked": "Der Inhalt lässt sich nicht mehr ändern, weil Werte dazu gespeichert sein können. Lege stattdessen ein neues Feld an.",
+    "dateModes": {
+      "DATE": "Nur Datum",
+      "DATETIME": "Datum und Uhrzeit",
+      "TIME": "Nur Uhrzeit"
+    },
+    "allowCustom": "Eigene Werte erlauben",
+    "allowCustomDesc": "Wer ein Issue bearbeiten darf, kann beim Ausfüllen einen neuen Wert hinzufügen. Er steht danach für alle zur Auswahl.",
+    "addValue": "Neuer Wert",
+    "addValueAction": "Hinzufügen"
   }
 }

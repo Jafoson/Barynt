@@ -28,6 +28,9 @@ function toRow(f: FieldRecord): CustomFieldRow {
     description: f.description,
     type: f.type,
     options: toOptions(f.options),
+    icon: f.icon,
+    dateMode: f.dateMode,
+    allowCustomOptions: f.allowCustomOptions,
     archived: f.archivedAt !== null,
     valueCount: f._count.values,
   };
@@ -106,6 +109,9 @@ export const getWorkspaceCustomFields = cache(
       description: f.description,
       type: f.type,
       options: toOptions(f.options),
+      icon: f.icon,
+      dateMode: f.dateMode,
+      allowCustomOptions: f.allowCustomOptions,
       projectId: f.projectId,
     }));
   },

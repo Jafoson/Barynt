@@ -50,3 +50,32 @@
   font-size: var(--text-sm);
   color: var(--error);
 }
+
+.icons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.25rem, 1fr));
+  gap: 0.25rem;
+}
+
+.iconBtn {
+  display: grid;
+  place-items: center;
+  height: 2.25rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+
+  &[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: var(--surface-container-high);
+    color: var(--primary);
+  }
+}

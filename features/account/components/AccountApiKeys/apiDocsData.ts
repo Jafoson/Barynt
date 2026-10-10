@@ -349,7 +349,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           {
             name: "customFields",
             type: "object",
-            desc: 'Custom field values by field key, e.g. {"customer": "Acme"}. A choice by id or label; null clears a value. See GET /api/v1/projects/{id}/custom-fields. Responses carry the values under customFields; a choice comes as {id, label}.',
+            desc: 'Custom field values by field key, e.g. {"customer": "Acme"}. A choice by id or label; null clears a value. A label that matches no choice adds one if the field allows its own values (allowCustomOptions). A date field takes YYYY-MM-DD, an ISO date-time with a zone (stored in UTC) or HH:mm, depending on its dateMode. See GET /api/v1/projects/{id}/custom-fields. Responses carry the values under customFields; a choice comes as {id, label}.',
           },
           {
             name: "parentId",
@@ -495,7 +495,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           {
             name: "customFields",
             type: "object",
-            desc: 'Custom field values by field key, e.g. {"customer": "Acme"}. A choice by id or label; null clears a value. See GET /api/v1/projects/{id}/custom-fields. Responses carry the values under customFields; a choice comes as {id, label}.',
+            desc: 'Custom field values by field key, e.g. {"customer": "Acme"}. A choice by id or label; null clears a value. A label that matches no choice adds one if the field allows its own values (allowCustomOptions). A date field takes YYYY-MM-DD, an ISO date-time with a zone (stored in UTC) or HH:mm, depending on its dateMode. See GET /api/v1/projects/{id}/custom-fields. Responses carry the values under customFields; a choice comes as {id, label}.',
           },
           {
             name: "parentId",
@@ -551,6 +551,9 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
       "description": "",
       "type": "TEXT",
       "options": [],
+      "icon": "lucide:building-2",
+      "dateMode": "DATE",
+      "allowCustomOptions": false,
       "projectId": null
     },
     {
