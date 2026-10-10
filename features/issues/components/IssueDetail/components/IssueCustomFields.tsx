@@ -171,7 +171,7 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
       const chips = picked.map((option) => (
         <LabelChip
           key={option.id}
-          color={option.color ?? "var(--outline)"}
+          color={option.color ?? undefined}
           size="sm"
           onRemove={
             canEdit ? () => removeChoice(option.id, option.label) : undefined
