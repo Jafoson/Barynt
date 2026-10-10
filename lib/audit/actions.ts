@@ -87,6 +87,7 @@ export const AUDIT_ACTIONS = {
   "issue.dueDate.changed": "Due date changed",
   "issue.storyPoints.changed": "Story points changed",
   "issue.estimateHours.changed": "Time estimate changed",
+  "issue.field.changed": "Custom field changed",
   "label.created": "Label created",
   "label.deleted": "Label deleted",
   "customfield.created": "Custom field created",

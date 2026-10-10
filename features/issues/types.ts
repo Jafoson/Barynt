@@ -1,3 +1,4 @@
+import type { FieldDefinition } from "@/lib/custom-fields";
 import type { PMDoc } from "@/lib/richtext/types";
 import type {
   EstimateUnit,
@@ -23,6 +24,8 @@ export interface IssueLookups {
   members: User[];
   labels: Label[];
   issueTypes: IssueType[];
+  /** Active custom fields, for the chips on a card. */
+  customFields: FieldDefinition[];
 }
 
 /**
@@ -43,6 +46,12 @@ export interface IssueEditorData {
   priorities: Priority[];
   /** For the `#` trigger in the editor — the workspace's issues to link to. */
   searchIssues: SearchableIssue[];
+  /**
+   * The workspace's active custom fields that this person can see: every
+   * workspace-wide field plus those of projects they can access. Which of
+   * them applies to one issue is decided by its project.
+   */
+  customFields: FieldDefinition[];
 }
 
 /** The composer additionally needs the issue types for its type picker. */
@@ -81,4 +90,10 @@ export interface IssuePatch {
   storyPoints?: number | null;
   estimateHours?: number | null;
   estimateUnit?: EstimateUnit | null;
+  /**
+   * Custom field values by field id. A value is the raw input for that
+   * field's type; `null` clears it. Checked on the server against the
+   * field's definition (`lib/custom-fields`).
+   */
+  fieldValues?: Record<string, unknown>;
 }

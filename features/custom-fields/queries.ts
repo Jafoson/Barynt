@@ -4,7 +4,9 @@ import type {
   CustomFieldRow,
   CustomFieldsView,
 } from "@/features/custom-fields/types";
-import { toOptions } from "@/lib/custom-fields";
+import { getWorkspaceProjects } from "@/features/workspaces/queries";
+import { getCurrentWorkspaceId } from "@/lib/current-workspace";
+import { type FieldDefinition, toOptions } from "@/lib/custom-fields";
 import { db } from "@/lib/db";
 import { accessFor, currentUserId } from "@/lib/permissions";
 
@@ -73,5 +75,38 @@ export const getCustomFieldsView = cache(
       projectId: null,
     });
     return { name: "", own: own.map(toRow), inherited: [] };
+  },
+);
+
+/**
+ * The active fields the viewer can use on issues: every workspace-wide field
+ * and those of the projects they can see. A field of a project the viewer
+ * has no access to would otherwise reveal its name.
+ */
+export const getWorkspaceCustomFields = cache(
+  async (): Promise<FieldDefinition[]> => {
+    const workspaceId = getCurrentWorkspaceId();
+    if (!workspaceId) return [];
+    const projects = await getWorkspaceProjects();
+    const rows = await db.customField.findMany({
+      where: {
+        workspaceId,
+        archivedAt: null,
+        OR: [
+          { projectId: null },
+          { projectId: { in: projects.map((p) => p.id) } },
+        ],
+      },
+      orderBy: [{ position: "asc" }, { created: "asc" }],
+    });
+    return rows.map((f) => ({
+      id: f.id,
+      key: f.key,
+      name: f.name,
+      description: f.description,
+      type: f.type,
+      options: toOptions(f.options),
+      projectId: f.projectId,
+    }));
   },
 );

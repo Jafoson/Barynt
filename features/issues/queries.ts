@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { listAudit } from "@/lib/audit";
 import { getCurrentWorkspaceId } from "@/lib/current-workspace";
+import { type FieldValue, narrowFieldValue } from "@/lib/custom-fields";
 import { db } from "@/lib/db";
 import { issueShareUrl } from "@/lib/issue-share";
 import {
@@ -75,6 +76,7 @@ function mapIssue(
       source: ContentSource;
     }[];
     shareToken?: string | null;
+    fieldValues?: { fieldId: string; value: unknown }[];
   },
   // For `reactedByMe` — whoever isn't logged in (there are no public calls
   // here, but the type stays honest) sees no reaction as their own.
@@ -111,7 +113,20 @@ function mapIssue(
       source: c.source,
     })),
     shareUrl: i.shareToken ? issueShareUrl(i.shareToken) : null,
+    fieldValues: fieldValuesOf(i.fieldValues),
   };
+}
+
+/** The `IssueFieldValue` rows of one issue as `{ fieldId: value }`. */
+function fieldValuesOf(
+  rows: { fieldId: string; value: unknown }[] | undefined,
+): Record<string, FieldValue> {
+  const out: Record<string, FieldValue> = {};
+  for (const row of rows ?? []) {
+    const value = narrowFieldValue(row.value);
+    if (value !== null) out[row.fieldId] = value;
+  }
+  return out;
 }
 
 /** Raw reaction rows grouped by emoji — the comment bar only shows the
@@ -653,6 +668,7 @@ export async function getIssuesByProject(
         orderBy: { created: "asc" },
         include: { reactions: true },
       },
+      fieldValues: { select: { fieldId: true, value: true } },
     },
     orderBy: [{ rank: "asc" }, { created: "asc" }],
   });
@@ -716,6 +732,7 @@ export async function getMyIssues(
         orderBy: { created: "asc" },
         include: { reactions: true },
       },
+      fieldValues: { select: { fieldId: true, value: true } },
     },
     // Same as within a project: by rank, so a dragged row stays where it
     // was dropped.
@@ -906,6 +923,7 @@ export async function getIssueById(id: string): Promise<IssueDetail | null> {
         orderBy: { created: "asc" },
         include: { reactions: true },
       },
+      fieldValues: { select: { fieldId: true, value: true } },
       attachments: { orderBy: { created: "asc" } },
       project: { select: { workspaceId: true } },
     },
@@ -962,6 +980,7 @@ export const getIssueByRef = cache(
           orderBy: { created: "asc" },
           include: { reactions: true },
         },
+        fieldValues: { select: { fieldId: true, value: true } },
         attachments: { orderBy: { created: "asc" } },
       },
     });

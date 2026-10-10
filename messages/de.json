@@ -1222,7 +1222,8 @@
       "customFieldUpdated": "Benutzerdefiniertes Feld geändert",
       "customFieldArchived": "Benutzerdefiniertes Feld archiviert",
       "customFieldRestored": "Benutzerdefiniertes Feld wiederhergestellt",
-      "customFieldDeleted": "Benutzerdefiniertes Feld gelöscht"
+      "customFieldDeleted": "Benutzerdefiniertes Feld gelöscht",
+      "issueFieldChanged": "Eigenes Feld geändert"
     }
   },
   "dashboard": {
@@ -1455,6 +1456,9 @@
       "limit_reached": "Dieser Workspace hat die Grenze von 100 aktiven Feldern erreicht.",
       "not_found": "Dieses Feld gibt es nicht mehr.",
       "failed": "Das Feld konnte nicht gespeichert werden. Versuche es erneut."
-    }
+    },
+    "noValue": "Nicht gesetzt",
+    "yes": "Ja",
+    "no": "Nein"
   }
 }

@@ -3,10 +3,12 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Resizer } from "@/components/ui/layout/Resizer/Resizer";
+import { fieldsFor } from "@/features/custom-fields/format";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
 import { visibleDetailFields } from "@/features/projects/detail-fields";
 import type { IssueDetail } from "@/types";
 import styles from "../issueDetail.module.scss";
+import { IssueCustomFields } from "./IssueCustomFields";
 import { IssueLabels } from "./IssueLabels";
 import { IssueMeta } from "./IssueMeta";
 import { IssuePlanning } from "./IssuePlanning";
@@ -63,6 +65,8 @@ export function IssueSidebar({
   const project = data.projects.find((p) => p.id === issue.project);
   const visibleFields = visibleDetailFields(project?.hiddenDetailFields ?? []);
   const showLabels = visibleFields.has("labels");
+  const hasCustomFields =
+    fieldsFor(data.customFields, issue.project).length > 0;
 
   return (
     <>
@@ -103,6 +107,19 @@ export function IssueSidebar({
         />
 
         <div className={styles.divider} />
+
+        {hasCustomFields && (
+          <>
+            <IssueCustomFields
+              issue={issue}
+              data={data}
+              layout="aside"
+              onPatch={onPatch}
+            />
+
+            <div className={styles.divider} />
+          </>
+        )}
 
         {showLabels && (
           <>

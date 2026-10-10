@@ -36,6 +36,35 @@ export interface FieldOption {
 /** What a field value looks like once validated. `null` means "no value". */
 export type FieldValue = string | number | boolean | string[];
 
+/**
+ * A field as the issue UI needs it: what to show and how to edit. Safe for
+ * the client — no workspace or audit data.
+ */
+export interface FieldDefinition {
+  id: string;
+  key: string;
+  name: string;
+  description: string;
+  type: CustomFieldType;
+  options: FieldOption[];
+  /** `null` = a workspace field, which applies in every project. */
+  projectId: string | null;
+}
+
+/**
+ * Narrows a stored `Json` value to something the UI can render. A row that
+ * was written by an older version, or by hand, must not crash a page: what
+ * isn't one of the known shapes becomes "no value".
+ */
+export function narrowFieldValue(raw: unknown): FieldValue | null {
+  if (typeof raw === "string" || typeof raw === "boolean") return raw;
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  if (Array.isArray(raw) && raw.every((v) => typeof v === "string")) {
+    return raw.length > 0 ? (raw as string[]) : null;
+  }
+  return null;
+}
+
 export const FIELD_LIMITS = {
   /** TEXT and URL. */
   text: 2000,
