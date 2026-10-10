@@ -17,11 +17,16 @@ import {
 } from "@/features/issues/card-fields";
 import { GroupIcon } from "@/features/issues/components/GroupIcon/GroupIcon";
 import {
+  type BuiltinGroupKey,
+  customFieldIdOf,
+  customGroupKey,
   GROUP_KEYS,
   type GroupDef,
   type GroupKey,
   type GroupLookups,
   groupDefs,
+  isCustomGroupKey,
+  isGroupableField,
 } from "@/features/issues/group";
 import {
   type GroupView,
@@ -35,6 +40,7 @@ import {
 } from "@/features/projects/detail-fields";
 import { useRouter } from "@/i18n/navigation";
 import { useModal } from "@/lib/context";
+import type { FieldDefinition } from "@/lib/custom-fields";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
 import { FilterOptions } from "./FilterPopup";
@@ -83,10 +89,21 @@ const GROUP_KEY_FIELD: Partial<Record<GroupKey, DetailFieldKey>> = {
   storyPoints: "storyPoints",
 };
 
+/** What a grouping is called: a built-in one by its field, a custom one by the field's name. */
+function groupName(
+  key: GroupKey,
+  customFields: FieldDefinition[] | undefined,
+  t: (key: (typeof GROUP_LABEL_KEY)[BuiltinGroupKey]) => string,
+): string {
+  if (!isCustomGroupKey(key)) return t(GROUP_LABEL_KEY[key]);
+  return customFields?.find((f) => f.id === customFieldIdOf(key))?.name ?? key;
+}
+
 /** What can be grouped / ordered by right now — depends on the shown fields. */
 function availableKeys(
   projectHiddenFields: string[],
   hidden: Set<CardFieldKey>,
+  customFields: FieldDefinition[] = [],
 ) {
   const projectVisible = visibleDetailFields(projectHiddenFields);
   const sortKeys = SORT_KEYS.filter((key) => {
@@ -94,13 +111,18 @@ function availableKeys(
     if (!field || !projectVisible.has(field)) return !field;
     return !(isCardFieldKey(field) && hidden.has(field));
   });
-  const groupKeys = GROUP_KEYS.filter((key) => {
+  const builtinKeys: GroupKey[] = GROUP_KEYS.filter((key) => {
     const field = GROUP_KEY_FIELD[key];
     if (!field) return true;
     return (
       projectVisible.has(field) && !(isCardFieldKey(field) && hidden.has(field))
     );
   });
+  // A custom field with a list of choices is a grouping too.
+  const customKeys: GroupKey[] = customFields
+    .filter(isGroupableField)
+    .map((f) => customGroupKey(f.id));
+  const groupKeys: GroupKey[] = [...builtinKeys, ...customKeys];
   return { sortKeys, groupKeys };
 }
 
@@ -161,7 +183,7 @@ export function ViewSettings({
   );
 
   const { sortKeys: availableSortKeys, groupKeys: availableGroupKeys } =
-    availableKeys(projectHiddenFields, hidden);
+    availableKeys(projectHiddenFields, hidden, groupLookups.customFields);
   const activeGroupKey = availableGroupKeys.includes(groupKey)
     ? groupKey
     : "status";
@@ -528,6 +550,7 @@ export function DisplayPanel({
   const { sortKeys, groupKeys } = availableKeys(
     state.projectHiddenFields,
     state.hidden,
+    state.groupLookups.customFields,
   );
 
   // The groups of the active grouping (BARY-47) — for statuses all of them,
@@ -538,6 +561,7 @@ export function DisplayPanel({
     {
       unassigned: t("fields.unassigned"),
       noStoryPoints: t("fields.noStoryPoints"),
+      noValue: t("customFields.noValue"),
     },
     [],
   );
@@ -604,7 +628,7 @@ export function DisplayPanel({
             options: isGroup
               ? groupKeys.map((key) => ({
                   value: key,
-                  label: t(GROUP_LABEL_KEY[key]),
+                  label: groupName(key, state.groupLookups.customFields, t),
                 }))
               : sortKeys.map((key) => ({
                   value: key,
@@ -627,7 +651,7 @@ export function DisplayPanel({
     <>
       <ChoiceRow
         title={t("display.grouping")}
-        value={t(GROUP_LABEL_KEY[state.groupKey])}
+        value={groupName(state.groupKey, state.groupLookups.customFields, t)}
         onOpen={() => onFacetChange("group")}
       />
       <ChoiceRow

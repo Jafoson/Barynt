@@ -6,6 +6,8 @@ import { BoardColumnSwitcher } from "@/features/issues/components/BoardColumnSwi
 import {
   type GroupKey,
   groupDefs,
+  groupField,
+  resolveGroupKey,
   visibleGroups,
 } from "@/features/issues/group";
 import { isGroupHidden } from "@/features/issues/hidden-groups";
@@ -59,10 +61,13 @@ export function Board({
   composer,
   hiddenCardFields,
   sortKey,
-  groupKey,
+  groupKey: requestedGroupKey,
   hiddenGroups,
   hideEmptyGroups,
 }: BoardProps) {
+  // A grouping by a custom field that has since gone is a status board.
+  const groupKey = resolveGroupKey(requestedGroupKey, composer.customFields);
+  const groupFieldDef = groupField(groupKey, composer.customFields);
   const lookups: IssueLookups = {
     projects: composer.projects,
     members: composer.members,
@@ -84,6 +89,7 @@ export function Board({
       members: composer.members,
     },
     groupKey,
+    groupFieldDef,
   );
   // Shift + wheel scrolls the columns horizontally, no matter where the pointer is.
   const scrollSetter = useShiftScroll();
@@ -120,10 +126,12 @@ export function Board({
       priorities: composer.priorities,
       issueTypes: composer.issueTypes,
       members: composer.members,
+      customFields: composer.customFields,
     },
     {
       unassigned: t("fields.unassigned"),
       noStoryPoints: t("fields.noStoryPoints"),
+      noValue: t("customFields.noValue"),
     },
     issues,
   );
@@ -199,8 +207,8 @@ export function Board({
     });
   };
 
-  const moveCard = (issue: IssueDetail, groupId: string) => {
-    board.moveIssue(issue, groupId);
+  const moveCard = (issue: IssueDetail, groupId: string, fromId?: string) => {
+    board.moveIssue(issue, groupId, fromId);
     const target = groups.find((g) => g.id === groupId);
     if (target) toast(t("issues.movedTo", { group: target.label }));
   };

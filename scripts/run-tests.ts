@@ -58,7 +58,11 @@ const SEGMENTS: string[][] = [
     "tests/unit/richtext",
     "tests/unit/table",
     "tests/unit/ui",
-    "tests/unit/customfields",
+    // The pure ones only; the files that mock `@/lib/db` have processes of
+    // their own below.
+    "tests/unit/customfields/validate.test.ts",
+    "tests/unit/customfields/datetime.test.ts",
+    "tests/unit/customfields/group.test.ts",
   ],
   ["tests/unit/account"],
   // Mocks `@/lib/db`, `@/lib/permissions` and `@/lib/audit` — own process,

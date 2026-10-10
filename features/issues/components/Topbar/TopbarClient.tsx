@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import type { ViewGroupsPatch } from "@/features/issues/actions";
+import type { FieldDefinition } from "@/lib/custom-fields";
 import type {
   IssueType,
   Label,
@@ -29,6 +30,8 @@ interface TopbarClientProps {
   members: User[];
   labels: Label[];
   issueTypes: IssueType[];
+  /** Custom fields that can be grouped by (a list of choices). */
+  customFields: FieldDefinition[];
   /** Groups this person hid in this view, as `hidden-groups.ts` entries (BARY-47). */
   hiddenGroups: string[];
   hideEmptyGroups: boolean;
@@ -53,6 +56,7 @@ export function TopbarClient({
   members,
   labels,
   issueTypes,
+  customFields,
   hiddenGroups,
   hideEmptyGroups,
   showSubIssues,
@@ -173,7 +177,13 @@ export function TopbarClient({
             onGroupChange={setGroup}
             hiddenFields={hiddenCardFields}
             onDisplayChange={onDisplayChange}
-            groupLookups={{ statuses, priorities, issueTypes, members }}
+            groupLookups={{
+              statuses,
+              priorities,
+              issueTypes,
+              members,
+              customFields,
+            }}
             view={view}
             hiddenGroups={hiddenGroups}
             hideEmptyGroups={hideEmptyGroups}

@@ -1,10 +1,12 @@
 import { Suspense } from "react";
+import { getWorkspaceCustomFields } from "@/features/custom-fields/queries";
 import {
   setIssueViewFieldVisibility,
   setIssueViewGroups,
   setMyIssuesViewFieldVisibility,
   setMyIssuesViewGroups,
 } from "@/features/issues/actions";
+import { isGroupableField } from "@/features/issues/group";
 import {
   getIssueViewGroups,
   getIssueViewPreference,
@@ -43,6 +45,7 @@ export async function Topbar({ count, view, projectId }: TopbarProps) {
     hiddenCardFields,
     groups,
     issueTypes,
+    allCustomFields,
   ] = await Promise.all([
     getCurrentWorkspace(),
     getWorkspaceProjects(),
@@ -57,9 +60,18 @@ export async function Topbar({ count, view, projectId }: TopbarProps) {
       ? getIssueViewGroups(projectId, view)
       : getMyIssuesViewGroups(view),
     getWorkspaceIssueTypes(),
+    getWorkspaceCustomFields(),
   ]);
 
   if (!workspace) return null;
+
+  // Only the fields that can be grouped by, and — inside one project — only
+  // the ones that apply there: the workspace's and that project's own.
+  const customFields = allCustomFields.filter(
+    (f) =>
+      isGroupableField(f) &&
+      (projectId ? f.projectId === null || f.projectId === projectId : true),
+  );
 
   // Bound Server Actions, not closures — Client Components can only receive
   // props across the boundary that are themselves Server Actions; binding
@@ -86,6 +98,7 @@ export async function Topbar({ count, view, projectId }: TopbarProps) {
         labels={labels}
         hiddenCardFields={hiddenCardFields}
         issueTypes={issueTypes}
+        customFields={customFields}
         hiddenGroups={groups.hiddenGroups}
         hideEmptyGroups={groups.hideEmptyGroups}
         showSubIssues={groups.showSubIssues}
