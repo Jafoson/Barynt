@@ -30,10 +30,19 @@ export async function GET(
   const take = parseLimit(url.searchParams);
   const fields = url.searchParams.get("fields");
 
+  // `field.<key>=<value>` filters on custom fields.
+  const fieldFilters: Record<string, string> = {};
+  for (const [name, value] of url.searchParams) {
+    if (name.startsWith("field.") && name.length > 6) {
+      fieldFilters[name.slice(6)] = value;
+    }
+  }
+
   const page = await listIssuesForUser(auth.userId, id, {
     status: url.searchParams.get("status") ?? undefined,
     assignee: url.searchParams.get("assignee") ?? undefined,
     q: url.searchParams.get("q") ?? undefined,
+    fieldFilters,
     cursor: parseCursor(url.searchParams),
     take,
   });
