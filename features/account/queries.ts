@@ -49,7 +49,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   ...DEFAULT_BEHAVIOR,
   theme: "dark",
   adminNoticeHidden: false,
-  passkeyNudgeHidden: false,
   assignedInApp: true,
   assignedEmail: true,
   mentionedInApp: true,
@@ -92,7 +91,6 @@ export const getMyPreferences = cache(async (): Promise<Preferences> => {
     userId: _userId,
     theme,
     adminNoticeHidden,
-    passkeyNudgeHidden,
     projectLanding,
     startPage,
     issueOpenMode,
@@ -129,7 +127,6 @@ export const getMyPreferences = cache(async (): Promise<Preferences> => {
     }),
     theme: theme as Preferences["theme"],
     adminNoticeHidden,
-    passkeyNudgeHidden,
   };
 });
 

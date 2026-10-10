@@ -376,10 +376,6 @@ model UserPreferences {
   /// den Hinweis und der Browser nähme ihn beim Hydrieren wieder weg.
   adminNoticeHidden Boolean @default(false)
 
-  /// Der Passkey-Hinweis oben in der App. Weggeklickt kommt er nicht wieder —
-  /// auch nicht auf einem anderen Gerät; deshalb hier und nicht im Browser.
-  passkeyNudgeHidden Boolean @default(false)
-
   // ─── Verhalten: Navigation, Issues öffnen, Ansichten ──────────────────────
   // Wie bei `theme`: ein Wert pro Person, die Spalte trägt den Standard. Die
   // erlaubten Werte stehen in `features/account/preferences.ts`; geprüft wird

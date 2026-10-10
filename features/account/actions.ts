@@ -333,21 +333,6 @@ export async function setAdminNoticeHidden(hidden: boolean): Promise<Result> {
 }
 
 /**
- * The "set up a passkey" nudge: dismissed for good.
- *
- * Kept in the database like `adminNoticeHidden`, so it stays gone on every
- * device. Dismissing doesn't need a revalidate — the client hides the banner
- * itself, and the layout reads the flag on the next navigation.
- */
-export async function dismissPasskeyNudge(): Promise<Result> {
-  const session = await getSession();
-  if (!session) return { error: NOT_LOGGED_IN };
-
-  await writePreferences(session.userId, { passkeyNudgeHidden: true });
-  return { ok: true };
-}
-
-/**
  * A single notification toggle.
  *
  * Individually and not as a whole batch: the toggles apply immediately, and
