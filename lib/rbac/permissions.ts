@@ -242,6 +242,19 @@ export const PERMISSIONS = {
   "label.update": { desc: "Edit a label", scopes: WORKSPACE_AND_PROJECT },
   "label.delete": { desc: "Delete a label", scopes: WORKSPACE_AND_PROJECT },
 
+  // ── Custom fields ───────────────────────────────────────────────────────────
+  //
+  // One key for define, change, sort, archive and delete — a field's
+  // definition is a single act of configuration, unlike labels, which people
+  // create on the fly while working. Filling in a value on an issue is
+  // covered by `issue.update.*`, like setting a label. Where it applies is
+  // decided by the context: a workspace role manages the fields that exist in
+  // every project, a project role only that project's own.
+  "customfield.manage": {
+    desc: "Define, change, archive and delete custom fields",
+    scopes: WORKSPACE_AND_PROJECT,
+  },
+
   // ── Issues ──────────────────────────────────────────────────────────────────
   //
   // An issue always lives in a project — there's no workspace-wide issue.
