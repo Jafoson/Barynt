@@ -32,6 +32,36 @@ export function isCustomFieldType(value: unknown): value is CustomFieldType {
   );
 }
 
+/** What a choice of a field may carry besides its name. */
+export const OPTION_VISUALS = ["icon", "image", "color"] as const;
+export type OptionVisualKind = (typeof OPTION_VISUALS)[number];
+
+export function isOptionVisual(value: unknown): value is OptionVisualKind {
+  return (
+    typeof value === "string" &&
+    (OPTION_VISUALS as readonly string[]).includes(value)
+  );
+}
+
+const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+
+/**
+ * The choices reduced to what the field allows them to carry: an icon, an
+ * image or a colour that is not allowed is dropped. Run on every save, so
+ * turning a kind off cleans up after itself.
+ */
+export function limitOptionVisuals(
+  options: FieldOption[],
+  allowed: readonly string[],
+): FieldOption[] {
+  return options.map((o) => ({
+    ...o,
+    icon: allowed.includes("icon") ? (o.icon ?? null) : null,
+    image: allowed.includes("image") ? (o.image ?? null) : null,
+    color: allowed.includes("color") ? (o.color ?? null) : null,
+  }));
+}
+
 /** A choice of a SELECT or MULTI_SELECT field. The id is what gets stored. */
 export interface FieldOption {
   id: string;
@@ -68,6 +98,8 @@ export interface FieldDefinition {
   dateMode: DateMode;
   /** SELECT and MULTI_SELECT: may people add a choice while filling in. */
   allowCustomOptions: boolean;
+  /** SELECT and MULTI_SELECT: what a choice may carry besides its name. */
+  optionVisuals: OptionVisualKind[];
   /** `null` = a workspace field, which applies in every project. */
   projectId: string | null;
 }
@@ -293,6 +325,8 @@ export function validateOptions(
     return { ok: false, error: "a choice label is empty or too long" };
   if (new Set(options.map((o) => o.id)).size !== options.length)
     return { ok: false, error: "choice ids must be unique" };
+  if (options.some((o) => o.color && !COLOR_RE.test(o.color)))
+    return { ok: false, error: "a choice has an invalid colour" };
   if (options.some((o) => o.icon && !isCustomFieldIcon(o.icon)))
     return { ok: false, error: "a choice has an icon that is not in the list" };
   if (options.some((o) => (o.image?.length ?? 0) > FIELD_LIMITS.imageKey))

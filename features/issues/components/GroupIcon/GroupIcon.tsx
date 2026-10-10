@@ -14,9 +14,16 @@ export function GroupIcon({ group, size }: { group: GroupDef; size: number }) {
   // and nothing otherwise: a generic circle in front of every column only
   // adds noise.
   if (isCustomGroupKey(group.key)) {
-    return group.icon || group.imageUrl ? (
-      <OptionVisual option={group} size={size} />
-    ) : null;
+    return (
+      <OptionVisual
+        option={{
+          icon: group.icon,
+          imageUrl: group.imageUrl,
+          color: group.color ?? null,
+        }}
+        size={size}
+      />
+    );
   }
   switch (group.key) {
     case "status":

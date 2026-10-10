@@ -2,6 +2,7 @@ import type {
   CustomFieldType,
   DateMode,
   FieldOption,
+  OptionVisualKind,
 } from "@/lib/custom-fields";
 
 export interface CustomFieldRow {
@@ -14,6 +15,7 @@ export interface CustomFieldRow {
   icon: string | null;
   dateMode: DateMode;
   allowCustomOptions: boolean;
+  optionVisuals: OptionVisualKind[];
   archived: boolean;
   /** How many issues have a value in this field. */
   valueCount: number;
@@ -38,6 +40,7 @@ export type CustomFieldError =
   | "options_invalid"
   | "icon_invalid"
   | "image_invalid"
+  | "visuals_invalid"
   | "date_mode_invalid"
   | "limit_reached"
   | "not_found";

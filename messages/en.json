@@ -1474,7 +1474,8 @@
       "failed": "The field couldn't be saved. Try again.",
       "icon_invalid": "That icon isn't in the list.",
       "date_mode_invalid": "Choose date, date and time, or time only.",
-      "image_invalid": "An image wasn't accepted. Upload it again."
+      "image_invalid": "An image wasn't accepted. Upload it again.",
+      "visuals_invalid": "Choose icon, image or colour."
     },
     "noValue": "Not set",
     "yes": "Yes",
@@ -1489,7 +1490,6 @@
       "TIME": "Time only"
     },
     "allowCustom": "Allow own values",
-    "allowCustomDesc": "Anyone who can edit an issue can add a new value while filling it in. It is then available to everyone.",
     "createValue": "Add “{value}”",
     "searchValues": "Search values…",
     "optionVisual": "Icon or image",
@@ -1498,6 +1498,10 @@
     "imageHint": "PNG, JPEG, WebP or GIF, up to 1 MB.",
     "imageTooLarge": "The image is too large, up to 1 MB.",
     "imageType": "PNG, JPEG, WebP or GIF only.",
-    "imageFailed": "The image couldn't be uploaded."
+    "imageFailed": "The image couldn't be uploaded.",
+    "optionVisuals": "Choices can carry",
+    "visualIcon": "Icon",
+    "visualImage": "Image",
+    "visualColor": "Colour"
   }
 }

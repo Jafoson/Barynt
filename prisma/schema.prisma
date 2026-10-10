@@ -1133,6 +1133,10 @@ model CustomField {
   /// beim Ausfüllen eine neue Auswahl hinzufügen. Sie wird eine Auswahl des
   /// Feldes, für alle.
   allowCustomOptions Boolean      @default(false)
+  /// Nur für SELECT und MULTI_SELECT: was eine Auswahl tragen darf — "icon",
+  /// "image", "color". Leer heißt: nur den Namen. Beim Speichern werden
+  /// Angaben entfernt, die hier nicht (mehr) erlaubt sind.
+  optionVisuals String[]       @default([])
   position    Int             @default(0)
   archivedAt  DateTime?
   created     DateTime        @default(now())

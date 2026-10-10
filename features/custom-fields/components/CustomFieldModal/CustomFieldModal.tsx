@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
+import { Chip } from "@/components/ui/atoms/Chip/Chip";
 import { Input } from "@/components/ui/atoms/Input/Input";
 import { NativeSelect } from "@/components/ui/atoms/NativeSelect/NativeSelect";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
@@ -27,6 +28,8 @@ import {
   DATE_MODES,
   type DateMode,
   FIELD_LIMITS,
+  OPTION_VISUALS,
+  type OptionVisualKind,
   usesOptions,
 } from "@/lib/custom-fields";
 import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
@@ -48,6 +51,7 @@ interface OptionDraft {
   id?: string;
   label: string;
   icon: string | null;
+  color: string | null;
   image: string | null;
   imageUrl: string | null;
 }
@@ -78,16 +82,28 @@ export function CustomFieldModal({
   const [allowCustom, setAllowCustom] = useState(
     field?.allowCustomOptions ?? false,
   );
+  // What a choice may carry besides its name.
+  const [visuals, setVisuals] = useState<OptionVisualKind[]>(
+    field?.optionVisuals ?? [],
+  );
   const [options, setOptions] = useState<OptionDraft[]>(
     field?.options.map((o) => ({
       id: o.id,
       label: o.label,
       icon: o.icon ?? null,
+      color: o.color ?? null,
       image: o.image ?? null,
       imageUrl: o.imageUrl ?? null,
     })) ?? [],
   );
   const [error, setError] = useState("");
+
+  const kindLabel = (kind: OptionVisualKind) =>
+    kind === "icon"
+      ? t("customFields.visualIcon")
+      : kind === "image"
+        ? t("customFields.visualImage")
+        : t("customFields.visualColor");
 
   const trimmed = name.trim();
   const hasOptions = usesOptions(type);
@@ -108,6 +124,7 @@ export function CustomFieldModal({
             id: o.id,
             label: o.label.trim(),
             icon: o.icon,
+            color: o.color,
             image: o.image,
           }))
           .filter((o) => o.label !== "")
@@ -121,7 +138,11 @@ export function CustomFieldModal({
               description,
               icon,
               ...(hasOptions
-                ? { options: choices, allowCustomOptions: allowCustom }
+                ? {
+                    options: choices,
+                    allowCustomOptions: allowCustom,
+                    optionVisuals: visuals,
+                  }
                 : {}),
             })
           : await createCustomField({
@@ -133,7 +154,9 @@ export function CustomFieldModal({
               options: choices,
               icon,
               ...(type === "DATE" ? { dateMode } : {}),
-              ...(hasOptions ? { allowCustomOptions: allowCustom } : {}),
+              ...(hasOptions
+                ? { allowCustomOptions: allowCustom, optionVisuals: visuals }
+                : {}),
             });
         if ("error" in result) {
           setError(t(`customFields.errors.${result.error}`));
@@ -279,7 +302,32 @@ export function CustomFieldModal({
                 onChange={setAllowCustom}
                 label={t("customFields.allowCustom")}
               />
-              <p className={styles.hint}>{t("customFields.allowCustomDesc")}</p>
+            </div>
+          )}
+
+          {hasOptions && (
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>
+                {t("customFields.optionVisuals")}
+              </span>
+              <div className={styles.kinds}>
+                {OPTION_VISUALS.map((kind) => (
+                  <Chip
+                    key={kind}
+                    type="filter"
+                    selected={visuals.includes(kind)}
+                    onClick={() =>
+                      setVisuals((list) =>
+                        list.includes(kind)
+                          ? list.filter((k) => k !== kind)
+                          : [...list, kind],
+                      )
+                    }
+                  >
+                    {kindLabel(kind)}
+                  </Chip>
+                ))}
+              </div>
             </div>
           )}
 
@@ -294,25 +342,30 @@ export function CustomFieldModal({
                     className={styles.option}
                     key={option.id ?? `new-${index}`}
                   >
-                    <OptionVisualPicker
-                      value={option}
-                      workspaceId={workspaceId}
-                      projectId={projectId}
-                      onChange={(visual) =>
-                        setOptions((list) =>
-                          list.map((o, i) =>
-                            i === index ? { ...o, ...visual } : o,
-                          ),
-                        )
-                      }
-                    />
-                    <Input
-                      aria-label={t("customFields.optionPlaceholder")}
-                      value={option.label}
-                      maxLength={FIELD_LIMITS.optionLabel}
-                      placeholder={t("customFields.optionPlaceholder")}
-                      onChange={(e) => setOption(index, e.target.value)}
-                    />
+                    {visuals.length > 0 && (
+                      <OptionVisualPicker
+                        kinds={visuals}
+                        value={option}
+                        workspaceId={workspaceId}
+                        projectId={projectId}
+                        onChange={(visual) =>
+                          setOptions((list) =>
+                            list.map((o, i) =>
+                              i === index ? { ...o, ...visual } : o,
+                            ),
+                          )
+                        }
+                      />
+                    )}
+                    <div className={styles.optionName}>
+                      <Input
+                        aria-label={t("customFields.optionPlaceholder")}
+                        value={option.label}
+                        maxLength={FIELD_LIMITS.optionLabel}
+                        placeholder={t("customFields.optionPlaceholder")}
+                        onChange={(e) => setOption(index, e.target.value)}
+                      />
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -339,6 +392,7 @@ export function CustomFieldModal({
                           {
                             label: "",
                             icon: null,
+                            color: null,
                             image: null,
                             imageUrl: null,
                           },

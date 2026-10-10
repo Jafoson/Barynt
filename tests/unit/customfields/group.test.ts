@@ -29,6 +29,7 @@ const multi: FieldDefinition = {
   icon: null,
   dateMode: "DATE",
   allowCustomOptions: false,
+  optionVisuals: [],
   projectId: null,
 };
 const single: FieldDefinition = { ...multi, id: "f_size", type: "SELECT" };

@@ -1474,7 +1474,8 @@
       "failed": "Das Feld konnte nicht gespeichert werden. Versuche es erneut.",
       "icon_invalid": "Dieses Icon gibt es nicht in der Auswahl.",
       "date_mode_invalid": "Wähle, ob Datum, Datum und Uhrzeit oder nur Uhrzeit.",
-      "image_invalid": "Ein Bild wurde nicht übernommen. Lade es noch einmal hoch."
+      "image_invalid": "Ein Bild wurde nicht übernommen. Lade es noch einmal hoch.",
+      "visuals_invalid": "Wähle Icon, Bild oder Farbe."
     },
     "noValue": "Nicht gesetzt",
     "yes": "Ja",
@@ -1489,7 +1490,6 @@
       "TIME": "Nur Uhrzeit"
     },
     "allowCustom": "Eigene Werte erlauben",
-    "allowCustomDesc": "Wer ein Issue bearbeiten darf, kann beim Ausfüllen einen neuen Wert hinzufügen. Er steht danach für alle zur Auswahl.",
     "createValue": "„{value}“ hinzufügen",
     "searchValues": "Werte suchen…",
     "optionVisual": "Icon oder Bild",
@@ -1498,6 +1498,10 @@
     "imageHint": "PNG, JPEG, WebP oder GIF, höchstens 1 MB.",
     "imageTooLarge": "Das Bild ist zu groß, höchstens 1 MB.",
     "imageType": "Nur PNG, JPEG, WebP oder GIF.",
-    "imageFailed": "Das Bild konnte nicht hochgeladen werden."
+    "imageFailed": "Das Bild konnte nicht hochgeladen werden.",
+    "optionVisuals": "Auswahlen können tragen",
+    "visualIcon": "Icon",
+    "visualImage": "Bild",
+    "visualColor": "Farbe"
   }
 }

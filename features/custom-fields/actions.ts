@@ -14,7 +14,10 @@ import {
   isCustomFieldIcon,
   isCustomFieldType,
   isDateMode,
+  isOptionVisual,
   isReservedFieldKey,
+  limitOptionVisuals,
+  type OptionVisualKind,
   toOptions,
   usesOptions,
   validateOptions,
@@ -94,6 +97,13 @@ function plainOptions(options: FieldOption[]) {
   }));
 }
 
+/** The kinds a client asked for, or `null` if one is unknown. */
+function cleanVisuals(input: string[] | undefined): OptionVisualKind[] | null {
+  if (input === undefined) return [];
+  if (!Array.isArray(input) || !input.every(isOptionVisual)) return null;
+  return [...new Set(input)];
+}
+
 /** The storage keys of the images the options carry. */
 function imageKeys(options: FieldOption[]): Set<string> {
   return new Set(options.flatMap((o) => (o.image ? [o.image] : [])));
@@ -169,6 +179,8 @@ export async function createCustomField(input: {
   dateMode?: string;
   /** Only for a choice field. */
   allowCustomOptions?: boolean;
+  /** Only for a choice field: `icon`, `image`, `color`. */
+  optionVisuals?: string[];
 }): Promise<CustomFieldResult<{ id: string; key: string }>> {
   const scope = await scopeForNew(input);
   if (!scope) return { error: "not_found" };
@@ -180,8 +192,17 @@ export async function createCustomField(input: {
   if (description === null) return { error: "description_invalid" };
   if (!isCustomFieldType(input.type)) return { error: "type_invalid" };
 
-  const options = validateOptions(input.type, withIds(input.options));
-  if (!options.ok) return { error: "options_invalid" };
+  const visuals = cleanVisuals(input.optionVisuals);
+  if (!visuals) return { error: "visuals_invalid" };
+  const shownVisuals = usesOptions(input.type) ? visuals : [];
+
+  const validated = validateOptions(input.type, withIds(input.options));
+  if (!validated.ok) return { error: "options_invalid" };
+  // Only what the field allows a choice to carry is kept.
+  const options = {
+    ...validated,
+    options: limitOptionVisuals(validated.options, shownVisuals),
+  };
 
   const icon = input.icon ?? null;
   if (icon !== null && !isCustomFieldIcon(icon))
@@ -222,6 +243,7 @@ export async function createCustomField(input: {
       allowCustomOptions: usesOptions(input.type)
         ? input.allowCustomOptions === true
         : false,
+      optionVisuals: shownVisuals,
       options: plainOptions(options.options),
       position: (last._max.position ?? -1) + 1,
     },
@@ -242,6 +264,7 @@ async function loadField(id: string) {
       name: true,
       type: true,
       options: true,
+      optionVisuals: true,
     },
   });
   if (!field) return null;
@@ -271,6 +294,7 @@ export async function updateCustomField(
     options?: OptionInput[];
     icon?: string | null;
     allowCustomOptions?: boolean;
+    optionVisuals?: string[];
   },
 ): Promise<CustomFieldResult> {
   const found = await loadField(id);
@@ -284,6 +308,7 @@ export async function updateCustomField(
     options?: object[];
     icon?: string | null;
     allowCustomOptions?: boolean;
+    optionVisuals?: OptionVisualKind[];
   } = {};
   if (patch.name !== undefined) {
     const name = cleanName(patch.name);
@@ -306,11 +331,42 @@ export async function updateCustomField(
     data.allowCustomOptions = patch.allowCustomOptions === true;
   }
 
+  // What a choice may carry: the new setting, else the stored one.
+  let visuals: OptionVisualKind[] = (field.optionVisuals ?? []).filter(
+    isOptionVisual,
+  );
+  const visualsChanged =
+    patch.optionVisuals !== undefined && usesOptions(field.type);
+  if (visualsChanged) {
+    const cleaned = cleanVisuals(patch.optionVisuals);
+    if (!cleaned) return { error: "visuals_invalid" };
+    visuals = cleaned;
+    data.optionVisuals = cleaned;
+  }
+
   let removed: string[] = [];
   let droppedImages: string[] = [];
-  if (patch.options !== undefined && usesOptions(field.type)) {
-    const options = validateOptions(field.type, withIds(patch.options));
-    if (!options.ok) return { error: "options_invalid" };
+  if (
+    (patch.options !== undefined || visualsChanged) &&
+    usesOptions(field.type)
+  ) {
+    // Without new choices, the stored ones are re-saved under the new rule.
+    const source: OptionInput[] =
+      patch.options !== undefined
+        ? patch.options
+        : toOptions(field.options).map((o) => ({
+            id: o.id,
+            label: o.label,
+            color: o.color,
+            icon: o.icon,
+            image: o.image,
+          }));
+    const validated = validateOptions(field.type, withIds(source));
+    if (!validated.ok) return { error: "options_invalid" };
+    const options = {
+      ...validated,
+      options: limitOptionVisuals(validated.options, visuals),
+    };
     const before = toOptions(field.options);
     const kept = new Set(options.options.map((o) => o.id));
     removed = before.map((o) => o.id).filter((optionId) => !kept.has(optionId));

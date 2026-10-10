@@ -178,6 +178,7 @@ describe("createCustomField()", () => {
       name: "Size",
       type: "SELECT",
       options: [{ label: "S" }, { label: "M", color: "#112233" }],
+      optionVisuals: ["color"],
     });
     const options = cf.create.mock.calls[0][0].data.options;
     expect(options).toHaveLength(2);
@@ -282,6 +283,7 @@ describe("option images", () => {
       name: "Team",
       type: "SELECT",
       options: [{ label: "A", image: "fieldoptions/ws-1/a.png" }],
+      optionVisuals: ["image"],
     });
     expect(r).toMatchObject({ ok: true });
     expect(finalize.mock.calls[0]).toEqual([
@@ -300,6 +302,7 @@ describe("option images", () => {
       name: "Team",
       type: "SELECT",
       options: [{ label: "A", image: "fieldoptions/ws-OTHER/a.png" }],
+      optionVisuals: ["image"],
     });
     expect(r).toEqual({ error: "image_invalid" });
     expect(finalize).not.toHaveBeenCalled();
@@ -313,6 +316,7 @@ describe("option images", () => {
       name: "Team",
       type: "SELECT",
       options: [{ label: "A", image: "fieldoptions/ws-1/missing.png" }],
+      optionVisuals: ["image"],
     });
     expect(r).toEqual({ error: "image_invalid" });
   });
@@ -324,6 +328,7 @@ describe("option images", () => {
       projectId: null,
       name: "Team",
       type: "SELECT",
+      optionVisuals: ["image"],
       options: [
         {
           id: "o_a",
@@ -388,6 +393,94 @@ describe("option images", () => {
       contentLength: 2 * 1024 * 1024,
     });
     expect(big).toEqual({ error: "too_large" });
+  });
+});
+
+describe("what a choice may carry", () => {
+  beforeEach(reset);
+
+  const rich = {
+    label: "A",
+    icon: "lucide:user",
+    color: "#aabbcc",
+    image: "fieldoptions/ws-1/a.png",
+  };
+
+  it("stores only the kinds the field allows", async () => {
+    const r = await createCustomField({
+      workspaceId: "ws-1",
+      name: "Team",
+      type: "SELECT",
+      options: [rich],
+      optionVisuals: ["color"],
+    });
+    expect(r).toMatchObject({ ok: true });
+    const data = cf.create.mock.calls[0][0].data;
+    expect(data.optionVisuals).toEqual(["color"]);
+    expect(data.options[0]).toMatchObject({
+      color: "#aabbcc",
+      icon: null,
+      image: null,
+    });
+  });
+
+  it("stores nothing extra when no kind is allowed", async () => {
+    await createCustomField({
+      workspaceId: "ws-1",
+      name: "Team",
+      type: "SELECT",
+      options: [rich],
+    });
+    const data = cf.create.mock.calls[0][0].data;
+    expect(data.optionVisuals).toEqual([]);
+    expect(data.options[0]).toMatchObject({
+      color: null,
+      icon: null,
+      image: null,
+    });
+  });
+
+  it("rejects an unknown kind", async () => {
+    const r = await createCustomField({
+      workspaceId: "ws-1",
+      name: "Team",
+      type: "SELECT",
+      options: [{ label: "A" }],
+      optionVisuals: ["sparkle"],
+    });
+    expect(r).toEqual({ error: "visuals_invalid" });
+  });
+
+  it("strips stored choices and drops their images when a kind is turned off", async () => {
+    cf.findUnique.mockResolvedValue({
+      id: "f1",
+      workspaceId: "ws-1",
+      projectId: null,
+      name: "Team",
+      type: "SELECT",
+      optionVisuals: ["icon", "image"],
+      options: [
+        {
+          id: "o_a",
+          label: "A",
+          color: null,
+          icon: "lucide:user",
+          image: "fieldoptions/ws-1/a.png",
+        },
+      ],
+    });
+    const r = await updateCustomField("f1", { optionVisuals: ["icon"] });
+    expect(r).toEqual({ ok: true });
+    const written = tx.customField.update.mock.calls[0][0].data;
+    expect(written.optionVisuals).toEqual(["icon"]);
+    expect(written.options[0]).toMatchObject({
+      icon: "lucide:user",
+      image: null,
+    });
+    const dropped = (
+      deleteAvatarObject as ReturnType<typeof mock>
+    ).mock.calls.map((c) => c[0]);
+    expect(dropped).toEqual(["fieldoptions/ws-1/a.png"]);
   });
 });
 

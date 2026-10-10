@@ -7,7 +7,7 @@ import type {
 } from "@/features/custom-fields/types";
 import { getWorkspaceProjects } from "@/features/workspaces/queries";
 import { getCurrentWorkspaceId } from "@/lib/current-workspace";
-import type { FieldDefinition } from "@/lib/custom-fields";
+import { type FieldDefinition, isOptionVisual } from "@/lib/custom-fields";
 import { db } from "@/lib/db";
 import { accessFor, currentUserId } from "@/lib/permissions";
 
@@ -32,6 +32,7 @@ async function toRow(f: FieldRecord): Promise<CustomFieldRow> {
     icon: f.icon,
     dateMode: f.dateMode,
     allowCustomOptions: f.allowCustomOptions,
+    optionVisuals: f.optionVisuals.filter(isOptionVisual),
     archived: f.archivedAt !== null,
     valueCount: f._count.values,
   };
@@ -118,6 +119,7 @@ export const getWorkspaceCustomFields = cache(
         icon: f.icon,
         dateMode: f.dateMode,
         allowCustomOptions: f.allowCustomOptions,
+        optionVisuals: f.optionVisuals.filter(isOptionVisual),
         projectId: f.projectId,
       })),
     );

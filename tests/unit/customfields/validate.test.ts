@@ -3,6 +3,7 @@ import {
   fieldKeyFromName,
   isCalendarDate,
   isReservedFieldKey,
+  limitOptionVisuals,
   narrowFieldValue,
   toOptions,
   validateFieldValue,
@@ -270,5 +271,45 @@ describe("options with an icon or an image", () => {
         { id: "a", label: "A", image: "x".repeat(201) },
       ]).ok,
     ).toBe(false);
+  });
+});
+
+describe("option colours and the kinds a field allows", () => {
+  it("accepts a hex colour and rejects anything else", () => {
+    expect(
+      validateOptions("SELECT", [{ id: "a", label: "A", color: "#aabbcc" }]).ok,
+    ).toBe(true);
+    for (const color of ["red", "#abc", "#gggggg", "url(x)"]) {
+      expect(
+        validateOptions("SELECT", [{ id: "a", label: "A", color }]).ok,
+      ).toBe(false);
+    }
+  });
+
+  it("keeps only what the field allows a choice to carry", () => {
+    const options = [
+      {
+        id: "a",
+        label: "A",
+        color: "#aabbcc",
+        icon: "lucide:user",
+        image: "k.png",
+      },
+    ];
+    expect(limitOptionVisuals(options, [])[0]).toMatchObject({
+      color: null,
+      icon: null,
+      image: null,
+    });
+    expect(limitOptionVisuals(options, ["color"])[0]).toMatchObject({
+      color: "#aabbcc",
+      icon: null,
+      image: null,
+    });
+    expect(limitOptionVisuals(options, ["icon", "image"])[0]).toMatchObject({
+      color: null,
+      icon: "lucide:user",
+      image: "k.png",
+    });
   });
 });

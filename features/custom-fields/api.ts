@@ -50,6 +50,8 @@ export interface ApiCustomField {
   dateMode: "DATE" | "DATETIME" | "TIME";
   /** Whether an unknown choice sent for this field is added as a new one. */
   allowCustomOptions: boolean;
+  /** What a choice may carry: `icon`, `image`, `color`. */
+  optionVisuals: string[];
   /** `null` = workspace-wide, otherwise the one project it belongs to. */
   projectId: string | null;
 }
@@ -64,6 +66,7 @@ export function toApiCustomField(f: {
   icon: string | null;
   dateMode: "DATE" | "DATETIME" | "TIME";
   allowCustomOptions: boolean;
+  optionVisuals: string[];
   projectId: string | null;
 }): ApiCustomField {
   return {
@@ -83,6 +86,7 @@ export function toApiCustomField(f: {
     icon: f.icon,
     dateMode: f.dateMode,
     allowCustomOptions: f.allowCustomOptions,
+    optionVisuals: f.optionVisuals,
     projectId: f.projectId,
   };
 }

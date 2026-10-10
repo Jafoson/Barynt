@@ -188,7 +188,7 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
           }
           removeLabel={t("actions.removeLabel", { name: option.label })}
         >
-          <OptionVisual option={option} size={13} />
+          <OptionVisual option={option} size={13} showColor={false} />
           {option.label}
         </LabelChip>
       ));
