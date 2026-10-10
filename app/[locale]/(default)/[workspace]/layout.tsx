@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { passkeyLoginEnabled } from "@/auth.config";
 import { AppShell } from "@/components/ui/layout/AppShell/AppShell";
-import { getMySecurity } from "@/features/account/queries";
+import { getMyPreferences, getMySecurity } from "@/features/account/queries";
 import { PasskeyNudge } from "@/features/auth/components/PasskeyNudge/PasskeyNudge";
 import { GlobalUpdateBanner } from "@/features/issues/components/UpdateBanner/GlobalUpdateBanner";
 import { getCurrentWorkspace } from "@/features/workspaces/queries";
@@ -38,13 +38,19 @@ export default async function AppLayout({
   // protects the pages beneath it.
   if (!(await canEnterWorkspace(session.userId, workspace.id))) notFound();
 
-  const security = await getMySecurity();
+  const [security, preferences] = await Promise.all([
+    getMySecurity(),
+    getMyPreferences(),
+  ]);
 
   return (
     <AppShell>
-      {passkeyLoginEnabled && security && security.passkeys.length === 0 && (
-        <PasskeyNudge securityHref={accountPath(workspaceId, "security")} />
-      )}
+      {passkeyLoginEnabled &&
+        security &&
+        security.passkeys.length === 0 &&
+        !preferences.passkeyNudgeHidden && (
+          <PasskeyNudge securityHref={accountPath(workspaceId, "security")} />
+        )}
       <GlobalUpdateBanner workspaceId={workspace.id} />
       {children}
     </AppShell>

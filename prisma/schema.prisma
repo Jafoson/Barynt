@@ -376,6 +376,10 @@ model UserPreferences {
   /// den Hinweis und der Browser nähme ihn beim Hydrieren wieder weg.
   adminNoticeHidden Boolean @default(false)
 
+  /// Der Passkey-Hinweis oben in der App. Weggeklickt kommt er nicht wieder —
+  /// auch nicht auf einem anderen Gerät; deshalb hier und nicht im Browser.
+  passkeyNudgeHidden Boolean @default(false)
+
   // Benachrichtigungen, je Anlass einmal für die App und einmal für die Mail.
   // Es gibt noch keinen Mailversand; die Spalten stehen trotzdem hier, damit die
   // Wahl schon getroffen werden kann und nicht später nachgeholt werden muss.

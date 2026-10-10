@@ -40,6 +40,8 @@ export interface Preferences extends NotificationSettings {
   theme: Theme;
   /** Whether the notice in the platform area has been dismissed. */
   adminNoticeHidden: boolean;
+  /** Whether the "set up a passkey" nudge has been dismissed. */
+  passkeyNudgeHidden: boolean;
 }
 
 /** General: who you are and how you appear. */

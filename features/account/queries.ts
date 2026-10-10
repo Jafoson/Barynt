@@ -47,6 +47,7 @@ export const OIDC_PROVIDER_ID = "oidc";
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: "dark",
   adminNoticeHidden: false,
+  passkeyNudgeHidden: false,
   assignedInApp: true,
   assignedEmail: true,
   mentionedInApp: true,
@@ -85,11 +86,18 @@ export const getMyPreferences = cache(async (): Promise<Preferences> => {
   // Everything that isn't a notification is pulled out individually — what
   // remains is exactly the toggles from `NotificationSettings`. A new column
   // not listed here would otherwise silently end up in there.
-  const { userId: _userId, theme, adminNoticeHidden, ...notifications } = row;
+  const {
+    userId: _userId,
+    theme,
+    adminNoticeHidden,
+    passkeyNudgeHidden,
+    ...notifications
+  } = row;
   return {
     ...notifications,
     theme: theme as Preferences["theme"],
     adminNoticeHidden,
+    passkeyNudgeHidden,
   };
 });
 
