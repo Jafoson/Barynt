@@ -1525,7 +1525,7 @@
     "linkFetchTitle": "Fetch the page's title when none is given",
     "linkFetchTitleHint": "The Barynt server requests the page and reads its title; the site sees the server, not you.",
     "linkTitle": "Title",
-    "linkTitlePlaceholder": "Leave empty: the page's title",
+    "linkTitlePlaceholder": "Page title",
     "numberUnitPlaceholder": "e.g. %, €, $, kg"
   }
 }

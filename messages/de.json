@@ -1525,7 +1525,7 @@
     "linkFetchTitle": "Titel von der Seite holen, wenn keiner eingetragen ist",
     "linkFetchTitleHint": "Der Barynt-Server ruft die Seite ab und liest den Titel; die Seite sieht den Server, nicht dich.",
     "linkTitle": "Titel",
-    "linkTitlePlaceholder": "Leer lassen: Titel der Seite",
+    "linkTitlePlaceholder": "Titel der Seite",
     "numberUnitPlaceholder": "z. B. %, €, $, kg"
   }
 }
