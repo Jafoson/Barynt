@@ -1,10 +1,16 @@
 "use client";
 
 import { Icon } from "@iconify/react";
+import { LinkText } from "@/features/custom-fields/components/LinkChip/LinkChip";
 import { OptionVisual } from "@/features/custom-fields/components/OptionVisual/OptionVisual";
+import { SiteIcon } from "@/features/custom-fields/components/SiteIcon/SiteIcon";
 import { fieldsFor, useFieldText } from "@/features/custom-fields/format";
 import type { IssueLookups } from "@/features/issues/types";
-import type { FieldDefinition } from "@/lib/custom-fields";
+import {
+  type FieldDefinition,
+  titleKey,
+  withScheme,
+} from "@/lib/custom-fields";
 import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import type { Issue } from "@/types";
 import styles from "./fieldChips.module.scss";
@@ -59,17 +65,26 @@ export function FieldChips({ issue, fields, members, max = 3 }: Props) {
         // What stands before the value is the person's choice. A field
         // without an icon shows its name where the icon was asked for, so a
         // chip is never a bare value.
-        const hasIcon = Boolean(field.icon);
-        const showIcon = hasIcon && fieldLabelMode !== "name";
+        // A link with its site's icon turned on shows that icon instead.
+        const link =
+          field.type === "URL" &&
+          typeof issue.fieldValues?.[field.id] === "string"
+            ? withScheme(String(issue.fieldValues?.[field.id]))
+            : null;
+        const siteIcon = link !== null && field.linkFavicon;
+        const hasIcon = Boolean(field.icon) || siteIcon;
+        const showIcon = hasIcon && (siteIcon || fieldLabelMode !== "name");
         const showName =
           fieldLabelMode === "name" || fieldLabelMode === "both" || !hasIcon;
+        const own = issue.fieldValues?.[titleKey(field.id)];
         return (
           <span
             key={field.id}
             className={styles.chip}
             title={`${field.name}: ${shown}`}
           >
-            {showIcon && field.icon && (
+            {showIcon && siteIcon && link && <SiteIcon url={link} size={12} />}
+            {showIcon && !siteIcon && field.icon && (
               <Icon
                 icon={field.icon}
                 width={12}
@@ -89,7 +104,17 @@ export function FieldChips({ issue, fields, members, max = 3 }: Props) {
                 ))}
               </span>
             ) : (
-              <span className={styles.value}>{shown}</span>
+              <span className={styles.value}>
+                {link ? (
+                  <LinkText
+                    url={link}
+                    title={typeof own === "string" ? own : null}
+                    fetchTitle={field.linkFetchTitle}
+                  />
+                ) : (
+                  shown
+                )}
+              </span>
             )}
           </span>
         );
