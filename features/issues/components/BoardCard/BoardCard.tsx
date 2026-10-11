@@ -347,7 +347,12 @@ export function BoardCard({
 
       {/* Meta: priority + identifier | time + comments */}
       {issue.fieldValues && Object.keys(issue.fieldValues).length > 0 && (
-        <FieldChips issue={issue} fields={customFields} members={members} />
+        <FieldChips
+          issue={issue}
+          fields={customFields}
+          members={members}
+          hidden={hiddenCardFields}
+        />
       )}
 
       <div className={styles.footer}>

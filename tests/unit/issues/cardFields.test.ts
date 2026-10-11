@@ -40,3 +40,18 @@ describe("isCardFieldKey() (BARY-33)", () => {
     expect(isCardFieldKey("status")).toBe(false);
   });
 });
+
+describe("custom field entries", () => {
+  it("tell a custom field apart from a built-in key", async () => {
+    const { customCardFieldEntry, hiddenCustomFieldIds, isCardFieldEntry } =
+      await import("@/features/issues/card-fields");
+    expect(customCardFieldEntry("cf_1")).toBe("cf:cf_1");
+    expect(isCardFieldEntry("cf:cf_1")).toBe(true);
+    expect(isCardFieldEntry("labels")).toBe(true);
+    expect(isCardFieldEntry("cf:")).toBe(false);
+    expect(isCardFieldEntry("nonsense")).toBe(false);
+    expect([...hiddenCustomFieldIds(["labels", "cf:cf_1", "cf:cf_2"])]).toEqual(
+      ["cf_1", "cf_2"],
+    );
+  });
+});

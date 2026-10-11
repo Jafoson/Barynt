@@ -451,6 +451,7 @@ export function ListView({
           issue={issue}
           fields={composer.customFields}
           members={members}
+          hidden={hiddenCardFields}
           max={2}
         />
       ),

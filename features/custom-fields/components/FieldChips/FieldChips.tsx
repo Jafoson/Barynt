@@ -6,6 +6,7 @@ import { LinkText } from "@/features/custom-fields/components/LinkChip/LinkChip"
 import { OptionVisual } from "@/features/custom-fields/components/OptionVisual/OptionVisual";
 import { SiteIcon } from "@/features/custom-fields/components/SiteIcon/SiteIcon";
 import { fieldsFor, useFieldText } from "@/features/custom-fields/format";
+import { hiddenCustomFieldIds } from "@/features/issues/card-fields";
 import type { IssueLookups } from "@/features/issues/types";
 import {
   type FieldDefinition,
@@ -20,6 +21,8 @@ interface Props {
   issue: Pick<Issue, "project" | "fieldValues">;
   fields: FieldDefinition[];
   members: IssueLookups["members"];
+  /** This person's hidden card fields (`cf:<fieldId>` entries hide a field). */
+  hidden?: string[];
   /** How many chips before the rest folds into "+N". */
   max?: number;
 }
@@ -32,11 +35,19 @@ interface Props {
  * Read-only: changing a value happens in the issue itself, a click on the
  * card opens it.
  */
-export function FieldChips({ issue, fields, members, max = 3 }: Props) {
+export function FieldChips({
+  issue,
+  fields,
+  members,
+  hidden = [],
+  max = 3,
+}: Props) {
+  const hiddenIds = hiddenCustomFieldIds(hidden);
   const text = useFieldText();
   const { fieldLabelMode } = usePreferences();
 
   const filled = fieldsFor(fields, issue.project).flatMap((field) => {
+    if (hiddenIds.has(field.id)) return [];
     const value = issue.fieldValues?.[field.id];
     if (value === undefined) return [];
     // A checkbox that is off says nothing worth a chip.

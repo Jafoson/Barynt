@@ -102,6 +102,7 @@ export async function Topbar({ count, view, projectId }: TopbarProps) {
         issueTypes={issueTypes}
         customFields={customFields}
         filterFields={filterFields}
+        displayFields={inScope}
         hiddenGroups={groups.hiddenGroups}
         hideEmptyGroups={groups.hideEmptyGroups}
         showSubIssues={groups.showSubIssues}

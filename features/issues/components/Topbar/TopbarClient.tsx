@@ -34,6 +34,8 @@ interface TopbarClientProps {
   customFields: FieldDefinition[];
   /** Custom fields that get a filter chip (a choice, a person, a yes/no, a day). */
   filterFields: FieldDefinition[];
+  /** Every custom field that applies here, to show or hide on cards and rows. */
+  displayFields: FieldDefinition[];
   /** Groups this person hid in this view, as `hidden-groups.ts` entries (BARY-47). */
   hiddenGroups: string[];
   hideEmptyGroups: boolean;
@@ -60,6 +62,7 @@ export function TopbarClient({
   issueTypes,
   customFields,
   filterFields,
+  displayFields,
   hiddenGroups,
   hideEmptyGroups,
   showSubIssues,
@@ -181,6 +184,7 @@ export function TopbarClient({
             groupKey={groupKey}
             onGroupChange={setGroup}
             hiddenFields={hiddenCardFields}
+            displayFields={displayFields}
             onDisplayChange={onDisplayChange}
             groupLookups={{
               statuses,

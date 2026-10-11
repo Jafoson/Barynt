@@ -18,7 +18,7 @@ import {
   recordStatusChangeAudit,
   relationKinds,
 } from "@/features/issues/audit";
-import { isCardFieldKey } from "@/features/issues/card-fields";
+import { isCardFieldEntry } from "@/features/issues/card-fields";
 import {
   ESTIMATE_UNIT_ABBR,
   hoursToEstimate,
@@ -1865,9 +1865,9 @@ export async function setIssueViewFieldVisibility(
       userId,
       projectId,
       view,
-      hiddenFields: hidden.filter(isCardFieldKey),
+      hiddenFields: hidden.filter(isCardFieldEntry),
     },
-    update: { hiddenFields: hidden.filter(isCardFieldKey) },
+    update: { hiddenFields: hidden.filter(isCardFieldEntry) },
   });
 
   revalidatePath("/", "layout");
@@ -1889,9 +1889,9 @@ export async function setMyIssuesViewFieldVisibility(
       userId,
       workspaceId,
       view,
-      hiddenFields: hidden.filter(isCardFieldKey),
+      hiddenFields: hidden.filter(isCardFieldEntry),
     },
-    update: { hiddenFields: hidden.filter(isCardFieldKey) },
+    update: { hiddenFields: hidden.filter(isCardFieldEntry) },
   });
 
   revalidatePath("/", "layout");
