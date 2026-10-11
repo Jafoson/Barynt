@@ -50,4 +50,14 @@ describe("titleOfHtml", () => {
     ).toBe("Social");
     expect(titleOfHtml("<p>no title</p>")).toBeNull();
   });
+
+  it("keeps only what stands before a spaced dash", async () => {
+    const { titleOfHtml } = await import("@/lib/link-title");
+    expect(titleOfHtml("<title>GitLab - Speed with control</title>")).toBe(
+      "GitLab",
+    );
+    expect(titleOfHtml("<title>Docs – Guide – Intro</title>")).toBe("Docs");
+    // A hyphen inside a word is no separator.
+    expect(titleOfHtml("<title>E-Mail Setup</title>")).toBe("E-Mail Setup");
+  });
 });

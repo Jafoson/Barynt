@@ -47,6 +47,14 @@ export function titleOfHtml(html: string): string | null {
   if (!raw) return null;
   const title = decode(raw).replace(/\s+/g, " ").trim();
   if (title === "") return null;
+  // "GitLab - Speed with control": only what stands before the first
+  // spaced dash is the name; the rest is a slogan.
+  const [name] = title.split(/\s[-–—]\s/);
+  if (name.trim() !== "") return shorten(name.trim());
+  return shorten(title);
+}
+
+function shorten(title: string): string {
   return title.length > MAX_TITLE ? `${title.slice(0, MAX_TITLE - 1)}…` : title;
 }
 
