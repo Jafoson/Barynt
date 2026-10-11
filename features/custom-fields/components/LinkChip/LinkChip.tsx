@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { useEffect, useState } from "react";
 import { Label as LabelChip } from "@/components/ui/atoms/Label/Label";
 import { SiteIcon } from "@/features/custom-fields/components/SiteIcon/SiteIcon";
+import styles from "./linkChip.module.scss";
 
 /** Titles already asked for in this tab; `null` = the page has none. */
 const fetched = new Map<string, string | null>();
@@ -58,13 +59,13 @@ export function LinkChip({ url, title, favicon, fetchTitle }: Props) {
   const shown = title || (fetchTitle ? pageTitle : null) || linkHost(url);
 
   return (
-    <LabelChip size="sm" hasIcon title={url}>
+    <LabelChip size="md" hasIcon title={url} className={styles.chip}>
       {favicon ? (
         <SiteIcon url={url} size={13} />
       ) : (
         <Icon icon="lucide:link" width={13} aria-hidden="true" />
       )}
-      {shown}
+      <span className={styles.text}>{shown}</span>
     </LabelChip>
   );
 }

@@ -324,7 +324,43 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
           hint={field.description}
         >
           <span className={fieldStyles.linkRow}>
-            <InlinePicker width={260} stop trigger={trigger} title={field.name}>
+            {typeof value === "string" && (
+              <a
+                className={fieldStyles.chipLink}
+                href={value}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={t("customFields.openLink")}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <LinkChip
+                  url={value}
+                  title={typeof stored === "string" ? stored : null}
+                  favicon={field.linkFavicon}
+                  fetchTitle={field.linkFetchTitle}
+                />
+              </a>
+            )}
+            <InlinePicker
+              width={260}
+              stop
+              title={field.name}
+              trigger={
+                typeof value === "string" ? (
+                  <button
+                    type="button"
+                    className={fieldStyles.editLink}
+                    aria-label={t("actions.edit")}
+                    title={t("actions.edit")}
+                    data-field-nav
+                  >
+                    <Icon icon="lucide:pencil" width={14} aria-hidden="true" />
+                  </button>
+                ) : (
+                  trigger
+                )
+              }
+            >
               {(close) => (
                 <LinkValuePopover
                   field={field}
@@ -351,23 +387,6 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
                 />
               )}
             </InlinePicker>
-            {typeof value === "string" && (
-              <a
-                className={fieldStyles.openLink}
-                href={value}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={t("customFields.openLink")}
-                title={t("customFields.openLink")}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Icon
-                  icon="lucide:external-link"
-                  width={14}
-                  aria-hidden="true"
-                />
-              </a>
-            )}
           </span>
         </Row>
       );
