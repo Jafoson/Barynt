@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { customFieldConditions } from "@/features/custom-fields/filters";
 import { listAudit } from "@/lib/audit";
 import { getCurrentWorkspaceId } from "@/lib/current-workspace";
 import {
@@ -456,6 +457,8 @@ export interface IssueFilters {
    *  Matches OR'd together — "overdue or has no due date" is a valid
    *  combination, same as picking several statuses at once. */
   dueDate?: string;
+  /** `cf.<fieldKey>`: comma-separated answers of one custom field. */
+  [customField: `cf.${string}`]: string | undefined;
 }
 
 /** `dueDate` bucket → the `Issue.dueDate` condition it stands for, evaluated
@@ -640,6 +643,11 @@ async function resolveIssueFilters(
         ]
       : []),
   ];
+
+  // `cf.<fieldKey>` parameters: one condition per custom field.
+  conditions.push(
+    ...(await customFieldConditions(filters as Record<string, unknown>, scope)),
+  );
 
   return {
     where: conditions.length ? { AND: conditions } : {},

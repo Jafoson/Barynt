@@ -32,6 +32,8 @@ interface TopbarClientProps {
   issueTypes: IssueType[];
   /** Custom fields that can be grouped by (a list of choices). */
   customFields: FieldDefinition[];
+  /** Custom fields that get a filter chip (a choice, a person, a yes/no, a day). */
+  filterFields: FieldDefinition[];
   /** Groups this person hid in this view, as `hidden-groups.ts` entries (BARY-47). */
   hiddenGroups: string[];
   hideEmptyGroups: boolean;
@@ -57,6 +59,7 @@ export function TopbarClient({
   labels,
   issueTypes,
   customFields,
+  filterFields,
   hiddenGroups,
   hideEmptyGroups,
   showSubIssues,
@@ -146,6 +149,7 @@ export function TopbarClient({
             members={members}
             labels={labels}
             projects={projects}
+            fields={filterFields}
             onToggle={toggleFilter}
             onClear={clearFilter}
             onClearAll={clearAll}
@@ -163,6 +167,7 @@ export function TopbarClient({
             members={members}
             labels={labels}
             projects={projects}
+            fields={filterFields}
             onToggle={toggleFilter}
             onClearAll={clearAll}
           />
