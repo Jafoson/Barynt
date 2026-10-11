@@ -98,7 +98,13 @@ export function FieldChips({ issue, fields, members, max = 3 }: Props) {
                 aria-hidden="true"
               />
             )}
-            {showName && <span className={styles.name}>{field.name}</span>}
+            {showName && (
+              <span
+                className={`${styles.name} ${showIcon ? "" : styles.nameAlone}`}
+              >
+                {field.name}
+              </span>
+            )}
             {picked.length > 0 ? (
               <span className={styles.choices}>
                 {picked.map((option, i) => (
