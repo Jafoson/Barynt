@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
+import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { LinkText } from "@/features/custom-fields/components/LinkChip/LinkChip";
 import { OptionVisual } from "@/features/custom-fields/components/OptionVisual/OptionVisual";
 import { SiteIcon } from "@/features/custom-fields/components/SiteIcon/SiteIcon";
@@ -77,6 +78,11 @@ export function FieldChips({ issue, fields, members, max = 3 }: Props) {
         const showName =
           fieldLabelMode === "name" || fieldLabelMode === "both" || !hasIcon;
         const own = issue.fieldValues?.[titleKey(field.id)];
+        // A person shows with their avatar.
+        const person =
+          field.type === "USER"
+            ? members.find((m) => m.id === issue.fieldValues?.[field.id])
+            : undefined;
         return (
           <span
             key={field.id}
@@ -102,6 +108,11 @@ export function FieldChips({ issue, fields, members, max = 3 }: Props) {
                     {i < picked.length - 1 ? "," : ""}
                   </span>
                 ))}
+              </span>
+            ) : person ? (
+              <span className={`${styles.value} ${styles.choice}`}>
+                <Avatar avatar={person} size={14} />
+                {shown}
               </span>
             ) : (
               <span className={styles.value}>

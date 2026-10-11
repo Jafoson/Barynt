@@ -2,6 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
+import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { Input } from "@/components/ui/atoms/Input/Input";
 import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
@@ -123,6 +124,15 @@ export function CreateFieldChips({
               field.linkFavicon &&
               typeof value === "string" ? (
                 <SiteIcon url={withScheme(value)} />
+              ) : has && field.type === "USER" ? (
+                (() => {
+                  const member = members.find((m) => m.id === value);
+                  return member ? (
+                    <Avatar avatar={member} size={16} />
+                  ) : (
+                    <Icon icon={field.icon ?? ICONS[field.type]} width={14} />
+                  );
+                })()
               ) : (
                 <Icon icon={field.icon ?? ICONS[field.type]} width={14} />
               )

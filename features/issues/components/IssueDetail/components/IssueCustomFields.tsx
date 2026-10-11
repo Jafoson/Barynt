@@ -2,6 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
+import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import { Input } from "@/components/ui/atoms/Input/Input";
 import { Label as LabelChip } from "@/components/ui/atoms/Label/Label";
@@ -106,6 +107,20 @@ export function IssueCustomFields({ issue, data, layout, onPatch }: Props) {
           favicon={field.linkFavicon}
           fetchTitle={field.linkFetchTitle}
         />
+      ) : field.type === "USER" ? (
+        (() => {
+          const member = data.members.find((m) => m.id === value);
+          return member ? (
+            <span className={`${styles.valueText} ${fieldStyles.withVisual}`}>
+              <Avatar avatar={member} size={18} />
+              {member.firstName} {member.lastName}
+            </span>
+          ) : (
+            <span className={styles.valueText}>
+              {text(field, value, data.members)}
+            </span>
+          );
+        })()
       ) : field.type === "SELECT" ? (
         <span className={`${styles.valueText} ${fieldStyles.withVisual}`}>
           {(() => {
