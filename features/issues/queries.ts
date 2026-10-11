@@ -1,6 +1,12 @@
 import { cache } from "react";
+import { customFieldConditions } from "@/features/custom-fields/filters";
 import { listAudit } from "@/lib/audit";
 import { getCurrentWorkspaceId } from "@/lib/current-workspace";
+import {
+  type FieldValue,
+  narrowFieldValue,
+  titleKey,
+} from "@/lib/custom-fields";
 import { db } from "@/lib/db";
 import { issueShareUrl } from "@/lib/issue-share";
 import {
@@ -75,6 +81,7 @@ function mapIssue(
       source: ContentSource;
     }[];
     shareToken?: string | null;
+    fieldValues?: { fieldId: string; value: unknown; title?: string | null }[];
   },
   // For `reactedByMe` — whoever isn't logged in (there are no public calls
   // here, but the type stays honest) sees no reaction as their own.
@@ -111,7 +118,25 @@ function mapIssue(
       source: c.source,
     })),
     shareUrl: i.shareToken ? issueShareUrl(i.shareToken) : null,
+    fieldValues: fieldValuesOf(i.fieldValues),
   };
+}
+
+/** The `IssueFieldValue` rows of one issue as `{ fieldId: value }`. */
+function fieldValuesOf(
+  rows:
+    | { fieldId: string; value: unknown; title?: string | null }[]
+    | undefined,
+): Record<string, FieldValue> {
+  const out: Record<string, FieldValue> = {};
+  for (const row of rows ?? []) {
+    const value = narrowFieldValue(row.value);
+    if (value === null) continue;
+    out[row.fieldId] = value;
+    // A link's own title, beside its value.
+    if (row.title) out[titleKey(row.fieldId)] = row.title;
+  }
+  return out;
 }
 
 /** Raw reaction rows grouped by emoji — the comment bar only shows the
@@ -432,6 +457,8 @@ export interface IssueFilters {
    *  Matches OR'd together — "overdue or has no due date" is a valid
    *  combination, same as picking several statuses at once. */
   dueDate?: string;
+  /** `cf.<fieldKey>`: comma-separated answers of one custom field. */
+  [customField: `cf.${string}`]: string | undefined;
 }
 
 /** `dueDate` bucket → the `Issue.dueDate` condition it stands for, evaluated
@@ -617,6 +644,11 @@ async function resolveIssueFilters(
       : []),
   ];
 
+  // `cf.<fieldKey>` parameters: one condition per custom field.
+  conditions.push(
+    ...(await customFieldConditions(filters as Record<string, unknown>, scope)),
+  );
+
   return {
     where: conditions.length ? { AND: conditions } : {},
     projectIds: projectRows.length ? projectRows.map((p) => p.id) : null,
@@ -653,6 +685,7 @@ export async function getIssuesByProject(
         orderBy: { created: "asc" },
         include: { reactions: true },
       },
+      fieldValues: { select: { fieldId: true, value: true, title: true } },
     },
     orderBy: [{ rank: "asc" }, { created: "asc" }],
   });
@@ -716,6 +749,7 @@ export async function getMyIssues(
         orderBy: { created: "asc" },
         include: { reactions: true },
       },
+      fieldValues: { select: { fieldId: true, value: true, title: true } },
     },
     // Same as within a project: by rank, so a dragged row stays where it
     // was dropped.
@@ -906,6 +940,7 @@ export async function getIssueById(id: string): Promise<IssueDetail | null> {
         orderBy: { created: "asc" },
         include: { reactions: true },
       },
+      fieldValues: { select: { fieldId: true, value: true, title: true } },
       attachments: { orderBy: { created: "asc" } },
       project: { select: { workspaceId: true } },
     },
@@ -962,6 +997,7 @@ export const getIssueByRef = cache(
           orderBy: { created: "asc" },
           include: { reactions: true },
         },
+        fieldValues: { select: { fieldId: true, value: true, title: true } },
         attachments: { orderBy: { created: "asc" } },
       },
     });

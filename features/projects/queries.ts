@@ -216,16 +216,28 @@ export const getProjectFieldsView = cache(
   async (projectId: string): Promise<ProjectFieldsView | null> => {
     const project = await db.project.findUnique({
       where: { id: projectId },
-      select: { hiddenDetailFields: true },
+      select: { hiddenDetailFields: true, workspaceId: true },
     });
     if (!project) return null;
 
     const access = await accessFor(await currentUserId(), { projectId });
     if (!access.has("project.view")) return null;
 
+    // The workspace's custom fields and this project's own.
+    const fields = await db.customField.findMany({
+      where: {
+        workspaceId: project.workspaceId,
+        archivedAt: null,
+        OR: [{ projectId: null }, { projectId }],
+      },
+      orderBy: [{ position: "asc" }, { created: "asc" }],
+      select: { id: true, name: true, icon: true, type: true },
+    });
+
     return {
       projectId,
       hiddenDetailFields: project.hiddenDetailFields,
+      customFields: fields,
       canUpdate: access.has("project.update"),
     };
   },

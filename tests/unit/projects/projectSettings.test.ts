@@ -9,6 +9,7 @@ const mockIssueDeleteMany = mock();
 const mockWorkspaceMemberFindMany = mock();
 const mockProjectMemberCreateMany = mock();
 const mockTransaction = mock();
+const mockCustomFieldFindMany = mock();
 const mockAuditLogCreate = mock();
 
 const mockTx = {
@@ -25,6 +26,7 @@ mock.module("@/lib/db", () => ({
       create: mock(),
     },
     issue: { deleteMany: mockIssueDeleteMany },
+    customField: { findMany: mockCustomFieldFindMany },
     user: { findUnique: mock(async () => null) },
     auditLog: { create: mockAuditLogCreate },
     workspaceMember: { findMany: mockWorkspaceMemberFindMany },
@@ -250,6 +252,19 @@ describe("setProjectFieldVisibility() (BARY-31)", () => {
     await setProjectFieldVisibility(PROJECT, ["dueDate", "sowieso-nicht"]);
     expect(mockProjectUpdate.mock.calls[0][0].data.hiddenDetailFields).toEqual([
       "dueDate",
+    ]);
+  });
+
+  it("behält Custom Felder (cf:<id>) nur, wenn sie hier gelten", async () => {
+    mockCustomFieldFindMany.mockResolvedValue([{ id: "cf_1" }]);
+    await setProjectFieldVisibility(PROJECT, [
+      "dueDate",
+      "cf:cf_1",
+      "cf:fremd",
+    ]);
+    expect(mockProjectUpdate.mock.calls[0][0].data.hiddenDetailFields).toEqual([
+      "dueDate",
+      "cf:cf_1",
     ]);
   });
 

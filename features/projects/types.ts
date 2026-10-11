@@ -34,6 +34,13 @@ export interface ProjectFieldsView {
   /** Raw stored keys — resolve with `visibleDetailFields()`
    *  (`features/projects/detail-fields.ts`), don't read directly. */
   hiddenDetailFields: string[];
+  /** The custom fields that apply here, each of which can be turned off. */
+  customFields: {
+    id: string;
+    name: string;
+    icon: string | null;
+    type: string;
+  }[];
   /** `project.update` — the only permission this page's toggle needs. */
   canUpdate: boolean;
 }

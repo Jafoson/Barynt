@@ -9,6 +9,7 @@ import type { PMDoc } from "@/lib/richtext/types";
 import type { IssueDetail } from "@/types";
 import { IssueAttachments } from "./components/IssueAttachments";
 import { IssueComments } from "./components/IssueComments";
+import { IssueCustomFields } from "./components/IssueCustomFields";
 import { IssueDescription } from "./components/IssueDescription";
 import { IssueLabels } from "./components/IssueLabels";
 import { IssueMeta } from "./components/IssueMeta";
@@ -98,6 +99,12 @@ export function IssueStackedBody({
             visibleFields={visibleFields}
             onPatch={onPatch}
           />
+          <IssueCustomFields
+            issue={issue}
+            data={data}
+            layout="column"
+            onPatch={onPatch}
+          />
           {showLabels && (
             <IssueLabels
               issue={issue}
@@ -142,6 +149,12 @@ export function IssueStackedBody({
             issue={issue}
             layout="column"
             visibleFields={visibleFields}
+            onPatch={onPatch}
+          />
+          <IssueCustomFields
+            issue={issue}
+            data={data}
+            layout="column"
             onPatch={onPatch}
           />
           {showLabels && (

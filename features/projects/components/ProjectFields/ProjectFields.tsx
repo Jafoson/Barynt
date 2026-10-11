@@ -39,6 +39,18 @@ const FIELD_LABEL_KEY = {
   estimateHours: "fields.estimateHours",
 } as const satisfies Record<DetailFieldKey, string>;
 
+/** The icon of a custom field that has none of its own. */
+const CUSTOM_TYPE_ICON: Record<string, string> = {
+  TEXT: "lucide:type",
+  NUMBER: "lucide:hash",
+  DATE: "lucide:calendar",
+  SELECT: "lucide:list",
+  MULTI_SELECT: "lucide:list-checks",
+  CHECKBOX: "lucide:square-check",
+  URL: "lucide:link",
+  USER: "lucide:user-round",
+};
+
 /** A field as a row: icon and name on the left, the on/off switch on the right. */
 interface FieldRow {
   id: string;
@@ -80,6 +92,7 @@ const COLUMNS: TableColumn<FieldRow>[] = [
  */
 export function ProjectFields({
   hiddenDetailFields,
+  customFields,
   canUpdate,
   onChange,
 }: Props) {
@@ -124,6 +137,28 @@ export function ProjectFields({
     };
   });
 
+  // The custom fields, each with its own switch: `cf:<id>` in the same list.
+  const customRows: FieldRow[] = customFields.map((field) => {
+    const entry = `cf:${field.id}`;
+    return {
+      id: entry,
+      label: field.name,
+      icon:
+        field.icon ??
+        CUSTOM_TYPE_ICON[field.type] ??
+        "lucide:text-cursor-input",
+      control: (
+        <Switch
+          checked={!hidden.has(entry)}
+          disabled={!canUpdate || isPending}
+          onChange={(next) => toggle(entry, next)}
+          label={field.name}
+          labelHidden
+        />
+      ),
+    };
+  });
+
   return (
     <>
       <PageHeader
@@ -147,6 +182,19 @@ export function ProjectFields({
           rows={rows}
           getRowKey={(row) => row.id}
         />
+
+        {customRows.length > 0 && (
+          <>
+            <h2 className={styles.sectionTitle}>{t("customFields.title")}</h2>
+            <Table
+              variant="card"
+              label={t("customFields.title")}
+              columns={COLUMNS}
+              rows={customRows}
+              getRowKey={(row) => row.id}
+            />
+          </>
+        )}
       </div>
     </>
   );

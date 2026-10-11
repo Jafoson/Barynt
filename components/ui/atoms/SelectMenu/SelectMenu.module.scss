@@ -60,6 +60,20 @@ position: relative;
     background: rgba(from (var(--on-surface)) r g b / 0.20);
 }
 
+/* Trailing check mark of a selected row (`checkMark`). Pushed to the end of
+   the row; the label before it keeps the space. */
+.check {
+  flex: none;
+  margin-inline-start: auto;
+  color: var(--tertiary);
+}
+
+/* A selected row of a menu that shows a check mark: bold, no background. */
+.activeChecked {
+  color: var(--on-surface);
+  font-weight: 600;
+}
+
 .menuLabel {
   font-size: var(--text-xs);
   color: var(--on-surface-variant);

@@ -34,6 +34,18 @@ interface SelectMenuProps {
    * offer to create whatever was typed.
    */
   emptyState?: (query: string) => React.ReactNode;
+  /**
+   * An action row for whatever was typed ("Create “…”"), shown at the end of
+   * the list whenever there is a query and no item carries exactly that
+   * name — however many other items match. Unlike `emptyState` it does not
+   * wait for the list to run empty.
+   */
+  createAction?: (query: string) => React.ReactNode;
+  /**
+   * A check mark at the end of every selected row, so a selection reads at a
+   * glance in a long list. Off by default: existing menus keep the bold row.
+   */
+  checkMark?: boolean;
 }
 
 export function SelectMenu({
@@ -46,6 +58,8 @@ export function SelectMenu({
   multi,
   footer,
   emptyState,
+  createAction,
+  checkMark,
 }: SelectMenuProps) {
   const [q, setQ] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -146,10 +160,18 @@ export function SelectMenu({
             onPick={onPick}
             onClose={onClose}
             multi={multi}
+            checkMark={checkMark}
           />
         ))}
         {filtered.length === 0 &&
+          !(createAction && q.trim() !== "") &&
           (emptyState ? emptyState(q) : <SelectEmpty>No matches</SelectEmpty>)}
+        {createAction &&
+          q.trim() !== "" &&
+          !items.some(
+            (it) => it.label.toLowerCase() === q.trim().toLowerCase(),
+          ) &&
+          createAction(q.trim())}
         {footer}
       </div>
     </>

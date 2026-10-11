@@ -1,0 +1,16 @@
+/* A long title is cut with an ellipsis; the whole link is in the tooltip. */
+.chip {
+  max-width: min(100%, 16rem);
+  min-width: 0;
+
+  svg,
+  img {
+    flex: none;
+  }
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

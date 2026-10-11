@@ -15,6 +15,8 @@ export interface TableDrop<T> {
   row: T;
   /** Target group — always `"rows"` for a table without groups. */
   groupId: string;
+  /** The group the row was picked up in. */
+  fromGroupId: string;
   /** Insert position in the target group, with the dragged row excluded. */
   index: number;
   /** The row's future neighbors; `null` at the start/end of the group. */
@@ -213,6 +215,7 @@ export function useTableDnd<T>(options: TableDndOptions<T>): TableDnd<T> {
         onDrop({
           row: dragged.row,
           groupId: target.groupId,
+          fromGroupId: dragged.groupId,
           index,
           previous: rest[index - 1] ?? null,
           next: rest[index] ?? null,

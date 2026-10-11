@@ -1,4 +1,5 @@
 import type { AuditEntry } from "@/lib/audit/actions";
+import type { FieldValue } from "@/lib/custom-fields";
 import type { PMDoc } from "@/lib/richtext/types";
 import type { SearchableIssue } from "./workspace";
 
@@ -127,6 +128,12 @@ export interface Issue {
   estimateHours: number | null;
   /** Which unit `estimateHours` was entered in — `null` iff `estimateHours` is. */
   estimateUnit: EstimateUnit | null;
+  /**
+   * Values of the custom fields, keyed by field id. A field without a value
+   * has no entry. Values of archived fields are included; the UI decides
+   * what to show.
+   */
+  fieldValues: Record<string, FieldValue>;
 }
 
 /**

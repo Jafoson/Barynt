@@ -27,6 +27,7 @@ const state: DisplayState = {
   groupKey: "status",
   sortKey: "manual",
   hidden: new Set(["labels"]),
+  displayFields: [],
   projectHiddenFields: [],
   groupLookups: {
     statuses: [

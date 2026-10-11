@@ -11,6 +11,7 @@ import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import { Input } from "@/components/ui/atoms/Input/Input";
 import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
+import { fieldFilterOptions } from "@/features/custom-fields/components/FieldFilter/filterOptions";
 import {
   LabelIcon,
   PriorityIcon,
@@ -20,11 +21,18 @@ import { STORY_POINTS_OPTIONS } from "@/features/issues/story-points";
 import { visibleDetailFields } from "@/features/projects/detail-fields";
 import type { Translator } from "@/i18n/types";
 import { useModal } from "@/lib/context";
+import type { FieldDefinition } from "@/lib/custom-fields";
+import { fieldKeyOfParam, filterParam } from "@/lib/custom-fields/filter";
 import { fullName } from "@/lib/utils/string";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
 import type { Label, Priority, Project, Status, User } from "@/types";
-import type { FilterKey, FilterState, IssueArea } from "../useTopbar";
+import type {
+  BuiltinFilterKey,
+  FilterKey,
+  FilterState,
+  IssueArea,
+} from "../useTopbar";
 import styles from "./viewSettings.module.scss";
 
 /** Same four values as the desktop chip (`DueDateFilter`). */
@@ -44,6 +52,8 @@ interface FilterPopupProps {
   members: User[];
   labels: Label[];
   projects: Project[];
+  /** Custom fields that get a filter of their own (`isFilterableField`). */
+  fields?: FieldDefinition[];
   onToggle: (key: FilterKey, value: string | number) => void;
   onClearAll: () => void;
 }
@@ -157,10 +167,10 @@ function FilterSheet({
   const swipe = useSwipeToClose(close, bodyRef);
 
   const props = latest.current;
-  const filterCount = Object.values(filters).reduce(
-    (sum, values) => sum + values.length,
-    0,
-  );
+  const { custom, ...builtin } = filters;
+  const filterCount =
+    Object.values(builtin).reduce((sum, values) => sum + values.length, 0) +
+    Object.values(custom).reduce((sum, values) => sum + values.length, 0);
   const panelProps = {
     ...props,
     filters,
@@ -172,11 +182,25 @@ function FilterSheet({
     hideReset: true,
     onToggle: (key: FilterKey, value: string | number) => {
       setFilters((current) => {
-        const list = current[key] as (string | number)[];
-        const next = list.includes(value)
-          ? list.filter((v) => v !== value)
-          : [...list, value];
-        return { ...current, [key]: next };
+        const toggle = <T extends string | number>(list: T[]) =>
+          list.includes(value as T)
+            ? list.filter((v) => v !== value)
+            : [...list, value as T];
+        const fieldKey = fieldKeyOfParam(key);
+        if (fieldKey) {
+          return {
+            ...current,
+            custom: {
+              ...current.custom,
+              [fieldKey]: toggle(current.custom[fieldKey] ?? []),
+            },
+          };
+        }
+        const own = key as BuiltinFilterKey;
+        return {
+          ...current,
+          [own]: toggle(current[own] as (string | number)[]),
+        };
       });
       latest.current.onToggle(key, value);
     },
@@ -189,6 +213,7 @@ function FilterSheet({
         project: [],
         storyPoints: [],
         dueDate: [],
+        custom: {},
       });
       latest.current.onClearAll();
     },
@@ -247,6 +272,7 @@ export function buildFacets(
     members,
     labels,
     projects,
+    fields = [],
   }: Pick<
     FilterPopupProps,
     | "filters"
@@ -257,6 +283,7 @@ export function buildFacets(
     | "members"
     | "labels"
     | "projects"
+    | "fields"
   >,
   t: Translator,
 ): Facet[] {
@@ -347,6 +374,15 @@ export function buildFacets(
         value: bucket,
         label: dueDateLabel[bucket],
       })),
+    });
+  }
+  // One filter per custom field, after the built-in ones.
+  for (const field of fields) {
+    facets.push({
+      key: filterParam(field.key) as FilterKey,
+      title: field.name,
+      selected: filters.custom[field.key] ?? [],
+      options: fieldFilterOptions(field, members, t),
     });
   }
   return facets;

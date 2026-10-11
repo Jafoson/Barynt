@@ -9,7 +9,7 @@ interface FilterChipProps {
   /** Field name, used for the clear button's accessible label. */
   name: string;
   /** What the chip reads as right now — the field name, or the selection. */
-  label: string;
+  label: React.ReactNode;
   icon: React.ReactNode;
   /** Highlights the chip and — together with `onClear` — reveals the clear button. */
   active: boolean;

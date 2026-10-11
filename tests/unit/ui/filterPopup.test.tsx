@@ -29,6 +29,7 @@ const empty: FilterState = {
   project: [],
   storyPoints: [],
   dueDate: [],
+  custom: {},
 };
 
 function render(filterCount: number) {

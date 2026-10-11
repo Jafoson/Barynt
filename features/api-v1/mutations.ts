@@ -1,3 +1,5 @@
+import { translateApiFields } from "@/features/custom-fields/api";
+import { writeIssueFieldValues } from "@/features/custom-fields/values";
 import "server-only";
 import {
   type ApiComment,
@@ -223,6 +225,8 @@ export interface CreateIssueInput {
    *  `"days"`, `"weeks"`, `"months"`, or `"years"`; purely a display hint,
    *  doesn't change what `estimateHours` means. */
   estimateUnit?: EstimateUnit | null;
+  /** Custom field values by field key; a choice by id or label. */
+  customFields?: Record<string, unknown>;
 }
 
 export async function createIssueForUser(
@@ -254,6 +258,23 @@ export async function createIssueForUser(
   if (estimateUnit === "invalid") return fail(422);
 
   const status = input.status ?? "backlog";
+
+  // Custom fields are checked before a key is claimed, for the same reason
+  // as `parentId` above.
+  let fieldValues: Record<string, unknown> = {};
+  if (input.customFields !== undefined) {
+    const project = await db.project.findUnique({
+      where: { id: projectId },
+      select: { workspaceId: true },
+    });
+    if (!project) return fail(404);
+    const translated = await translateApiFields(
+      { workspaceId: project.workspaceId, projectId },
+      input.customFields,
+    );
+    if (!translated.ok) return fail(422);
+    fieldValues = translated.values;
+  }
 
   const { lastIssueKey, workspaceId, prefix } = await db.project.update({
     where: { id: projectId },
@@ -296,6 +317,14 @@ export async function createIssueForUser(
         input.estimateHours != null ? (estimateUnit ?? "hours") : null,
     },
   });
+
+  if (Object.keys(fieldValues).length > 0) {
+    await writeIssueFieldValues(
+      { id, key: lastIssueKey, projectId, project: { workspaceId, prefix } },
+      fieldValues,
+      userId,
+    );
+  }
 
   // Re-fetched via the shared, permission-free resolver rather than mapped
   // by hand here — that's the one place that resolves `assignee`/`reporter`
@@ -365,6 +394,8 @@ export interface UpdateIssueInput {
    *  `estimateHours` itself changes in the same request. Omitted alongside
    *  a new `estimateHours` defaults to `"hours"`, same as on create. */
   estimateUnit?: EstimateUnit | null;
+  /** Custom field values by field key; `null` clears one. */
+  customFields?: Record<string, unknown>;
 }
 
 export async function updateIssueForUser(
@@ -437,6 +468,18 @@ export async function updateIssueForUser(
         )
       : null;
 
+  // Translated and checked before anything is written, so a rejected value
+  // leaves the issue as it was.
+  let fieldValues: Record<string, unknown> = {};
+  if (patch.customFields !== undefined) {
+    const translated = await translateApiFields(
+      { workspaceId: issue.project.workspaceId, projectId: issue.projectId },
+      patch.customFields,
+    );
+    if (!translated.ok) return fail(422);
+    fieldValues = translated.values;
+  }
+
   await db.issue.update({
     where: { id: issueId },
     data: {
@@ -465,6 +508,19 @@ export async function updateIssueForUser(
       }),
     },
   });
+
+  if (Object.keys(fieldValues).length > 0) {
+    await writeIssueFieldValues(
+      {
+        id: issueId,
+        key: issue.key,
+        projectId: issue.projectId,
+        project: issue.project,
+      },
+      fieldValues,
+      userId,
+    );
+  }
 
   // Re-fetched (not built from `patch`) so the webhook payload carries the
   // full, current issue — not just the fields this particular request

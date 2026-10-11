@@ -54,8 +54,29 @@ const SEGMENTS: string[][] = [
   // mocks nothing). See the "always use `bun run test`" races in CLAUDE.md.
   ["tests/unit/realtime"],
   ["tests/unit/session"],
-  ["tests/unit/richtext", "tests/unit/table", "tests/unit/ui"],
+  [
+    "tests/unit/richtext",
+    "tests/unit/table",
+    "tests/unit/ui",
+    // The pure ones only; the files that mock `@/lib/db` have processes of
+    // their own below.
+    "tests/unit/customfields/validate.test.ts",
+    "tests/unit/customfields/datetime.test.ts",
+    "tests/unit/customfields/group.test.ts",
+    "tests/unit/customfields/favicon.test.ts",
+    "tests/unit/customfields/filter.test.ts",
+  ],
   ["tests/unit/account"],
+  // Mocks `@/lib/db`, `@/lib/permissions` and `@/lib/audit` — own process,
+  // like the other action tests that replace `@/lib/permissions`.
+  ["tests/unit/customfields/actions.test.ts"],
+  // Mocks `@/lib/db` with a different shape than `actions.test.ts` and
+  // `@/features/issues/audit` — a process of its own.
+  ["tests/unit/customfields/values.test.ts"],
+  // Same reason again: its own `@/lib/db` and audit mocks.
+  ["tests/unit/customfields/api.test.ts"],
+  // Mocks `@/lib/db` for the filter conditions — a process of its own.
+  ["tests/unit/customfields/filters.test.ts"],
   ["tests/unit/notifications"],
   ["tests/unit/mail/send.test.ts"],
   [

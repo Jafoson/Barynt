@@ -14,6 +14,7 @@ import {
   type TableDndAnnouncement,
   useTableDnd,
 } from "@/components/ui/layout/Table/useTableDnd";
+import { FieldChips } from "@/features/custom-fields/components/FieldChips/FieldChips";
 import { reorderIssue, updateIssue } from "@/features/issues/actions";
 import {
   isCardFieldKey,
@@ -24,15 +25,20 @@ import { IssueTitleField } from "@/features/issues/components/IssueTitleField/Is
 import {
   type GroupKey,
   groupDefs,
+  groupField,
   groupIdOf,
-  groupPatch,
+  groupIdsOf,
+  groupMovePatch,
+  isCustomGroupKey,
+  resolveGroupKey,
   visibleGroups,
+  withMovePatch,
 } from "@/features/issues/group";
 import { isGroupHidden } from "@/features/issues/hidden-groups";
 import { useIssueOpen } from "@/features/issues/issue-links";
 import { rankBetween } from "@/features/issues/rank";
 import { type SortKey, sortByKey } from "@/features/issues/sort";
-import type { IssueComposerData } from "@/features/issues/types";
+import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
 import {
   type DetailFieldKey,
   visibleDetailFields,
@@ -87,6 +93,34 @@ interface ListViewProps {
 }
 
 /**
+ * A row of a list grouped by a multi-choice field is a copy of the issue
+ * for one of its groups. These two properties tell the copies apart and say
+ * which group a copy sits in.
+ */
+const ROW_KEY = "__rowKey";
+const ROW_GROUP = "__rowGroup";
+
+function rowKeyOf(issue: IssueDetail): string {
+  return (issue as unknown as Record<string, string>)[ROW_KEY] ?? issue.id;
+}
+
+function rowGroupOf(issue: IssueDetail): string | undefined {
+  return (issue as unknown as Record<string, string>)[ROW_GROUP];
+}
+
+/** The change as `useOptimistic` applies it: a custom value is the full map. */
+function optimisticMove(
+  issue: IssueDetail,
+  patch: IssuePatch,
+  rank: number,
+): { id: string } & Partial<IssueDetail> {
+  const base = patch.fieldValues
+    ? { fieldValues: withMovePatch(issue, patch).fieldValues }
+    : (patch as Partial<IssueDetail>);
+  return { id: issue.id, ...base, rank };
+}
+
+/**
  * Issues as a table, grouped by status. A row opens the issue, the pickers
  * in priority, status, and assignee change it directly from the list.
  * Dragging reorders — within a group and across its boundary, which
@@ -98,13 +132,16 @@ export function ListView({
   composer,
   hiddenCardFields,
   sortKey,
-  groupKey,
+  groupKey: requestedGroupKey,
   hiddenGroups,
   hideEmptyGroups,
   emptyTitle,
 }: ListViewProps) {
   const { projects, members, labels, statuses, priorities, issueTypes } =
     composer;
+  // A grouping by a custom field that has since gone is a status list.
+  const groupKey = resolveGroupKey(requestedGroupKey, composer.customFields);
+  const groupFieldDef = groupField(groupKey, composer.customFields);
   const t = useTranslations();
   const router = useRouter();
   const issueOpen = useIssueOpen(composer.workspaceId);
@@ -169,10 +206,17 @@ export function ListView({
   // issues are in them.
   const defs = groupDefs(
     groupKey,
-    { statuses, priorities, issueTypes, members },
+    {
+      statuses,
+      priorities,
+      issueTypes,
+      members,
+      customFields: composer.customFields,
+    },
     {
       unassigned: t("fields.unassigned"),
       noStoryPoints: t("fields.noStoryPoints"),
+      noValue: t("customFields.noValue"),
     },
     shown,
   );
@@ -185,14 +229,28 @@ export function ListView({
       !isGroupHidden(hiddenGroups, g, "list") &&
       !(
         hideEmptyGroups &&
-        !shown.some((issue) => groupIdOf(issue, groupKey) === g.id)
+        !shown.some((issue) => groupIdsOf(issue, groupKey).includes(g.id))
       ),
   );
   const groups: TableGroup<IssueDetail>[] = shownDefs.map((group) => {
     // By rank, not by creation date — otherwise the row would end up
     // somewhere other than where it was dropped after a drag.
     const rows = sortByKey(
-      shown.filter((issue) => groupIdOf(issue, groupKey) === group.id),
+      // An issue with several values of a multi-choice field is in each of
+      // their groups. Each appearance is its own row object with its own key
+      // and remembers which group it sits in — a drag or "Move to…" needs to
+      // know which value it leaves.
+      shown
+        .filter((issue) => groupIdsOf(issue, groupKey).includes(group.id))
+        .map((issue) =>
+          isCustomGroupKey(groupKey)
+            ? {
+                ...issue,
+                [ROW_KEY]: `${group.id}:${issue.id}`,
+                [ROW_GROUP]: group.id,
+              }
+            : issue,
+        ),
       sortKey,
       { statuses, issueTypes, members },
     );
@@ -287,17 +345,21 @@ export function ListView({
 
   /** "Move to…" from the quick-action sheet: the end of the target group. */
   const moveRow = (issue: IssueDetail, groupId: string) => {
-    if (groupIdOf(issue, groupKey) === groupId) return;
+    if (groupIdsOf(issue, groupKey).includes(groupId)) return;
     const target = groups.find((g) => g.id === groupId);
     if (!target) return;
     const rows = target.rows.filter((r) => r.id !== issue.id);
     const rank = rankBetween(rows[rows.length - 1] ?? null, null);
-    const patch = groupPatch(groupKey, groupId);
+    const patch = groupMovePatch(
+      issue,
+      groupKey,
+      rowGroupOf(issue) ?? null,
+      groupId,
+      groupFieldDef,
+    );
     toast(t("issues.movedTo", { group: target.label ?? "" }));
     startTransition(async () => {
-      applyPatch({ id: issue.id, ...patch, rank } as {
-        id: string;
-      } & Partial<IssueDetail>);
+      applyPatch(optimisticMove(issue, patch, rank));
       await reorderIssue(issue.id, patch.status ?? issue.status, rank);
       if (groupKey !== "status") await updateIssue(issue.id, patch);
       router.refresh();
@@ -380,6 +442,20 @@ export function ListView({
           <LabelsCell issue={issue} labels={labels} />
         ) : null,
     },
+    {
+      id: "fields",
+      width: "max-content",
+      align: "end",
+      cell: (issue) => (
+        <FieldChips
+          issue={issue}
+          fields={composer.customFields}
+          members={members}
+          hidden={hiddenCardFields}
+          max={2}
+        />
+      ),
+    },
     // Only in the card rows of a phone/tablet — on a desktop the table has no
     // column for it.
     ...(isCompact
@@ -444,7 +520,7 @@ export function ListView({
 
   const dnd = useTableDnd<IssueDetail>({
     groups,
-    getRowKey: (issue) => issue.id,
+    getRowKey: rowKeyOf,
     // Whoever is currently editing isn't dragged: a draggable row would
     // steal mouse text selection from the field inside it. Not without
     // issue.update.any/.own either — dragging changes the status
@@ -455,13 +531,17 @@ export function ListView({
     announce,
     // A row that ends up in a different group takes on that group's value
     // (its status, priority, …) — the same action as dragging on the board.
-    onDrop: ({ row, groupId, previous, next }) => {
+    onDrop: ({ row, groupId, fromGroupId, previous, next }) => {
       const rank = rankBetween(previous, next);
-      const patch = groupPatch(groupKey, groupId);
+      const patch = groupMovePatch(
+        row,
+        groupKey,
+        fromGroupId,
+        groupId,
+        groupFieldDef,
+      );
       startTransition(async () => {
-        applyPatch({ id: row.id, ...patch, rank } as {
-          id: string;
-        } & Partial<IssueDetail>);
+        applyPatch(optimisticMove(row, patch, rank));
         await reorderIssue(row.id, patch.status ?? row.status, rank);
         if (groupKey !== "status") await updateIssue(row.id, patch);
         router.refresh();
@@ -482,7 +562,7 @@ export function ListView({
         label={t("nav.issues")}
         columns={columns}
         groups={groups}
-        getRowKey={(issue) => issue.id}
+        getRowKey={rowKeyOf}
         dnd={isCompact ? undefined : dnd}
         isRowActive={(issue) => identifier(issue) === openIssue}
         isRowFocused={(issue) => issue.id === focusedId}
@@ -494,7 +574,7 @@ export function ListView({
             compact={isCompact}
             members={members}
             moveTargets={shownDefs}
-            currentGroupId={groupIdOf(issue, groupKey)}
+            currentGroupId={rowGroupOf(issue) ?? groupIdOf(issue, groupKey)}
             onMoveTo={(groupId) => moveRow(issue, groupId)}
             onOpen={() => issueOpen.open(identifier(issue))}
             onOpenInNewTab={() => issueOpen.openPageInNewTab(identifier(issue))}

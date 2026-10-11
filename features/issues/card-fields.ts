@@ -28,6 +28,28 @@ export function isCardFieldKey(value: string): value is CardFieldKey {
 }
 
 /**
+ * A custom field is hidden the same way, stored as `cf:<fieldId>` — the
+ * field may be gone by the time it is read, which just makes the entry
+ * meaningless.
+ */
+export type CustomCardFieldEntry = `cf:${string}`;
+
+export const customCardFieldEntry = (fieldId: string): CustomCardFieldEntry =>
+  `cf:${fieldId}`;
+
+/** Anything a `hiddenFields` list may hold: a built-in key or a custom field. */
+export function isCardFieldEntry(value: string): boolean {
+  return isCardFieldKey(value) || (value.startsWith("cf:") && value.length > 3);
+}
+
+/** The custom fields (by id) a `hiddenFields` list hides. */
+export function hiddenCustomFieldIds(hidden: string[]): Set<string> {
+  return new Set(
+    hidden.filter((v) => v.startsWith("cf:")).map((v) => v.slice(3)),
+  );
+}
+
+/**
  * Turns a stored `hiddenFields` list into the set of card/row fields this
  * person still wants to see — unknown keys (an older version of this list)
  * are dropped rather than trusted.

@@ -3,7 +3,10 @@
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/atoms/Button/Button";
+import { FieldFilter } from "@/features/custom-fields/components/FieldFilter/FieldFilter";
 import { visibleDetailFields } from "@/features/projects/detail-fields";
+import type { FieldDefinition } from "@/lib/custom-fields";
+import { filterParam } from "@/lib/custom-fields/filter";
 import type { Label, Priority, Project, Status, User } from "@/types";
 import styles from "../topbar.module.scss";
 import type { FilterKey, FilterState, IssueArea } from "../useTopbar";
@@ -31,6 +34,8 @@ interface TopbarFiltersProps {
   members: User[];
   labels: Label[];
   projects: Project[];
+  /** Custom fields that get a chip of their own. */
+  fields: FieldDefinition[];
   onToggle: (key: FilterKey, value: string | number) => void;
   onClear: (key: FilterKey) => void;
   onClearAll: () => void;
@@ -49,6 +54,7 @@ export function TopbarFilters({
   members,
   labels,
   projects,
+  fields,
   onToggle,
   onClear,
   onClearAll,
@@ -115,6 +121,18 @@ export function TopbarFilters({
           onClear={() => onClear("dueDate")}
         />
       )}
+      {fields.map((field) => (
+        <FieldFilter
+          key={field.id}
+          field={field}
+          members={members}
+          value={filters.custom[field.key] ?? []}
+          onToggle={(answer) =>
+            onToggle(filterParam(field.key) as FilterKey, answer)
+          }
+          onClear={() => onClear(filterParam(field.key) as FilterKey)}
+        />
+      ))}
 
       {filterCount > 0 && (
         <Button

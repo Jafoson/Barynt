@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { type CSSProperties, useRef, useState } from "react";
 import { Label } from "@/components/ui/atoms/Label/Label";
 import { Stamp } from "@/components/ui/atoms/Stamp/Stamp";
+import { FieldChips } from "@/features/custom-fields/components/FieldChips/FieldChips";
 import {
   type CardFieldKey,
   visibleCardFields,
@@ -89,7 +90,7 @@ export function BoardCard({
   issue,
   projectId,
   showProject,
-  lookups: { members, projects, labels, issueTypes },
+  lookups: { members, projects, labels, issueTypes, customFields },
   hiddenCardFields,
   isDragging,
   isActive,
@@ -345,6 +346,15 @@ export function BoardCard({
       )}
 
       {/* Meta: priority + identifier | time + comments */}
+      {issue.fieldValues && Object.keys(issue.fieldValues).length > 0 && (
+        <FieldChips
+          issue={issue}
+          fields={customFields}
+          members={members}
+          hidden={hiddenCardFields}
+        />
+      )}
+
       <div className={styles.footer}>
         {showField("priority") && (
           <PriorityIcon priority={issue.priority} size={14} />

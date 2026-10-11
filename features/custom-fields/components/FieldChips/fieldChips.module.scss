@@ -1,0 +1,65 @@
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.chip {
+  display: inline-flex;
+  /* Centred, not on the baseline: a picture or an avatar in front of a value
+     is taller than the text and would otherwise sit off the middle. */
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-container-high);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  color: var(--on-surface);
+}
+
+.icon {
+  flex: none;
+  align-self: center;
+  color: var(--on-surface-variant);
+}
+
+.name {
+  flex: none;
+  color: var(--on-surface-variant);
+}
+
+/* A name with no icon before it reads as a label: "Reviewer: Fatima". */
+.nameAlone::after {
+  content: ":";
+}
+
+.value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.more {
+  color: var(--on-surface-variant);
+}
+
+/* The chosen options of a choice field, side by side. */
+.choices {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.125rem 0.375rem;
+  min-width: 0;
+}
+
+/* One chosen option: its icon or image, then its name, on one line. */
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  line-height: 1.4;
+}
