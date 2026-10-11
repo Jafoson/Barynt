@@ -135,6 +135,10 @@ export const getWorkspaceCustomFields = cache(
         linkFavicon: f.linkFavicon,
         linkFetchTitle: f.linkFetchTitle,
         projectId: f.projectId,
+        // Turned off in a project's "Fields" settings as `cf:<id>`.
+        hiddenInProjects: projects
+          .filter((p) => p.hiddenDetailFields?.includes(`cf:${f.id}`))
+          .map((p) => p.id),
       })),
     );
   },

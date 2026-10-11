@@ -69,7 +69,10 @@ export async function Topbar({ count, view, projectId }: TopbarProps) {
   // Only the fields that can be grouped by, and — inside one project — only
   // the ones that apply there: the workspace's and that project's own.
   const inScope = allCustomFields.filter((f) =>
-    projectId ? f.projectId === null || f.projectId === projectId : true,
+    projectId
+      ? (f.projectId === null || f.projectId === projectId) &&
+        !f.hiddenInProjects.includes(projectId)
+      : true,
   );
   const customFields = inScope.filter(isGroupableField);
   // The ones that get a filter chip: a wider set than the groupable ones.

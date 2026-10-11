@@ -135,6 +135,8 @@ export interface FieldDefinition {
   linkFetchTitle: boolean;
   /** `null` = a workspace field, which applies in every project. */
   projectId: string | null;
+  /** The projects whose settings turn this field off (`cf:<id>` entries). */
+  hiddenInProjects: string[];
 }
 
 /**

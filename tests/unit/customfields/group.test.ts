@@ -38,6 +38,7 @@ const multi: FieldDefinition = {
   linkFavicon: false,
   linkFetchTitle: true,
   projectId: null,
+  hiddenInProjects: [],
 };
 const single: FieldDefinition = { ...multi, id: "f_size", type: "SELECT" };
 const text: FieldDefinition = { ...multi, id: "f_text", type: "TEXT" };

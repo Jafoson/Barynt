@@ -49,3 +49,10 @@
   color: var(--on-error-container);
   font-size: var(--text-sm);
 }
+
+.sectionTitle {
+  margin: 1.5rem 0 0.625rem;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--on-surface-variant);
+}

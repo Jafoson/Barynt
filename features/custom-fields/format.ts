@@ -6,13 +6,18 @@ import type { FieldDefinition, FieldValue } from "@/lib/custom-fields";
 import { formatFieldDate } from "@/lib/custom-fields/datetime";
 import { usePreferences } from "@/lib/preferences/PreferencesContext";
 
-/** The fields that apply to this issue: workspace-wide ones and its project's own. */
+/**
+ * The fields that apply to this issue: workspace-wide ones and its
+ * project's own — minus the ones the project's settings turned off.
+ */
 export function fieldsFor(
   fields: FieldDefinition[],
   projectId: string,
 ): FieldDefinition[] {
   return fields.filter(
-    (f) => f.projectId === null || f.projectId === projectId,
+    (f) =>
+      (f.projectId === null || f.projectId === projectId) &&
+      !(f.hiddenInProjects ?? []).includes(projectId),
   );
 }
 
