@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/atoms/Input/Input";
 import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import { FieldChoiceMenu } from "@/features/custom-fields/components/FieldChoiceMenu/FieldChoiceMenu";
+import { LinkText } from "@/features/custom-fields/components/LinkChip/LinkChip";
 import { LinkValuePopover } from "@/features/custom-fields/components/LinkValuePopover/LinkValuePopover";
+import { SiteIcon } from "@/features/custom-fields/components/SiteIcon/SiteIcon";
 import {
   fieldsFor,
   useFieldText,
@@ -21,7 +23,11 @@ import {
 } from "@/features/custom-fields/input";
 import { ValuePopover } from "@/features/issues/components/ValuePopover/ValuePopover";
 import type { IssueComposerData } from "@/features/issues/types";
-import { type FieldDefinition, titleKey } from "@/lib/custom-fields";
+import {
+  type FieldDefinition,
+  titleKey,
+  withScheme,
+} from "@/lib/custom-fields";
 
 /**
  * What the dialog holds for a field before the issue exists: a value as the
@@ -89,13 +95,38 @@ export function CreateFieldChips({
       {fieldsFor(fields, projectId).map((field) => {
         const value = values[field.id];
         const has = value !== undefined;
+        const ownTitle = (f: FieldDefinition) => {
+          const own = values[titleKey(f.id)];
+          return typeof own === "string" ? own : null;
+        };
 
         return (
           <FilterChip
             key={field.id}
             name={field.name}
-            label={has ? draftText(field, value) : field.name}
-            icon={<Icon icon={field.icon ?? ICONS[field.type]} width={14} />}
+            label={
+              has && field.type === "URL" && typeof value === "string" ? (
+                <LinkText
+                  url={withScheme(value)}
+                  title={ownTitle(field)}
+                  fetchTitle={field.linkFetchTitle}
+                />
+              ) : has ? (
+                draftText(field, value)
+              ) : (
+                field.name
+              )
+            }
+            icon={
+              has &&
+              field.type === "URL" &&
+              field.linkFavicon &&
+              typeof value === "string" ? (
+                <SiteIcon url={withScheme(value)} />
+              ) : (
+                <Icon icon={field.icon ?? ICONS[field.type]} width={14} />
+              )
+            }
             active={has}
             onClear={() => {
               onChange(field.id, null);

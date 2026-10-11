@@ -29,10 +29,14 @@ interface Props {
 }
 
 /**
- * A link field's value as a chip: its own title, else the page's title
- * (read by the server, see `/api/link-title`), else the site's name.
+ * What a link is called: its own title, else the page's title (read by the
+ * server, see `/api/link-title`), else the site's name.
  */
-export function LinkChip({ url, title, favicon, fetchTitle }: Props) {
+export function useLinkTitle(
+  url: string,
+  title: string | null | undefined,
+  fetchTitle: boolean,
+): string {
   const [pageTitle, setPageTitle] = useState<string | null>(
     fetched.get(url) ?? null,
   );
@@ -56,7 +60,21 @@ export function LinkChip({ url, title, favicon, fetchTitle }: Props) {
     };
   }, [url, wanted]);
 
-  const shown = title || (fetchTitle ? pageTitle : null) || linkHost(url);
+  return title || (fetchTitle ? pageTitle : null) || linkHost(url);
+}
+
+/** The name of a link as plain text, for a toolbar chip. */
+export function LinkText({
+  url,
+  title,
+  fetchTitle,
+}: Pick<Props, "url" | "title" | "fetchTitle">) {
+  return <>{useLinkTitle(url, title, fetchTitle)}</>;
+}
+
+/** A link field's value as a chip, with the site's icon if the field wants it. */
+export function LinkChip({ url, title, favicon, fetchTitle }: Props) {
+  const shown = useLinkTitle(url, title, fetchTitle);
 
   return (
     <LabelChip size="md" hasIcon title={url} className={styles.chip}>
