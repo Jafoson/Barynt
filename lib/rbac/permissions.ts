@@ -242,6 +242,21 @@ export const PERMISSIONS = {
   "label.update": { desc: "Edit a label", scopes: WORKSPACE_AND_PROJECT },
   "label.delete": { desc: "Delete a label", scopes: WORKSPACE_AND_PROJECT },
 
+  // ── Views ───────────────────────────────────────────────────────────────────
+  //
+  // Saved views (BARY-8). A private view needs no permission — seeing the
+  // issues is enough to save a filter over them. These two keys govern only
+  // what others see: on a project role for the project's views, on a
+  // workspace role for the cross-project views of the workspace.
+  "view.share": {
+    desc: "Create shared views and edit the ones you created",
+    scopes: WORKSPACE_AND_PROJECT,
+  },
+  "view.manage": {
+    desc: "Edit and delete shared views created by others",
+    scopes: WORKSPACE_AND_PROJECT,
+  },
+
   // ── Issues ──────────────────────────────────────────────────────────────────
   //
   // An issue always lives in a project — there's no workspace-wide issue.

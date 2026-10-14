@@ -354,6 +354,7 @@
       "issue": "Issues",
       "comment": "Comments",
       "label": "Labels",
+      "view": "Views",
       "project": "Projects",
       "member": "Members",
       "team": "Teams",
@@ -1216,7 +1217,8 @@
       "issueStoryPointsChanged": "Story points changed",
       "issueEstimateHoursChanged": "Time estimate changed",
       "labelCreated": "Label created",
-      "labelDeleted": "Label deleted"
+      "labelDeleted": "Label deleted",
+      "viewDeleted": "Shared view deleted"
     }
   },
   "dashboard": {

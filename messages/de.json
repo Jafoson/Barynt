@@ -354,6 +354,7 @@
       "issue": "Issues",
       "comment": "Kommentare",
       "label": "Labels",
+      "view": "Ansichten",
       "project": "Projekte",
       "member": "Mitglieder",
       "team": "Teams",
@@ -1216,7 +1217,8 @@
       "issueStoryPointsChanged": "Story Points geändert",
       "issueEstimateHoursChanged": "Zeitschätzung geändert",
       "labelCreated": "Label angelegt",
-      "labelDeleted": "Label gelöscht"
+      "labelDeleted": "Label gelöscht",
+      "viewDeleted": "Geteilte Ansicht gelöscht"
     }
   },
   "dashboard": {

@@ -58,6 +58,7 @@ model Workspace {
   // Wie einzelne Personen Board/Liste der projektübergreifenden "Meine
   // Issues"-Ansicht eingerichtet haben (BARY-33).
   myIssuesViewPreferences MyIssuesViewPreference[]
+  savedViews    SavedView[]
   // Wichtige externe Adressen — Dokumentation, Repository, Chat.
   links         WorkspaceLink[]
   notifications Notification[]
@@ -179,6 +180,8 @@ model User {
   workspaceDashboards WorkspaceDashboardPreference[]
   issueViewPreferences   IssueViewPreference[]
   myIssuesViewPreferences MyIssuesViewPreference[]
+  savedViews             SavedView[]
+  savedViewStates        SavedViewUserState[]
   notifications       Notification[]                 @relation("NotificationRecipient")
   notificationsCaused Notification[]                 @relation("NotificationActor")
   apiKeys             ApiKey[]
@@ -597,6 +600,84 @@ model MyIssuesViewPreference {
   @@index([workspaceId])
 }
 
+/// Wer eine gespeicherte Ansicht sieht (BARY-163). `PROJECT` gibt es nur an
+/// Views mit `projectId`, `WORKSPACE` nur an projektübergreifenden — geprüft
+/// in `features/views/access.ts`.
+enum ViewVisibility {
+  PRIVATE
+  PROJECT
+  WORKSPACE
+}
+
+/// Eine gespeicherte Ansicht (BARY-8): benannte Abfrage plus Darstellung.
+/// Board, Liste und Dashboard bleiben eingebaute System-Views ohne Zeile hier.
+///
+/// `filter` ist der Filterbaum aus `features/issues/filter.ts` (Ids, keine
+/// Slugs), `display` die Anzeige (`features/views/schema.ts`). Beides wird
+/// beim Schreiben validiert, nie roh übernommen.
+model SavedView {
+  id          String         @id
+  workspaceId String
+  /// `null` = projektübergreifend (wie „Meine Issues“).
+  projectId   String?
+  /// `null`, wenn das Konto gelöscht wurde — geteilte Views bleiben stehen.
+  ownerId     String?
+  visibility  ViewVisibility @default(PRIVATE)
+
+  name     String
+  /// Eindeutig im Workspace, Teil der Adresse (`…/view/<slug>`).
+  slug     String
+  icon     String?
+  color    String?
+  /// Reihenfolge der Tabs; Float, damit Umsortieren nur eine Zeile ändert.
+  position Float   @default(0)
+
+  /// "board" | "list" | "dashboard" — `VIEW_LAYOUTS`.
+  layout     String
+  filter     Json    @default("{\"op\":\"and\",\"rules\":[]}")
+  /// `GROUP_KEYS`; `null` = Vorgabe des Layouts.
+  groupBy    String?
+  /// Zweite Gruppierung für Swimlanes (V13).
+  subGroupBy String?
+  /// `SORT_KEYS`.
+  sortBy     String  @default("manual")
+  /// "asc" | "desc".
+  sortDir    String  @default("asc")
+  display    Json    @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspace  Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project    Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner      User?                @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  userStates SavedViewUserState[]
+
+  @@unique([workspaceId, slug])
+  @@index([projectId])
+  @@index([ownerId])
+}
+
+/// Was an einer View nur eine Person betrifft (BARY-163): angeheftet,
+/// Favorit, eingeklappte Gruppen. Getrennt von `SavedView`, damit das
+/// Zuklappen einer Gruppe nicht die geteilte View für alle verstellt.
+model SavedViewUserState {
+  userId           String
+  viewId           String
+  pinned           Boolean  @default(false)
+  favorite         Boolean  @default(false)
+  /// Platz in der Favoriten-Liste der Sidebar (V7).
+  favoritePosition Float?
+  /// Einträge "<groupKey>:<groupId>" wie `IssueViewPreference.hiddenGroups`.
+  collapsedGroups  String[] @default([])
+
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  view SavedView @relation(fields: [viewId], references: [id], onDelete: Cascade)
+
+  @@id([userId, viewId])
+  @@index([viewId])
+}
+
 // ─── Auth.js (NextAuth) ─────────────────────────────────────────────────────────
 // Standard-Adapter-Modelle. Session bleibt bei JWT-Strategie ungenutzt, wird aber
 // vom PrismaAdapter typseitig erwartet.
@@ -731,6 +812,8 @@ model Project {
   // (BARY-33) — welche Kartenfelder sie zusätzlich zu Project.hiddenDetailFields
   // ausgeblendet haben.
   issueViewPreferences IssueViewPreference[]
+  // Gespeicherte Ansichten dieses Projekts (BARY-163).
+  savedViews    SavedView[]
   notifications Notification[]
   inviteLinks   InviteLink[]
 

@@ -237,6 +237,7 @@ export const AUDIT_ACTION_META = {
   },
   "label.created": { icon: "lucide:tag", message: "labelCreated" },
   "label.deleted": { icon: "lucide:tag", message: "labelDeleted" },
+  "view.deleted": { icon: "lucide:layout-grid", message: "viewDeleted" },
 } as const satisfies Record<
   AuditAction,
   { icon: string; message: string; loud?: boolean }
