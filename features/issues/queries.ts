@@ -2,6 +2,7 @@ import { cache } from "react";
 import { listAudit } from "@/lib/audit";
 import { getCurrentWorkspaceId } from "@/lib/current-workspace";
 import { db } from "@/lib/db";
+import type { Prisma } from "@/lib/generated/prisma/client";
 import { issueShareUrl } from "@/lib/issue-share";
 import {
   accessFor,
@@ -37,6 +38,8 @@ import type {
   Team,
   User,
 } from "@/types";
+import { filterFromUrl } from "./filter";
+import { type FilterContext, toIssueWhere } from "./filter-where";
 
 // ── Shared DB → client mappers ────────────────────────────────────────────────
 
@@ -435,38 +438,6 @@ export interface IssueFilters {
   dueDate?: string;
 }
 
-/** `dueDate` bucket → the `Issue.dueDate` condition it stands for, evaluated
- *  against "now" at request time. `week` includes `today` and `overdue`
- *  stays exclusive of it — the three together plus `none` cover every
- *  issue exactly once, matching how a status filter's options are also
- *  mutually exclusive by default (picking several is still a union, same
- *  as any other multi-select here). */
-function dueDateBucketWhere(bucket: string): Record<string, unknown> | null {
-  const now = new Date();
-  const startOfToday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-  );
-  const startOfTomorrow = new Date(startOfToday);
-  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
-  const startOfNextWeek = new Date(startOfToday);
-  startOfNextWeek.setDate(startOfNextWeek.getDate() + 7);
-
-  switch (bucket) {
-    case "overdue":
-      return { dueDate: { lt: startOfToday } };
-    case "today":
-      return { dueDate: { gte: startOfToday, lt: startOfTomorrow } };
-    case "week":
-      return { dueDate: { gte: startOfToday, lt: startOfNextWeek } };
-    case "none":
-      return { dueDate: null };
-    default:
-      return null;
-  }
-}
-
 /**
  * Ranked full-text matches for a search string: title (weight A) and
  * descriptionText (weight B) via `Issue.searchVector`, plus any issue that
@@ -504,13 +475,14 @@ async function searchIssueIds(q: string): Promise<Map<string, number>> {
 }
 
 /**
- * Translates the slugs from the URL into the issue's internal values and
- * builds the `where` conditions from them — once for all views, so the
- * same filter means the same thing everywhere.
+ * Translates the slugs from the URL into internal ids, builds the filter
+ * tree from them (`filterFromUrl`) and turns that into a `where`
+ * (`toIssueWhere`) — the same path a saved view takes, so the same filter
+ * means the same thing everywhere (BARY-162).
  *
- * The projects come back separately: the caller knows its own scope (a
- * single project, or a workspace's visible ones) and needs to intersect
- * the filter with it rather than overwrite it.
+ * The result is a single `AND`; the caller puts its own scope next to it.
+ * A project filter only applies in cross-project views, and it can only
+ * narrow that scope, never widen it.
  *
  * A slug that matches nothing is dropped — the view then shows everything
  * instead of nothing. That's the rule for every one of these filters, so a
@@ -519,15 +491,9 @@ async function searchIssueIds(q: string): Promise<Map<string, number>> {
 async function resolveIssueFilters(
   filters: IssueFilters,
   scope: { projectId: string } | { workspaceId: string },
-): Promise<{
-  where: Record<string, unknown>;
-  /** `null` when not filtering by project. */
-  projectIds: string[] | null;
-}> {
+): Promise<Prisma.IssueWhereInput> {
   const list = (value?: string) => value?.split(",").filter(Boolean) ?? [];
 
-  // Status slug == status id, that one needs no lookup.
-  const statuses = list(filters.status);
   const prioritySlugs = list(filters.priority);
   const assigneeSlugs = list(filters.assignee);
   const labelSlugs = list(filters.label);
@@ -569,58 +535,40 @@ async function resolveIssueFilters(
         : Promise.resolve([]),
     ]);
 
-  const priorities = priorityRows.map((p) => p.id);
-  const assignees = assigneeRows.map((u) => u.id);
-  const labels = labelRows.map((l) => l.id);
+  const filter = filterFromUrl({
+    // Status slug == status id, that one needs no lookup.
+    statuses: list(filters.status),
+    priorities: priorityRows.map((p) => p.id),
+    assignees: assigneeRows.map((u) => u.id),
+    labels: labelRows.map((l) => l.id),
+    projects: projectRows.map((p) => p.id),
+    storyPoints: list(filters.storyPoints)
+      .map(Number)
+      .filter((n) => Number.isFinite(n)),
+    dueDate: list(filters.dueDate),
+    q: filters.q,
+  });
 
-  // The search filters "by title or ID": `ORB-12` or `12` additionally
-  // matches the issue number. The digit count is capped so nothing exceeds
-  // the column's int range.
-  const q = filters.q?.trim();
-  const keyDigits = q?.match(/^(?:[a-z]+-)?(\d{1,9})$/i)?.[1];
-  const key = keyDigits ? Number(keyDigits) : undefined;
-  // Full-text match against title/descriptionText/comments (see
-  // `searchIssueIds`) — resolved to a concrete id list here so it can sit
-  // in the same `OR` as the exact key match. Board/list order stays
-  // `rank`/`created` regardless (see `getIssuesByProject`): a search filters
-  // which rows show up, it doesn't reshuffle a manually-ordered board.
-  const matchedIds = q ? await searchIssueIds(q) : null;
+  return toIssueWhere(filter, await filterContext());
+}
 
-  const storyPointsList = list(filters.storyPoints)
-    .map(Number)
-    .filter((n) => Number.isFinite(n));
-  const dueDateConditions = list(filters.dueDate)
-    .map(dueDateBucketWhere)
-    .filter((c): c is Record<string, unknown> => c !== null);
-
-  // Combined via `AND` rather than spread into one object: `q` and
-  // `dueDate` each contribute their own `OR` clause, and a plain object
-  // can only hold one key named `OR` — the second would silently
-  // overwrite the first.
-  const conditions: Record<string, unknown>[] = [
-    ...(statuses.length ? [{ status: { in: statuses } }] : []),
-    ...(priorities.length ? [{ priority: { in: priorities } }] : []),
-    ...(assignees.length ? [{ assigneeId: { in: assignees } }] : []),
-    ...(labels.length ? [{ labels: { hasSome: labels } }] : []),
-    ...(storyPointsList.length
-      ? [{ storyPoints: { in: storyPointsList } }]
-      : []),
-    ...(dueDateConditions.length ? [{ OR: dueDateConditions }] : []),
-    ...(q
-      ? [
-          {
-            OR: [
-              { id: { in: matchedIds ? [...matchedIds.keys()] : [] } },
-              ...(key !== undefined ? [{ key }] : []),
-            ],
-          },
-        ]
-      : []),
-  ];
-
+/** The live lookups `toIssueWhere` needs: the viewer for `@me`, statuses by
+ *  category, full-text search. */
+async function filterContext(): Promise<FilterContext> {
   return {
-    where: conditions.length ? { AND: conditions } : {},
-    projectIds: projectRows.length ? projectRows.map((p) => p.id) : null,
+    userId: await currentUserId(),
+    now: new Date(),
+    statusIdsIn: async (categories) =>
+      (
+        await db.status.findMany({
+          where: { category: { in: categories } },
+          select: { id: true },
+        })
+      ).map((s) => s.id),
+    // Board/list order stays `rank`/`created` regardless (see
+    // `getIssuesByProject`): a search filters which rows show up, it
+    // doesn't reshuffle a manually-ordered board.
+    searchIds: async (q) => [...(await searchIssueIds(q)).keys()],
   };
 }
 
@@ -644,7 +592,7 @@ export async function getIssuesByProject(
   // everything, including reading, not just writing.
   if (!(await hasPermission("project.view", { projectId }))) return [];
 
-  const { where } = await resolveIssueFilters(filters, { projectId });
+  const where = await resolveIssueFilters(filters, { projectId });
 
   const rows = await db.issue.findMany({
     // The scope sits behind the filters: no slug in the URL can override it.
@@ -692,16 +640,11 @@ export async function getMyIssues(
   const visible = await accessibleProjectIds(userId, workspaceId);
   if (visible.size === 0) return [];
 
-  const { where, projectIds } = await resolveIssueFilters(filters, {
-    workspaceId,
-  });
-  // The project filter narrows down within the visible projects, never
-  // beyond them: a project id in the URL doesn't open anything that would
-  // otherwise be closed.
-  const scoped = projectIds
-    ? [...visible].filter((id) => projectIds.includes(id))
-    : [...visible];
-  if (scoped.length === 0) return [];
+  // A project filter in the URL sits inside `where` and narrows down
+  // within the visible projects, never beyond them: the scope below is
+  // AND-ed next to it, so a project id in the URL doesn't open anything
+  // that would otherwise be closed.
+  const where = await resolveIssueFilters(filters, { workspaceId });
 
   const rows = await db.issue.findMany({
     // Assignee and scope sit behind the filters — an `?assignee=` in the
@@ -709,7 +652,7 @@ export async function getMyIssues(
     where: {
       ...where,
       assigneeId: userId,
-      projectId: { in: scoped },
+      projectId: { in: [...visible] },
       ...(!subIssues && { parentId: null }),
     },
     include: {
