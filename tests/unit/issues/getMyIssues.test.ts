@@ -109,7 +109,7 @@ describe("getMyIssues()", () => {
   it("takes the due date bucket filter from the URL (BARY-4)", async () => {
     await getMyIssues("u-1", "ws-1", { dueDate: "none" });
 
-    expect(lastWhere().OR).toEqual([{ dueDate: null }]);
+    expect(lastWhere().dueDate).toBeNull();
   });
 
   it("doesn't let `?assignee=` override who's assigned", async () => {
