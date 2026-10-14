@@ -121,6 +121,34 @@ export function isGroup(node: FilterRule | FilterGroup): node is FilterGroup {
   return "op" in node;
 }
 
+/**
+ * The projects out of `allowed` that the filter can still match — known
+ * before asking the database. Cross-project views use it as their scope, and
+ * an empty result means there's nothing to query at all.
+ *
+ * Only top-level project rules count: they're AND-ed, so each one must hold.
+ * A project rule inside an OR group may be outweighed by its siblings and
+ * narrows nothing for certain — `toIssueWhere` still applies it.
+ */
+export function narrowProjects(
+  filter: IssueFilter,
+  allowed: Iterable<string>,
+): string[] {
+  let ids = [...allowed];
+  for (const node of filter.rules) {
+    if (isGroup(node) || node.field !== "project") continue;
+    const values = Array.isArray(node.value) ? node.value : [];
+    // A rule without values drops out in `toIssueWhere`, so it can't narrow
+    // here either.
+    if (!values.length) continue;
+    ids =
+      node.is === "none"
+        ? ids.filter((id) => !values.includes(id))
+        : ids.filter((id) => values.includes(id));
+  }
+  return ids;
+}
+
 // ─── Validation ─────────────────────────────────────────────────────────────
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;

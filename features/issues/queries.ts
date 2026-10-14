@@ -2,7 +2,6 @@ import { cache } from "react";
 import { listAudit } from "@/lib/audit";
 import { getCurrentWorkspaceId } from "@/lib/current-workspace";
 import { db } from "@/lib/db";
-import type { Prisma } from "@/lib/generated/prisma/client";
 import { issueShareUrl } from "@/lib/issue-share";
 import {
   accessFor,
@@ -38,7 +37,7 @@ import type {
   Team,
   User,
 } from "@/types";
-import { filterFromUrl } from "./filter";
+import { filterFromUrl, type IssueFilter, narrowProjects } from "./filter";
 import { type FilterContext, toIssueWhere } from "./filter-where";
 
 // ── Shared DB → client mappers ────────────────────────────────────────────────
@@ -475,23 +474,22 @@ async function searchIssueIds(q: string): Promise<Map<string, number>> {
 }
 
 /**
- * Translates the slugs from the URL into internal ids, builds the filter
- * tree from them (`filterFromUrl`) and turns that into a `where`
- * (`toIssueWhere`) — the same path a saved view takes, so the same filter
- * means the same thing everywhere (BARY-162).
+ * Translates the slugs from the URL into internal ids and builds the filter
+ * tree from them (`filterFromUrl`) — the same tree a saved view stores, so
+ * the same filter means the same thing everywhere (BARY-162). `toIssueWhere`
+ * turns it into a `where`.
  *
- * The result is a single `AND`; the caller puts its own scope next to it.
  * A project filter only applies in cross-project views, and it can only
- * narrow that scope, never widen it.
+ * narrow that scope, never widen it (`narrowProjects`).
  *
  * A slug that matches nothing is dropped — the view then shows everything
  * instead of nothing. That's the rule for every one of these filters, so a
  * stale link doesn't end up on an empty page.
  */
-async function resolveIssueFilters(
+async function resolveUrlFilter(
   filters: IssueFilters,
   scope: { projectId: string } | { workspaceId: string },
-): Promise<Prisma.IssueWhereInput> {
+): Promise<IssueFilter> {
   const list = (value?: string) => value?.split(",").filter(Boolean) ?? [];
 
   const prioritySlugs = list(filters.priority);
@@ -535,7 +533,7 @@ async function resolveIssueFilters(
         : Promise.resolve([]),
     ]);
 
-  const filter = filterFromUrl({
+  return filterFromUrl({
     // Status slug == status id, that one needs no lookup.
     statuses: list(filters.status),
     priorities: priorityRows.map((p) => p.id),
@@ -548,8 +546,6 @@ async function resolveIssueFilters(
     dueDate: list(filters.dueDate),
     q: filters.q,
   });
-
-  return toIssueWhere(filter, await filterContext());
 }
 
 /** The live lookups `toIssueWhere` needs: the viewer for `@me`, statuses by
@@ -592,7 +588,10 @@ export async function getIssuesByProject(
   // everything, including reading, not just writing.
   if (!(await hasPermission("project.view", { projectId }))) return [];
 
-  const where = await resolveIssueFilters(filters, { projectId });
+  const where = await toIssueWhere(
+    await resolveUrlFilter(filters, { projectId }),
+    await filterContext(),
+  );
 
   const rows = await db.issue.findMany({
     // The scope sits behind the filters: no slug in the URL can override it.
@@ -640,11 +639,14 @@ export async function getMyIssues(
   const visible = await accessibleProjectIds(userId, workspaceId);
   if (visible.size === 0) return [];
 
-  // A project filter in the URL sits inside `where` and narrows down
-  // within the visible projects, never beyond them: the scope below is
-  // AND-ed next to it, so a project id in the URL doesn't open anything
-  // that would otherwise be closed.
-  const where = await resolveIssueFilters(filters, { workspaceId });
+  const filter = await resolveUrlFilter(filters, { workspaceId });
+  // The project filter narrows down within the visible projects, never
+  // beyond them: a project id in the URL doesn't open anything that would
+  // otherwise be closed. Nothing left means nothing to ask for.
+  const scoped = narrowProjects(filter, visible);
+  if (scoped.length === 0) return [];
+
+  const where = await toIssueWhere(filter, await filterContext());
 
   const rows = await db.issue.findMany({
     // Assignee and scope sit behind the filters — an `?assignee=` in the
@@ -652,7 +654,7 @@ export async function getMyIssues(
     where: {
       ...where,
       assigneeId: userId,
-      projectId: { in: [...visible] },
+      projectId: { in: scoped },
       ...(!subIssues && { parentId: null }),
     },
     include: {
@@ -1129,7 +1131,7 @@ export const getSearchIssues = cache(
  * only actual matches, best match first.
  *
  * A bare number or `PREFIX-12` additionally does an exact key lookup, same
- * shortcut `resolveIssueFilters` gives the topbar filter — full-text search
+ * shortcut the `text` filter rule gives the topbar (`toIssueWhere`) — full-text search
  * alone wouldn't find an issue by its number, since the key isn't part of
  * `searchVector`. Ranked above every text match (arbitrarily high score):
  * typing an exact identifier means you already know which issue you want.

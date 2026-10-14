@@ -122,26 +122,18 @@ describe("getMyIssues()", () => {
 
   it("clips the project filter to the accessible projects", async () => {
     // `p-3` is not accessible — the filter must not be able to pull it in.
-    // The filter and the visible scope are AND-ed side by side (BARY-162),
-    // so the database only returns the intersection.
     projectFindMany.mockResolvedValue([{ id: "p-2" }, { id: "p-3" }]);
 
     await getMyIssues("u-1", "ws-1", { project: "app,geheim" });
 
-    const where = issueFindMany.mock.calls.at(-1)?.[0].where;
-    expect(where.projectId).toEqual({ in: ["p-1", "p-2"] });
-    expect(where.AND).toContainEqual({ projectId: { in: ["p-2", "p-3"] } });
+    expect(lastWhere().projectId).toEqual({ in: ["p-2"] });
   });
 
-  it("can't widen the scope when the project filter matches nothing accessible", async () => {
+  it("doesn't even ask when the project filter matches nothing accessible", async () => {
     projectFindMany.mockResolvedValue([{ id: "p-3" }]);
 
-    await getMyIssues("u-1", "ws-1", { project: "geheim" });
-
-    // Visible scope ∩ filter = nothing: `p-3` stays out.
-    const where = issueFindMany.mock.calls.at(-1)?.[0].where;
-    expect(where.projectId).toEqual({ in: ["p-1", "p-2"] });
-    expect(where.AND).toContainEqual({ projectId: { in: ["p-3"] } });
+    expect(await getMyIssues("u-1", "ws-1", { project: "geheim" })).toEqual([]);
+    expect(issueFindMany).not.toHaveBeenCalled();
   });
 
   it("ignores a project slug that doesn't exist", async () => {

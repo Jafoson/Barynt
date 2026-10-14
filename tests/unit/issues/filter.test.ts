@@ -4,6 +4,7 @@ import {
   FILTER_FIELDS,
   filterFromUrl,
   type IssueFilter,
+  narrowProjects,
   parseIssueFilter,
   pruneMissingRefs,
   type ResolvedUrlFilters,
@@ -184,5 +185,44 @@ describe("pruneMissingRefs", () => {
     const { filter: pruned, missing } = pruneMissingRefs(filter, {});
     expect(pruned).toEqual(filter);
     expect(missing).toEqual([]);
+  });
+});
+
+describe("narrowProjects", () => {
+  const visible = ["p1", "p2", "p3"];
+  const of = (rules: IssueFilter["rules"]) =>
+    narrowProjects({ op: "and", rules }, visible);
+
+  it("keeps every allowed project without a project rule", () => {
+    expect(of([])).toEqual(visible);
+  });
+
+  it("intersects with 'any of' and removes 'none of'", () => {
+    expect(
+      of([
+        { field: "project", is: "any", value: ["p2", "p3", "secret"] },
+        { field: "project", is: "none", value: ["p3"] },
+      ]),
+    ).toEqual(["p2"]);
+  });
+
+  it("can't widen beyond what's allowed", () => {
+    expect(of([{ field: "project", is: "any", value: ["secret"] }])).toEqual(
+      [],
+    );
+  });
+
+  it("ignores project rules inside an OR group", () => {
+    expect(
+      of([
+        {
+          op: "or",
+          rules: [
+            { field: "project", is: "any", value: ["p1"] },
+            { field: "label", is: "any", value: ["l1"] },
+          ],
+        },
+      ]),
+    ).toEqual(visible);
   });
 });
