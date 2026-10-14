@@ -1,16 +1,35 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 
+const STATUS_CATEGORY: Record<string, string> = {
+  backlog: "backlog",
+  todo: "unstarted",
+  in_progress: "started",
+  in_review: "started",
+  done: "completed",
+  canceled: "canceled",
+};
+
 mock.module("@/lib/db", () => ({
   db: {
     issue: { findUnique: mock(), update: mock(), create: mock() },
     project: { update: mock() },
     user: { findUnique: mock() },
     auditLog: { create: mock(async () => ({})) },
+    // Whether the target status closes the issue comes from its category
+    // (BARY-161, `lib/statuses.ts`), not from its id. Written out here instead
+    // of importing `DEFAULT_STATUSES`: `@/lib/workspace-defaults` is mocked
+    // by another file that may share this process. The audit trail reads
+    // `name` from the same row and falls back to the raw id.
+    status: {
+      findUnique: mock(async ({ where }: { where: { id: string } }) => {
+        const category = STATUS_CATEGORY[where.id];
+        return category ? { name: where.id, category } : null;
+      }),
+    },
     // Not the subject of this file — `moveIssue`/`updateIssue` look up names
-    // for these when status/priority/type/labels change (audit trail,
+    // for these when priority/type/labels change (audit trail,
     // `recordIssueAudit` & co.). `null` is a valid result (unknown id), in
     // which case the row falls back to the raw id.
-    status: { findUnique: mock(async () => null) },
     priority: { findUnique: mock(async () => null) },
     issueType: { findUnique: mock(async () => null) },
     label: { findMany: mock(async () => []) },

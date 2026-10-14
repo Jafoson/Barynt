@@ -42,6 +42,7 @@ const STATUS = {
   short: "B",
   color: "#888",
   isColumn: true,
+  category: "backlog" as const,
 };
 
 const PROJECTS = [

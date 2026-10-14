@@ -340,6 +340,7 @@ export const getStatuses = cache(
       short: s.short,
       color: s.color,
       isColumn: s.isColumn,
+      category: s.category,
     }));
   },
 );

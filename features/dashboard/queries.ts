@@ -50,8 +50,8 @@ import {
   WORKSPACE_VIEWER_ROLE_KEY,
 } from "@/lib/rbac";
 import { getSession } from "@/lib/session";
+import { closedStatusIds } from "@/lib/statuses";
 import { resolveAvatarUrl } from "@/lib/storage";
-import { CLOSED_STATUSES } from "@/lib/workspace-defaults";
 import type { User } from "@/types";
 
 // ─── A project's dashboard ─────────────────────────────────────────────────────
@@ -72,8 +72,6 @@ import type { User } from "@/types";
 // the issues also isn't allowed to know how many there are. As everywhere,
 // `null` returns what "doesn't exist for you"; the page turns that into a
 // 404, without revealing whether the project is missing or access is.
-
-const CLOSED = [...CLOSED_STATUSES];
 
 /** After how long an in-progress issue counts as stale. */
 const STALE_DAYS = 14;
@@ -184,6 +182,7 @@ async function statsFor(
   to: Date,
   assigneeId: string | null,
 ): Promise<DashboardStats> {
+  const closed = await closedStatusIds();
   const window = { gte: from, lt: to };
   // Narrowed to your own issues for "mine"; unchanged for "all" (`null`).
   const mine = assigneeId ? { assigneeId } : {};
@@ -192,13 +191,13 @@ async function statsFor(
     await Promise.all([
       db.issue.count({ where: { projectId, ...mine } }),
       db.issue.count({
-        where: { projectId, status: { notIn: CLOSED }, ...mine },
+        where: { projectId, status: { notIn: closed }, ...mine },
       }),
       db.issue.count({ where: { projectId, status: "in_progress", ...mine } }),
       db.issue.count({ where: { projectId, status: "in_review", ...mine } }),
       db.issue.count({ where: { projectId, created: window, ...mine } }),
       db.issue.count({
-        where: { projectId, status: { notIn: CLOSED }, priority: 4, ...mine },
+        where: { projectId, status: { notIn: closed }, priority: 4, ...mine },
       }),
       // Assigned and unassigned at once is a contradiction — in your own
       // scope the answer is always 0, with no query needed for it.
@@ -207,7 +206,7 @@ async function statsFor(
         : db.issue.count({
             where: {
               projectId,
-              status: { notIn: CLOSED },
+              status: { notIn: closed },
               priority: 4,
               assigneeId: null,
             },
@@ -291,13 +290,14 @@ async function prioritiesFor(
   workspaceId: string,
   assigneeId: string | null,
 ): Promise<PrioritySlice[]> {
+  const closed = await closedStatusIds();
   const [priorities, rows] = await Promise.all([
     getPriorities(workspaceId),
     db.issue.groupBy({
       by: ["priority"],
       where: {
         projectId,
-        status: { notIn: CLOSED },
+        status: { notIn: closed },
         ...(assigneeId ? { assigneeId } : {}),
       },
       _count: { _all: true },
@@ -382,11 +382,12 @@ async function workloadFor(
   projectId: string,
   assigneeId: string | null,
 ): Promise<WorkloadRow[]> {
+  const closed = await closedStatusIds();
   const rows = await db.issue.groupBy({
     by: ["assigneeId", "status"],
     where: {
       projectId,
-      status: { notIn: CLOSED },
+      status: { notIn: closed },
       ...(assigneeId ? { assigneeId } : {}),
     },
     _count: { _all: true },
@@ -459,12 +460,13 @@ async function attentionFor(
   statusColors: Map<string, string>,
   assigneeId: string | null,
 ): Promise<AttentionIssue[]> {
+  const closed = await closedStatusIds();
   const staleBefore = new Date(Date.now() - STALE_DAYS * 86400_000);
 
   const rows = await db.issue.findMany({
     where: {
       projectId,
-      status: { notIn: CLOSED },
+      status: { notIn: closed },
       ...(assigneeId ? { assigneeId } : {}),
       OR: [
         { priority: { gte: 3 } },
@@ -846,6 +848,7 @@ async function wsStatsFor(
   to: Date,
   assigneeId: string | null,
 ): Promise<DashboardStats> {
+  const closed = await closedStatusIds();
   const window = { gte: from, lt: to };
   const project = { workspaceId };
   const mine = assigneeId ? { assigneeId } : {};
@@ -854,20 +857,20 @@ async function wsStatsFor(
     await Promise.all([
       db.issue.count({ where: { project, ...mine } }),
       db.issue.count({
-        where: { project, status: { notIn: CLOSED }, ...mine },
+        where: { project, status: { notIn: closed }, ...mine },
       }),
       db.issue.count({ where: { project, status: "in_progress", ...mine } }),
       db.issue.count({ where: { project, status: "in_review", ...mine } }),
       db.issue.count({ where: { project, created: window, ...mine } }),
       db.issue.count({
-        where: { project, status: { notIn: CLOSED }, priority: 4, ...mine },
+        where: { project, status: { notIn: closed }, priority: 4, ...mine },
       }),
       assigneeId
         ? Promise.resolve(0)
         : db.issue.count({
             where: {
               project,
-              status: { notIn: CLOSED },
+              status: { notIn: closed },
               priority: 4,
               assigneeId: null,
             },
@@ -931,13 +934,14 @@ async function wsPrioritiesFor(
   workspaceId: string,
   assigneeId: string | null,
 ): Promise<PrioritySlice[]> {
+  const closed = await closedStatusIds();
   const [priorities, rows] = await Promise.all([
     getPriorities(workspaceId),
     db.issue.groupBy({
       by: ["priority"],
       where: {
         project: { workspaceId },
-        status: { notIn: CLOSED },
+        status: { notIn: closed },
         ...(assigneeId ? { assigneeId } : {}),
       },
       _count: { _all: true },
@@ -997,11 +1001,12 @@ async function wsWorkloadFor(
   workspaceId: string,
   assigneeId: string | null,
 ): Promise<WorkloadRow[]> {
+  const closed = await closedStatusIds();
   const rows = await db.issue.groupBy({
     by: ["assigneeId", "status"],
     where: {
       project: { workspaceId },
-      status: { notIn: CLOSED },
+      status: { notIn: closed },
       ...(assigneeId ? { assigneeId } : {}),
     },
     _count: { _all: true },
@@ -1050,12 +1055,13 @@ async function wsAttentionFor(
   statusColors: Map<string, string>,
   assigneeId: string | null,
 ): Promise<AttentionIssue[]> {
+  const closed = await closedStatusIds();
   const staleBefore = new Date(Date.now() - STALE_DAYS * 86400_000);
 
   const rows = await db.issue.findMany({
     where: {
       project: { workspaceId },
-      status: { notIn: CLOSED },
+      status: { notIn: closed },
       ...(assigneeId ? { assigneeId } : {}),
       OR: [
         { priority: { gte: 3 } },

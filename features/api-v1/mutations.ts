@@ -44,6 +44,7 @@ import {
   toPreview,
 } from "@/lib/richtext";
 import { slugify } from "@/lib/slug";
+import { isClosedStatus } from "@/lib/statuses";
 import { canCreateWorkspace, getSystemSettings } from "@/lib/system-settings";
 import { uid } from "@/lib/utils/id";
 import { fireWebhookEvent } from "@/lib/webhooks/deliver";
@@ -51,7 +52,6 @@ import {
   DEFAULT_ISSUE_TYPES,
   DEFAULT_PRIORITIES,
   DEFAULT_STATUSES,
-  isClosedStatus,
 } from "@/lib/workspace-defaults";
 import type { EstimateUnit } from "@/types";
 
@@ -114,12 +114,12 @@ function fail(status: 403 | 404 | 422): { ok: false; status: 403 | 404 | 422 } {
 /** Same rule as `closedPatch()` in `features/issues/actions.ts`: setting a
  *  closed status stamps `closedAt` only if it isn't already stamped (Done →
  *  Canceled keeps the original date); leaving a closed status clears it. */
-function closedPatch(
+async function closedPatch(
   before: { status: string; closedAt: Date | null },
   next: string | undefined,
-): { closedAt?: Date | null } {
+): Promise<{ closedAt?: Date | null }> {
   if (next === undefined || next === before.status) return {};
-  if (isClosedStatus(next))
+  if (await isClosedStatus(next))
     return before.closedAt ? {} : { closedAt: new Date() };
   return before.closedAt ? { closedAt: null } : {};
 }
@@ -281,7 +281,7 @@ export async function createIssueForUser(
       description: doc as unknown as Prisma.InputJsonValue,
       descriptionText: toPlainText(doc),
       status,
-      ...(isClosedStatus(status) ? { closedAt: new Date() } : {}),
+      ...((await isClosedStatus(status)) ? { closedAt: new Date() } : {}),
       priority: input.priority ?? 0,
       assigneeId: input.assignee ?? null,
       labels: input.labels ?? [],
@@ -441,7 +441,7 @@ export async function updateIssueForUser(
     where: { id: issueId },
     data: {
       ...(patch.status !== undefined && { status: patch.status }),
-      ...closedPatch(issue, patch.status),
+      ...(await closedPatch(issue, patch.status)),
       ...(patch.priority !== undefined && { priority: patch.priority }),
       ...(patch.type !== undefined && { type: patch.type }),
       ...(patch.assignee !== undefined && { assigneeId: patch.assignee }),
