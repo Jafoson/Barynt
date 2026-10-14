@@ -2,6 +2,44 @@
 
 # Barynt — Project Conventions
 
+## Ticket workflow (for Claude)
+
+Applies whenever work starts from a Barynt ticket (`BARY-<n>`, via the
+Barynt MCP tools).
+
+### Status
+
+```
+pick ticket → in_progress → work → in_review → (user OK) → done
+```
+
+1. **Start:** set the ticket to `in_progress` before the first change.
+2. **Ready:** when the work is finished (lint + `bun run test` green, PR
+   open), set it to `in_review` and comment the PR link on the ticket.
+3. **Done:** only after the user says it's fine (or moves it to done
+   themselves) — never on your own. Then set it to `done`.
+
+### Git
+
+- **One branch per ticket**, cut from an up-to-date `main`:
+  `<type>/bary-<n>-<short-slug>` (`feat/`, `fix/`, `refactor/`, `chore/`),
+  e.g. `feat/bary-128-plugin-system`. All changes for the ticket go there.
+  Never commit ticket work directly to `main`.
+- Commits follow the existing style: `type(scope): summary`.
+- **Sub-tickets** get their own branch, cut from the **parent ticket's
+  branch** (not `main`), same naming with the sub-ticket's number. Their PRs
+  target the parent branch; only the parent branch gets a PR into `main`.
+- **PR:** when everything works, push and open a PR (`gh pr create`). Then
+  wait — merge only once the user approves or tells you to merge. This holds
+  for **every** PR, sub-ticket PRs into the parent branch included.
+- **Merge with a merge commit** (`gh pr merge --merge`), not squash or rebase.
+- **After a successful merge:** delete the branch locally and on the remote
+  (`gh pr merge --merge --delete-branch`, plus `git branch -d` if needed),
+  then switch back to the target branch and pull.
+- **Sub-ticket done:** once its PR is merged into the parent branch (with the
+  user's OK), set the sub-ticket to `done`. The parent ticket goes to `done`
+  only after its own PR into `main` is approved and merged.
+
 ## Stack
 
 - **Next.js 16** (App Router) with TypeScript
