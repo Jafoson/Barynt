@@ -43,8 +43,8 @@ import {
 } from "@/lib/permissions";
 import { OWNER_ROLE_KEY } from "@/lib/rbac";
 import { getSession } from "@/lib/session";
+import { closedStatusIds } from "@/lib/statuses";
 import { resolveAvatarUrl } from "@/lib/storage";
-import { CLOSED_STATUSES } from "@/lib/workspace-defaults";
 import type {
   IssueType,
   Label,
@@ -595,7 +595,7 @@ export const getWorkspaceTeamsView = cache(
       by: ["projectId"],
       where: {
         project: { workspaceId },
-        status: { notIn: [...CLOSED_STATUSES] },
+        status: { notIn: await closedStatusIds() },
       },
       _count: { _all: true },
     });

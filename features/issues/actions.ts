@@ -47,6 +47,7 @@ import { hostOf } from "@/lib/richtext/link";
 import { mentionedUserIds, toPlainText, toPreview } from "@/lib/richtext/text";
 import type { PMDoc } from "@/lib/richtext/types";
 import { slugify } from "@/lib/slug";
+import { isClosedStatus } from "@/lib/statuses";
 import {
   deleteAttachmentObject,
   finalizeAttachmentUpload,
@@ -57,7 +58,6 @@ import {
 import { uid } from "@/lib/utils/id";
 import { isValidEmail } from "@/lib/utils/parse-emails";
 import { fireWebhookEvent } from "@/lib/webhooks/deliver";
-import { isClosedStatus } from "@/lib/workspace-defaults";
 import type {
   EstimateUnit,
   IssueAttachment,
@@ -237,13 +237,13 @@ async function notifyMentions(
  * An empty object means "nothing to touch" and can be spread into `data`
  * unchanged.
  */
-function closedPatch(
+async function closedPatch(
   before: { status: string; closedAt: Date | null },
   next: string | undefined,
-): { closedAt?: Date | null } {
+): Promise<{ closedAt?: Date | null }> {
   if (next === undefined || next === before.status) return {};
 
-  if (isClosedStatus(next)) {
+  if (await isClosedStatus(next)) {
     // Already has a date? Then it stays as-is — see "Done" → "Canceled".
     return before.closedAt ? {} : { closedAt: new Date() };
   }
@@ -265,7 +265,7 @@ export async function moveIssue(id: string, status: string) {
   ]);
   await db.issue.update({
     where: { id },
-    data: { status, ...closedPatch(issue, status) },
+    data: { status, ...(await closedPatch(issue, status)) },
   });
   await notifyStatusChange(id, issue, actorId, status);
   if (status !== issue.status) {
@@ -293,7 +293,7 @@ export async function reorderIssue(id: string, status: string, rank: number) {
   ]);
   await db.issue.update({
     where: { id },
-    data: { status, rank, ...closedPatch(issue, status) },
+    data: { status, rank, ...(await closedPatch(issue, status)) },
   });
   await notifyStatusChange(id, issue, actorId, status);
   if (status !== issue.status) {
@@ -326,7 +326,7 @@ export async function updateIssue(id: string, patch: IssuePatch) {
     where: { id },
     data: {
       ...(patch.status !== undefined && { status: patch.status }),
-      ...closedPatch(issue, patch.status),
+      ...(await closedPatch(issue, patch.status)),
       ...(patch.priority !== undefined && { priority: patch.priority }),
       ...(patch.type !== undefined && { type: patch.type }),
       ...(patch.assignee !== undefined && { assigneeId: patch.assignee }),
@@ -778,7 +778,7 @@ export async function createIssue(data: {
       status: data.status,
       // Creating a task as already done — backfilled work — closes it in
       // the same second.
-      ...(isClosedStatus(data.status) ? { closedAt: new Date() } : {}),
+      ...((await isClosedStatus(data.status)) ? { closedAt: new Date() } : {}),
       priority: data.priority,
       assigneeId: data.assignee,
       labels: data.labels,

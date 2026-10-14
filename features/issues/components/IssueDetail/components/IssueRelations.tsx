@@ -29,9 +29,9 @@ import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
 import { Link } from "@/i18n/navigation";
 import { useHasOpenModal, useModal } from "@/lib/context";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
+import { isClosedCategory } from "@/lib/status-category";
 import { useUI } from "@/lib/ui-store";
 import { fullName } from "@/lib/utils/string";
-import { isClosedStatus } from "@/lib/workspace-defaults";
 import type {
   IssueDetail,
   IssueRelationKind,
@@ -833,7 +833,7 @@ export function IssueRelations({
     : data.creatableProjectIds[0];
 
   const doneCount = issue.children.filter((c) =>
-    isClosedStatus(c.status),
+    isClosedCategory(data.statuses.find((s) => s.id === c.status)?.category),
   ).length;
 
   const subIssueExclude = new Set(

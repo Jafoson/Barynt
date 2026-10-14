@@ -864,6 +864,17 @@ model InviteLink {
 
 // ─── Global config (shared across workspaces via join tables) ─────────────────
 
+/// Was ein Status bedeutet, unabhängig von seinem Namen (BARY-161). Daran
+/// hängt, ob ein Issue offen oder geschlossen ist (`Issue.closedAt`, die
+/// offenen Zahlen im Dashboard) — nicht an `Status.id`.
+enum StatusCategory {
+  backlog
+  unstarted
+  started
+  completed
+  canceled
+}
+
 model Status {
   id       String  @id
   name     String
@@ -871,6 +882,7 @@ model Status {
   color    String
   isColumn Boolean @default(true)
   position Int
+  category StatusCategory @default(unstarted)
 
   workspaces WorkspaceStatus[]
 }

@@ -7,12 +7,12 @@ import { enrollWorkspaceMembers } from "../lib/project-membership";
 import { systemRoleId } from "../lib/rbac";
 import { fromMarkdown } from "../lib/richtext/fromMarkdown";
 import { toPlainText } from "../lib/richtext/text";
+import { isClosedCategory } from "../lib/status-category";
 import { uid } from "../lib/utils/id";
 import {
   DEFAULT_ISSUE_TYPES,
   DEFAULT_PRIORITIES,
   DEFAULT_STATUSES,
-  isClosedStatus,
 } from "../lib/workspace-defaults";
 import { bootstrapSystemData } from "./bootstrap";
 
@@ -1207,7 +1207,11 @@ async function main() {
         // that's already done here, the last update counts as the
         // completion. Without the column, the project dashboard would show no
         // throughput after `db:reset`.
-        closedAt: isClosedStatus(issue.status) ? issue.updated : null,
+        closedAt: isClosedCategory(
+          DEFAULT_STATUSES.find((s) => s.id === issue.status)?.category,
+        )
+          ? issue.updated
+          : null,
         assigneeId: issue.assignee
           ? ref(realUserId, issue.assignee, "assignee")
           : null,

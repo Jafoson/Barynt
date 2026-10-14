@@ -123,6 +123,9 @@ const db = {
     update: mockWorkspaceUpdate,
     delete: mockWorkspaceDelete,
   },
+  // `createIssueForUser` asks whether the initial status closes the issue
+  // (its category, BARY-161) — `null` = unknown id = open.
+  status: { findUnique: mock(async () => null) },
   workspaceStatus: { createMany: mockWorkspaceStatusCreateMany },
   workspacePriority: { createMany: mockWorkspacePriorityCreateMany },
   workspaceIssueType: { createMany: mockWorkspaceIssueTypeCreateMany },

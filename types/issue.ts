@@ -1,5 +1,6 @@
 import type { AuditEntry } from "@/lib/audit/actions";
 import type { PMDoc } from "@/lib/richtext/types";
+import type { StatusCategory } from "@/lib/status-category";
 import type { SearchableIssue } from "./workspace";
 
 /** How an issue or comment was created — `APP` for the web app itself,
@@ -22,6 +23,8 @@ export interface Status {
   short: string;
   color: string;
   isColumn: boolean;
+  /** Open or closed hangs off this, not off `id` (BARY-161). */
+  category: StatusCategory;
 }
 
 export interface Priority {

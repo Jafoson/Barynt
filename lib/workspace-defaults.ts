@@ -1,4 +1,14 @@
-export const DEFAULT_STATUSES = [
+import type { StatusCategory } from "./status-category";
+
+export const DEFAULT_STATUSES: {
+  id: string;
+  name: string;
+  short: string;
+  color: string;
+  isColumn: boolean;
+  position: number;
+  category: StatusCategory;
+}[] = [
   {
     id: "backlog",
     name: "Backlog",
@@ -6,6 +16,7 @@ export const DEFAULT_STATUSES = [
     color: "#8a9099",
     isColumn: true,
     position: 0,
+    category: "backlog",
   },
   {
     id: "todo",
@@ -14,6 +25,7 @@ export const DEFAULT_STATUSES = [
     color: "#b8bcc4",
     isColumn: true,
     position: 1,
+    category: "unstarted",
   },
   {
     id: "in_progress",
@@ -22,6 +34,7 @@ export const DEFAULT_STATUSES = [
     color: "#e2b340",
     isColumn: true,
     position: 2,
+    category: "started",
   },
   {
     id: "in_review",
@@ -30,6 +43,7 @@ export const DEFAULT_STATUSES = [
     color: "#5b9bd5",
     isColumn: true,
     position: 3,
+    category: "started",
   },
   {
     id: "done",
@@ -38,6 +52,7 @@ export const DEFAULT_STATUSES = [
     color: "#5ab98a",
     isColumn: true,
     position: 4,
+    category: "completed",
   },
   {
     id: "canceled",
@@ -46,6 +61,7 @@ export const DEFAULT_STATUSES = [
     color: "#7a7f87",
     isColumn: false,
     position: 5,
+    category: "canceled",
   },
 ];
 
@@ -64,27 +80,6 @@ export const DEFAULT_ISSUE_TYPES = [
   { id: "task", name: "Task", color: "#3b7bd5", position: 3 },
   { id: "chore", name: "Chore", color: "#8a7f6b", position: 4 },
 ];
-
-/**
- * The statuses that count an issue as done — completed or canceled.
- * Everything else is open.
- *
- * Lives here instead of being repeated three times separately, because more
- * hangs off it than a count: `Issue.closedAt` gets set and cleared at
- * exactly this boundary (`features/issues/actions.ts`), and the dashboard
- * measures throughput and cycle time against it. Two lists drifting apart
- * would mean: an issue counts as open while still carrying a completion
- * date.
- *
- * Canceled counts too. A canceled issue isn't an accomplishment, but it's
- * also no longer work — if it kept counting toward the backlog, that
- * backlog would grow by exactly what someone deliberately cleared away.
- */
-export const CLOSED_STATUSES = ["done", "canceled"] as const;
-
-export function isClosedStatus(status: string): boolean {
-  return (CLOSED_STATUSES as readonly string[]).includes(status);
-}
 
 // Default roles & permissions live in lib/rbac.ts (single source of truth)
 // and are created per workspace via lib/rbac-provision.ts.
