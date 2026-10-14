@@ -89,6 +89,7 @@ export const AUDIT_ACTIONS = {
   "issue.estimateHours.changed": "Time estimate changed",
   "label.created": "Label created",
   "label.deleted": "Label deleted",
+  "view.deleted": "Shared view deleted",
 } as const;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
@@ -122,7 +123,8 @@ export type AuditTargetType =
   | "mailTemplate"
   | "systemSettings"
   | "issue"
-  | "label";
+  | "label"
+  | "view";
 
 export interface AuditTarget {
   type: AuditTargetType;

@@ -157,6 +157,7 @@ describe("Reading", () => {
         { action: { startsWith: "issue." } },
         { action: "label.created", projectId: { not: null } },
         { action: "label.deleted", projectId: { not: null } },
+        { action: "view.deleted", projectId: { not: null } },
       ],
     });
   });
