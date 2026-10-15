@@ -11,6 +11,7 @@ import {
   NONE_VALUE,
   type RelativeDate,
 } from "@/features/issues/filter";
+import { formatChipDate } from "@/lib/richtext/date";
 import { fullName } from "@/lib/utils/string";
 import type {
   IssueType,
@@ -77,6 +78,8 @@ export const RELATIVE_OPTIONS: RelativeDate[] = [
  * Words for fields, operators and values — shared by the rule chips and the
  * editor, so both say the same thing.
  */
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
 export function useFilterLabels(lookups: FilterLabelLookups) {
   const t = useTranslations();
 
@@ -181,8 +184,10 @@ export function useFilterLabels(lookups: FilterLabelLookups) {
       case "dueDate":
       case "created":
       case "updated":
-        return String(v) === "today"
-          ? t("filters.relToday")
+        if (String(v) === "today") return t("filters.relToday");
+        // A day: "23. Okt. 2026", like a date chip.
+        return ISO_DAY.test(String(v))
+          ? formatChipDate(String(v))
           : relative(String(v));
       default:
         return String(v);
@@ -191,7 +196,8 @@ export function useFilterLabels(lookups: FilterLabelLookups) {
 
   /** "Priority at least High", "Label is empty". */
   const rule = (r: FilterRule): string => {
-    if (r.field === "parent") return `${field(r.field)}: ${op(r.field, r.is)}`;
+    // "No sub-issues" / "Only sub-issues" says it all.
+    if (r.field === "parent") return op(r.field, r.is);
     const head = `${field(r.field)} ${op(r.field, r.is)}`;
     if (r.value === undefined) return head;
     const values = Array.isArray(r.value) ? r.value : [r.value];

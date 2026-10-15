@@ -279,6 +279,23 @@ function RuleText({
           .join(", ")}`}
       </s>
     );
+  // A day as a date chip, like in descriptions.
+  if (
+    (rule.is === "before" || rule.is === "after") &&
+    typeof rule.value === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(rule.value)
+  )
+    return (
+      <span>
+        {`${labelsOf.field(rule.field)} ${labelsOf.op(rule.field, rule.is)} `}
+        <span className={styles.dateChip}>
+          <Icon icon="lucide:calendar" width={12} aria-hidden="true" />
+          <time dateTime={rule.value} suppressHydrationWarning>
+            {labelsOf.value(rule.field, rule.value)}
+          </time>
+        </span>
+      </span>
+    );
   return <span>{labelsOf.rule(rule)}</span>;
 }
 
