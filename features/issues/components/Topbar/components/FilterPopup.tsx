@@ -17,7 +17,7 @@ import {
   StatusIcon,
   TypeIcon,
 } from "@/features/issues/components/IssueIcons/IssueIcons";
-import { ME, NONE_VALUE } from "@/features/issues/filter";
+import { type IssueFilter, ME, NONE_VALUE } from "@/features/issues/filter";
 import { STORY_POINTS_OPTIONS } from "@/features/issues/story-points";
 import { visibleDetailFields } from "@/features/projects/detail-fields";
 import type { Translator } from "@/i18n/types";
@@ -33,7 +33,14 @@ import type {
   Status,
   User,
 } from "@/types";
-import type { FilterKey, FilterState, IssueArea } from "../useTopbar";
+import { extraNodes } from "../filterModel";
+import {
+  type FilterKey,
+  type FilterState,
+  filterStateOf,
+  type IssueArea,
+} from "../useTopbar";
+import { FilterEditor } from "./FilterEditor";
 import styles from "./viewSettings.module.scss";
 
 /** Same four values as the desktop chip (`DueDateFilter`). */
@@ -57,7 +64,14 @@ interface FilterPopupProps {
   issueTypes: IssueType[];
   onToggle: (key: FilterKey, value: string | number) => void;
   onClearAll: () => void;
+  /** The whole filter, for the advanced editor behind the last row
+   *  (BARY-166) — the desktop has its own button for it. */
+  tree: IssueFilter;
+  onFilterChange: (next: IssueFilter) => void;
 }
+
+/** What the panel shows: the rows, one filter's values, or the editor. */
+type PanelView = FilterKey | "advanced" | null;
 
 export interface FilterOption {
   value: string | number;
@@ -93,7 +107,7 @@ export function FilterPopup(props: FilterPopupProps) {
   // A phone gets a bottom sheet instead of a dropdown; a tablet keeps the
   // popup.
   const isPhone = useMediaQuery(PHONE_QUERY);
-  const [facet, setFacet] = useState<FilterKey | null>(null);
+  const [facet, setFacet] = useState<PanelView>(null);
 
   // The sheet lives in the modal layer, outside this component's tree, so
   // what it was opened with goes stale. It reads the latest props through
@@ -130,7 +144,8 @@ export function FilterPopup(props: FilterPopupProps) {
 
   return (
     <InlinePicker
-      width={320}
+      // The editor needs room for field · operator · value side by side.
+      width={facet === "advanced" ? 640 : 320}
       trigger={trigger}
       // Next time it opens, it starts at the rows again.
       onOpenChange={(open) => !open && setFacet(null)}
@@ -163,7 +178,10 @@ function FilterSheet({
 }) {
   const t = useTranslations();
   const [filters, setFilters] = useState(latest.current.filters);
-  const [facet, setFacet] = useState<FilterKey | null>(null);
+  const [facet, setFacet] = useState<PanelView>(null);
+  // The editor's latest tree while it's open — the URL lags behind it, and
+  // the sheet doesn't re-render when the URL lands.
+  const [edited, setEdited] = useState<IssueFilter | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const swipe = useSwipeToClose(close, bodyRef);
 
@@ -176,8 +194,18 @@ function FilterSheet({
     ...props,
     filters,
     filterCount,
+    tree: edited ?? props.tree,
     facet,
-    onFacetChange: setFacet,
+    onFacetChange: (next: PanelView) => {
+      setFacet(next);
+      // Back on the rows: the next editor starts from the URL again.
+      if (next !== "advanced") setEdited(null);
+    },
+    onFilterChange: (next: IssueFilter) => {
+      setEdited(next);
+      setFilters(filterStateOf(next));
+      latest.current.onFilterChange(next);
+    },
     showBack: false,
     alwaysSearch: true,
     hideReset: true,
@@ -202,6 +230,7 @@ function FilterSheet({
         storyPoints: [],
         dueDate: [],
       });
+      setEdited(null);
       latest.current.onClearAll();
     },
   };
@@ -210,12 +239,16 @@ function FilterSheet({
   return (
     <Modal variant="sheet" style={swipe.style} {...swipe.handlers}>
       <SheetHeader
-        title={openFacet?.title ?? t("filters.label")}
-        onBack={openFacet ? () => setFacet(null) : undefined}
+        title={
+          facet === "advanced"
+            ? t("filters.advancedTitle")
+            : (openFacet?.title ?? t("filters.label"))
+        }
+        onBack={facet ? () => panelProps.onFacetChange(null) : undefined}
         backLabel={t("filters.back")}
         // On the rows (not inside one filter's list): reset everything.
         action={
-          openFacet
+          facet
             ? undefined
             : {
                 label: t("display.reset"),
@@ -237,9 +270,9 @@ function FilterSheet({
 }
 
 type FilterPanelProps = FilterPopupProps & {
-  /** The filter whose list is open, or `null` for the rows. */
-  facet: FilterKey | null;
-  onFacetChange: (facet: FilterKey | null) => void;
+  /** The filter whose list is open, the editor, or `null` for the rows. */
+  facet: PanelView;
+  onFacetChange: (facet: PanelView) => void;
   /** A back row inside the panel — the popup has no header bar to hold one. */
   showBack: boolean;
   /** A search field on every list, not only long ones — the phone's sheet. */
@@ -416,6 +449,31 @@ function FilterPanel(props: FilterPanelProps) {
   } = props;
   const facets = buildFacets(props, t);
   const open = facets.find((f) => f.key === facet);
+  const extras = extraNodes(props.tree).length;
+
+  if (facet === "advanced") {
+    return (
+      <>
+        {showBack && (
+          <button
+            type="button"
+            className={styles.backRow}
+            onClick={() => onFacetChange(null)}
+          >
+            <Icon icon="lucide:chevron-left" width={18} />
+            {t("filters.advancedTitle")}
+          </button>
+        )}
+        <FilterEditor
+          filter={props.tree}
+          onChange={props.onFilterChange}
+          lookups={props}
+          area={props.area}
+          onDone={() => onFacetChange(null)}
+        />
+      </>
+    );
+  }
 
   if (open) {
     return (
@@ -449,6 +507,22 @@ function FilterPanel(props: FilterPanelProps) {
           onToggle={(value) => onToggle(f.key, value)}
         />
       ))}
+
+      {/* Everything else — "is not", OR groups, dates (BARY-166). */}
+      <div className={styles.facet}>
+        <button
+          type="button"
+          className={`${styles.row} ${styles.facetRow}`}
+          aria-haspopup="true"
+          onClick={() => onFacetChange("advanced")}
+        >
+          <span className={styles.rowLabel}>{t("filters.advanced")}</span>
+          <span className={styles.pick}>
+            {extras > 0 && <Badge size="sm">{extras}</Badge>}
+            <Icon icon="lucide:chevron-right" width={14} />
+          </span>
+        </button>
+      </div>
 
       {!hideReset && (
         <div className={styles.footer}>

@@ -40,6 +40,21 @@ export type FilterKey = ChipField | "dueDate";
 
 export type View = "board" | "list";
 
+/** What each chip shows of a filter tree. */
+export function filterStateOf(tree: IssueFilter): FilterState {
+  const values = (field: ChipField) => chipState(tree, field).values;
+  return {
+    status: values("status") as string[],
+    priority: values("priority") as number[],
+    type: values("type") as string[],
+    assignee: values("assignee") as string[],
+    label: values("label") as string[],
+    project: values("project") as string[],
+    storyPoints: values("storyPoints") as number[],
+    dueDate: dueBuckets(tree),
+  };
+}
+
 /**
  * What the view shows issues by: a single project, or the current user's
  * own assignments across all of them. Board and list are the same either
@@ -144,16 +159,7 @@ export function useTopbar({
   );
 
   const chip = (field: ChipField) => chipState(tree, field);
-  const filters: FilterState = {
-    status: chip("status").values as string[],
-    priority: chip("priority").values as number[],
-    type: chip("type").values as string[],
-    assignee: chip("assignee").values as string[],
-    label: chip("label").values as string[],
-    project: chip("project").values as string[],
-    storyPoints: chip("storyPoints").values as number[],
-    dueDate: dueBuckets(tree),
-  };
+  const filters = filterStateOf(tree);
   /** Which chips exclude rather than include ("is not"). */
   const negated: Record<ChipField, boolean> = {
     status: chip("status").negated,

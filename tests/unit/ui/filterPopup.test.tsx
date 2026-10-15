@@ -47,6 +47,8 @@ function render(filterCount: number) {
       issueTypes={[]}
       onToggle={() => {}}
       onClearAll={() => {}}
+      tree={{ op: "and", rules: [] }}
+      onFilterChange={() => {}}
     />,
   );
 }

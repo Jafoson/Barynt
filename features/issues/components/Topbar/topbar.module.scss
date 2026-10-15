@@ -216,4 +216,9 @@
 /* "Advanced" — the filter editor's trigger (BARY-166). */
 .advanced {
   color: var(--on-surface-variant);
+
+  /* Tablet and phone: a row in the filter popup instead. */
+  @include bp.tablet-down {
+    display: none;
+  }
 }

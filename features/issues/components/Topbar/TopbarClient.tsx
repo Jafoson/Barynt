@@ -326,6 +326,8 @@ export function TopbarClient({
               issueTypes={issueTypes}
               onToggle={toggleFilter}
               onClearAll={clearAll}
+              tree={tree}
+              onFilterChange={setFilter}
             />
           </div>
 
