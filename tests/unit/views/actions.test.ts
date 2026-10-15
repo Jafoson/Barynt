@@ -17,6 +17,24 @@ const recordAudit = mock(async (_input: unknown) => {});
 mock.module("@/lib/audit", () => ({ recordAudit }));
 mock.module("next/cache", () => ({ revalidatePath: mock() }));
 
+// The slug lookup behind the board's own URL filters — its own tests cover
+// it; here it only has to answer, and record what it was asked.
+const resolveUrlFilter = mock(
+  async (params: Record<string, string>, _scope: { projectId: string }) => ({
+    op: "and" as const,
+    rules: params.status
+      ? [
+          {
+            field: "status" as const,
+            is: "any" as const,
+            value: [params.status],
+          },
+        ]
+      : [],
+  }),
+);
+mock.module("@/features/issues/queries", () => ({ resolveUrlFilter }));
+
 type Row = Record<string, unknown> & { id: string; slug: string };
 let rows: Row[] = [];
 
@@ -86,9 +104,11 @@ mock.module("@/lib/db", () => ({ db }));
 
 import {
   createView,
+  createViewFromParams,
   deleteView,
   duplicateView,
   reorderViews,
+  saveViewState,
   setViewUserState,
   updateView,
 } from "@/features/views/actions";
@@ -307,6 +327,83 @@ describe("setViewUserState", () => {
     expect(await setViewUserState("v1", { pinned: true })).toEqual({
       ok: false,
       error: "notFound",
+    });
+  });
+});
+
+describe("saveViewState", () => {
+  it("stores what the address shows, without the search", async () => {
+    rows = [viewRow()];
+    const result = await saveViewState("v1", {
+      status: "todo",
+      group: "assignee",
+      sort: "dueDate",
+      layout: "list",
+      q: "login",
+    });
+    expect(result.ok).toBe(true);
+    expect(resolveUrlFilter.mock.calls.at(-1)?.[0]).toEqual({
+      status: "todo",
+      group: "assignee",
+      sort: "dueDate",
+      layout: "list",
+    });
+    expect(
+      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object }).data,
+    ).toEqual({
+      filter: {
+        op: "and",
+        rules: [{ field: "status", is: "any", value: ["todo"] }],
+      },
+      groupBy: "assignee",
+      sortBy: "dueDate",
+      layout: "list",
+    });
+  });
+
+  it("falls back for unknown grouping, order and layout", async () => {
+    rows = [viewRow()];
+    await saveViewState("v1", { group: "mood", sort: "x", layout: "gantt" });
+    expect(
+      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object }).data,
+    ).toMatchObject({ groupBy: null, sortBy: "manual", layout: "board" });
+  });
+
+  it("can't save someone else's shared view", async () => {
+    rows = [viewRow({ ownerId: "other", visibility: "PROJECT" })];
+    granted.add("view.share");
+    expect(await saveViewState("v1", { layout: "board" })).toEqual({
+      ok: false,
+      error: "forbidden",
+    });
+  });
+});
+
+describe("createViewFromParams", () => {
+  it("creates a view from the dialog plus the address", async () => {
+    const result = await createViewFromParams(
+      {
+        workspaceId: "ws1",
+        projectId: "p1",
+        name: "Offen",
+        layout: "list",
+        visibility: "PRIVATE",
+        color: "#4363d8",
+        icon: "lucide:bug",
+      },
+      { status: "todo", sort: "priority", layout: "list" },
+    );
+    expect(result.ok).toBe(true);
+    expect(created()).toMatchObject({
+      name: "Offen",
+      layout: "list",
+      sortBy: "priority",
+      color: "#4363d8",
+      icon: "lucide:bug",
+      filter: {
+        op: "and",
+        rules: [{ field: "status", is: "any", value: ["todo"] }],
+      },
     });
   });
 });
