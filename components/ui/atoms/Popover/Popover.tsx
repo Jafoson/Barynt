@@ -90,11 +90,16 @@ export function Popover({
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
-      if (
-        ref.current?.contains(e.target as Node) ||
-        anchorRef.current?.contains(e.target as Node)
-      )
+      const target = e.target as Node;
+      if (ref.current?.contains(target) || anchorRef.current?.contains(target))
         return;
+      // A popover opened from inside this one (a menu in the filter editor)
+      // is portaled elsewhere, but a click there is still "inside".
+      const other =
+        target instanceof Element
+          ? target.closest("[data-popover-content]")
+          : null;
+      if (other && other !== ref.current) return;
       onClose();
     };
     const onKey = (e: KeyboardEvent) => {
