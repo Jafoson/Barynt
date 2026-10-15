@@ -388,7 +388,13 @@ function Box({
 
 // ─── One condition ──────────────────────────────────────────────────────────
 
-/** A select that reads as a word of the sentence — "Status ▾ ist nicht ▾". */
+/** From this many options on, a picker gets a search field. */
+const SEARCH_FROM = 6;
+
+/**
+ * A pick that reads as a word of the sentence — "Status ▾ ist nicht ▾" —
+ * opening the app's own menu (with a search once the list is long).
+ */
 function TokenSelect({
   label,
   value,
@@ -398,25 +404,42 @@ function TokenSelect({
 }: {
   label: string;
   value: string;
-  items: { value: string; label: string }[];
+  items: ISelectItem[];
   onChange: (value: string) => void;
   tone?: "op" | "not" | "and" | "or";
 }) {
+  const current = items.find((item) => String(item.value) === value);
   return (
-    <span className={styles.token} data-tone={tone}>
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        {items.map((item) => (
-          <option key={item.value} value={item.value}>
-            {item.label}
-          </option>
-        ))}
-      </select>
-      <Icon icon="lucide:chevron-down" width={12} aria-hidden="true" />
-    </span>
+    <InlinePicker
+      width={220}
+      title={label}
+      trigger={
+        <button
+          type="button"
+          className={styles.token}
+          data-tone={tone}
+          aria-label={label}
+          aria-haspopup="listbox"
+        >
+          {current?.icon}
+          <span>{current?.label ?? value}</span>
+          <Icon icon="lucide:chevron-down" width={12} aria-hidden="true" />
+        </button>
+      }
+    >
+      {(close) => (
+        <SelectMenu
+          items={items}
+          value={current?.value ?? null}
+          onPick={(v) => {
+            if (v !== null) onChange(String(v));
+            close();
+          }}
+          onClose={close}
+          searchable={items.length >= SEARCH_FROM}
+        />
+      )}
+    </InlinePicker>
   );
 }
 
@@ -522,7 +545,7 @@ function ConditionCard({
         value={String(rule.value ?? "")}
         items={options(rule.field)
           .filter((o) => o.value !== ME && o.value !== NONE_VALUE)
-          .map((o) => ({ value: String(o.value), label: o.label }))}
+          .map((o) => ({ ...o, value: String(o.value) }))}
         onChange={(v) => onChange(make(rule.field, rule.is, Number(v)))}
       />
     );
