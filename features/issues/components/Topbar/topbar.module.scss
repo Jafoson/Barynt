@@ -139,8 +139,10 @@
   margin-left: auto;
 }
 
-.clearAll {
-  color: var(--tertiary);
+/* Doubled class: the ghost button sets its own color with a single class,
+   and which of the two won depended on stylesheet order. */
+.clearAll.clearAll {
+  color: var(--primary);
 }
 
 /* ── Filter chip icons ── */
