@@ -252,10 +252,9 @@
     color: var(--outline);
   }
 
-  /* The dragged row stays in place, faded like a dragged card; a solid
-     copy follows the pointer (`startDragPreview`). */
+  /* The dragged row stays in place and steps back (like the issue list). */
   &[data-dragging] {
-    opacity: 0.5;
+    opacity: 0.4;
   }
 
   /* The insertion line with its dot — the issue list's visual language. */

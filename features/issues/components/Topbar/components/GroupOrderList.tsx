@@ -6,7 +6,6 @@ import { useRef, useState } from "react";
 import { GroupIcon } from "@/features/issues/components/GroupIcon/GroupIcon";
 import type { GroupDef } from "@/features/issues/group";
 import { moveGroup } from "@/features/issues/group-order";
-import { startDragPreview } from "@/lib/utils/dragPreview";
 import styles from "./viewSettings.module.scss";
 
 interface GroupOrderListProps {
@@ -57,11 +56,7 @@ export function GroupOrderList({
     );
   };
 
-  const stopPreview = useRef<(() => void) | null>(null);
-
   const end = () => {
-    stopPreview.current?.();
-    stopPreview.current = null;
     setDragged(null);
     setTarget(null);
   };
@@ -91,9 +86,6 @@ export function GroupOrderList({
               onDragStart={(e) => {
                 e.dataTransfer.effectAllowed = "move";
                 e.dataTransfer.setData("application/x-barynt-group", group.id);
-                stopPreview.current = startDragPreview(e, e.currentTarget, {
-                  background: "var(--surface-container-high)",
-                });
                 setDragged(group.id);
               }}
               onDragEnd={end}

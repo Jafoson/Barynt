@@ -175,10 +175,14 @@
   }
 }
 
-/* The dragged column in the slot it would land in — like a dragged card
-   in place: faded and slightly tilted, while a solid copy follows the
-   pointer (`startDragPreview`). */
+/* The dragged column, waiting in the slot it would land in: an empty,
+   dashed frame — the column itself follows the pointer. */
 .col[data-column-dragging] {
-  opacity: 0.5;
-  transform: rotate(1deg);
+  border: 2px dashed var(--primary);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--primary) 6%, transparent);
+
+  & > * {
+    visibility: hidden;
+  }
 }
