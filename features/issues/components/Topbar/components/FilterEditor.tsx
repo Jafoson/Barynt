@@ -408,6 +408,7 @@ function TokenSelect({
   onChange: (value: string) => void;
   tone?: "op" | "not" | "and" | "or";
 }) {
+  const t = useTranslations();
   const current = items.find((item) => String(item.value) === value);
   return (
     <InlinePicker
@@ -437,6 +438,7 @@ function TokenSelect({
           }}
           onClose={close}
           searchable={items.length >= SEARCH_FROM}
+          placeholder={t("placeholders.search")}
         />
       )}
     </InlinePicker>
@@ -521,6 +523,7 @@ function ConditionCard({
         })}
         <InlinePicker
           width={260}
+          title={labels.field(rule.field)}
           trigger={
             <button type="button" className={styles.addValue}>
               <Icon icon="lucide:plus" width={13} />
@@ -534,6 +537,7 @@ function ConditionCard({
             onPick={(v) => v !== null && toggle(v)}
             multi
             searchable
+            placeholder={t("placeholders.search")}
           />
         </InlinePicker>
       </>
