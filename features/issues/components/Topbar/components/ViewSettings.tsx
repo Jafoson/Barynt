@@ -2,7 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { Chip } from "@/components/ui/atoms/Chip/Chip";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
@@ -15,7 +15,6 @@ import {
   type CardFieldKey,
   isCardFieldKey,
 } from "@/features/issues/card-fields";
-import { GroupIcon } from "@/features/issues/components/GroupIcon/GroupIcon";
 import {
   GROUP_KEYS,
   type GroupDef,
@@ -23,6 +22,7 @@ import {
   type GroupLookups,
   groupDefs,
 } from "@/features/issues/group";
+import { groupOrderEntries, orderGroups } from "@/features/issues/group-order";
 import {
   type GroupView,
   isGroupHidden,
@@ -38,6 +38,7 @@ import { useModal } from "@/lib/context";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
 import { FilterOptions } from "./FilterPopup";
+import { GroupOrderList } from "./GroupOrderList";
 import styles from "./viewSettings.module.scss";
 
 const FIELD_LABEL_KEY = {
@@ -125,6 +126,8 @@ interface ViewSettingsProps {
   hideEmptyGroups: boolean;
   /** Sub-issues as cards of their own — only offered on the board. */
   showSubIssues: boolean;
+  /** Own order of the groups, `group-order.ts` entries (BARY-165). */
+  groupOrder: string[];
   onGroupsChange: (
     patch: ViewGroupsPatch,
   ) => Promise<{ ok: true } | { error: string }>;
@@ -151,6 +154,7 @@ export function ViewSettings({
   hiddenGroups,
   hideEmptyGroups,
   showSubIssues,
+  groupOrder,
   onGroupsChange,
 }: ViewSettingsProps) {
   const t = useTranslations();
@@ -183,11 +187,30 @@ export function ViewSettings({
 
   const [subIssues, setSubIssues] = useState(showSubIssues);
 
+  const [order, setOrder] = useState(groupOrder);
+
+  // The values come back from outside too — the stored preference catching
+  // up, or a saved view's address after "Discard" (BARY-165). Follow them.
+  const hiddenFieldsKey = hiddenFields.join(",");
+  const hiddenGroupsKey = hiddenGroups.join(",");
+  const groupOrderKey = groupOrder.join(",");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resync on new values only
+  useEffect(() => {
+    setHidden(new Set(hiddenFields.filter(isCardFieldKey)));
+  }, [hiddenFieldsKey]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resync on new values only
+  useEffect(() => setHiddenGroupList(hiddenGroups), [hiddenGroupsKey]);
+  useEffect(() => setHideEmpty(hideEmptyGroups), [hideEmptyGroups]);
+  useEffect(() => setSubIssues(showSubIssues), [showSubIssues]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resync on new values only
+  useEffect(() => setOrder(groupOrder), [groupOrderKey]);
+
   const saveGroups = (patch: ViewGroupsPatch) => {
     if (patch.hiddenGroups) setHiddenGroupList(patch.hiddenGroups);
     if (patch.hideEmptyGroups !== undefined)
       setHideEmpty(patch.hideEmptyGroups);
     if (patch.showSubIssues !== undefined) setSubIssues(patch.showSubIssues);
+    if (patch.groupOrder) setOrder(patch.groupOrder);
     startTransition(async () => {
       await onGroupsChange(patch);
       router.refresh();
@@ -204,6 +227,12 @@ export function ViewSettings({
 
   const toggleSubIssues = () => saveGroups({ showSubIssues: !subIssues });
 
+  /** A new order of the groups — from the column list (BARY-165). */
+  const reorderGroups = (groups: GroupDef[]) =>
+    saveGroups({ groupOrder: groupOrderEntries(groups) });
+
+  const resetOrder = () => saveGroups({ groupOrder: [] });
+
   const toggleField = (key: CardFieldKey) => {
     const next = new Set(hidden);
     if (next.has(key)) next.delete(key);
@@ -218,11 +247,12 @@ export function ViewSettings({
     onSortChange("manual");
     onGroupChange("status");
     save(new Set());
-    if (hiddenGroupList.length > 0 || hideEmpty || subIssues)
+    if (hiddenGroupList.length > 0 || hideEmpty || subIssues || order.length)
       saveGroups({
         hiddenGroups: [],
         hideEmptyGroups: false,
         showSubIssues: false,
+        groupOrder: [],
       });
   };
 
@@ -243,9 +273,12 @@ export function ViewSettings({
     hiddenGroups: hiddenGroupList,
     hideEmptyGroups: hideEmpty,
     showSubIssues: subIssues,
+    groupOrder: order,
     toggleGroup,
     toggleHideEmpty,
     toggleSubIssues,
+    reorderGroups,
+    resetOrder,
     setGroup: onGroupChange,
     setSort: onSortChange,
     toggleField,
@@ -261,9 +294,12 @@ export function ViewSettings({
     hiddenGroups: hiddenGroupList,
     hideEmptyGroups: hideEmpty,
     showSubIssues: subIssues,
+    groupOrder: order,
     toggleGroup,
     toggleHideEmpty,
     toggleSubIssues,
+    reorderGroups,
+    resetOrder,
     setGroup: onGroupChange,
     setSort: onSortChange,
     toggleField,
@@ -315,6 +351,7 @@ export function ViewSettings({
               hiddenGroups: hiddenGroupList,
               hideEmptyGroups: hideEmpty,
               showSubIssues: subIssues,
+              groupOrder: order,
             }}
             onGroup={onGroupChange}
             onSort={onSortChange}
@@ -322,6 +359,8 @@ export function ViewSettings({
             onToggleGroup={toggleGroup}
             onToggleHideEmpty={toggleHideEmpty}
             onToggleSubIssues={toggleSubIssues}
+            onReorderGroups={reorderGroups}
+            onResetOrder={resetOrder}
             onReset={reset}
             facet={facet}
             onFacetChange={setFacet}
@@ -344,9 +383,12 @@ interface SheetSource {
   hiddenGroups: string[];
   hideEmptyGroups: boolean;
   showSubIssues: boolean;
+  groupOrder: string[];
   toggleGroup: (group: GroupDef) => void;
   toggleHideEmpty: () => void;
   toggleSubIssues: () => void;
+  reorderGroups: (groups: GroupDef[]) => void;
+  resetOrder: () => void;
   setGroup: (key: GroupKey) => void;
   setSort: (key: SortKey) => void;
   toggleField: (key: CardFieldKey) => void;
@@ -366,6 +408,8 @@ export interface DisplayState {
   hideEmptyGroups: boolean;
   /** Sub-issues as cards of their own — the switch only shows on the board. */
   showSubIssues: boolean;
+  /** Own order of the groups (BARY-165). */
+  groupOrder: string[];
 }
 
 /**
@@ -387,6 +431,7 @@ function ViewSheet({
   const [hiddenGroups, setHiddenGroups] = useState(latest.current.hiddenGroups);
   const [hideEmpty, setHideEmpty] = useState(latest.current.hideEmptyGroups);
   const [subIssues, setSubIssues] = useState(latest.current.showSubIssues);
+  const [order, setOrder] = useState(latest.current.groupOrder);
   const [facet, setFacet] = useState<DisplayFacet | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const swipe = useSwipeToClose(close, bodyRef);
@@ -401,6 +446,7 @@ function ViewSheet({
     hiddenGroups,
     hideEmptyGroups: hideEmpty,
     showSubIssues: subIssues,
+    groupOrder: order,
   };
   const facetTitle =
     facet === "group"
@@ -417,6 +463,7 @@ function ViewSheet({
     setHiddenGroups([]);
     setHideEmpty(false);
     setSubIssues(false);
+    setOrder([]);
     latest.current.reset();
   };
 
@@ -471,6 +518,14 @@ function ViewSheet({
               setSubIssues((prev) => !prev);
               latest.current.toggleSubIssues();
             }}
+            onReorderGroups={(groups) => {
+              setOrder(groupOrderEntries(groups));
+              latest.current.reorderGroups(groups);
+            }}
+            onResetOrder={() => {
+              setOrder([]);
+              latest.current.resetOrder();
+            }}
             onReset={resetToDefaults}
             facet={facet}
             onFacetChange={setFacet}
@@ -492,6 +547,9 @@ interface DisplayPanelProps {
   onToggleGroup: (group: GroupDef) => void;
   onToggleHideEmpty: () => void;
   onToggleSubIssues: () => void;
+  /** The column list in a new order (BARY-165). */
+  onReorderGroups: (groups: GroupDef[]) => void;
+  onResetOrder: () => void;
   onReset: () => void;
   /** The list that's open, or `null` for the rows. */
   facet: DisplayFacet | null;
@@ -517,6 +575,8 @@ export function DisplayPanel({
   onToggleGroup,
   onToggleHideEmpty,
   onToggleSubIssues,
+  onReorderGroups,
+  onResetOrder,
   onReset,
   facet,
   onFacetChange,
@@ -532,14 +592,17 @@ export function DisplayPanel({
 
   // The groups of the active grouping (BARY-47) — for statuses all of them,
   // Canceled included.
-  const groups: GroupDef[] = groupDefs(
-    state.groupKey,
-    state.groupLookups,
-    {
-      unassigned: t("fields.unassigned"),
-      noStoryPoints: t("fields.noStoryPoints"),
-    },
-    [],
+  const groups: GroupDef[] = orderGroups(
+    groupDefs(
+      state.groupKey,
+      state.groupLookups,
+      {
+        unassigned: t("fields.unassigned"),
+        noStoryPoints: t("fields.noStoryPoints"),
+      },
+      [],
+    ),
+    state.groupOrder,
   );
   const isHidden = (group: GroupDef) =>
     isGroupHidden(state.hiddenGroups, group, state.view);
@@ -560,22 +623,12 @@ export function DisplayPanel({
             {title}
           </button>
         )}
-        <FilterOptions
-          alwaysSearch={alwaysSearch}
-          facet={{
-            title,
-            options: groups.map((group) => ({
-              value: group.id,
-              label: group.label,
-              icon: <GroupIcon group={group} size={16} />,
-            })),
-            selected: visibleGroups.map((g) => g.id),
-          }}
-          // Several at a time: a tap toggles one and the list stays open.
-          onToggle={(value) => {
-            const group = groups.find((g) => g.id === String(value));
-            if (group) onToggleGroup(group);
-          }}
+        <GroupOrderList
+          groups={groups}
+          isHidden={isHidden}
+          onToggle={onToggleGroup}
+          onReorder={onReorderGroups}
+          onResetOrder={state.groupOrder.length > 0 ? onResetOrder : undefined}
         />
       </>
     );

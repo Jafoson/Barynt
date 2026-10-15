@@ -44,6 +44,16 @@ interface BoardColumnProps {
   /** All columns of the board, for each card's "Move to…". */
   moveTargets?: GroupDef[];
   onCardMoveTo?: (issue: IssueDetail, groupId: string) => void;
+  /** Moving the whole column by a handle in its header (BARY-165). */
+  columnDrag?: {
+    label: string;
+    /** This column is the one being dragged. */
+    dragging: boolean;
+    /** A dragged column would land on this side of this one. */
+    dropPlace: "before" | "after" | null;
+    onStart: (e: React.DragEvent) => void;
+    onEnd: () => void;
+  };
 }
 
 export function BoardColumn({
@@ -71,6 +81,7 @@ export function BoardColumn({
   onCardOpenInNewTab,
   moveTargets,
   onCardMoveTo,
+  columnDrag,
 }: BoardColumnProps) {
   const { openModal } = useModal();
 
@@ -105,6 +116,8 @@ export function BoardColumn({
     // biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop drop zone — no native HTML element represents this
     <div
       className={`${styles.col}${isOver ? ` ${styles.dragOver}` : ""}`}
+      data-column-dragging={columnDrag?.dragging || undefined}
+      data-column-drop={columnDrag?.dropPlace ?? undefined}
       // Read by `Board` to tell which column the phone's switcher is on and
       // to scroll to one.
       data-group-id={group.id}
@@ -125,6 +138,18 @@ export function BoardColumn({
             onClick={showCreateIssueModal}
             icon={<Icon icon="lucide:plus" width={15} />}
           />
+        )}
+        {columnDrag && (
+          <span
+            className={styles.columnHandle}
+            draggable
+            title={columnDrag.label}
+            aria-hidden="true"
+            onDragStart={columnDrag.onStart}
+            onDragEnd={columnDrag.onEnd}
+          >
+            <Icon icon="lucide:grip-vertical" width={14} />
+          </span>
         )}
       </div>
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { IssueFilter } from "@/features/issues/filter";
 import {
+  displayFromParams,
   layoutFromParam,
   pickViewState,
   sameViewState,
@@ -21,6 +22,7 @@ const view = (filter: IssueFilter, over: object = {}) => ({
   groupBy: null,
   sortBy: "manual" as const,
   layout: "board" as const,
+  display: {},
   ...over,
 });
 
@@ -154,5 +156,87 @@ describe("pickViewState / layoutFromParam", () => {
     expect(layoutFromParam("list")).toBe("list");
     expect(layoutFromParam("dashboard")).toBe("board");
     expect(layoutFromParam(undefined)).toBe("board");
+  });
+});
+
+describe("display in the address (BARY-165)", () => {
+  it("writes a view's display settings", () => {
+    const params = viewParams(
+      view(
+        { op: "and", rules: [] },
+        {
+          display: {
+            hiddenGroups: ["status:done"],
+            groupOrder: ["status:review", "status:todo"],
+            hiddenFields: ["labels"],
+            hideEmptyGroups: true,
+            showSubIssues: true,
+          },
+        },
+      ),
+      lookups,
+    );
+    expect(Object.fromEntries(params)).toEqual({
+      layout: "board",
+      hide: "status:done",
+      order: "status:review,status:todo",
+      fields: "labels",
+      empty: "1",
+      sub: "1",
+    });
+  });
+
+  it("reads them back, dropping what isn't plausible", () => {
+    expect(
+      displayFromParams({
+        hide: "status:done,+status:canceled",
+        order: "status:review,+status:x,status:todo",
+        fields: "labels,nope",
+        empty: "1",
+      }),
+    ).toEqual({
+      hiddenGroups: ["status:done", "+status:canceled"],
+      groupOrder: ["status:review", "status:todo"],
+      hiddenFields: ["labels"],
+      hideEmptyGroups: true,
+      showSubIssues: false,
+    });
+  });
+
+  it("counts a changed column order as unsaved, a reshuffled hide list not", () => {
+    const stored = new URLSearchParams(
+      "layout=board&hide=status:a,status:b&order=status:x,status:y",
+    );
+    expect(
+      sameViewState(
+        new URLSearchParams(
+          "layout=board&hide=status:b,status:a&order=status:x,status:y",
+        ),
+        stored,
+      ),
+    ).toBe(true);
+    expect(
+      sameViewState(
+        new URLSearchParams(
+          "layout=board&hide=status:a,status:b&order=status:y,status:x",
+        ),
+        stored,
+      ),
+    ).toBe(false);
+  });
+
+  it("treats a missing switch as off", () => {
+    expect(
+      sameViewState(
+        new URLSearchParams("layout=board&empty=0"),
+        new URLSearchParams("layout=board"),
+      ),
+    ).toBe(true);
+    expect(
+      sameViewState(
+        new URLSearchParams("layout=board&sub=1"),
+        new URLSearchParams("layout=board"),
+      ),
+    ).toBe(false);
   });
 });

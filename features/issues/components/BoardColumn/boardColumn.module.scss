@@ -138,3 +138,53 @@
     border-color: var(--tertiary);
   }
 }
+
+/* ── Moving a whole column (BARY-165) ── */
+
+/* The handle in the header — only on hover, only with a mouse (a phone or
+   tablet reorders through the display panel). */
+.columnHandle {
+  display: none;
+  /* Right edge of the header — after the "+", or in its place without one. */
+  margin-left: auto;
+
+  .headerAdd + & {
+    margin-left: 0;
+  }
+
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: var(--radius-sm);
+  color: var(--on-surface-variant);
+  cursor: grab;
+
+  &:hover {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  .colHeader:hover & {
+    @include bp.desktop {
+      display: grid;
+    }
+  }
+}
+
+/* The column on its way somewhere else. */
+.col[data-column-dragging] {
+  opacity: 0.45;
+}
+
+/* Where it would land: a bar on that side of the column under the pointer. */
+.col[data-column-drop="before"] {
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.col[data-column-drop="after"] {
+  box-shadow: inset -3px 0 0 var(--primary);
+}

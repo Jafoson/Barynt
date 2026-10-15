@@ -19,6 +19,7 @@ import {
   ESTIMATE_UNIT_ABBR,
   hoursToEstimate,
 } from "@/features/issues/estimate";
+import { sanitizeGroupOrder } from "@/features/issues/group-order";
 import { sanitizeHiddenGroups } from "@/features/issues/hidden-groups";
 import { searchWorkspaceIssues } from "@/features/issues/queries";
 import type { IssuePatch } from "@/features/issues/types";
@@ -1857,6 +1858,8 @@ export interface ViewGroupsPatch {
   hideEmptyGroups?: boolean;
   /** Sub-issues as cards of their own (board only). */
   showSubIssues?: boolean;
+  /** Own order of the groups (BARY-165). */
+  groupOrder?: string[];
 }
 
 function groupsData(patch: ViewGroupsPatch) {
@@ -1869,6 +1872,9 @@ function groupsData(patch: ViewGroupsPatch) {
     }),
     ...(patch.showSubIssues !== undefined && {
       showSubIssues: patch.showSubIssues === true,
+    }),
+    ...(patch.groupOrder !== undefined && {
+      groupOrder: sanitizeGroupOrder(patch.groupOrder),
     }),
   };
 }

@@ -14,7 +14,11 @@ import {
   ViewTabs,
 } from "@/features/views/components/ViewTabs/ViewTabs";
 import type { ViewLayout } from "@/features/views/schema";
-import { pickViewState, sameViewState } from "@/features/views/url";
+import {
+  displayFromParams,
+  pickViewState,
+  sameViewState,
+} from "@/features/views/url";
 import type {
   IssueType,
   Label,
@@ -47,6 +51,8 @@ interface TopbarClientProps {
   hideEmptyGroups: boolean;
   /** Sub-issues as cards of their own — board only. */
   showSubIssues: boolean;
+  /** Own order of the groups (BARY-165). */
+  groupOrder: string[];
   /** This person's hidden board-card/list-row fields for this view (BARY-33). */
   hiddenCardFields: string[];
   onDisplayChange: (
@@ -93,6 +99,7 @@ export function TopbarClient({
   hiddenGroups,
   hideEmptyGroups,
   showSubIssues,
+  groupOrder,
   hiddenCardFields,
   onDisplayChange,
   onGroupsChange,
@@ -120,6 +127,7 @@ export function TopbarClient({
     setSort,
     setGroup,
     setView,
+    setViewDisplay,
   } = useTopbar({
     workspaceId,
     projects,
@@ -162,6 +170,29 @@ export function TopbarClient({
   // What "New view"/"Save" take over: the view state of the address, with the
   // layout spelled out (the plain board/list keep theirs in the path).
   const currentParams = { ...pickViewState(searchParams), layout: view };
+
+  // A saved view's display settings come from — and go to — its address
+  // (BARY-165); the plain board and list keep the person's own preference.
+  const urlDisplay = activeView ? displayFromParams(searchParams) : null;
+  const display = urlDisplay ?? {
+    hiddenFields: hiddenCardFields,
+    hiddenGroups,
+    groupOrder,
+    hideEmptyGroups,
+    showSubIssues,
+  };
+  const saveDisplay = urlDisplay
+    ? async (hidden: string[]) => {
+        setViewDisplay({ hiddenFields: hidden });
+        return { ok: true } as const;
+      }
+    : onDisplayChange;
+  const saveGroups = urlDisplay
+    ? async (patch: ViewGroupsPatch) => {
+        setViewDisplay(patch);
+        return { ok: true } as const;
+      }
+    : onGroupsChange;
 
   return (
     <header
@@ -295,14 +326,15 @@ export function TopbarClient({
               onSortChange={setSort}
               groupKey={groupKey}
               onGroupChange={setGroup}
-              hiddenFields={hiddenCardFields}
-              onDisplayChange={onDisplayChange}
+              hiddenFields={display.hiddenFields}
+              onDisplayChange={saveDisplay}
               groupLookups={{ statuses, priorities, issueTypes, members }}
               view={view}
-              hiddenGroups={hiddenGroups}
-              hideEmptyGroups={hideEmptyGroups}
-              showSubIssues={showSubIssues}
-              onGroupsChange={onGroupsChange}
+              hiddenGroups={display.hiddenGroups}
+              hideEmptyGroups={display.hideEmptyGroups}
+              showSubIssues={display.showSubIssues}
+              groupOrder={display.groupOrder}
+              onGroupsChange={saveGroups}
             />
           </div>
         </div>

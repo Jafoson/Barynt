@@ -42,6 +42,7 @@ const state: DisplayState = {
   hiddenGroups: ["status:done", "priority:3"],
   hideEmptyGroups: false,
   showSubIssues: false,
+  groupOrder: [],
 };
 
 function render(
@@ -56,6 +57,8 @@ function render(
       onToggleGroup={() => {}}
       onToggleHideEmpty={() => {}}
       onToggleSubIssues={() => {}}
+      onReorderGroups={() => {}}
+      onResetOrder={() => {}}
       onReset={() => {}}
       facet={null}
       onFacetChange={() => {}}
@@ -104,13 +107,27 @@ describe("DisplayPanel", () => {
     );
   });
 
-  it("opens the groups as a multi-select list, hidden ones not selected", () => {
+  it("opens the groups as a checklist, hidden ones unchecked (BARY-165)", () => {
     const html = render({ facet: "groups" });
-    expect(html).toContain('aria-multiselectable="true"');
     expect(html).toContain("Todo");
     expect(html).toContain("Done");
     expect(html).toContain("Canceled");
-    expect(html.match(/aria-selected="true"/g)).toHaveLength(2);
+    // Todo and Canceled shown (the list shows Canceled by default), Done hidden.
+    expect(html.match(/type="checkbox"/g)).toHaveLength(3);
+    expect(html.match(/type="checkbox"[^>]*checked=""/g)).toHaveLength(2);
+  });
+
+  it("lists the groups in their own order, with a way back (BARY-165)", () => {
+    const plain = render({ facet: "groups" });
+    expect(plain.indexOf("Todo")).toBeLessThan(plain.indexOf("Canceled"));
+    expect(plain).not.toContain("display.resetOrder");
+
+    const ordered = render({
+      facet: "groups",
+      state: { ...state, groupOrder: ["status:canceled", "status:todo"] },
+    });
+    expect(ordered.indexOf("Canceled")).toBeLessThan(ordered.indexOf("Todo"));
+    expect(ordered).toContain("display.resetOrder");
   });
 
   it("has a reset button below unless the sheet holds it in its bar", () => {

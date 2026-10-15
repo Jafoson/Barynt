@@ -567,6 +567,10 @@ model IssueViewPreference {
   /// Sub-Issues (`Issue.parentId` gesetzt) als eigene Karten zeigen — nur im
   /// Board wirksam, standardmäßig aus.
   showSubIssues Boolean @default(false)
+  /// Eigene Reihenfolge der Spalten/Gruppen, Einträge "<groupKey>:<groupId>"
+  /// wie `hiddenGroups` (BARY-165). Was fehlt, behält seinen Platz aus der
+  /// Vorgabe (`features/issues/group-order.ts`).
+  groupOrder String[] @default([])
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -592,6 +596,9 @@ model MyIssuesViewPreference {
   hideEmptyGroups Boolean @default(false)
   /// Sub-Issues als eigene Karten zeigen — nur im Board, standardmäßig aus.
   showSubIssues Boolean @default(false)
+  /// Eigene Reihenfolge der Spalten/Gruppen (BARY-165), wie
+  /// `IssueViewPreference.groupOrder`.
+  groupOrder String[] @default([])
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)

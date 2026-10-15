@@ -184,7 +184,9 @@
     "groupsAll": "All",
     "hideEmptyGroups": "Hide empty groups automatically",
     "showSubIssues": "Show sub-issues",
-    "reset": "Reset"
+    "reset": "Reset",
+    "resetOrder": "Reset order",
+    "moveGroup": "Move “{group}” (Alt+↑/↓)"
   },
   "settings": {
     "title": "Settings",
@@ -701,7 +703,8 @@
     "moveTo": "Move to…",
     "movedTo": "Moved to {group}",
     "boardColumns": "Board columns",
-    "toCreate": "to create"
+    "toCreate": "to create",
+    "moveColumn": "Move column “{group}”"
   },
   "views": {
     "tabsLabel": "Views",
