@@ -168,3 +168,46 @@
   align-items: center;
   gap: 0.125rem;
 }
+
+/* "is / is not" at the top of a chip's dropdown (BARY-166). */
+.negate {
+  padding: 0.375rem 0.375rem 0.25rem;
+
+  & > * {
+    width: 100%;
+  }
+}
+
+/* A rule the chips can't show — "at least", a date, an OR group (BARY-166).
+   Outlined like a set chip; an OR group in amber, like in the editor. */
+.ruleChip {
+  background: var(--surface-container-high);
+  border-color: var(--outline);
+  color: var(--on-surface);
+
+  &[data-or] {
+    border: 1.5px solid color-mix(in srgb, var(--amber) 60%, transparent);
+  }
+
+  & > span > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+}
+
+.orPill {
+  margin: 0 0.375rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--amber) 22%, transparent);
+  color: var(--amber);
+  font-size: var(--text-xxs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* "Advanced" — the filter editor's trigger (BARY-166). */
+.advanced {
+  color: var(--on-surface-variant);
+}

@@ -24,6 +24,7 @@ import type { FilterState } from "@/features/issues/components/Topbar/useTopbar"
 const empty: FilterState = {
   status: [],
   priority: [],
+  type: [],
   assignee: [],
   label: [],
   project: [],
@@ -43,6 +44,7 @@ function render(filterCount: number) {
       members={[]}
       labels={[]}
       projects={[]}
+      issueTypes={[]}
       onToggle={() => {}}
       onClearAll={() => {}}
     />,

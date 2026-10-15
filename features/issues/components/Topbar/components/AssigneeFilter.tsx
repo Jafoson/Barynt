@@ -5,15 +5,20 @@ import { useTranslations } from "next-intl";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
+import { ME, NONE_VALUE } from "@/features/issues/filter";
 import { fullName } from "@/lib/utils/string";
 import type { User } from "@/types";
 import { ChipIcons, ChipValues, chipTitle } from "./ChipValues";
+import { NegateToggle } from "./NegateToggle";
 
 interface AssigneeFilterProps {
   value: string[];
   members: User[];
   onToggle: (id: string) => void;
   onClear: () => void;
+  /** "is not" (BARY-166). */
+  negated?: boolean;
+  onNegate?: (negated: boolean) => void;
 }
 
 export function AssigneeFilter({
@@ -21,21 +26,35 @@ export function AssigneeFilter({
   members,
   onToggle,
   onClear,
+  negated = false,
+  onNegate,
 }: AssigneeFilterProps) {
   const t = useTranslations();
 
   const name = t("fields.assignee");
-  const names = value.map(
-    (id) => members.find((u) => u.id === id)?.firstName ?? name,
+  const names = value.map((id) =>
+    id === ME
+      ? t("filters.me")
+      : id === NONE_VALUE
+        ? t("fields.unassigned")
+        : (members.find((u) => u.id === id)?.firstName ?? name),
   );
   const label =
-    value.length === 0 ? name : <ChipValues name={name} values={names} />;
+    value.length === 0 ? (
+      name
+    ) : (
+      <ChipValues name={name} values={names} negated={negated} />
+    );
 
   return (
     <FilterChip
       name={name}
       label={label}
-      title={value.length > 0 ? chipTitle(name, names) : undefined}
+      title={
+        value.length > 0
+          ? chipTitle(name, names, negated, t("filters.isNot"))
+          : undefined
+      }
       active={value.length > 0}
       accent="var(--purple)"
       onClear={onClear}
@@ -55,17 +74,35 @@ export function AssigneeFilter({
         )
       }
     >
-      <SelectMenu
-        items={members.map((u) => ({
-          value: u.id,
-          label: fullName(u),
-          icon: <Avatar avatar={u} size={22} />,
-        }))}
-        value={value}
-        onPick={(v) => onToggle(v as string)}
-        multi
-        searchable
-      />
+      <>
+        {onNegate && <NegateToggle negated={negated} onChange={onNegate} />}
+        <SelectMenu
+          items={[
+            // Whoever looks — stays relative in a shared view — and nobody
+            // (BARY-166).
+            {
+              value: ME,
+              label: t("filters.me"),
+              hint: t("filters.meHint"),
+              icon: <Icon icon="lucide:user-round" width={18} />,
+            },
+            {
+              value: NONE_VALUE,
+              label: t("fields.unassigned"),
+              icon: <Icon icon="lucide:user-x" width={18} />,
+            },
+            ...members.map((u) => ({
+              value: u.id,
+              label: fullName(u),
+              icon: <Avatar avatar={u} size={22} />,
+            })),
+          ]}
+          value={value}
+          onPick={(v) => onToggle(v as string)}
+          multi
+          searchable
+        />
+      </>
     </FilterChip>
   );
 }

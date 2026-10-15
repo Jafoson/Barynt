@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { IssueFilter } from "@/features/issues/filter";
+import { type IssueFilter, parseIssueFilter } from "@/features/issues/filter";
 import {
   filterToParams,
   idToSlug,
@@ -163,5 +163,19 @@ describe("filterToParams", () => {
       ["label", "a"],
       ["or", "label:b"],
     ]);
+  });
+});
+
+describe("schema", () => {
+  it("accepts what the URL resolves to", () => {
+    const filter = mapFilterValues(
+      parseFilterParams(
+        new URLSearchParams(
+          "status.not=done&assignee=@me,_none&priority.gte=high&label.empty=1&dueDate=overdue,none&created.within=last_7_days&or=label:bug;storyPoints:3,_none",
+        ),
+      ),
+      slugToId(lookups),
+    );
+    expect(parseIssueFilter(filter)).toEqual(filter);
   });
 });

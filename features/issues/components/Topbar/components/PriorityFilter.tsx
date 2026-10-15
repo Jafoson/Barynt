@@ -6,12 +6,16 @@ import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import { PriorityIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import type { Priority } from "@/types";
 import { ChipIcons, ChipValues, chipTitle } from "./ChipValues";
+import { NegateToggle } from "./NegateToggle";
 
 interface PriorityFilterProps {
   value: number[];
   priorities: Priority[];
   onToggle: (id: number) => void;
   onClear: () => void;
+  /** "is not" (BARY-166). */
+  negated?: boolean;
+  onNegate?: (negated: boolean) => void;
 }
 
 export function PriorityFilter({
@@ -19,6 +23,8 @@ export function PriorityFilter({
   priorities,
   onToggle,
   onClear,
+  negated = false,
+  onNegate,
 }: PriorityFilterProps) {
   const t = useTranslations();
 
@@ -27,13 +33,21 @@ export function PriorityFilter({
     (id) => priorities.find((p) => p.id === id)?.name ?? String(id),
   );
   const label =
-    value.length === 0 ? name : <ChipValues name={name} values={names} />;
+    value.length === 0 ? (
+      name
+    ) : (
+      <ChipValues name={name} values={names} negated={negated} />
+    );
 
   return (
     <FilterChip
       name={name}
       label={label}
-      title={value.length > 0 ? chipTitle(name, names) : undefined}
+      title={
+        value.length > 0
+          ? chipTitle(name, names, negated, t("filters.isNot"))
+          : undefined
+      }
       active={value.length > 0}
       accent="var(--amber)"
       onClear={onClear}
@@ -50,17 +64,20 @@ export function PriorityFilter({
         )
       }
     >
-      <SelectMenu
-        items={priorities.map((p) => ({
-          value: p.id,
-          label: p.name,
-          icon: <PriorityIcon priority={p.id} size={15} />,
-        }))}
-        value={value}
-        onPick={(v) => onToggle(v as number)}
-        multi
-        searchable
-      />
+      <>
+        {onNegate && <NegateToggle negated={negated} onChange={onNegate} />}
+        <SelectMenu
+          items={priorities.map((p) => ({
+            value: p.id,
+            label: p.name,
+            icon: <PriorityIcon priority={p.id} size={15} />,
+          }))}
+          value={value}
+          onPick={(v) => onToggle(v as number)}
+          multi
+          searchable
+        />
+      </>
     </FilterChip>
   );
 }

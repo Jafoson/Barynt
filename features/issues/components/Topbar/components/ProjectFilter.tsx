@@ -7,12 +7,16 @@ import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import { LabelIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import type { Project } from "@/types";
 import { ChipIcons, ChipValues, chipTitle } from "./ChipValues";
+import { NegateToggle } from "./NegateToggle";
 
 interface ProjectFilterProps {
   value: string[];
   projects: Project[];
   onToggle: (id: string) => void;
   onClear: () => void;
+  /** "is not" (BARY-166). */
+  negated?: boolean;
+  onNegate?: (negated: boolean) => void;
 }
 
 /**
@@ -28,6 +32,8 @@ export function ProjectFilter({
   projects,
   onToggle,
   onClear,
+  negated = false,
+  onNegate,
 }: ProjectFilterProps) {
   const t = useTranslations();
 
@@ -38,13 +44,21 @@ export function ProjectFilter({
   const name = t("fields.project");
   const names = selected.map((p) => p.name);
   const label =
-    value.length === 0 ? name : <ChipValues name={name} values={names} />;
+    value.length === 0 ? (
+      name
+    ) : (
+      <ChipValues name={name} values={names} negated={negated} />
+    );
 
   return (
     <FilterChip
       name={name}
       label={label}
-      title={value.length > 0 ? chipTitle(name, names) : undefined}
+      title={
+        value.length > 0
+          ? chipTitle(name, names, negated, t("filters.isNot"))
+          : undefined
+      }
       active={value.length > 0}
       accent="var(--green)"
       onClear={onClear}
@@ -61,17 +75,20 @@ export function ProjectFilter({
         )
       }
     >
-      <SelectMenu
-        items={projects.map((p) => ({
-          value: p.id,
-          label: p.name,
-          icon: <LabelIcon color={p.color} size={13} />,
-        }))}
-        value={value}
-        onPick={(v) => onToggle(v as string)}
-        multi
-        searchable
-      />
+      <>
+        {onNegate && <NegateToggle negated={negated} onChange={onNegate} />}
+        <SelectMenu
+          items={projects.map((p) => ({
+            value: p.id,
+            label: p.name,
+            icon: <LabelIcon color={p.color} size={13} />,
+          }))}
+          value={value}
+          onPick={(v) => onToggle(v as string)}
+          multi
+          searchable
+        />
+      </>
     </FilterChip>
   );
 }

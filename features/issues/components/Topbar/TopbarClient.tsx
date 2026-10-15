@@ -1,8 +1,13 @@
 "use client";
 
+import { Icon } from "@iconify/react";
+
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
+import { Button } from "@/components/ui/atoms/Button/Button";
+import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import type { ViewGroupsPatch } from "@/features/issues/actions";
 import { NewViewButton } from "@/features/views/components/NewViewButton/NewViewButton";
 import {
@@ -28,6 +33,7 @@ import type {
   User,
 } from "@/types";
 import { AreaTabs } from "./components/AreaTabs";
+import { FilterEditor } from "./components/FilterEditor";
 import { FilterPopup } from "./components/FilterPopup";
 import { IssueSearch } from "./components/IssueSearch";
 import { TopbarFilters } from "./components/TopbarFilters";
@@ -115,13 +121,19 @@ export function TopbarClient({
     showFilters,
     project,
     filters,
+    negated,
+    tree,
+    extras,
     filterCount,
     searchValue,
     sortKey,
     groupKey,
     view,
     toggleFilter,
+    setNegated,
     clearFilter,
+    removeExtra,
+    setFilter,
     clearAll,
     search,
     setSort,
@@ -136,6 +148,9 @@ export function TopbarClient({
     labels,
     viewMode: activeView !== null,
   });
+
+  // The advanced editor's popup — opened from its button or a rule chip.
+  const [editorOpen, setEditorOpen] = useState(false);
 
   if (!showFilters || !area) return null;
 
@@ -285,6 +300,12 @@ export function TopbarClient({
               members={members}
               labels={labels}
               projects={projects}
+              issueTypes={issueTypes}
+              negated={negated}
+              onNegate={setNegated}
+              extras={extras}
+              onRemoveExtra={removeExtra}
+              onOpenEditor={() => setEditorOpen(true)}
               onToggle={toggleFilter}
               onClear={clearFilter}
               onClearAll={clearAll}
@@ -302,12 +323,50 @@ export function TopbarClient({
               members={members}
               labels={labels}
               projects={projects}
+              issueTypes={issueTypes}
               onToggle={toggleFilter}
               onClearAll={clearAll}
             />
           </div>
 
           <div className={styles.trailing}>
+            {/* The whole filter as conditions, "is not", OR groups and
+                the other fields (BARY-166) — a sheet on a phone. */}
+            <InlinePicker
+              width={640}
+              maxWidth={720}
+              align="end"
+              title={t("filters.advancedTitle")}
+              open={editorOpen}
+              onOpenChange={setEditorOpen}
+              trigger={
+                <Button
+                  variant="ghost"
+                  className={styles.advanced}
+                  icon={<Icon icon="lucide:list-filter" width={14} />}
+                >
+                  {t("filters.advanced")}
+                  {filterCount > 0 && ` · ${filterCount}`}
+                </Button>
+              }
+            >
+              {(close) => (
+                <FilterEditor
+                  filter={tree}
+                  onChange={setFilter}
+                  lookups={{
+                    statuses,
+                    priorities,
+                    issueTypes,
+                    members,
+                    labels,
+                    projects,
+                  }}
+                  area={area}
+                  onDone={close}
+                />
+              )}
+            </InlinePicker>
             {views && (
               <ViewSaveBar
                 workspaceId={workspaceId}

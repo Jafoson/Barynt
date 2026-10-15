@@ -481,7 +481,7 @@ async function searchIssueIds(q: string): Promise<Map<string, number>> {
 
 /**
  * Translates the slugs from the URL into internal ids and builds the filter
- * tree from them (`filterFromUrl`) — the same tree a saved view stores, so
+ * tree from them (`parseFilterParams`) — the same tree a saved view stores, so
  * the same filter means the same thing everywhere (BARY-162). `toIssueWhere`
  * turns it into a `where`.
  *

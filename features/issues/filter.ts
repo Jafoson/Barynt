@@ -239,66 +239,6 @@ export function parseIssueFilter(input: unknown): IssueFilter | null {
   return result.success ? (result.data as IssueFilter) : null;
 }
 
-// ─── From the URL ───────────────────────────────────────────────────────────
-
-/** The URL filters after their slugs were looked up (`resolveIssueFilters`
- *  in `queries.ts`) — ids, not slugs. A slug that matched nothing is simply
- *  missing from its list. */
-export interface ResolvedUrlFilters {
-  statuses: string[];
-  priorities: number[];
-  assignees: string[];
-  labels: string[];
-  /** Cross-project views only. */
-  projects: string[];
-  storyPoints: number[];
-  /** Buckets: `overdue`, `today`, `week`, `none` (BARY-4). */
-  dueDate: string[];
-  q?: string;
-}
-
-const DUE_BUCKETS: Record<string, FilterRule> = {
-  overdue: { field: "dueDate", is: "within", value: "overdue" },
-  today: { field: "dueDate", is: "within", value: "today" },
-  week: { field: "dueDate", is: "within", value: "next_7_days" },
-  none: { field: "dueDate", is: "empty" },
-};
-
-/**
- * The URL's flat filters as a tree: every parameter is one AND-ed rule,
- * several values of one parameter mean "any of them" — exactly what the
- * URL meant before BARY-162. The due-date buckets become an OR group of
- * their own ("overdue or no due date").
- *
- * A parameter whose slugs all matched nothing leaves no rule: the view then
- * shows everything instead of nothing, so a stale link doesn't end up on an
- * empty page.
- */
-export function filterFromUrl(url: ResolvedUrlFilters): IssueFilter {
-  const rules: (FilterRule | FilterGroup)[] = [];
-  const anyOf = (field: FilterField, value: (string | number)[]) => {
-    if (value.length) rules.push({ field, is: "any", value });
-  };
-
-  anyOf("status", url.statuses);
-  anyOf("priority", url.priorities);
-  anyOf("assignee", url.assignees);
-  anyOf("label", url.labels);
-  anyOf("project", url.projects);
-  anyOf("storyPoints", url.storyPoints);
-
-  const due = url.dueDate.flatMap((b) =>
-    DUE_BUCKETS[b] ? [DUE_BUCKETS[b]] : [],
-  );
-  if (due.length === 1) rules.push(due[0]);
-  else if (due.length > 1) rules.push({ op: "or", rules: due });
-
-  const q = url.q?.trim();
-  if (q) rules.push({ field: "text", is: "contains", value: q });
-
-  return { op: "and", rules };
-}
-
 // ─── References that no longer exist ────────────────────────────────────────
 
 /** Ids a field's rules can point at, as far as the caller knows them. */

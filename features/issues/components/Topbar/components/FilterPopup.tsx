@@ -15,7 +15,9 @@ import {
   LabelIcon,
   PriorityIcon,
   StatusIcon,
+  TypeIcon,
 } from "@/features/issues/components/IssueIcons/IssueIcons";
+import { ME, NONE_VALUE } from "@/features/issues/filter";
 import { STORY_POINTS_OPTIONS } from "@/features/issues/story-points";
 import { visibleDetailFields } from "@/features/projects/detail-fields";
 import type { Translator } from "@/i18n/types";
@@ -23,7 +25,14 @@ import { useModal } from "@/lib/context";
 import { fullName } from "@/lib/utils/string";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
-import type { Label, Priority, Project, Status, User } from "@/types";
+import type {
+  IssueType,
+  Label,
+  Priority,
+  Project,
+  Status,
+  User,
+} from "@/types";
 import type { FilterKey, FilterState, IssueArea } from "../useTopbar";
 import styles from "./viewSettings.module.scss";
 
@@ -44,6 +53,8 @@ interface FilterPopupProps {
   members: User[];
   labels: Label[];
   projects: Project[];
+  /** Issue types, for the type filter (BARY-166). */
+  issueTypes: IssueType[];
   onToggle: (key: FilterKey, value: string | number) => void;
   onClearAll: () => void;
 }
@@ -184,6 +195,7 @@ function FilterSheet({
       setFilters({
         status: [],
         priority: [],
+        type: [],
         assignee: [],
         label: [],
         project: [],
@@ -247,6 +259,7 @@ export function buildFacets(
     members,
     labels,
     projects,
+    issueTypes,
   }: Pick<
     FilterPopupProps,
     | "filters"
@@ -257,6 +270,7 @@ export function buildFacets(
     | "members"
     | "labels"
     | "projects"
+    | "issueTypes"
   >,
   t: Translator,
 ): Facet[] {
@@ -273,6 +287,18 @@ export function buildFacets(
       })),
     },
   ];
+  if (issueTypes.length > 0) {
+    facets.push({
+      key: "type",
+      title: t("fields.type"),
+      selected: filters.type,
+      options: issueTypes.map((type) => ({
+        value: type.id,
+        label: type.name,
+        icon: <TypeIcon type={type.id} size={14} color={type.color} />,
+      })),
+    });
+  }
   if (visible.has("priority")) {
     facets.push({
       key: "priority",
@@ -291,11 +317,24 @@ export function buildFacets(
       key: "assignee",
       title: t("fields.assignee"),
       selected: filters.assignee,
-      options: members.map((user) => ({
-        value: user.id,
-        label: fullName(user),
-        icon: <Avatar avatar={user} size={18} />,
-      })),
+      options: [
+        // Whoever looks, and nobody (BARY-166).
+        {
+          value: ME,
+          label: t("filters.me"),
+          icon: <Icon icon="lucide:user-round" width={16} />,
+        },
+        {
+          value: NONE_VALUE,
+          label: t("fields.unassigned"),
+          icon: <Icon icon="lucide:user-x" width={16} />,
+        },
+        ...members.map((user) => ({
+          value: user.id,
+          label: fullName(user),
+          icon: <Avatar avatar={user} size={18} />,
+        })),
+      ],
     });
   } else {
     facets.push({
@@ -314,11 +353,18 @@ export function buildFacets(
       key: "label",
       title: t("fields.label"),
       selected: filters.label,
-      options: labels.map((label) => ({
-        value: label.id,
-        label: label.name,
-        icon: <LabelIcon color={label.color} size={13} />,
-      })),
+      options: [
+        {
+          value: NONE_VALUE,
+          label: t("filters.notSet"),
+          icon: <Icon icon="lucide:tag" width={13} />,
+        },
+        ...labels.map((label) => ({
+          value: label.id,
+          label: label.name,
+          icon: <LabelIcon color={label.color} size={13} />,
+        })),
+      ],
     });
   }
   if (visible.has("storyPoints")) {
@@ -326,10 +372,13 @@ export function buildFacets(
       key: "storyPoints",
       title: t("fields.storyPoints"),
       selected: filters.storyPoints,
-      options: STORY_POINTS_OPTIONS.map((points) => ({
-        value: points,
-        label: String(points),
-      })),
+      options: [
+        ...STORY_POINTS_OPTIONS.map((points) => ({
+          value: points,
+          label: String(points),
+        })),
+        { value: NONE_VALUE, label: t("filters.notSet") },
+      ],
     });
   }
   if (visible.has("dueDate")) {

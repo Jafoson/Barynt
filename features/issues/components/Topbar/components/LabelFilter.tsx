@@ -8,8 +8,10 @@ import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import { LabelIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import { LabelPickerMenu } from "@/features/issues/components/LabelPickerMenu/LabelPickerMenu";
+import { NONE_VALUE } from "@/features/issues/filter";
 import type { Label } from "@/types";
 import { ChipIcons, ChipValues, chipTitle } from "./ChipValues";
+import { NegateToggle } from "./NegateToggle";
 
 interface LabelFilterProps {
   value: string[];
@@ -24,6 +26,9 @@ interface LabelFilterProps {
   workspaceId: string;
   onToggle: (id: string) => void;
   onClear: () => void;
+  /** "is not" (BARY-166). */
+  negated?: boolean;
+  onNegate?: (negated: boolean) => void;
 }
 
 export function LabelFilter({
@@ -34,6 +39,8 @@ export function LabelFilter({
   workspaceId,
   onToggle,
   onClear,
+  negated = false,
+  onNegate,
 }: LabelFilterProps) {
   const t = useTranslations();
   const router = useRouter();
@@ -50,15 +57,26 @@ export function LabelFilter({
     .filter((l): l is Label => Boolean(l));
 
   const name = t("fields.label");
-  const names = selected.map((l) => l.name);
+  const names = [
+    ...(value.includes(NONE_VALUE) ? [t("filters.notSet")] : []),
+    ...selected.map((l) => l.name),
+  ];
   const label =
-    value.length === 0 ? name : <ChipValues name={name} values={names} />;
+    value.length === 0 ? (
+      name
+    ) : (
+      <ChipValues name={name} values={names} negated={negated} />
+    );
 
   return (
     <FilterChip
       name={name}
       label={label}
-      title={value.length > 0 ? chipTitle(name, names) : undefined}
+      title={
+        value.length > 0
+          ? chipTitle(name, names, negated, t("filters.isNot"))
+          : undefined
+      }
       active={value.length > 0}
       accent="var(--blue)"
       onClear={onClear}
@@ -75,36 +93,52 @@ export function LabelFilter({
         )
       }
     >
-      {(close) =>
-        !projectId ? (
+      {(close) => (
+        <>
+          {onNegate && <NegateToggle negated={negated} onChange={onNegate} />}
+          {/* No label at all (BARY-166). */}
           <SelectMenu
-            items={allLabels.map((l) => ({
-              value: l.id,
-              label: l.name,
-              icon: <LabelIcon color={l.color} size={13} />,
-            }))}
+            items={[
+              {
+                value: NONE_VALUE,
+                label: t("filters.notSet"),
+                icon: <Icon icon="lucide:tag" width={13} />,
+              },
+            ]}
             value={value}
-            onPick={(v) => onToggle(v as string)}
+            onPick={() => onToggle(NONE_VALUE)}
             multi
-            searchable
           />
-        ) : (
-          <LabelPickerMenu
-            allLabels={allLabels}
-            selected={value}
-            projectId={projectId}
-            projectName={projectName}
-            workspaceId={workspaceId}
-            onPick={onToggle}
-            onCreated={(l) => {
-              setCreated((cur) => [...cur, l]);
-              router.refresh();
-            }}
-            onClose={close}
-            keepOpen
-          />
-        )
-      }
+          {!projectId ? (
+            <SelectMenu
+              items={allLabels.map((l) => ({
+                value: l.id,
+                label: l.name,
+                icon: <LabelIcon color={l.color} size={13} />,
+              }))}
+              value={value}
+              onPick={(v) => onToggle(v as string)}
+              multi
+              searchable
+            />
+          ) : (
+            <LabelPickerMenu
+              allLabels={allLabels}
+              selected={value}
+              projectId={projectId}
+              projectName={projectName}
+              workspaceId={workspaceId}
+              onPick={onToggle}
+              onCreated={(l) => {
+                setCreated((cur) => [...cur, l]);
+                router.refresh();
+              }}
+              onClose={close}
+              keepOpen
+            />
+          )}
+        </>
+      )}
     </FilterChip>
   );
 }

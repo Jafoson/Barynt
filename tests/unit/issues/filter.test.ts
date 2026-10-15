@@ -1,93 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import {
-  EMPTY_FILTER,
   FILTER_FIELDS,
-  filterFromUrl,
   type IssueFilter,
   narrowProjects,
   parseIssueFilter,
   pruneMissingRefs,
-  type ResolvedUrlFilters,
 } from "@/features/issues/filter";
-
-const NO_URL: ResolvedUrlFilters = {
-  statuses: [],
-  priorities: [],
-  assignees: [],
-  labels: [],
-  projects: [],
-  storyPoints: [],
-  dueDate: [],
-};
-
-describe("filterFromUrl", () => {
-  it("is empty without parameters", () => {
-    expect(filterFromUrl(NO_URL)).toEqual(EMPTY_FILTER);
-  });
-
-  it("makes one AND-ed 'any of' rule per parameter", () => {
-    expect(
-      filterFromUrl({
-        ...NO_URL,
-        statuses: ["todo", "in_progress"],
-        priorities: [3],
-        labels: ["l1"],
-      }),
-    ).toEqual({
-      op: "and",
-      rules: [
-        { field: "status", is: "any", value: ["todo", "in_progress"] },
-        { field: "priority", is: "any", value: [3] },
-        { field: "label", is: "any", value: ["l1"] },
-      ],
-    });
-  });
-
-  it("drops a parameter whose slugs all matched nothing", () => {
-    expect(filterFromUrl({ ...NO_URL, assignees: [] }).rules).toEqual([]);
-  });
-
-  it("turns several due-date buckets into one OR group", () => {
-    expect(
-      filterFromUrl({ ...NO_URL, dueDate: ["overdue", "none"] }).rules,
-    ).toEqual([
-      {
-        op: "or",
-        rules: [
-          { field: "dueDate", is: "within", value: "overdue" },
-          { field: "dueDate", is: "empty" },
-        ],
-      },
-    ]);
-  });
-
-  it("keeps a single bucket as a plain rule and ignores unknown ones", () => {
-    expect(
-      filterFromUrl({ ...NO_URL, dueDate: ["week", "nonsense"] }).rules,
-    ).toEqual([{ field: "dueDate", is: "within", value: "next_7_days" }]);
-  });
-
-  it("trims the search and leaves out a blank one", () => {
-    expect(filterFromUrl({ ...NO_URL, q: "  login  " }).rules).toEqual([
-      { field: "text", is: "contains", value: "login" },
-    ]);
-    expect(filterFromUrl({ ...NO_URL, q: "   " }).rules).toEqual([]);
-  });
-
-  it("produces filters the schema accepts", () => {
-    const filter = filterFromUrl({
-      statuses: ["todo"],
-      priorities: [1, 2],
-      assignees: ["u1"],
-      labels: ["l1"],
-      projects: ["p1"],
-      storyPoints: [3],
-      dueDate: ["today", "none"],
-      q: "x",
-    });
-    expect(parseIssueFilter(filter)).toEqual(filter);
-  });
-});
 
 describe("parseIssueFilter", () => {
   const valid: IssueFilter = {
