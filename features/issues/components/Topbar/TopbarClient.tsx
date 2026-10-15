@@ -329,44 +329,46 @@ export function TopbarClient({
             />
           </div>
 
+          {/* The whole filter as conditions, "is not", OR groups and
+              the other fields (BARY-166) — a sheet on a phone.
+              Right next to the filters. */}
+          <InlinePicker
+            width={640}
+            maxWidth={720}
+            align="start"
+            title={t("filters.advancedTitle")}
+            open={editorOpen}
+            onOpenChange={setEditorOpen}
+            trigger={
+              <Button
+                variant="ghost"
+                className={styles.advanced}
+                icon={<Icon icon="lucide:list-filter" width={14} />}
+              >
+                {t("filters.advanced")}
+                {filterCount > 0 && ` · ${filterCount}`}
+              </Button>
+            }
+          >
+            {(close) => (
+              <FilterEditor
+                filter={tree}
+                onChange={setFilter}
+                lookups={{
+                  statuses,
+                  priorities,
+                  issueTypes,
+                  members,
+                  labels,
+                  projects,
+                }}
+                area={area}
+                onDone={close}
+              />
+            )}
+          </InlinePicker>
+
           <div className={styles.trailing}>
-            {/* The whole filter as conditions, "is not", OR groups and
-                the other fields (BARY-166) — a sheet on a phone. */}
-            <InlinePicker
-              width={640}
-              maxWidth={720}
-              align="end"
-              title={t("filters.advancedTitle")}
-              open={editorOpen}
-              onOpenChange={setEditorOpen}
-              trigger={
-                <Button
-                  variant="ghost"
-                  className={styles.advanced}
-                  icon={<Icon icon="lucide:list-filter" width={14} />}
-                >
-                  {t("filters.advanced")}
-                  {filterCount > 0 && ` · ${filterCount}`}
-                </Button>
-              }
-            >
-              {(close) => (
-                <FilterEditor
-                  filter={tree}
-                  onChange={setFilter}
-                  lookups={{
-                    statuses,
-                    priorities,
-                    issueTypes,
-                    members,
-                    labels,
-                    projects,
-                  }}
-                  area={area}
-                  onDone={close}
-                />
-              )}
-            </InlinePicker>
             {views && (
               <ViewSaveBar
                 workspaceId={workspaceId}
