@@ -1,8 +1,21 @@
 "use client";
 
+import { Icon } from "@iconify/react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import type { ViewGroupsPatch } from "@/features/issues/actions";
+import {
+  type ActiveViewInfo,
+  ViewSaveBar,
+} from "@/features/views/components/ViewSaveBar/ViewSaveBar";
+import {
+  type ViewTab,
+  ViewTabs,
+} from "@/features/views/components/ViewTabs/ViewTabs";
+import { viewIconOf } from "@/features/views/icons";
+import type { ViewLayout } from "@/features/views/schema";
+import { pickViewState, sameViewState } from "@/features/views/url";
 import type {
   IssueType,
   Label,
@@ -42,6 +55,28 @@ interface TopbarClientProps {
   onGroupsChange: (
     patch: ViewGroupsPatch,
   ) => Promise<{ ok: true } | { error: string }>;
+  /** Saved views of the project (BARY-164) — absent outside a project. */
+  views?: TopbarViews;
+}
+
+/** What the topbar needs for a project's saved views. */
+export interface TopbarViews {
+  projectId: string;
+  projectSlug: string;
+  /** `view.share` in the project. */
+  canShare: boolean;
+  tabs: ViewTab[];
+  /** The open view on its own page; `null` on the plain board/list. */
+  active:
+    | (ActiveViewInfo & {
+        name: string;
+        icon: string | null;
+        color: string | null;
+        layout: ViewLayout;
+        /** Its stored state as a query string (`viewParams`). */
+        canonical: string;
+      })
+    | null;
 }
 
 export function TopbarClient({
@@ -59,8 +94,11 @@ export function TopbarClient({
   hiddenCardFields,
   onDisplayChange,
   onGroupsChange,
+  views,
 }: TopbarClientProps) {
   const t = useTranslations();
+  const searchParams = useSearchParams();
+  const activeView = views?.active ?? null;
   const {
     isPending,
     area,
@@ -79,7 +117,14 @@ export function TopbarClient({
     setSort,
     setGroup,
     setView,
-  } = useTopbar({ workspaceId, projects, priorities, members, labels });
+  } = useTopbar({
+    workspaceId,
+    projects,
+    priorities,
+    members,
+    labels,
+    viewMode: activeView !== null,
+  });
 
   if (!showFilters || !area) return null;
 
@@ -98,19 +143,39 @@ export function TopbarClient({
   // project itself already appears in the sidebar and the tab. For "my
   // issues" it says whose issues these are: that's the actual information
   // here, with the view shown as a switcher next to it.
+  // On a saved view's page the title is the view.
   const title =
-    area === "my"
+    activeView?.name ??
+    (area === "my"
       ? t("nav.myIssues")
       : view === "list"
         ? t("nav.issues")
-        : t("nav.board");
+        : t("nav.board"));
+
+  // "Unsaved": the address no longer shows the view's stored state.
+  const dirty =
+    activeView !== null &&
+    !sameViewState(searchParams, new URLSearchParams(activeView.canonical));
+  // What "New view"/"Save" take over: the view state of the address, with the
+  // layout spelled out (the plain board/list keep theirs in the path).
+  const currentParams = { ...pickViewState(searchParams), layout: view };
 
   return (
     <header
       className={`${styles.header}${isPending ? ` ${styles.pending}` : ""}`}
     >
       <div className={styles.titleRow}>
-        <h1 className={styles.title}>{title}</h1>
+        <h1 className={styles.title}>
+          {activeView && (
+            <Icon
+              icon={viewIconOf(activeView)}
+              width={16}
+              className={styles.titleIcon}
+              style={activeView.color ? { color: activeView.color } : undefined}
+            />
+          )}
+          {title}
+        </h1>
         <Badge className={styles.count}>{count}</Badge>
 
         <div className={styles.trailing}>
@@ -124,6 +189,18 @@ export function TopbarClient({
           </div>
         </div>
       </div>
+
+      {views && (
+        <ViewTabs
+          workspaceId={workspaceId}
+          projectId={views.projectId}
+          projectSlug={views.projectSlug}
+          canShare={views.canShare}
+          views={views.tabs}
+          activeId={activeView?.id ?? null}
+          dirty={dirty}
+        />
+      )}
 
       <div className={styles.filterRow}>
         {/* Desktop: one chip per filter. Tablet and phone: the same filters
@@ -165,6 +242,19 @@ export function TopbarClient({
         </div>
 
         <div className={styles.trailing}>
+          {views && (
+            <ViewSaveBar
+              workspaceId={workspaceId}
+              projectId={views.projectId}
+              projectSlug={views.projectSlug}
+              canShare={views.canShare}
+              activeView={activeView}
+              dirty={dirty}
+              filterCount={filterCount}
+              layout={view}
+              currentParams={currentParams}
+            />
+          )}
           <ViewSettings
             projectHiddenFields={projectHiddenFields}
             sortKey={sortKey}

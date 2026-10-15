@@ -20,11 +20,18 @@
 }
 
 .title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
   margin: 0;
   font-size: var(--text-md);
   font-weight: 600;
   line-height: var(--leading-tight);
   color: var(--on-surface);
+}
+
+.titleIcon {
+  flex: none;
 }
 
 /* The count trails the freshly requested URL — fade it while that is in flight. */

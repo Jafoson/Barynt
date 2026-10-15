@@ -4,6 +4,11 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useTransition } from "react";
 import { type GroupKey, groupKeyFromParam } from "@/features/issues/group";
 import { type SortKey, sortKeyFromParam } from "@/features/issues/sort";
+import {
+  layoutFromParam,
+  VIEW_DEFAULT_GROUP,
+  VIEW_DEFAULT_SORT,
+} from "@/features/views/url";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import {
   assigneeIdToSlug,
@@ -78,6 +83,12 @@ export interface UseTopbarArgs {
   priorities: Priority[];
   members: User[];
   labels: Label[];
+  /**
+   * On a saved view's page (BARY-164): the layout comes from `?layout=` and
+   * the board/list switch writes it there instead of changing the path, and a
+   * missing `?group=`/`?sort=` means the view's defaults, not the person's.
+   */
+  viewMode?: boolean;
 }
 
 export function useTopbar({
@@ -86,6 +97,7 @@ export function useTopbar({
   priorities,
   members,
   labels,
+  viewMode = false,
 }: UseTopbarArgs) {
   const router = useRouter();
   const pathname = usePathname();
@@ -105,7 +117,11 @@ export function useTopbar({
       ? "my"
       : null;
   const showFilters = area !== null;
-  const view: View = pathname.endsWith("/list") ? "list" : "board";
+  const view: View = viewMode
+    ? layoutFromParam(searchParams.get("layout"))
+    : pathname.endsWith("/list")
+      ? "list"
+      : "board";
 
   const slug =
     pathname.match(new RegExp(`^${base}/project/([^/]+)`))?.[1] ??
@@ -165,7 +181,12 @@ export function useTopbar({
 
   // Without `?sort=`/`?group=` the person's own defaults apply — the same
   // fallback the pages use, so the control shows what the view really does.
-  const { defaultSort, defaultGrouping } = usePreferences();
+  // On a view's page the view's address is the whole truth instead.
+  const preferences = usePreferences();
+  const defaultSort = viewMode ? VIEW_DEFAULT_SORT : preferences.defaultSort;
+  const defaultGrouping = viewMode
+    ? VIEW_DEFAULT_GROUP
+    : preferences.defaultGrouping;
   const sortKey: SortKey = sortKeyFromParam(
     searchParams.get("sort") ?? defaultSort,
   );
@@ -253,7 +274,12 @@ export function useTopbar({
   }
 
   // The view lives in the path, not the query — carry the filters across.
+  // A saved view keeps its path and switches its layout in the query.
   function setView(next: View) {
+    if (viewMode) {
+      pushParams((p) => p.set("layout", next));
+      return;
+    }
     clearTimeout(searchTimer.current);
     const p = new URLSearchParams(searchParams.toString());
     if (typedQuery.current) p.set("q", typedQuery.current);
