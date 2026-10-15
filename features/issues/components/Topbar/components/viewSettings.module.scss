@@ -482,6 +482,13 @@
   background: var(--surface-container);
 }
 
+/* With conditions in it: outlined like a set filter chip. Doubled class to
+   outrank the elevated button's own border. */
+.advancedButton.advancedButton[data-active] {
+  border: 1px solid var(--primary);
+  color: var(--primary);
+}
+
 /* "is not" after a filter's name in its row (BARY-166). */
 .rowNot {
   color: var(--on-surface-variant);

@@ -533,14 +533,20 @@ function FilterPanel(props: FilterPanelProps) {
       {/* Everything else — "is not", OR groups, dates (BARY-166). */}
       {props.advancedButton ? (
         <div className={styles.advancedFooter}>
+          {/* Set conditions the rows can't show: outlined and counted, so
+              they aren't forgotten behind the button. */}
           <Button
             variant="elevated"
             full
+            className={styles.advancedButton}
+            data-active={extras > 0 || undefined}
             icon={<Icon icon="lucide:list-filter" width={14} />}
+            iconRight={
+              extras > 0 ? <Badge size="sm">{extras}</Badge> : undefined
+            }
             onClick={() => onFacetChange("advanced")}
           >
             {t("filters.advancedSettings")}
-            {extras > 0 && ` · ${extras}`}
           </Button>
         </div>
       ) : (
