@@ -187,18 +187,7 @@ export function TopbarFilters({
           onRemove={() => onRemoveExtra(index)}
           removeLabel={t("filters.removeRule", { rule: labelsOf.node(node) })}
         >
-          {"op" in node
-            ? node.rules.map((member, i) => (
-                <span key={`${i}:${labelsOf.member(member)}`}>
-                  {i > 0 && (
-                    <span className={styles.orPill}>
-                      {node.op === "or" ? t("filters.or") : t("filters.and")}
-                    </span>
-                  )}
-                  {labelsOf.member(member)}
-                </span>
-              ))
-            : labelsOf.rule(node)}
+          <NodeLabel node={node} labelsOf={labelsOf} />
         </Chip>
       ))}
 
@@ -212,6 +201,37 @@ export function TopbarFilters({
           {t("actions.clear")}
         </Button>
       )}
+    </>
+  );
+}
+
+/** A rule chip's text: rules as words, every UND/ODER of a group as a
+ *  plaque in its box's color, nested groups in parentheses. */
+function NodeLabel({
+  node,
+  labelsOf,
+  nested = false,
+}: {
+  node: FilterNode;
+  labelsOf: ReturnType<typeof useFilterLabels>;
+  nested?: boolean;
+}) {
+  const t = useTranslations();
+  if (!("op" in node)) return <>{labelsOf.rule(node)}</>;
+  return (
+    <>
+      {nested && "("}
+      {node.rules.map((child, i) => (
+        <span key={`${i}:${labelsOf.member(child)}`}>
+          {i > 0 && (
+            <span className={styles.opPill} data-op={node.op}>
+              {node.op === "or" ? t("filters.or") : t("filters.and")}
+            </span>
+          )}
+          <NodeLabel node={child} labelsOf={labelsOf} nested />
+        </span>
+      ))}
+      {nested && ")"}
     </>
   );
 }

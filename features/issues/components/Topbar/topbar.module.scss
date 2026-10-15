@@ -202,15 +202,22 @@
   }
 }
 
-.orPill {
+/* UND / ODER inside a rule chip — the colors of the editor's boxes. */
+.opPill {
+  --pill: var(--primary);
+
   margin: 0 0.375rem;
   padding: 0.0625rem 0.375rem;
   border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--amber) 22%, transparent);
-  color: var(--amber);
+  background: color-mix(in srgb, var(--pill) 22%, transparent);
+  color: var(--pill);
   font-size: var(--text-xxs);
   font-weight: 700;
   letter-spacing: 0.06em;
+
+  &[data-op="or"] {
+    --pill: var(--amber);
+  }
 }
 
 /* "Advanced" — the filter editor's trigger (BARY-166). */
