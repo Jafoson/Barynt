@@ -7,16 +7,7 @@
   flex: none;
   height: var(--control-h);
 
-  /* Icon only on a phone (label hidden below) — square like the switch. */
-  @include bp.phone {
-    width: var(--control-h);
-    padding: 0;
-    justify-content: center;
-  }
-}
-
-/* Phone: the icon is enough, the bar has no room for the word. */
-.label {
+  /* Phone: offered in the floating plus instead (`NewIssueFabClient`). */
   @include bp.phone {
     display: none;
   }

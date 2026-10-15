@@ -5,17 +5,18 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { IssueComposerData } from "@/features/issues/types";
 import { useOpenCreateProject } from "@/features/projects/useOpenCreateProject";
+import { useNewViewAction } from "@/features/views/newViewAction";
 import { usePathname } from "@/i18n/navigation";
 import styles from "./newIssueFab.module.scss";
 import { useNewIssueOpener } from "./useNewIssueOpener";
 
 /**
  * Where creating something from a floating button makes sense: a project's
- * board or list, and "my issues" — the views full of issues. Not settings,
- * members, the dashboard and so on.
+ * board or list, its saved views (BARY-164), and "my issues" — the views full
+ * of issues. Not settings, members, the dashboard and so on.
  */
 export const ISSUE_VIEW_PATH =
-  /^\/[^/]+\/(project\/[^/]+(\/list)?|my(\/list)?)\/?$/;
+  /^\/[^/]+\/(project\/[^/]+(\/list|\/view\/[^/]+)?|my(\/list)?)\/?$/;
 
 /** The overview pages where the same menu is on offer: the workspace's
  *  overview (its root), dashboard, projects, members and teams, and a project's overview and
@@ -50,6 +51,8 @@ export function NewIssueFabClient({
   const pathname = usePathname();
   const openCreateProject = useOpenCreateProject();
   const openIssue = useNewIssueOpener(data);
+  // Registered by the topbar on a project's board/list (`NewViewButton`).
+  const newView = useNewViewAction();
   const [open, setOpen] = useState(false);
 
   // Escape closes the menu (a phone with a keyboard attached, or a desktop
@@ -74,6 +77,14 @@ export function NewIssueFabClient({
       label: t("actions.newIssue"),
       icon: "lucide:circle-plus",
       onPick: openIssue,
+    });
+  }
+  if (newView) {
+    choices.push({
+      id: "view",
+      label: newView.label,
+      icon: "lucide:layers",
+      onPick: newView.run,
     });
   }
   if (canCreateProject && workspaceId) {
