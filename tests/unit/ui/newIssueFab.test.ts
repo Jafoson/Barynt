@@ -11,6 +11,10 @@ describe("where the floating new-issue button shows", () => {
     expect(ISSUE_VIEW_PATH.test("/acme/project/web")).toBe(true);
     expect(ISSUE_VIEW_PATH.test("/acme/project/web/list")).toBe(true);
     expect(ISSUE_VIEW_PATH.test("/acme/project/web/")).toBe(true);
+    // A saved view (BARY-164).
+    expect(ISSUE_VIEW_PATH.test("/acme/project/web/view/meine-bugs")).toBe(
+      true,
+    );
   });
 
   it("shows on my issues, board and list", () => {
@@ -26,6 +30,8 @@ describe("where the floating new-issue button shows", () => {
       "/acme/settings",
       "/acme/project/web/overview",
       "/acme/project/web/settings",
+      "/acme/project/web/view",
+      "/acme/project/web/view/bugs/extra",
       "/acme/inbox",
       "/admin",
     ]) {

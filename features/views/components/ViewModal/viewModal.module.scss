@@ -1,0 +1,128 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4375rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.fieldLabel {
+  padding: 0;
+  font-size: var(--text-sm);
+  font-weight: 550;
+  color: var(--on-surface);
+}
+
+/* ── Icon grid ── */
+
+.icons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.25rem, 1fr));
+  gap: 0.25rem;
+}
+
+.iconOption {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-height: 2.25rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+  }
+
+  &[data-active] {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    color: var(--on-surface);
+  }
+}
+
+/* ── Visibility ── */
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--on-surface);
+
+  & > input {
+    margin: 0.2rem 0 0;
+    accent-color: var(--primary);
+  }
+
+  & > svg {
+    flex: none;
+    margin-top: 0.15rem;
+    color: var(--on-surface-variant);
+  }
+
+  &:has(input:checked) {
+    border-color: var(--primary);
+  }
+
+  &:has(input:focus-visible) {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+  }
+
+  &[data-disabled] {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.choiceText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  font-size: var(--text-sm);
+
+  & small {
+    font-size: var(--text-xs);
+    color: var(--on-surface-variant);
+  }
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--text-sm);
+  color: var(--on-surface);
+  cursor: pointer;
+
+  & > input {
+    margin: 0;
+    accent-color: var(--primary);
+  }
+}

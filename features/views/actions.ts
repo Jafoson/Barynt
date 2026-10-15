@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isGroupKey } from "@/features/issues/group";
+import { resolveUrlFilter } from "@/features/issues/queries";
+import { isSortKey } from "@/features/issues/sort";
 import { recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
@@ -23,6 +26,7 @@ import {
   type ViewUserStateInput,
   viewUserStateSchema,
 } from "./schema";
+import { layoutFromParam, pickViewState } from "./url";
 
 /**
  * Saved views (BARY-163). Like the label management, these don't throw but
@@ -328,4 +332,63 @@ export async function setViewUserState(
 
   revalidatePath("/", "layout");
   return { ok: true, data: null };
+}
+
+// ─── From the address (BARY-164) ────────────────────────────────────────────
+
+/**
+ * The stored fields an address stands for: its filters resolved to ids (the
+ * same lookup the board itself does), grouping, order and layout. The search
+ * text isn't part of a view and is ignored (`pickViewState`).
+ */
+async function stateFromParams(
+  projectId: string,
+  params: Record<string, string>,
+) {
+  const state = pickViewState(params);
+  return {
+    filter: await resolveUrlFilter(state, { projectId }),
+    groupBy: state.group && isGroupKey(state.group) ? state.group : null,
+    sortBy: state.sort && isSortKey(state.sort) ? state.sort : "manual",
+    layout: layoutFromParam(state.layout),
+  } as const;
+}
+
+/** "Save": the view takes over what the address shows right now. */
+export async function saveViewState(
+  id: string,
+  params: Record<string, string>,
+): Promise<ViewResult<SavedView>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  const row = await db.savedView.findUnique({
+    where: { id },
+    select: { projectId: true },
+  });
+  if (!row?.projectId) return fail("notFound");
+  return updateView(id, await stateFromParams(row.projectId, params));
+}
+
+/**
+ * "New view" from the topbar: name, color, icon, layout and visibility from
+ * the dialog, filters/grouping/order from the address — or none of those,
+ * when the person unticked "take over the current filters" (`params` then
+ * carries nothing but the layout).
+ */
+export async function createViewFromParams(
+  input: Omit<
+    CreateViewInput,
+    "filter" | "groupBy" | "subGroupBy" | "sortBy" | "sortDir" | "display"
+  > & { projectId: string },
+  params: Record<string, string>,
+): Promise<ViewResult<SavedView>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  const state = await stateFromParams(input.projectId, params);
+  return createView({
+    ...input,
+    filter: state.filter,
+    groupBy: state.groupBy,
+    sortBy: state.sortBy,
+  });
 }

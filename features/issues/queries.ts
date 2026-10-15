@@ -486,7 +486,7 @@ async function searchIssueIds(q: string): Promise<Map<string, number>> {
  * instead of nothing. That's the rule for every one of these filters, so a
  * stale link doesn't end up on an empty page.
  */
-async function resolveUrlFilter(
+export async function resolveUrlFilter(
   filters: IssueFilters,
   scope: { projectId: string } | { workspaceId: string },
 ): Promise<IssueFilter> {
