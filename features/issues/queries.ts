@@ -37,7 +37,13 @@ import type {
   Team,
   User,
 } from "@/types";
-import { filterFromUrl, type IssueFilter, narrowProjects } from "./filter";
+import { type IssueFilter, narrowProjects } from "./filter";
+import {
+  mapFilterValues,
+  parseFilterParams,
+  slugsByField,
+  slugToId,
+} from "./filter-url";
 import { type FilterContext, toIssueWhere } from "./filter-where";
 
 // ── Shared DB → client mappers ────────────────────────────────────────────────
@@ -490,62 +496,64 @@ export async function resolveUrlFilter(
   filters: IssueFilters,
   scope: { projectId: string } | { workspaceId: string },
 ): Promise<IssueFilter> {
-  const list = (value?: string) => value?.split(",").filter(Boolean) ?? [];
+  // The whole URL form (BARY-166): `status.not`, `label.empty`, `or`, … —
+  // parsed with slugs, then the slugs looked up in one query per kind.
+  const parsed = parseFilterParams(filters as Record<string, string>);
+  const slugs = slugsByField(parsed);
+  const users = [...(slugs.assignee ?? []), ...(slugs.reporter ?? [])];
+  const inWorkspace = "workspaceId" in scope;
 
-  const prioritySlugs = list(filters.priority);
-  const assigneeSlugs = list(filters.assignee);
-  const labelSlugs = list(filters.label);
-  const projectSlugs = "workspaceId" in scope ? list(filters.project) : [];
+  const [priorityRows, userRows, labelRows, projectRows] = await Promise.all([
+    slugs.priority?.length
+      ? db.priority.findMany({
+          where: { key: { in: slugs.priority } },
+          select: { id: true, key: true },
+        })
+      : Promise.resolve([]),
+    users.length
+      ? db.user.findMany({
+          where: { handle: { in: users } },
+          select: { id: true, handle: true },
+        })
+      : Promise.resolve([]),
+    slugs.label?.length
+      ? db.label.findMany({
+          where: {
+            slug: { in: slugs.label },
+            ...("projectId" in scope
+              ? { workspace: { projects: { some: { id: scope.projectId } } } }
+              : { workspaceId: scope.workspaceId }),
+          },
+          select: { id: true, slug: true },
+        })
+      : Promise.resolve([]),
+    slugs.project?.length && inWorkspace
+      ? db.project.findMany({
+          where: {
+            slug: { in: slugs.project },
+            workspaceId: scope.workspaceId,
+          },
+          select: { id: true, slug: true },
+        })
+      : Promise.resolve([]),
+  ]);
 
-  const [priorityRows, assigneeRows, labelRows, projectRows] =
-    await Promise.all([
-      prioritySlugs.length
-        ? db.priority.findMany({
-            where: { key: { in: prioritySlugs } },
-            select: { id: true },
-          })
-        : Promise.resolve([]),
-      assigneeSlugs.length
-        ? db.user.findMany({
-            where: { handle: { in: assigneeSlugs } },
-            select: { id: true },
-          })
-        : Promise.resolve([]),
-      labelSlugs.length
-        ? db.label.findMany({
-            where: {
-              slug: { in: labelSlugs },
-              ...("projectId" in scope
-                ? { workspace: { projects: { some: { id: scope.projectId } } } }
-                : { workspaceId: scope.workspaceId }),
-            },
-            select: { id: true },
-          })
-        : Promise.resolve([]),
-      projectSlugs.length && "workspaceId" in scope
-        ? db.project.findMany({
-            where: {
-              slug: { in: projectSlugs },
-              workspaceId: scope.workspaceId,
-            },
-            select: { id: true },
-          })
-        : Promise.resolve([]),
-    ]);
-
-  return filterFromUrl({
-    // Status slug == status id, that one needs no lookup.
-    statuses: list(filters.status),
-    priorities: priorityRows.map((p) => p.id),
-    assignees: assigneeRows.map((u) => u.id),
-    labels: labelRows.map((l) => l.id),
-    projects: projectRows.map((p) => p.id),
-    storyPoints: list(filters.storyPoints)
-      .map(Number)
-      .filter((n) => Number.isFinite(n)),
-    dueDate: list(filters.dueDate),
-    q: filters.q,
-  });
+  // A project's own board has nothing to narrow by project — those rules
+  // drop out, as `?project=` always did there.
+  return mapFilterValues(
+    parsed,
+    slugToId(
+      {
+        priorities: priorityRows,
+        members: userRows.flatMap((u) =>
+          u.handle ? [{ id: u.id, handle: u.handle }] : [],
+        ),
+        labels: labelRows,
+        projects: projectRows,
+      },
+      { projects: inWorkspace },
+    ),
+  );
 }
 
 /** The live lookups `toIssueWhere` needs: the viewer for `@me`, statuses by

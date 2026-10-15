@@ -1,5 +1,12 @@
 import { isCardFieldKey } from "@/features/issues/card-fields";
-import { type IssueFilter, isGroup } from "@/features/issues/filter";
+import {
+  filterToParams,
+  idToSlug,
+  isFilterParam,
+  mapFilterValues,
+  parseFilterParams,
+  type SlugLookups,
+} from "@/features/issues/filter-url";
 import { sanitizeGroupOrder } from "@/features/issues/group-order";
 import { sanitizeHiddenGroups } from "@/features/issues/hidden-groups";
 import type { SavedView, ViewDisplay, ViewLayout } from "./schema";
@@ -22,14 +29,12 @@ import type { SavedView, ViewDisplay, ViewLayout } from "./schema";
  * like the filters.
  */
 
-/** The parameters that make up a view's state, in a fixed order. */
-export const VIEW_STATE_KEYS = [
-  "status",
-  "priority",
-  "assignee",
-  "label",
-  "storyPoints",
-  "dueDate",
+/**
+ * The settings parameters of a view, besides its filter. The filter's own
+ * parameters are open-ended since BARY-166 (`status.not`, `or`, …) and are
+ * recognised by `isFilterParam` instead of listed here.
+ */
+export const VIEW_SETTING_KEYS = [
   "group",
   "sort",
   "layout",
@@ -45,94 +50,7 @@ export const VIEW_STATE_KEYS = [
 export const VIEW_DEFAULT_GROUP = "status";
 export const VIEW_DEFAULT_SORT = "manual";
 
-/** What it takes to turn stored ids back into the URL's slugs. */
-export interface SlugLookups {
-  priorities: { id: number; key: string }[];
-  members: { id: string; handle: string }[];
-  labels: { id: string; slug: string }[];
-}
-
-const DUE_BUCKET_OF: Record<string, string> = {
-  overdue: "overdue",
-  today: "today",
-  next_7_days: "week",
-};
-
-/**
- * The URL filters a tree stands for. Views saved from the flat filter row only
- * ever hold "any of" rules and due-date buckets, which is all this reads; a
- * rule the row can't show (the tree editor arrives in V6) is left out here
- * but stays in the stored view.
- */
-function filterToParams(
-  filter: IssueFilter,
-  lookups: SlugLookups,
-): Record<string, string[]> {
-  const out: Record<string, string[]> = {};
-  const add = (key: string, values: string[]) => {
-    if (values.length) out[key] = [...(out[key] ?? []), ...values];
-  };
-  const slugOf = <T extends { id: string | number }>(
-    rows: T[],
-    id: string | number,
-    pick: (row: T) => string,
-  ) => {
-    const row = rows.find((r) => r.id === id);
-    return row ? [pick(row)] : [];
-  };
-
-  const dueRules = [];
-  for (const node of filter.rules) {
-    if (isGroup(node)) {
-      if (node.rules.every((r) => r.field === "dueDate"))
-        dueRules.push(...node.rules);
-      continue;
-    }
-    const values = Array.isArray(node.value) ? node.value : [];
-    if (node.field === "dueDate") {
-      dueRules.push(node);
-      continue;
-    }
-    if (node.is !== "any") continue;
-    switch (node.field) {
-      case "status":
-        add("status", values.map(String));
-        break;
-      case "priority":
-        add(
-          "priority",
-          values.flatMap((v) => slugOf(lookups.priorities, v, (p) => p.key)),
-        );
-        break;
-      case "assignee":
-        add(
-          "assignee",
-          values.flatMap((v) => slugOf(lookups.members, v, (m) => m.handle)),
-        );
-        break;
-      case "label":
-        add(
-          "label",
-          values.flatMap((v) => slugOf(lookups.labels, v, (l) => l.slug)),
-        );
-        break;
-      case "storyPoints":
-        add("storyPoints", values.map(String));
-        break;
-    }
-  }
-
-  add(
-    "dueDate",
-    dueRules.flatMap((r) => {
-      if (r.is === "empty") return ["none"];
-      if (r.is === "within" && typeof r.value === "string")
-        return DUE_BUCKET_OF[r.value] ? [DUE_BUCKET_OF[r.value]] : [];
-      return [];
-    }),
-  );
-  return out;
-}
+export type { SlugLookups } from "@/features/issues/filter-url";
 
 /** The address parameters of a view's stored state. `layout` is always set —
  *  it's how a view page tells "opened bare" from "all filters cleared". */
@@ -140,11 +58,9 @@ export function viewParams(
   view: Pick<SavedView, "filter" | "groupBy" | "sortBy" | "layout" | "display">,
   lookups: SlugLookups,
 ): URLSearchParams {
-  const params = new URLSearchParams();
-  const filters = filterToParams(view.filter, lookups);
-  for (const key of VIEW_STATE_KEYS) {
-    if (filters[key]) params.set(key, filters[key].join(","));
-  }
+  const params = new URLSearchParams(
+    filterToParams(mapFilterValues(view.filter, idToSlug(lookups))),
+  );
   if (view.groupBy && view.groupBy !== VIEW_DEFAULT_GROUP)
     params.set("group", view.groupBy);
   if (view.sortBy !== VIEW_DEFAULT_SORT) params.set("sort", view.sortBy);
@@ -174,7 +90,14 @@ type ParamSource = URLSearchParams | Record<string, string | undefined>;
 const read = (source: ParamSource, key: string) =>
   source instanceof URLSearchParams ? source.get(key) : source[key];
 
-/** One parameter in comparable form: order of values and defaults ironed out. */
+const keysOf = (source: ParamSource) =>
+  source instanceof URLSearchParams ? [...source.keys()] : Object.keys(source);
+
+/** A view's filter parameter — everything the filter reads except the
+ *  search, which isn't part of a view. */
+const isViewFilterKey = (key: string) => key !== "q" && isFilterParam(key);
+
+/** One settings parameter in comparable form: defaults ironed out. */
 function normalized(source: ParamSource, key: string): string {
   const raw = read(source, key) ?? "";
   if (key === "group") return raw || VIEW_DEFAULT_GROUP;
@@ -186,17 +109,57 @@ function normalized(source: ParamSource, key: string): string {
   return raw.split(",").filter(Boolean).sort().join(",");
 }
 
+/**
+ * The filter of an address in comparable form: parsed into the tree and
+ * written back with values and rules sorted, so "done,todo" equals
+ * "todo,done" and the order of OR-ed rules doesn't matter.
+ */
+function filterSignature(source: ParamSource): string {
+  const own: Record<string, string> = {};
+  for (const key of keysOf(source)) {
+    if (!isViewFilterKey(key)) continue;
+    const value = read(source, key);
+    if (value) own[key] = value;
+  }
+  const tree = parseFilterParams(own);
+  const sortValue = <T extends { value?: unknown }>(rule: T): T =>
+    Array.isArray(rule.value)
+      ? { ...rule, value: [...rule.value].map(String).sort() }
+      : rule;
+  const rules = tree.rules.map((node) =>
+    "op" in node
+      ? {
+          op: node.op,
+          rules: node.rules
+            .map(sortValue)
+            .sort((x, y) => JSON.stringify(x).localeCompare(JSON.stringify(y))),
+        }
+      : sortValue(node),
+  );
+  return rules
+    .map((r) => JSON.stringify(r))
+    .sort()
+    .join("&");
+}
+
 /** Whether two addresses show the same view state — the "unsaved" check. */
 export function sameViewState(a: ParamSource, b: ParamSource): boolean {
-  return VIEW_STATE_KEYS.every(
-    (key) => normalized(a, key) === normalized(b, key),
+  return (
+    VIEW_SETTING_KEYS.every(
+      (key) => normalized(a, key) === normalized(b, key),
+    ) && filterSignature(a) === filterSignature(b)
   );
 }
 
 /** Only the view-state parameters of an address — what gets saved. */
 export function pickViewState(source: ParamSource): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const key of VIEW_STATE_KEYS) {
+  for (const key of keysOf(source)) {
+    if (
+      !(VIEW_SETTING_KEYS as readonly string[]).includes(key) &&
+      !isViewFilterKey(key)
+    )
+      continue;
     const value = read(source, key);
     if (value) out[key] = value;
   }

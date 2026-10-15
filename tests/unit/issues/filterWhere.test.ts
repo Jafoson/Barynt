@@ -160,4 +160,30 @@ describe("toIssueWhere", () => {
       AND: [{ projectId: { in: ["p1"] } }],
     });
   });
+
+  it("reads 'not set' inside a list (BARY-166)", async () => {
+    expect(
+      await one({ field: "assignee", is: "any", value: ["@me", "_none"] }),
+    ).toEqual({
+      AND: [{ OR: [{ assigneeId: { in: ["me"] } }, { assigneeId: null }] }],
+    });
+    expect(
+      await one({ field: "assignee", is: "none", value: ["_none"] }),
+    ).toEqual({ AND: [{ assigneeId: { not: null } }] });
+    expect(await one({ field: "label", is: "any", value: ["_none"] })).toEqual({
+      AND: [{ labels: { isEmpty: true } }],
+    });
+    expect(
+      await one({ field: "storyPoints", is: "none", value: [3, "_none"] }),
+    ).toEqual({
+      AND: [
+        {
+          AND: [
+            { storyPoints: { notIn: [3] } },
+            { storyPoints: { not: null } },
+          ],
+        },
+      ],
+    });
+  });
 });

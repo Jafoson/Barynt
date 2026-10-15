@@ -35,6 +35,17 @@ export type FilterOp = (typeof FILTER_OPS)[number];
  *  shared view means "my issues" for every person who opens it. */
 export const ME = "@me";
 
+/** "Not set" as one of the values of an any/none rule (BARY-166): "assignee
+ *  is me or nobody". Only for fields that can be empty (`NULLABLE_FIELDS`). */
+export const NONE_VALUE = "_none";
+
+/** Fields whose rules may list `NONE_VALUE`. */
+export const NULLABLE_FIELDS = new Set<string>([
+  "assignee",
+  "label",
+  "storyPoints",
+]);
+
 /** Relative date ranges for `within` (and `today` for `before`/`after`).
  *  Resolved against the moment of reading, like `@me`. */
 export const RELATIVE_DATES = [
@@ -160,12 +171,15 @@ function valueFits(field: FilterField, is: FilterOp, value: unknown): boolean {
   if (is === "empty" || is === "notEmpty") return value === undefined;
   if (is === "any" || is === "none" || is === "all") {
     if (!Array.isArray(value)) return false;
-    if (kind === "numbers") return value.every((v) => typeof v === "number");
+    const plain = NULLABLE_FIELDS.has(field)
+      ? value.filter((v) => v !== NONE_VALUE)
+      : value;
+    if (kind === "numbers") return plain.every((v) => typeof v === "number");
     if (kind === "categories")
-      return value.every((v) =>
+      return plain.every((v) =>
         (STATUS_CATEGORIES as readonly unknown[]).includes(v),
       );
-    return value.every((v) => typeof v === "string");
+    return plain.every((v) => typeof v === "string");
   }
   if (is === "gte" || is === "lte")
     return typeof value === "number" && Number.isFinite(value);
