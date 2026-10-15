@@ -236,7 +236,6 @@ export function FilterEditor({
         <div className={styles.footer}>
           <Button
             variant="ghost"
-            size="sm"
             className={styles.removeAll}
             disabled={count === 0}
             onClick={() => emit({ op: root.op, rules: [] })}
