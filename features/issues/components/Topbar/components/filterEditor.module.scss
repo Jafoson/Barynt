@@ -1,6 +1,5 @@
-/* The advanced filter (BARY-166) — boxes that say what they mean ("all of
-   these": primary, "one of these": amber), nested as deep as needed, and
-   the whole filter as a sentence on top. */
+/* The advanced filter (BARY-166) — boxes that say how their parts combine
+   (UND: primary, ODER: amber), nested as deep as needed. */
 .editor {
   display: flex;
   flex-direction: column;
@@ -13,40 +12,6 @@
   margin: 0;
   padding: 0.75rem 0.25rem;
   color: var(--on-surface-variant);
-}
-
-/* The filter as a sentence; parentheses in the color of their box. */
-.preview {
-  padding: 0.5rem 0.625rem;
-  border: 1px solid var(--outline-variant);
-  border-radius: var(--radius);
-  background: var(--surface-container-lowest);
-  color: var(--on-surface);
-  line-height: 1.55;
-  overflow-wrap: anywhere;
-}
-
-.previewTitle {
-  display: block;
-  margin-bottom: 0.125rem;
-  font-size: var(--text-xxs);
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--on-surface-variant);
-}
-
-.word {
-  color: var(--on-surface-variant);
-}
-
-.paren {
-  font-weight: 700;
-  color: var(--primary);
-
-  &[data-op="or"] {
-    color: var(--amber);
-  }
 }
 
 /* A box: its sentence on top, its parts, its "add" buttons. The outermost
@@ -326,9 +291,14 @@
   border-top: 1px solid var(--outline-variant);
 }
 
+.footerActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 /* Doubled class: the ghost button sets its own color with a single class. */
 .removeAll.removeAll {
-  color: var(--primary);
+  color: var(--secondary);
 }
 
 /* ---------- In the phone's filter sheet ---------- */

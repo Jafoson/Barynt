@@ -729,14 +729,11 @@
     "fieldParent": "Sub-Issue",
     "removeValue": "{value} entfernen",
     "pickValue": "Wert wählen",
-    "previewTitle": "Zeigt Aufgaben mit",
     "boxMode": "Wie die Bedingungen der Box zusammenhängen",
     "boxAll": "UND",
     "boxAny": "ODER",
     "removeBox": "Box entfernen",
-    "addBox": "Box",
-    "andWord": "und",
-    "orWord": "oder"
+    "addBox": "Box"
   },
   "toast": {
     "issueCreated": "Aufgabe erstellt",

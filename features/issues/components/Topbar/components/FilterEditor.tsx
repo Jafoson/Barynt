@@ -2,7 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
-import { Fragment, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
@@ -68,11 +68,10 @@ const relativeFor = (field: FilterField) =>
     : RELATIVE_OPTIONS.filter((r) => r !== "overdue" && r !== "next_7_days");
 
 /**
- * The advanced filter (BARY-166) as boxes. Each box says what it means —
- * "all of these" or "one of these", a click switches — and holds
- * conditions and further boxes, as deep as anyone likes. The outermost box
- * is the whole filter; on top, the filter as one sentence with its
- * parentheses in the colors of their boxes. Every change applies at once.
+ * The advanced filter (BARY-166) as boxes. Each box says how its parts
+ * combine — UND or ODER, a click switches — and holds conditions and
+ * further boxes, as deep as anyone likes. The outermost box is the whole
+ * filter. Every change applies at once.
  */
 export function FilterEditor({
   filter,
@@ -92,6 +91,7 @@ export function FilterEditor({
   // just added is empty; neither would survive the round trip through the
   // URL.
   const [root, setRoot] = useState<FilterGroup>(() => rootBox(filter));
+  const [initial] = useState(filter);
 
   // Stable keys across edits: a replaced rule inherits its predecessor's
   // key, so an open value menu stays open while its rule changes.
@@ -222,15 +222,6 @@ export function FilterEditor({
 
   return (
     <div className={styles.editor} data-sheet={inSheet || undefined}>
-      {count > 0 && (
-        <div className={styles.preview}>
-          <span className={styles.previewTitle}>
-            {t("filters.previewTitle")}
-          </span>
-          <Sentence node={root} labels={labels} top />
-        </div>
-      )}
-
       <Box
         box={root}
         top
@@ -252,9 +243,22 @@ export function FilterEditor({
           >
             {t("filters.removeAll")}
           </Button>
-          <Button variant="primary" size="sm" onClick={onDone}>
-            {t("filters.done")}
-          </Button>
+          <div className={styles.footerActions}>
+            {/* Changes apply at once; "cancel" puts back what was there
+                when the editor opened. */}
+            <Button
+              variant="elevated"
+              onClick={() => {
+                onChange(initial);
+                onDone();
+              }}
+            >
+              {t("actions.cancel")}
+            </Button>
+            <Button variant="primary" onClick={onDone}>
+              {t("filters.done")}
+            </Button>
+          </div>
         </div>
       )}
     </div>
@@ -378,40 +382,6 @@ function Box({
         </button>
       </div>
     </div>
-  );
-}
-
-/** The filter as one sentence — parentheses in the color of their box. */
-function Sentence({
-  node,
-  labels,
-  top = false,
-}: {
-  node: FilterNode;
-  labels: ReturnType<typeof useFilterLabels>;
-  top?: boolean;
-}) {
-  const t = useTranslations();
-  if (!isGroup(node)) return <>{labels.rule(node)}</>;
-  const parts = node.rules.filter((n) => rulesIn(n).length > 0);
-  const word = node.op === "or" ? t("filters.orWord") : t("filters.andWord");
-  const inner = parts.map((child, i) => (
-    <Fragment key={`${i}:${labels.member(child)}`}>
-      {i > 0 && <span className={styles.word}> {word} </span>}
-      <Sentence node={child} labels={labels} />
-    </Fragment>
-  ));
-  if (top || parts.length < 2) return <>{inner}</>;
-  return (
-    <>
-      <span className={styles.paren} data-op={node.op}>
-        (
-      </span>
-      {inner}
-      <span className={styles.paren} data-op={node.op}>
-        )
-      </span>
-    </>
   );
 }
 
