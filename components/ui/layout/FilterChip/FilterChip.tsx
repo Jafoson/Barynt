@@ -9,7 +9,9 @@ interface FilterChipProps {
   /** Field name, used for the clear button's accessible label. */
   name: string;
   /** What the chip reads as right now — the field name, or the selection. */
-  label: string;
+  label: React.ReactNode;
+  /** Tooltip — e.g. the full selection when the label shortens it. */
+  title?: string;
   icon: React.ReactNode;
   /** Highlights the chip and — together with `onClear` — reveals the clear button. */
   active: boolean;
@@ -36,6 +38,7 @@ interface FilterChipProps {
 export function FilterChip({
   name,
   label,
+  title,
   icon,
   active,
   onClear,
@@ -62,6 +65,7 @@ export function FilterChip({
           onRemove={active ? onClear : undefined}
           removeLabel={t("actions.clearFilter", { field: name })}
           data-field-nav={fieldNav || undefined}
+          title={title}
         >
           {label}
         </Chip>

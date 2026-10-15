@@ -6,6 +6,7 @@ import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import { STORY_POINTS_OPTIONS } from "@/features/issues/story-points";
 import styles from "../topbar.module.scss";
+import { ChipValues, chipTitle } from "./ChipValues";
 
 interface StoryPointsFilterProps {
   value: number[];
@@ -21,17 +22,15 @@ export function StoryPointsFilter({
   const t = useTranslations();
 
   const name = t("fields.storyPoints");
+  const names = value.map(String);
   const label =
-    value.length === 0
-      ? name
-      : value.length === 1
-        ? String(value[0])
-        : t("filters.storyPoints", { count: value.length });
+    value.length === 0 ? name : <ChipValues name={name} values={names} />;
 
   return (
     <FilterChip
       name={name}
       label={label}
+      title={value.length > 0 ? chipTitle(name, names) : undefined}
       active={value.length > 0}
       onClear={onClear}
       width={140}

@@ -6,12 +6,10 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
-import {
-  LabelDots,
-  LabelIcon,
-} from "@/features/issues/components/IssueIcons/IssueIcons";
+import { LabelIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import { LabelPickerMenu } from "@/features/issues/components/LabelPickerMenu/LabelPickerMenu";
 import type { Label } from "@/types";
+import { ChipIcons, ChipValues, chipTitle } from "./ChipValues";
 
 interface LabelFilterProps {
   value: string[];
@@ -52,27 +50,27 @@ export function LabelFilter({
     .filter((l): l is Label => Boolean(l));
 
   const name = t("fields.label");
+  const names = selected.map((l) => l.name);
   const label =
-    value.length === 0
-      ? name
-      : value.length === 1
-        ? (selected[0]?.name ?? name)
-        : t("filters.labels", { count: value.length });
+    value.length === 0 ? name : <ChipValues name={name} values={names} />;
 
   return (
     <FilterChip
       name={name}
       label={label}
+      title={value.length > 0 ? chipTitle(name, names) : undefined}
       active={value.length > 0}
       onClear={onClear}
       width={220}
       icon={
         selected.length === 0 ? (
           <Icon icon="lucide:tag" width={13} />
-        ) : selected.length === 1 ? (
-          <LabelIcon color={selected[0].color} size={13} />
         ) : (
-          <LabelDots labels={selected} />
+          <ChipIcons>
+            {selected.map((l) => (
+              <LabelIcon key={l.id} color={l.color} size={13} />
+            ))}
+          </ChipIcons>
         )
       }
     >

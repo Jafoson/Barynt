@@ -114,3 +114,16 @@
   opacity: 0.55;
 }
 
+
+/* ── Set filters spell out their values (BARY-177) ── */
+
+.chipKey,
+.chipMore {
+  color: var(--on-surface-variant);
+}
+
+.chipIcons {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+}

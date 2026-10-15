@@ -7,6 +7,7 @@ import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import { fullName } from "@/lib/utils/string";
 import type { User } from "@/types";
+import { ChipIcons, ChipValues, chipTitle } from "./ChipValues";
 
 interface AssigneeFilterProps {
   value: string[];
@@ -24,28 +25,32 @@ export function AssigneeFilter({
   const t = useTranslations();
 
   const name = t("fields.assignee");
-  const selected =
-    value.length > 0 ? (members.find((u) => u.id === value[0]) ?? null) : null;
-
+  const names = value.map(
+    (id) => members.find((u) => u.id === id)?.firstName ?? name,
+  );
   const label =
-    value.length === 0
-      ? name
-      : value.length === 1
-        ? (selected?.firstName ?? name)
-        : t("filters.people", { count: value.length });
+    value.length === 0 ? name : <ChipValues name={name} values={names} />;
 
   return (
     <FilterChip
       name={name}
       label={label}
+      title={value.length > 0 ? chipTitle(name, names) : undefined}
       active={value.length > 0}
       onClear={onClear}
       width={210}
       icon={
-        selected ? (
-          <Avatar avatar={selected} size={15} />
-        ) : (
+        value.length === 0 ? (
           <Icon icon="lucide:user" width={14} />
+        ) : (
+          <ChipIcons>
+            {value.flatMap((id) => {
+              const member = members.find((u) => u.id === id);
+              return member
+                ? [<Avatar key={id} avatar={member} size={15} />]
+                : [];
+            })}
+          </ChipIcons>
         )
       }
     >

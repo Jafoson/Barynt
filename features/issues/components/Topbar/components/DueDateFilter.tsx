@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import styles from "../topbar.module.scss";
+import { ChipValues, chipTitle } from "./ChipValues";
 
 /** Matches `dueDateBucketWhere()` in `features/issues/queries.ts` — the
  *  only four values the server-side filter understands. */
@@ -31,17 +32,17 @@ export function DueDateFilter({
   };
 
   const name = t("fields.dueDate");
+  const names = value.map(
+    (b) => bucketLabel[b as (typeof BUCKETS)[number]] ?? b,
+  );
   const label =
-    value.length === 0
-      ? name
-      : value.length === 1
-        ? (bucketLabel[value[0] as (typeof BUCKETS)[number]] ?? value[0])
-        : t("filters.dueDates", { count: value.length });
+    value.length === 0 ? name : <ChipValues name={name} values={names} />;
 
   return (
     <FilterChip
       name={name}
       label={label}
+      title={value.length > 0 ? chipTitle(name, names) : undefined}
       active={value.length > 0}
       onClear={onClear}
       width={190}
