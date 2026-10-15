@@ -145,7 +145,10 @@ export function ViewTabs({
         .then(() => toast(t("views.linkCopied")))
         .catch(() => toast(t("views.errorGeneric")));
     } else if (action === "delete") {
-      startTransition(async () => {
+      // Ask first, outside the transition: React holds back every update of
+      // a running async transition until it finishes — the confirm dialog
+      // opening is one of them, so asking inside it would wait forever.
+      void (async () => {
         const ok = await confirm({
           title: t("views.deleteTitle", { name: view.name }),
           description:
@@ -157,13 +160,15 @@ export function ViewTabs({
           danger: true,
         });
         if (!ok) return;
-        const result = await deleteView(view.id);
-        if (!result.ok) return toast(errorText(result.error));
-        toast(t("views.deleted"));
-        if (view.id === activeId)
-          router.push(`/${workspaceId}/project/${projectSlug}`);
-        else router.refresh();
-      });
+        startTransition(async () => {
+          const result = await deleteView(view.id);
+          if (!result.ok) return toast(errorText(result.error));
+          toast(t("views.deleted"));
+          if (view.id === activeId)
+            router.push(`/${workspaceId}/project/${projectSlug}`);
+          else router.refresh();
+        });
+      })();
     }
   };
 
