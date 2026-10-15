@@ -328,6 +328,8 @@ export function TopbarClient({
               onClearAll={clearAll}
               tree={tree}
               onFilterChange={setFilter}
+              negated={negated}
+              onNegate={setNegated}
             />
           </div>
 

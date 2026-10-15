@@ -33,7 +33,7 @@ import type {
   Status,
   User,
 } from "@/types";
-import { extraNodes } from "../filterModel";
+import { type ChipField, extraNodes } from "../filterModel";
 import {
   type FilterKey,
   type FilterState,
@@ -41,6 +41,7 @@ import {
   type IssueArea,
 } from "../useTopbar";
 import { FilterEditor } from "./FilterEditor";
+import { NegateToggle } from "./NegateToggle";
 import styles from "./viewSettings.module.scss";
 
 /** Same four values as the desktop chip (`DueDateFilter`). */
@@ -68,6 +69,9 @@ interface FilterPopupProps {
    *  (BARY-166) — the desktop has its own button for it. */
   tree: IssueFilter;
   onFilterChange: (next: IssueFilter) => void;
+  /** "Is / is not" per filter, above its values (BARY-166). */
+  negated: Record<ChipField, boolean>;
+  onNegate: (key: ChipField, negated: boolean) => void;
 }
 
 /** What the panel shows: the rows, one filter's values, or the editor. */
@@ -178,6 +182,7 @@ function FilterSheet({
 }) {
   const t = useTranslations();
   const [filters, setFilters] = useState(latest.current.filters);
+  const [negated, setNegated] = useState(latest.current.negated);
   const [facet, setFacet] = useState<PanelView>(null);
   // The editor's latest tree while it's open — the URL lags behind it, and
   // the sheet doesn't re-render when the URL lands.
@@ -194,6 +199,11 @@ function FilterSheet({
     ...props,
     filters,
     filterCount,
+    negated,
+    onNegate: (key: ChipField, value: boolean) => {
+      setNegated((current) => ({ ...current, [key]: value }));
+      latest.current.onNegate(key, value);
+    },
     tree: edited ?? props.tree,
     facet,
     onFacetChange: (next: PanelView) => {
@@ -492,6 +502,12 @@ function FilterPanel(props: FilterPanelProps) {
             {open.title}
           </button>
         )}
+        {open.key !== "dueDate" && (
+          <NegateToggle
+            negated={props.negated[open.key]}
+            onChange={(value) => props.onNegate(open.key as ChipField, value)}
+          />
+        )}
         <FilterOptions
           facet={open}
           alwaysSearch={alwaysSearch}
@@ -507,6 +523,7 @@ function FilterPanel(props: FilterPanelProps) {
         <FilterRow
           key={f.key}
           facet={f}
+          negated={f.key !== "dueDate" && props.negated[f.key]}
           onOpen={() => onFacetChange(f.key)}
           onToggle={(value) => onToggle(f.key, value)}
         />
@@ -562,6 +579,8 @@ function FilterPanel(props: FilterPanelProps) {
 
 interface FilterRowProps {
   facet: Facet;
+  /** "Is not" — said next to the name. */
+  negated?: boolean;
   /** Opens this filter's list of values. */
   onOpen: () => void;
   /** Takes a value off again (the chip's cross). */
@@ -573,7 +592,12 @@ interface FilterRowProps {
  * left, a button on the right that opens its values, and — once something is
  * chosen — the chosen values as removable chips underneath.
  */
-export function FilterRow({ facet, onOpen, onToggle }: FilterRowProps) {
+export function FilterRow({
+  facet,
+  negated = false,
+  onOpen,
+  onToggle,
+}: FilterRowProps) {
   const t = useTranslations();
   const chosen = facet.options.filter((option) =>
     facet.selected.includes(option.value),
@@ -587,7 +611,12 @@ export function FilterRow({ facet, onOpen, onToggle }: FilterRowProps) {
         aria-haspopup="true"
         onClick={onOpen}
       >
-        <span className={styles.rowLabel}>{facet.title}</span>
+        <span className={styles.rowLabel}>
+          {facet.title}
+          {negated && facet.selected.length > 0 && (
+            <span className={styles.rowNot}> {t("filters.isNot")}</span>
+          )}
+        </span>
         <span className={styles.pick}>
           {/* Not on a phone: there the row is just name and arrow, like the
               quick actions' rows. */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { type IssueFilter, isGroup } from "@/features/issues/filter";
 import {
   filterToParams,
@@ -160,15 +160,24 @@ export function useTopbar({
 
   const chip = (field: ChipField) => chipState(tree, field);
   const filters = filterStateOf(tree);
+  // "Is not" picked before any value: the tree has no rule to carry it
+  // yet, so it waits here until the first value arrives.
+  const [pendingNot, setPendingNot] = useState<
+    Partial<Record<ChipField, boolean>>
+  >({});
+  const isNot = (field: ChipField) =>
+    chip(field).values.length > 0
+      ? chip(field).negated
+      : (pendingNot[field] ?? false);
   /** Which chips exclude rather than include ("is not"). */
   const negated: Record<ChipField, boolean> = {
-    status: chip("status").negated,
-    priority: chip("priority").negated,
-    type: chip("type").negated,
-    assignee: chip("assignee").negated,
-    label: chip("label").negated,
-    project: chip("project").negated,
-    storyPoints: chip("storyPoints").negated,
+    status: isNot("status"),
+    priority: isNot("priority"),
+    type: isNot("type"),
+    assignee: isNot("assignee"),
+    label: isNot("label"),
+    project: isNot("project"),
+    storyPoints: isNot("storyPoints"),
   };
   /** Rules and OR groups the chips can't show — a rule chip each. */
   const extras = extraNodes(tree);
@@ -259,7 +268,9 @@ export function useTopbar({
 
   /** "is" ↔ "is not" for a chip (BARY-166). */
   function setNegated(key: ChipField, value: boolean) {
-    setFilter(withChip(tree, key, chip(key).values, value));
+    setPendingNot((cur) => ({ ...cur, [key]: value }));
+    if (chip(key).values.length > 0)
+      setFilter(withChip(tree, key, chip(key).values, value));
   }
 
   function clearFilter(key: FilterKey) {

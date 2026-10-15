@@ -49,6 +49,16 @@ function render(filterCount: number) {
       onClearAll={() => {}}
       tree={{ op: "and", rules: [] }}
       onFilterChange={() => {}}
+      negated={{
+        status: false,
+        priority: false,
+        type: false,
+        assignee: false,
+        label: false,
+        project: false,
+        storyPoints: false,
+      }}
+      onNegate={() => {}}
     />,
   );
 }

@@ -458,3 +458,9 @@
   border-top: 1px solid var(--outline-variant);
   background: var(--surface-container);
 }
+
+/* "is not" after a filter's name in its row (BARY-166). */
+.rowNot {
+  color: var(--on-surface-variant);
+  font-weight: 400;
+}
