@@ -184,7 +184,27 @@ export function ViewTabs({
                 style={view.color ? { color: view.color } : undefined}
               />
             }
-            trailing={
+          >
+            <span className={styles.content}>
+              <Link
+                href={view.href}
+                className={styles.link}
+                aria-current={active ? "page" : undefined}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setMenuFor(view.id);
+                }}
+              >
+                {view.name}
+                {view.visibility !== "PRIVATE" && (
+                  <Icon
+                    icon="lucide:users"
+                    width={12}
+                    className={styles.shared}
+                    aria-label={t("views.shared")}
+                  />
+                )}
+              </Link>
               <InlinePicker
                 width={240}
                 align="start"
@@ -220,27 +240,7 @@ export function ViewTabs({
                   </>
                 )}
               </InlinePicker>
-            }
-          >
-            <Link
-              href={view.href}
-              className={styles.link}
-              aria-current={active ? "page" : undefined}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                setMenuFor(view.id);
-              }}
-            >
-              {view.name}
-              {view.visibility !== "PRIVATE" && (
-                <Icon
-                  icon="lucide:users"
-                  width={12}
-                  className={styles.shared}
-                  aria-label={t("views.shared")}
-                />
-              )}
-            </Link>
+            </span>
           </Chip>
         );
       })}

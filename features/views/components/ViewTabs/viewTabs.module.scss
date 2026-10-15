@@ -22,7 +22,6 @@
    filter you picked. Attribute + class outrank the chip's variant class. */
 .tab {
   flex: none;
-  padding-right: 0.25rem;
 
   /* The chip itself isn't a button (the link inside is), so it doesn't get
      the chip's own hover veil — switch it on here. */
@@ -37,6 +36,36 @@
     box-shadow: none;
     font-weight: 600;
   }
+
+  /* The "…" isn't there at rest — the chip is as wide as its name. It
+     appears on hover, with the menu open, or with keyboard focus inside the
+     chip, and the chip grows to make room (less right padding, since the
+     button brings its own). Without hover (touch) it's always there, or the
+     menu would be out of reach. */
+  &:hover,
+  &[data-menu-open],
+  &:focus-within {
+    padding-right: 0.25rem;
+
+    .more {
+      display: grid;
+    }
+  }
+
+  @include bp.no-hover {
+    padding-right: 0.25rem;
+
+    .more {
+      display: grid;
+    }
+  }
+}
+
+/* Name and "…" side by side inside the chip's label slot. */
+.content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 /* The link covers the whole chip (stretched over it), so the chip is one
@@ -79,12 +108,12 @@
   opacity: 0.7;
 }
 
-/* The "…" only shows where it's needed — on the open view, on hover, and
-   whenever the menu is open; it keeps its space so the chips don't jump. */
+/* The "…" menu button — hidden at rest, shown by the `.tab` rules above.
+   Above the stretched link, so it gets its own clicks. */
 .more {
   position: relative;
   z-index: 1;
-  display: grid;
+  display: none;
   place-items: center;
   width: 1.375rem;
   height: 1.375rem;
@@ -94,14 +123,6 @@
   background: transparent;
   color: inherit;
   cursor: pointer;
-  opacity: 0;
-
-  .tab:hover &,
-  .tab[data-active] &,
-  .tab[data-menu-open] &,
-  &:focus-visible {
-    opacity: 1;
-  }
 
   &:hover {
     background: color-mix(in srgb, currentColor 12%, transparent);
@@ -110,10 +131,6 @@
   &:focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: -2px;
-  }
-
-  @include bp.no-hover {
-    opacity: 1;
   }
 }
 
