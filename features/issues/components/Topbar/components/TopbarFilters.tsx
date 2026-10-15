@@ -187,7 +187,10 @@ export function TopbarFilters({
           onRemove={() => onRemoveExtra(index)}
           removeLabel={t("filters.removeRule", { rule: labelsOf.node(node) })}
         >
-          <NodeLabel node={node} labelsOf={labelsOf} />
+          {/* One piece of text: the chip spaces out its children. */}
+          <span className={styles.ruleText}>
+            <NodeLabel node={node} labelsOf={labelsOf} />
+          </span>
         </Chip>
       ))}
 
