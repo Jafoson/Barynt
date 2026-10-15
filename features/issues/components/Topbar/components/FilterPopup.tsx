@@ -17,7 +17,12 @@ import {
   StatusIcon,
   TypeIcon,
 } from "@/features/issues/components/IssueIcons/IssueIcons";
-import { type IssueFilter, ME, NONE_VALUE } from "@/features/issues/filter";
+import {
+  type IssueFilter,
+  isGroup,
+  ME,
+  NONE_VALUE,
+} from "@/features/issues/filter";
 import { STORY_POINTS_OPTIONS } from "@/features/issues/story-points";
 import { visibleDetailFields } from "@/features/projects/detail-fields";
 import type { Translator } from "@/i18n/types";
@@ -34,7 +39,7 @@ import type {
   User,
 } from "@/types";
 import { FILTER_ACCENT } from "../filterAccent";
-import { type ChipField, extraNodes } from "../filterModel";
+import { type ChipField, extraNodes, onlySearch } from "../filterModel";
 import {
   type FilterKey,
   type FilterState,
@@ -188,6 +193,7 @@ function FilterSheet({
   // The editor's latest tree while it's open — the URL lags behind it, and
   // the sheet doesn't re-render when the URL lands.
   const [edited, setEdited] = useState<IssueFilter | null>(null);
+  const [editorKey, setEditorKey] = useState(0);
   const bodyRef = useRef<HTMLDivElement>(null);
   const swipe = useSwipeToClose(close, bodyRef);
 
@@ -221,6 +227,7 @@ function FilterSheet({
     alwaysSearch: true,
     hideReset: true,
     advancedButton: true,
+    editorKey,
     onToggle: (key: FilterKey, value: string | number) => {
       setFilters((current) => {
         const list = current[key] as (string | number)[];
@@ -253,21 +260,34 @@ function FilterSheet({
       <SheetHeader
         title={
           facet === "advanced"
-            ? t("filters.advancedTitle")
+            ? t("filters.advanced")
             : (openFacet?.title ?? t("filters.label"))
         }
         onBack={facet ? () => panelProps.onFacetChange(null) : undefined}
         backLabel={t("filters.back")}
         // On the rows (not inside one filter's list): reset everything.
         action={
-          facet
-            ? undefined
-            : {
-                label: t("display.reset"),
-                ariaLabel: t("filters.clearAll"),
-                disabled: filterCount === 0,
-                onClick: panelProps.onClearAll,
+          facet === "advanced"
+            ? {
+                // The editor's "remove all", up here instead of a footer.
+                label: t("filters.removeAll"),
+                tone: "secondary",
+                disabled: !panelProps.tree.rules.some(
+                  (n) => isGroup(n) || n.field !== "text",
+                ),
+                onClick: () => {
+                  panelProps.onFilterChange(onlySearch(panelProps.tree));
+                  setEditorKey((k) => k + 1);
+                },
               }
+            : facet
+              ? undefined
+              : {
+                  label: t("display.reset"),
+                  ariaLabel: t("filters.clearAll"),
+                  disabled: filterCount === 0,
+                  onClick: panelProps.onClearAll,
+                }
         }
         onClose={close}
         closeLabel={t("actions.close")}
@@ -294,6 +314,8 @@ type FilterPanelProps = FilterPopupProps & {
   /** "Advanced" as a full-width button below the rows instead of a row —
    *  the phone's sheet. */
   advancedButton?: boolean;
+  /** Starts the editor over — after the sheet's bar cleared it. */
+  editorKey?: number;
 };
 
 /** The filters that apply here, in order, with their values. */
@@ -480,11 +502,13 @@ function FilterPanel(props: FilterPanelProps) {
           </button>
         )}
         <FilterEditor
+          key={props.editorKey}
           filter={props.tree}
           onChange={props.onFilterChange}
           lookups={props}
           area={props.area}
           onDone={() => onFacetChange(null)}
+          inSheet={props.advancedButton}
         />
       </>
     );

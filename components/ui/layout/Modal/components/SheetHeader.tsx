@@ -15,6 +15,8 @@ interface SheetHeaderProps {
     disabled?: boolean;
     /** Longer wording for screen readers, when `label` is short. */
     ariaLabel?: string;
+    /** Its color — tertiary unless said otherwise. */
+    tone?: "tertiary" | "secondary";
   };
   onClose: () => void;
   /** Accessible label for the close button — please pass this localized. */
@@ -57,6 +59,7 @@ export function SheetHeader({
         <button
           type="button"
           className={styles.action}
+          data-tone={action.tone}
           aria-label={action.ariaLabel}
           disabled={action.disabled}
           onClick={action.onClick}

@@ -50,6 +50,10 @@ interface FilterEditorProps {
   /** "my": across projects, so project is a field too. */
   area: "project" | "my";
   onDone: () => void;
+  /** Inside the phone's filter sheet: no footer — "remove all" sits in the
+   *  sheet's bar and its back button is "done" — and a layout for a narrow,
+   *  touch screen. */
+  inSheet?: boolean;
 }
 
 const isList = (is: FilterOp) => is === "any" || is === "none" || is === "all";
@@ -77,6 +81,7 @@ export function FilterEditor({
   lookups,
   area,
   onDone,
+  inSheet = false,
 }: FilterEditorProps) {
   const t = useTranslations();
   const labels = useFilterLabels(lookups);
@@ -260,7 +265,7 @@ export function FilterEditor({
   );
 
   return (
-    <div className={styles.editor}>
+    <div className={styles.editor} data-sheet={inSheet || undefined}>
       <div className={styles.mode}>
         <span>{t("filters.modeIntro")}</span>
         <SegmentedControl
@@ -408,20 +413,22 @@ export function FilterEditor({
         )}
       </div>
 
-      <div className={styles.footer}>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={styles.removeAll}
-          disabled={nodes.length === 0}
-          onClick={() => emit([])}
-        >
-          {t("filters.removeAll")}
-        </Button>
-        <Button variant="primary" size="sm" onClick={onDone}>
-          {t("filters.done")}
-        </Button>
-      </div>
+      {!inSheet && (
+        <div className={styles.footer}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={styles.removeAll}
+            disabled={nodes.length === 0}
+            onClick={() => emit([])}
+          >
+            {t("filters.removeAll")}
+          </Button>
+          <Button variant="primary" size="sm" onClick={onDone}>
+            {t("filters.done")}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

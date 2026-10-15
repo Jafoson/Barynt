@@ -218,3 +218,61 @@
 .removeAll.removeAll {
   color: var(--primary);
 }
+
+/* ---------- In the phone's filter sheet ---------- */
+
+/* The sheet's body brings its own padding; the sentence stacks so the
+   switch gets the whole width, both halves the same; values get their own
+   line under field and operator; the add buttons share a row and are
+   touch-sized. */
+.editor[data-sheet] {
+  gap: 0.75rem;
+  padding: 0.25rem 0 0.5rem;
+
+  .mode {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.375rem;
+    color: var(--on-surface-variant);
+
+    & > [role="radiogroup"] {
+      display: flex;
+      width: 100%;
+
+      & > * {
+        flex: 1 1 0;
+      }
+    }
+  }
+
+  .condition {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--touch-min);
+    gap: 0.5rem;
+    padding: 0.5rem;
+
+    .value {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
+
+  .remove {
+    width: var(--touch-min);
+    height: var(--touch-min);
+  }
+
+  .select,
+  .date {
+    min-height: var(--touch-min);
+  }
+
+  .adds {
+    flex-wrap: nowrap;
+
+    & > * {
+      flex: 1 1 0;
+      justify-content: center;
+      min-height: var(--touch-min);
+    }
+  }
+}
