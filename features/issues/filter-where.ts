@@ -1,15 +1,13 @@
 import type { Prisma } from "@/lib/generated/prisma/client";
 import type { StatusCategory } from "@/lib/status-category";
 import {
-  type FilterAll,
-  type FilterGroup,
+  type FilterNode,
   type FilterRule,
   type IssueFilter,
   isGroup,
   ME,
   NONE_VALUE,
   type RelativeDate,
-  rulesOf,
 } from "./filter";
 
 type Where = Prisma.IssueWhereInput;
@@ -278,25 +276,19 @@ async function ruleWhere(
   }
 }
 
-async function groupWhere(
-  group: FilterGroup,
+/** A rule or a group — groups nest, each joining its parts with AND or OR.
+ *  A part that yields nothing (no values) drops out. */
+async function nodeWhere(
+  node: FilterNode,
   ctx: FilterContext,
 ): Promise<Where | null> {
-  // An alternative is one rule or several that must all hold.
-  const alternative = async (
-    member: FilterRule | FilterAll,
-  ): Promise<Where | null> => {
-    const all = (
-      await Promise.all(rulesOf(member).map((r) => ruleWhere(r, ctx)))
-    ).filter((w): w is Where => w !== null);
-    if (!all.length) return null;
-    return all.length === 1 ? all[0] : { AND: all };
-  };
-  const parts = (await Promise.all(group.rules.map(alternative))).filter(
-    (w): w is Where => w !== null,
-  );
+  if (!isGroup(node)) return ruleWhere(node, ctx);
+  const parts = (
+    await Promise.all(node.rules.map((child) => nodeWhere(child, ctx)))
+  ).filter((w): w is Where => w !== null);
   if (!parts.length) return null;
-  return parts.length === 1 ? parts[0] : { OR: parts };
+  if (parts.length === 1) return parts[0];
+  return node.op === "or" ? { OR: parts } : { AND: parts };
 }
 
 /**
@@ -312,11 +304,7 @@ export async function toIssueWhere(
   ctx: FilterContext,
 ): Promise<Where> {
   const parts = (
-    await Promise.all(
-      filter.rules.map((node) =>
-        isGroup(node) ? groupWhere(node, ctx) : ruleWhere(node, ctx),
-      ),
-    )
+    await Promise.all(filter.rules.map((node) => nodeWhere(node, ctx)))
   ).filter((w): w is Where => w !== null);
   return parts.length ? { AND: parts } : {};
 }

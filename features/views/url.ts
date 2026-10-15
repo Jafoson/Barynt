@@ -1,4 +1,5 @@
 import { isCardFieldKey } from "@/features/issues/card-fields";
+import { type FilterNode, isGroup } from "@/features/issues/filter";
 import {
   filterToParams,
   idToSlug,
@@ -122,26 +123,20 @@ function filterSignature(source: ParamSource): string {
     if (value) own[key] = value;
   }
   const tree = parseFilterParams(own);
-  const sortValue = <T extends { value?: unknown }>(rule: T): T =>
-    Array.isArray(rule.value)
-      ? { ...rule, value: [...rule.value].map(String).sort() }
-      : rule;
-  const byJson = (x: unknown, y: unknown) =>
-    JSON.stringify(x).localeCompare(JSON.stringify(y));
-  const rules = tree.rules.map((node) =>
-    "op" in node
+  // Order doesn't matter anywhere: values, rules, groups — at any depth.
+  const canonical = (node: FilterNode): unknown =>
+    isGroup(node)
       ? {
           op: node.op,
           rules: node.rules
-            .map((m) =>
-              "op" in m
-                ? { op: m.op, rules: m.rules.map(sortValue).sort(byJson) }
-                : sortValue(m),
-            )
-            .sort(byJson),
+            .map(canonical)
+            .map((n) => JSON.stringify(n))
+            .sort(),
         }
-      : sortValue(node),
-  );
+      : Array.isArray(node.value)
+        ? { ...node, value: [...node.value].map(String).sort() }
+        : node;
+  const rules = tree.rules.map(canonical);
   return rules
     .map((r) => JSON.stringify(r))
     .sort()

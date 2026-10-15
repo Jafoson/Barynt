@@ -2,16 +2,14 @@
 
 import { useTranslations } from "next-intl";
 import {
-  type FilterAll,
   type FilterField,
-  type FilterGroup,
+  type FilterNode,
   type FilterOp,
   type FilterRule,
   isGroup,
   ME,
   NONE_VALUE,
   type RelativeDate,
-  rulesOf,
 } from "@/features/issues/filter";
 import { fullName } from "@/lib/utils/string";
 import type {
@@ -200,15 +198,18 @@ export function useFilterLabels(lookups: FilterLabelLookups) {
     return `${head} ${values.map((v) => value(r.field, v)).join(", ")}`;
   };
 
-  /** One alternative of an OR group: a rule, or rules joined by "and". */
-  const member = (m: FilterRule | FilterAll): string =>
-    rulesOf(m)
-      .map(rule)
-      .join(` ${t("filters.and")} `);
+  /** A rule or a whole group in one line, nested groups in parentheses:
+   *  "Status Todo UND (Label Bug ODER Priority High)". */
+  const node = (n: FilterNode): string =>
+    isGroup(n)
+      ? n.rules
+          .map((child) => (isGroup(child) ? `(${node(child)})` : rule(child)))
+          .join(` ${n.op === "or" ? t("filters.or") : t("filters.and")} `)
+      : rule(n);
 
-  /** A rule or a whole OR group in one line. */
-  const node = (n: FilterRule | FilterGroup): string =>
-    isGroup(n) ? n.rules.map(member).join(` ${t("filters.or")} `) : rule(n);
+  /** One part of a group: a rule, or a group in parentheses. */
+  const member = (n: FilterNode): string =>
+    isGroup(n) ? `(${node(n)})` : rule(n);
 
   return { field, op, value, relative, rule, member, node };
 }

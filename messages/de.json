@@ -727,10 +727,16 @@
     "relLast30": "letzte 30 Tage",
     "fieldReporter": "Erstellt von",
     "fieldParent": "Sub-Issue",
-    "linkHint": "Zwischen zwei Bedingungen wählst du UND oder ODER. UND bindet stärker: (A UND B) ODER C.",
-    "link": "Verknüpfung",
     "removeValue": "{value} entfernen",
-    "pickValue": "Wert wählen"
+    "pickValue": "Wert wählen",
+    "previewTitle": "Zeigt Aufgaben mit",
+    "boxMode": "Wie die Bedingungen der Box zusammenhängen",
+    "boxAll": "Alle davon treffen zu",
+    "boxAny": "Eine davon trifft zu",
+    "removeBox": "Box entfernen",
+    "addBox": "Box",
+    "andWord": "und",
+    "orWord": "oder"
   },
   "toast": {
     "issueCreated": "Aufgabe erstellt",

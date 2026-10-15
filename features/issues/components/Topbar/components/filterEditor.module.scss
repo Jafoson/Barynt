@@ -1,6 +1,6 @@
-/* The advanced filter (BARY-166) — one list of conditions with an UND/ODER
-   switch between every two. What UND joins is one alternative; with more
-   than one, each gets a colored bar along its side. */
+/* The advanced filter (BARY-166) — boxes that say what they mean ("all of
+   these": primary, "one of these": amber), nested as deep as needed, and
+   the whole filter as a sentence on top. */
 .editor {
   display: flex;
   flex-direction: column;
@@ -9,84 +9,81 @@
   font-size: var(--text-sm);
 }
 
-.hint {
-  margin: 0;
-  font-size: var(--text-xs);
-  color: var(--on-surface-variant);
-}
-
 .empty {
   margin: 0;
   padding: 0.75rem 0.25rem;
   color: var(--on-surface-variant);
 }
 
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-/* One alternative: its conditions, joined by UND. The bar only shows once
-   an ODER splits the list (`data-bar` 0/1 alternates the color). */
-.alternative {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-
-  &[data-bar] {
-    padding-left: 0.625rem;
-    border-left: 3px solid var(--primary);
-    border-radius: 2px;
-  }
-
-  &[data-bar="1"] {
-    border-left-color: var(--secondary);
-  }
-}
-
-/* UND | ODER — a two-way switch, set in from the cards. */
-.link {
-  align-self: flex-start;
-  display: inline-flex;
-  min-width: 0;
-  margin: 0 0 0 0.75rem;
-  padding: 0;
+/* The filter as a sentence; parentheses in the color of their box. */
+.preview {
+  padding: 0.5rem 0.625rem;
   border: 1px solid var(--outline-variant);
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-  background: var(--surface-container);
+  border-radius: var(--radius);
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
 
-  & > button {
-    padding: 0.1875rem 0.625rem;
-    border: 0;
-    background: transparent;
-    color: var(--on-surface-variant);
-    font: inherit;
-    font-size: var(--text-xxs);
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    cursor: pointer;
+.previewTitle {
+  display: block;
+  margin-bottom: 0.125rem;
+  font-size: var(--text-xxs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
 
-    &:hover:not([aria-pressed="true"]) {
-      color: var(--on-surface);
-    }
+.word {
+  color: var(--on-surface-variant);
+}
 
-    &:focus-visible {
-      outline: 2px solid var(--tertiary);
-      outline-offset: -2px;
-    }
-  }
+.paren {
+  font-weight: 700;
+  color: var(--primary);
 
-  & > [data-kind="and"][aria-pressed="true"] {
-    background: var(--surface-container-highest);
-    color: var(--on-surface);
-  }
-
-  & > [data-kind="or"][aria-pressed="true"] {
-    background: color-mix(in srgb, var(--amber) 22%, transparent);
+  &[data-op="or"] {
     color: var(--amber);
   }
+}
+
+/* A box: its sentence on top, its parts, its "add" buttons. The outermost
+   one is the editor itself — no frame, no remove. */
+.box {
+  --box-accent: var(--primary);
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+  padding: 0.25rem 0.375rem 0.375rem;
+  border: 1.5px solid color-mix(in srgb, var(--box-accent) 55%, transparent);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--box-accent) 4%, transparent);
+
+  &[data-op="or"] {
+    --box-accent: var(--amber);
+  }
+
+  &[data-top] {
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+}
+
+.boxHead {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.adds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
 }
 
 /* One condition: "Status ▾ ist nicht ▾ ✕" as a line that reads like a
@@ -157,6 +154,15 @@
   &[data-tone="not"] > select {
     font-weight: 500;
     color: var(--error);
+  }
+
+  /* A box's sentence, in its box's color. */
+  &[data-tone="and"] > select {
+    color: var(--primary);
+  }
+
+  &[data-tone="or"] > select {
+    color: var(--amber);
   }
 }
 
@@ -277,7 +283,6 @@
 }
 
 .add {
-  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -294,6 +299,17 @@
   &:hover {
     background: var(--surface-container-high);
     color: var(--on-surface);
+  }
+
+  /* "+ box" in the color of the box it makes. */
+  &[data-op="and"] {
+    border-color: color-mix(in srgb, var(--primary) 55%, transparent);
+    color: var(--primary);
+  }
+
+  &[data-op="or"] {
+    border-color: color-mix(in srgb, var(--amber) 60%, transparent);
+    color: var(--amber);
   }
 
   &:focus-visible {
@@ -343,12 +359,13 @@
     height: 2rem;
   }
 
-  .link > button {
-    padding: 0.4375rem 0.875rem;
+  .add {
+    flex: 1 1 0;
+    min-height: var(--touch-min);
   }
 
-  .add {
-    align-self: stretch;
-    min-height: var(--touch-min);
+  /* Deep nesting stays usable on a narrow screen: boxes inset barely. */
+  .box:not([data-top]) {
+    padding: 0.25rem 0.25rem 0.3125rem;
   }
 }

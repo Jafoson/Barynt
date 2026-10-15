@@ -93,7 +93,8 @@ describe("parseFilterParams", () => {
           { field: "dueDate", is: "within", value: "next_7_days" },
         ],
       },
-      { op: "or", rules: [{ field: "label", is: "any", value: ["bug"] }] },
+      // A segment of one rule is that rule.
+      { field: "label", is: "any", value: ["bug"] },
     ]);
   });
 
@@ -230,5 +231,72 @@ describe("alternatives of several rules (BARY-166)", () => {
         ],
       },
     ]);
+  });
+});
+
+describe("parentheses (BARY-166)", () => {
+  const query = "or=status:todo~(label:bug;(priority:high~assignee:@me))";
+
+  it("nests groups as deep as written", () => {
+    expect(parseFilterParams(new URLSearchParams(query)).rules).toEqual([
+      {
+        op: "and",
+        rules: [
+          { field: "status", is: "any", value: ["todo"] },
+          {
+            op: "or",
+            rules: [
+              { field: "label", is: "any", value: ["bug"] },
+              {
+                op: "and",
+                rules: [
+                  { field: "priority", is: "any", value: ["high"] },
+                  { field: "assignee", is: "any", value: ["@me"] },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("writes only the parentheses it needs and reads them back", () => {
+    // AND binds tighter: the inner parentheses aren't needed.
+    expect(decodeURIComponent(roundTrip(query))).toBe(
+      "or=status:todo~(label:bug;priority:high~assignee:@me)",
+    );
+    expect(
+      decodeURIComponent(
+        roundTrip("or=(label:bug~priority:high);(assignee:@me)"),
+      ),
+    ).toBe("or=label:bug~priority:high;assignee:@me");
+  });
+
+  it("forgives broken parentheses", () => {
+    expect(
+      parseFilterParams(new URLSearchParams("or=(label:bug;priority:high"))
+        .rules,
+    ).toEqual([
+      {
+        op: "or",
+        rules: [
+          { field: "label", is: "any", value: ["bug"] },
+          { field: "priority", is: "any", value: ["high"] },
+        ],
+      },
+    ]);
+    expect(
+      parseFilterParams(new URLSearchParams("or=label:bug)~priority:high"))
+        .rules,
+    ).toHaveLength(1);
+  });
+
+  it("is a valid stored filter at any depth", () => {
+    const tree = mapFilterValues(
+      parseFilterParams(new URLSearchParams(query)),
+      slugToId(lookups),
+    );
+    expect(parseIssueFilter(tree)).toEqual(tree);
   });
 });

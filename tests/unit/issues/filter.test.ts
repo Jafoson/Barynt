@@ -50,12 +50,24 @@ describe("parseIssueFilter", () => {
     ).toBeNull();
   });
 
-  it("rejects a third level and unknown keys", () => {
+  it("takes groups at any depth, rejects unknown keys", () => {
+    const deep = {
+      op: "and",
+      rules: [
+        {
+          op: "or",
+          rules: [
+            {
+              op: "and",
+              rules: [{ op: "or", rules: [{ field: "label", is: "empty" }] }],
+            },
+          ],
+        },
+      ],
+    };
+    expect(parseIssueFilter(deep)).toEqual(deep as never);
     expect(
-      parseIssueFilter({
-        op: "and",
-        rules: [{ op: "or", rules: [{ op: "or", rules: [] }] }],
-      }),
+      parseIssueFilter({ op: "and", rules: [{ op: "xor", rules: [] }] }),
     ).toBeNull();
     expect(parseIssueFilter({ op: "and", rules: [], extra: 1 })).toBeNull();
     expect(

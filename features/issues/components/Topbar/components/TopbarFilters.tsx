@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { Chip } from "@/components/ui/atoms/Chip/Chip";
-import type { FilterGroup, FilterRule } from "@/features/issues/filter";
+import type { FilterNode } from "@/features/issues/filter";
 import { visibleDetailFields } from "@/features/projects/detail-fields";
 import type {
   IssueType,
@@ -48,7 +48,7 @@ interface TopbarFiltersProps {
   negated: Record<ChipField, boolean>;
   onNegate: (key: ChipField, negated: boolean) => void;
   /** Rules and OR groups the chips can't show — a rule chip each. */
-  extras: { node: FilterRule | FilterGroup; index: number }[];
+  extras: { node: FilterNode; index: number }[];
   onRemoveExtra: (index: number) => void;
   /** A click on a rule chip opens the advanced editor. */
   onOpenEditor: () => void;
@@ -181,7 +181,7 @@ export function TopbarFilters({
           type="input"
           variant="text"
           className={styles.ruleChip}
-          data-or={"op" in node || undefined}
+          data-or={("op" in node && node.op === "or") || undefined}
           title={labelsOf.node(node)}
           onClick={onOpenEditor}
           onRemove={() => onRemoveExtra(index)}
@@ -191,7 +191,9 @@ export function TopbarFilters({
             ? node.rules.map((member, i) => (
                 <span key={`${i}:${labelsOf.member(member)}`}>
                   {i > 0 && (
-                    <span className={styles.orPill}>{t("filters.or")}</span>
+                    <span className={styles.orPill}>
+                      {node.op === "or" ? t("filters.or") : t("filters.and")}
+                    </span>
                   )}
                   {labelsOf.member(member)}
                 </span>

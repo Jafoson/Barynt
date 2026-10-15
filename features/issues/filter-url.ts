@@ -17,8 +17,9 @@
 //                               OR groups: rules `key:values` joined by `;`,
 //                               groups joined by `|`
 //   or=assignee:@me~dueDate.within:overdue;priority:urgent
-//                               an alternative of several rules that must
-//                               all hold: joined by `~`
+//                               inside: `;` is OR, `~` is AND (binds
+//                               tighter), parentheses nest as deep as needed:
+//   or=status:todo~(label:bug;(priority:high~assignee:@me))
 //
 // `@me` is whoever looks, `_none` "not set" inside a list. Values are slugs
 // (priority key, user handle, label/project slug) — readable links that
@@ -31,17 +32,17 @@
 import {
   FILTER_FIELD_KEYS,
   FILTER_FIELDS,
-  type FilterAll,
   type FilterField,
   type FilterGroup,
+  type FilterNode,
   type FilterOp,
   type FilterRule,
   type IssueFilter,
   isGroup,
   ME,
-  mapGroupRules,
+  mapNode,
   NONE_VALUE,
-  rulesOf,
+  rulesIn,
 } from "./filter";
 
 /** URL suffix per operator — `any` has none. */
@@ -132,6 +133,71 @@ function rulesFromEntry(key: string, raw: string): FilterRule[] {
   return Array.isArray(rule) ? rule : [rule];
 }
 
+/** One `key:values` part of an expression — or the due-date buckets of a
+ *  bare `dueDate:overdue,none`, OR-ed. */
+function nodeOfPart(part: string): FilterNode | null {
+  const at = part.indexOf(":");
+  const found =
+    at === -1
+      ? rulesFromEntry(part, "1")
+      : rulesFromEntry(part.slice(0, at), part.slice(at + 1));
+  if (!found.length) return null;
+  return found.length === 1 ? found[0] : { op: "or", rules: found };
+}
+
+/** Joins parts under one operator: drops the empty, unwraps a single one. */
+function joined(op: "and" | "or", parts: (FilterNode | null)[]) {
+  const kept = parts.filter((n): n is FilterNode => n !== null);
+  if (!kept.length) return null;
+  return kept.length === 1 ? kept[0] : { op, rules: kept };
+}
+
+/**
+ * `a~b;(c;d~e)` → a tree: `;` is OR, `~` AND (binding tighter), parentheses
+ * group. Lenient — an unclosed parenthesis closes at the end, a stray one is
+ * skipped — since a link may have been edited by hand.
+ */
+function parseExpression(source: string): FilterNode | null {
+  let at = 0;
+  const orExpr = (): FilterNode | null => {
+    const parts = [andExpr()];
+    while (source[at] === ";") {
+      at++;
+      parts.push(andExpr());
+    }
+    return joined("or", parts);
+  };
+  const andExpr = (): FilterNode | null => {
+    const parts = [atom()];
+    while (source[at] === "~") {
+      at++;
+      parts.push(atom());
+    }
+    return joined("and", parts);
+  };
+  const atom = (): FilterNode | null => {
+    if (source[at] === "(") {
+      at++;
+      const inner = orExpr();
+      if (source[at] === ")") at++;
+      return inner;
+    }
+    const start = at;
+    while (at < source.length && !"();~".includes(source[at])) at++;
+    const node = nodeOfPart(source.slice(start, at));
+    // A stray ")" would stop the parse for good; step over it.
+    if (source[at] === ")" && start === at) at++;
+    return node;
+  };
+  const parts: (FilterNode | null)[] = [];
+  while (at < source.length) {
+    const before = at;
+    parts.push(orExpr());
+    if (at === before) at++;
+  }
+  return joined("and", parts);
+}
+
 /**
  * The URL's filter as a tree, values still as they stand in the URL (slugs,
  * `@me`, `_none`). Unknown keys are ignored; a parameter that yields
@@ -147,7 +213,7 @@ export function parseFilterParams(
           v === undefined ? [] : [[k, v] as [string, string]],
         );
 
-  const rules: (FilterRule | FilterGroup)[] = [];
+  const rules: FilterNode[] = [];
   for (const [key, raw] of entries) {
     if (key === "q") {
       const q = raw.trim();
@@ -155,24 +221,9 @@ export function parseFilterParams(
       continue;
     }
     if (key === "or") {
-      const rulesOfPart = (part: string) => {
-        const at = part.indexOf(":");
-        return at === -1
-          ? rulesFromEntry(part, "1")
-          : rulesFromEntry(part.slice(0, at), part.slice(at + 1));
-      };
-      for (const group of raw.split("|")) {
-        const inner = group
-          .split(";")
-          .flatMap((alternative): (FilterRule | FilterAll)[] => {
-            const parts = alternative.split("~");
-            // One rule: as before — a bucket list still OR-s its buckets.
-            if (parts.length === 1) return rulesOfPart(parts[0]);
-            const all = parts.flatMap(rulesOfPart);
-            if (!all.length) return [];
-            return all.length === 1 ? all : [{ op: "and", rules: all }];
-          });
-        if (inner.length) rules.push({ op: "or", rules: inner });
+      for (const segment of raw.split("|")) {
+        const node = parseExpression(segment);
+        if (node) rules.push(node);
       }
       continue;
     }
@@ -214,13 +265,9 @@ export function mapFilterValues(
     const out = map(rule.field, rule.value);
     return out === null ? null : { ...rule, value: out };
   };
-  const rules = filter.rules.flatMap((node): (FilterRule | FilterGroup)[] => {
-    if (!isGroup(node)) {
-      const rule = mapRule(node);
-      return rule ? [rule] : [];
-    }
-    const group = mapGroupRules(node, mapRule);
-    return group ? [group] : [];
+  const rules = filter.rules.flatMap((node) => {
+    const out = mapNode(node, mapRule);
+    return out ? [out] : [];
   });
   return { op: "and", rules };
 }
@@ -244,8 +291,7 @@ export function slugsByField(
     }
   };
   for (const node of filter.rules) {
-    if (isGroup(node)) node.rules.flatMap(rulesOf).forEach(visit);
-    else visit(node);
+    rulesIn(node).forEach(visit);
   }
   return Object.fromEntries(
     Object.entries(out).map(([k, set]) => [k, [...(set as Set<string>)]]),
@@ -265,7 +311,7 @@ function keyOf(rule: FilterRule): string {
 
 /** The OR group as the chip's due-date buckets, if that's all it is. */
 function bucketsOf(group: FilterGroup): string[] | null {
-  if (group.rules.some((m) => "op" in m)) return null;
+  if (group.op !== "or" || group.rules.some(isGroup)) return null;
   const buckets = (group.rules as FilterRule[]).map(dueBucketOf);
   return buckets.every((b) => b !== null) ? (buckets as string[]) : null;
 }
@@ -281,8 +327,14 @@ export function filterToParams(filter: IssueFilter): [string, string][] {
   const used = new Set<string>();
   const groups: string[] = [];
   const encodeRule = (r: FilterRule) => `${keyOf(r)}:${encodeValue(r)}`;
-  const encodeGroup = (members: (FilterRule | FilterAll)[]) =>
-    members.map((m) => rulesOf(m).map(encodeRule).join("~")).join(";");
+  // AND binds tighter than OR: only an OR inside an AND needs parentheses.
+  const encodeNode = (node: FilterNode, inAnd = false): string => {
+    if (!isGroup(node)) return encodeRule(node);
+    const inner = node.rules
+      .map((child) => encodeNode(child, node.op === "and"))
+      .join(node.op === "and" ? "~" : ";");
+    return node.op === "or" && inAnd ? `(${inner})` : inner;
+  };
 
   for (const node of filter.rules) {
     if (isGroup(node)) {
@@ -290,7 +342,7 @@ export function filterToParams(filter: IssueFilter): [string, string][] {
       if (buckets && !used.has("dueDate")) {
         used.add("dueDate");
         out.push(["dueDate", buckets.join(",")]);
-      } else groups.push(encodeGroup(node.rules));
+      } else groups.push(encodeNode(node));
       continue;
     }
     if (node.field === "text") {
@@ -303,7 +355,7 @@ export function filterToParams(filter: IssueFilter): [string, string][] {
     const bucket = dueBucketOf(node);
     const key = bucket ? "dueDate" : keyOf(node);
     if (used.has(key)) {
-      groups.push(encodeGroup([node]));
+      groups.push(encodeRule(node));
       continue;
     }
     used.add(key);

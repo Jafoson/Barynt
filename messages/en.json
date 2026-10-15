@@ -727,10 +727,16 @@
     "relLast30": "last 30 days",
     "fieldReporter": "Created by",
     "fieldParent": "Sub-issue",
-    "linkHint": "Between two conditions, pick AND or OR. AND binds tighter: (A AND B) OR C.",
-    "link": "Connection",
     "removeValue": "Remove {value}",
-    "pickValue": "Pick a value"
+    "pickValue": "Pick a value",
+    "previewTitle": "Shows issues with",
+    "boxMode": "How the box's conditions combine",
+    "boxAll": "All of these match",
+    "boxAny": "One of these matches",
+    "removeBox": "Remove box",
+    "addBox": "Box",
+    "andWord": "and",
+    "orWord": "or"
   },
   "toast": {
     "issueCreated": "Issue created",

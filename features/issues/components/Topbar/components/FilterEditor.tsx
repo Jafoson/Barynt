@@ -18,12 +18,15 @@ import {
 } from "@/features/issues/components/IssueIcons/IssueIcons";
 import {
   type FilterField,
+  type FilterGroup,
+  type FilterNode,
   type FilterOp,
   type FilterRule,
   type IssueFilter,
   isGroup,
   ME,
   NONE_VALUE,
+  rulesIn,
 } from "@/features/issues/filter";
 import { STORY_POINTS_OPTIONS } from "@/features/issues/story-points";
 import { randomId } from "@/lib/utils/id";
@@ -35,7 +38,7 @@ import {
   RELATIVE_OPTIONS,
   useFilterLabels,
 } from "../filterLabels";
-import { fromAlternatives, toAlternatives } from "../filterModel";
+import { fromRootBox, rootBox } from "../filterModel";
 import styles from "./filterEditor.module.scss";
 
 interface FilterEditorProps {
@@ -65,12 +68,11 @@ const relativeFor = (field: FilterField) =>
     : RELATIVE_OPTIONS.filter((r) => r !== "overdue" && r !== "next_7_days");
 
 /**
- * The advanced filter (BARY-166): one list of conditions — field, operator,
- * values — with a switch between every two: UND or ODER. UND binds tighter,
- * so what's joined by UND belongs together and an ODER starts the next
- * alternative: "(me UND overdue) ODER urgent". With more than one
- * alternative each gets a bar of its own color along its side. Every
- * change applies at once.
+ * The advanced filter (BARY-166) as boxes. Each box says what it means —
+ * "all of these" or "one of these", a click switches — and holds
+ * conditions and further boxes, as deep as anyone likes. The outermost box
+ * is the whole filter; on top, the filter as one sentence with its
+ * parentheses in the colors of their boxes. Every change applies at once.
  */
 export function FilterEditor({
   filter,
@@ -86,11 +88,10 @@ export function FilterEditor({
   const text = filter.rules.filter(
     (n): n is FilterRule => !isGroup(n) && n.field === "text",
   );
-  // The editor's own copy — a condition just added has no value yet and
-  // wouldn't survive the round trip through the URL.
-  const [alts, setAlts] = useState<FilterRule[][]>(() =>
-    toAlternatives(filter),
-  );
+  // The editor's own copy — a condition just added has no value yet, a box
+  // just added is empty; neither would survive the round trip through the
+  // URL.
+  const [root, setRoot] = useState<FilterGroup>(() => rootBox(filter));
 
   // Stable keys across edits: a replaced rule inherits its predecessor's
   // key, so an open value menu stays open while its rule changes.
@@ -108,10 +109,9 @@ export function FilterEditor({
     return to;
   };
 
-  const emit = (next: FilterRule[][]) => {
-    const kept = next.filter((alt) => alt.length > 0);
-    setAlts(kept);
-    onChange(fromAlternatives(kept, text));
+  const emit = (next: FilterGroup) => {
+    setRoot(next);
+    onChange(fromRootBox(next, text));
   };
 
   const fields = EDITOR_FIELDS.filter((f) => f !== "project" || area === "my");
@@ -211,98 +211,35 @@ export function FilterEditor({
     return value === undefined ? { field, is } : { field, is, value };
   };
 
-  // ── Editing the list ──
-
-  const setRule = (a: number, r: number, next: FilterRule) =>
-    emit(
-      alts.map((alt, i) =>
-        i === a
-          ? alt.map((rule, j) => (j === r ? inherit(rule, next) : rule))
-          : alt,
-      ),
-    );
-
-  const removeRule = (a: number, r: number) =>
-    emit(alts.map((alt, i) => (i === a ? alt.filter((_, j) => j !== r) : alt)));
-
-  /** The switch after rule `r` of alternative `a`: ODER splits the
-   *  alternative there, UND (on its last rule) joins it with the next. */
-  const setLink = (a: number, r: number, or: boolean) => {
-    const alt = alts[a];
-    const last = r === alt.length - 1;
-    if (or && !last)
-      emit([
-        ...alts.slice(0, a),
-        alt.slice(0, r + 1),
-        alt.slice(r + 1),
-        ...alts.slice(a + 1),
-      ]);
-    else if (!or && last && a + 1 < alts.length)
-      emit([
-        ...alts.slice(0, a),
-        [...alt, ...alts[a + 1]],
-        ...alts.slice(a + 2),
-      ]);
+  const card = {
+    fields,
+    labels,
+    options,
+    defaultValue,
   };
 
-  const addRule = () =>
-    emit(
-      alts.length
-        ? [...alts.slice(0, -1), [...alts[alts.length - 1], newRule()]]
-        : [[newRule()]],
-    );
-
-  const count = alts.reduce((n, alt) => n + alt.length, 0);
+  const count = rulesIn(root).length;
 
   return (
     <div className={styles.editor} data-sheet={inSheet || undefined}>
-      {count > 1 && <p className={styles.hint}>{t("filters.linkHint")}</p>}
-
-      {count === 0 ? (
-        <p className={styles.empty}>{t("filters.empty")}</p>
-      ) : (
-        <div className={styles.list}>
-          {alts.map((alt, a) => (
-            <Fragment key={keyOf(alt[0])}>
-              {a > 0 && (
-                <LinkSwitch
-                  or
-                  onChange={(or) => setLink(a - 1, alts[a - 1].length - 1, or)}
-                />
-              )}
-              <div
-                className={styles.alternative}
-                data-bar={alts.length > 1 ? a % 2 : undefined}
-              >
-                {alt.map((rule, r) => (
-                  <Fragment key={keyOf(rule)}>
-                    {r > 0 && (
-                      <LinkSwitch
-                        or={false}
-                        onChange={(or) => setLink(a, r - 1, or)}
-                      />
-                    )}
-                    <ConditionCard
-                      rule={rule}
-                      fields={fields}
-                      labels={labels}
-                      options={options}
-                      defaultValue={defaultValue}
-                      onChange={(next) => setRule(a, r, next)}
-                      onRemove={() => removeRule(a, r)}
-                    />
-                  </Fragment>
-                ))}
-              </div>
-            </Fragment>
-          ))}
+      {count > 0 && (
+        <div className={styles.preview}>
+          <span className={styles.previewTitle}>
+            {t("filters.previewTitle")}
+          </span>
+          <Sentence node={root} labels={labels} top />
         </div>
       )}
 
-      <button type="button" className={styles.add} onClick={addRule}>
-        <Icon icon="lucide:plus" width={13} />
-        {t("filters.addCondition")}
-      </button>
+      <Box
+        box={root}
+        top
+        card={card}
+        newRule={newRule}
+        keyOf={keyOf}
+        inherit={inherit}
+        onChange={emit}
+      />
 
       {!inSheet && (
         <div className={styles.footer}>
@@ -311,7 +248,7 @@ export function FilterEditor({
             size="sm"
             className={styles.removeAll}
             disabled={count === 0}
-            onClick={() => emit([])}
+            onClick={() => emit({ op: root.op, rules: [] })}
           >
             {t("filters.removeAll")}
           </Button>
@@ -324,34 +261,157 @@ export function FilterEditor({
   );
 }
 
-/** UND | ODER between two conditions. */
-function LinkSwitch({
-  or,
+type CardSetup = Pick<
+  React.ComponentProps<typeof ConditionCard>,
+  "fields" | "labels" | "options" | "defaultValue"
+>;
+
+/**
+ * One box: a sentence on top that says how its parts combine (a select:
+ * "all of these" / "one of these"), the parts — conditions and boxes — and
+ * "+ condition" / "+ box" below. A new box is the opposite kind of the one
+ * it sits in, since a box of the same kind would add nothing.
+ */
+function Box({
+  box,
+  top = false,
+  card,
+  newRule,
+  keyOf,
+  inherit,
   onChange,
+  onRemove,
 }: {
-  or: boolean;
-  onChange: (or: boolean) => void;
+  box: FilterGroup;
+  top?: boolean;
+  card: CardSetup;
+  newRule: () => FilterRule;
+  keyOf: (o: object) => string;
+  inherit: <T extends object>(from: object, to: T) => T;
+  onChange: (next: FilterGroup) => void;
+  onRemove?: () => void;
 }) {
   const t = useTranslations();
+  const set = (rules: FilterNode[]) =>
+    onChange(inherit(box, { op: box.op, rules }));
+  const replace = (i: number, next: FilterNode) =>
+    set(box.rules.map((n, j) => (j === i ? inherit(n, next) : n)));
+  const remove = (i: number) => set(box.rules.filter((_, j) => j !== i));
+
   return (
-    <fieldset className={styles.link} aria-label={t("filters.link")}>
-      <button
-        type="button"
-        aria-pressed={!or}
-        data-kind="and"
-        onClick={() => onChange(false)}
-      >
-        {t("filters.and")}
-      </button>
-      <button
-        type="button"
-        aria-pressed={or}
-        data-kind="or"
-        onClick={() => onChange(true)}
-      >
-        {t("filters.or")}
-      </button>
-    </fieldset>
+    <div className={styles.box} data-op={box.op} data-top={top || undefined}>
+      <div className={styles.boxHead}>
+        <TokenSelect
+          label={t("filters.boxMode")}
+          tone={box.op === "or" ? "or" : "and"}
+          value={box.op}
+          items={[
+            { value: "and", label: t("filters.boxAll") },
+            { value: "or", label: t("filters.boxAny") },
+          ]}
+          onChange={(op) =>
+            onChange(inherit(box, { op: op as "and" | "or", rules: box.rules }))
+          }
+        />
+        {onRemove && (
+          <button
+            type="button"
+            className={styles.remove}
+            aria-label={t("filters.removeBox")}
+            title={t("filters.removeBox")}
+            onClick={onRemove}
+          >
+            <Icon icon="lucide:x" width={14} />
+          </button>
+        )}
+      </div>
+
+      {box.rules.length === 0 && top && (
+        <p className={styles.empty}>{t("filters.empty")}</p>
+      )}
+
+      {box.rules.map((node, i) =>
+        isGroup(node) ? (
+          <Box
+            key={keyOf(node)}
+            box={node}
+            card={card}
+            newRule={newRule}
+            keyOf={keyOf}
+            inherit={inherit}
+            onChange={(next) => replace(i, next)}
+            onRemove={() => remove(i)}
+          />
+        ) : (
+          <ConditionCard
+            key={keyOf(node)}
+            rule={node}
+            {...card}
+            onChange={(next) => replace(i, next)}
+            onRemove={() => remove(i)}
+          />
+        ),
+      )}
+
+      <div className={styles.adds}>
+        <button
+          type="button"
+          className={styles.add}
+          onClick={() => set([...box.rules, newRule()])}
+        >
+          <Icon icon="lucide:plus" width={13} />
+          {t("filters.addCondition")}
+        </button>
+        <button
+          type="button"
+          className={styles.add}
+          data-op={box.op === "and" ? "or" : "and"}
+          onClick={() =>
+            set([
+              ...box.rules,
+              { op: box.op === "and" ? "or" : "and", rules: [newRule()] },
+            ])
+          }
+        >
+          <Icon icon="lucide:plus" width={13} />
+          {t("filters.addBox")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** The filter as one sentence — parentheses in the color of their box. */
+function Sentence({
+  node,
+  labels,
+  top = false,
+}: {
+  node: FilterNode;
+  labels: ReturnType<typeof useFilterLabels>;
+  top?: boolean;
+}) {
+  const t = useTranslations();
+  if (!isGroup(node)) return <>{labels.rule(node)}</>;
+  const parts = node.rules.filter((n) => rulesIn(n).length > 0);
+  const word = node.op === "or" ? t("filters.orWord") : t("filters.andWord");
+  const inner = parts.map((child, i) => (
+    <Fragment key={`${i}:${labels.member(child)}`}>
+      {i > 0 && <span className={styles.word}> {word} </span>}
+      <Sentence node={child} labels={labels} />
+    </Fragment>
+  ));
+  if (top || parts.length < 2) return <>{inner}</>;
+  return (
+    <>
+      <span className={styles.paren} data-op={node.op}>
+        (
+      </span>
+      {inner}
+      <span className={styles.paren} data-op={node.op}>
+        )
+      </span>
+    </>
   );
 }
 
@@ -369,7 +429,7 @@ function TokenSelect({
   value: string;
   items: { value: string; label: string }[];
   onChange: (value: string) => void;
-  tone?: "op" | "not";
+  tone?: "op" | "not" | "and" | "or";
 }) {
   return (
     <span className={styles.token} data-tone={tone}>

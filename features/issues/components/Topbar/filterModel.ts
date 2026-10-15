@@ -7,12 +7,12 @@
 // and shows as a rule chip of its own (`extraNodes`).
 
 import {
-  type FilterAll,
   type FilterGroup,
+  type FilterNode,
   type FilterRule,
   type IssueFilter,
   isGroup,
-  rulesOf,
+  rulesIn,
 } from "@/features/issues/filter";
 import { dueBucketOf } from "@/features/issues/filter-url";
 
@@ -28,7 +28,7 @@ export const CHIP_FIELDS = [
 ] as const;
 export type ChipField = (typeof CHIP_FIELDS)[number];
 
-type Node = FilterRule | FilterGroup;
+type Node = FilterNode;
 
 const isChipField = (field: string): field is ChipField =>
   (CHIP_FIELDS as readonly string[]).includes(field);
@@ -47,7 +47,10 @@ function isChipRule(node: Node, field?: string): boolean {
 /** The due-date chip's node: one bucket rule, or an OR group of them. */
 function isBucketNode(node: Node): boolean {
   if (isGroup(node))
-    return node.rules.every((m) => !("op" in m) && dueBucketOf(m) !== null);
+    return (
+      node.op === "or" &&
+      node.rules.every((m) => !isGroup(m) && dueBucketOf(m) !== null)
+    );
   return dueBucketOf(node) !== null;
 }
 
@@ -90,7 +93,7 @@ export function withChip(
 export function dueBuckets(filter: IssueFilter): string[] {
   const node = filter.rules.find(isBucketNode);
   if (!node) return [];
-  const rules = isGroup(node) ? node.rules.flatMap(rulesOf) : [node];
+  const rules = rulesIn(node);
   return rules.map((r) => dueBucketOf(r) as string);
 }
 
@@ -146,7 +149,7 @@ export function onlySearch(filter: IssueFilter): IssueFilter {
  *  rule (and every rule of a group) counts once. */
 export function conditionCount(filter: IssueFilter): number {
   return filter.rules.reduce((sum, node) => {
-    if (isGroup(node)) return sum + node.rules.flatMap(rulesOf).length;
+    if (isGroup(node)) return sum + rulesIn(node).length;
     if (node.field === "text") return sum;
     if (isChipRule(node))
       return sum + ((node as FilterRule).value as unknown[]).length;
@@ -154,63 +157,47 @@ export function conditionCount(filter: IssueFilter): number {
   }, 0);
 }
 
-// ─── The editor's list (BARY-166) ──────────────────────────────────────────
+// ─── The editor's boxes (BARY-166) ─────────────────────────────────────────
 //
-// The editor shows the filter as one list with a switch between every two
-// conditions: UND or ODER, where UND binds tighter. Read that way the list
-// is a row of alternatives — each a run of conditions joined by UND,
-// separated by ODER: "(A und B) oder C". `toAlternatives` reads the tree
-// that way, `fromAlternatives` writes it back, pulling what every
-// alternative shares to the top so the chips can still show it.
+// The editor shows the filter as boxes: each says "all of these" or "one of
+// these" and holds conditions and further boxes, as deep as anyone likes.
+// The outermost box is the whole filter. While editing it may hold what the
+// URL can't — an empty box, a box of one — so the editor keeps its own copy
+// and writes a tidied one (`tidy`).
 
-/** Most alternatives `toAlternatives` spells out — two OR groups of
- *  several rules each multiply. */
-const MAX_ALTERNATIVES = 50;
-
-/** The tree as alternatives (the search text left out); `[]` for no
- *  condition at all. */
-export function toAlternatives(filter: IssueFilter): FilterRule[][] {
-  const base = filter.rules.filter(
-    (n): n is FilterRule => !isGroup(n) && n.field !== "text",
-  );
-  let out: FilterRule[][] = [base];
-  for (const node of filter.rules) {
-    if (!isGroup(node)) continue;
-    out = out
-      .flatMap((alt) => node.rules.map((m) => [...alt, ...rulesOf(m)]))
-      .slice(0, MAX_ALTERNATIVES);
-  }
-  return out.filter((alt) => alt.length > 0);
+/** The outermost box for a filter (the search text left out): "one of
+ *  these" when the filter is nothing but one OR group, else "all of these". */
+export function rootBox(filter: IssueFilter): FilterGroup {
+  const own = filter.rules.filter((n) => isGroup(n) || n.field !== "text");
+  if (own.length === 1 && isGroup(own[0]) && own[0].op === "or")
+    return { op: "or", rules: own[0].rules };
+  return { op: "and", rules: own };
 }
 
-const sameRule = (a: FilterRule, b: FilterRule) =>
-  JSON.stringify(a) === JSON.stringify(b);
+/** A box without empty boxes, boxes of one unwrapped, a box inside a box
+ *  of the same kind merged into it; `null` when nothing is left. */
+export function tidy(node: FilterNode): FilterNode | null {
+  if (!isGroup(node)) return node;
+  const rules = node.rules.flatMap((child) => {
+    const out = tidy(child);
+    if (!out) return [];
+    return isGroup(out) && out.op === node.op ? out.rules : [out];
+  });
+  if (!rules.length) return null;
+  return rules.length === 1 ? rules[0] : { op: node.op, rules };
+}
 
-/** Alternatives back as a tree, the search text (`keep`) appended. */
-export function fromAlternatives(
-  alternatives: FilterRule[][],
+/** The outermost box back as a filter, the search text (`keep`) appended:
+ *  "all of these" puts its parts on top, where the chips can show them. */
+export function fromRootBox(
+  box: FilterGroup,
   keep: FilterRule[] = [],
 ): IssueFilter {
-  const alts = alternatives.filter((alt) => alt.length > 0);
-  if (alts.length <= 1)
-    return { op: "and", rules: [...(alts[0] ?? []), ...keep] };
-  // What every alternative shares holds anyway — "(A und B) oder (A und C)"
-  // is "A und (B oder C)".
-  const shared = alts[0].filter((rule) =>
-    alts.every((alt) => alt.some((r) => sameRule(r, rule))),
-  );
-  const rests = alts.map((alt) =>
-    alt.filter((rule) => !shared.some((r) => sameRule(r, rule))),
-  );
-  // An alternative of nothing but shared rules is always true: the others
-  // add nothing.
-  if (rests.some((rest) => rest.length === 0))
-    return { op: "and", rules: [...shared, ...keep] };
-  const group: FilterGroup = {
-    op: "or",
-    rules: rests.map((rest): FilterRule | FilterAll =>
-      rest.length === 1 ? rest[0] : { op: "and", rules: rest },
-    ),
-  };
-  return { op: "and", rules: [...shared, group, ...keep] };
+  const out = tidy(box);
+  const rules = !out
+    ? []
+    : isGroup(out) && out.op === "and"
+      ? out.rules
+      : [out];
+  return { op: "and", rules: [...rules, ...keep] };
 }

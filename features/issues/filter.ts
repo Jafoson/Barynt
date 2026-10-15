@@ -116,52 +116,54 @@ export interface FilterRule {
   value?: FilterValue;
 }
 
-/** Rules that must all hold — one alternative inside an OR group:
- *  "(assignee is me AND overdue) OR urgent" (BARY-166). */
-export interface FilterAll {
-  op: "and";
-  rules: FilterRule[];
-}
-
+/**
+ * Rules and further groups joined by AND ("all of these") or OR ("one of
+ * these") — nested as deep as anyone likes (BARY-166).
+ */
 export interface FilterGroup {
-  op: "or";
-  rules: (FilterRule | FilterAll)[];
+  op: "and" | "or";
+  rules: FilterNode[];
 }
 
+export type FilterNode = FilterRule | FilterGroup;
+
+/** The whole filter: everything on top must hold. A top-level rule is what
+ *  a chip shows; anything else sits in a group. */
 export interface IssueFilter {
   op: "and";
-  rules: (FilterRule | FilterGroup)[];
+  rules: FilterNode[];
 }
 
 export const EMPTY_FILTER: IssueFilter = { op: "and", rules: [] };
 
-export function isGroup(node: FilterRule | FilterGroup): node is FilterGroup {
+export function isGroup(node: FilterNode): node is FilterGroup {
   return "op" in node;
 }
 
-/** The rules of one alternative of an OR group. */
-export function rulesOf(member: FilterRule | FilterAll): FilterRule[] {
-  return "op" in member ? member.rules : [member];
+/** Every rule in a node, however deep. */
+export function rulesIn(node: FilterNode): FilterRule[] {
+  return isGroup(node) ? node.rules.flatMap(rulesIn) : [node];
 }
 
 /**
- * An OR group with every rule passed through `map` — `null` drops the rule.
- * An alternative that loses all its rules drops out, one left with a single
- * rule becomes that rule; `null` when nothing is left.
+ * A node with every rule passed through `map` — `null` drops the rule. A
+ * group left with nothing drops out (`null` when nothing is left), one
+ * shrunk to a single node becomes that node; an untouched one keeps its
+ * shape.
  */
-export function mapGroupRules(
-  group: FilterGroup,
+export function mapNode(
+  node: FilterNode,
   map: (rule: FilterRule) => FilterRule | null,
-): FilterGroup | null {
-  const members = group.rules.flatMap((member): (FilterRule | FilterAll)[] => {
-    const kept = rulesOf(member).flatMap((r) => {
-      const out = map(r);
-      return out ? [out] : [];
-    });
-    if (!kept.length) return [];
-    return kept.length === 1 ? [kept[0]] : [{ op: "and", rules: kept }];
+): FilterNode | null {
+  if (!isGroup(node)) return map(node);
+  const rules = node.rules.flatMap((child) => {
+    const out = mapNode(child, map);
+    return out ? [out] : [];
   });
-  return members.length ? { op: "or", rules: members } : null;
+  if (!rules.length) return null;
+  // Shrunk to one: that one, no box around it.
+  if (rules.length === 1 && node.rules.length > 1) return rules[0];
+  return { op: node.op, rules };
 }
 
 /**
@@ -253,23 +255,32 @@ const ruleSchema = z
     }
   });
 
-const allSchema = z
-  .object({ op: z.literal("and"), rules: z.array(ruleSchema).min(1).max(50) })
-  .strict();
+type NodeInput =
+  | z.infer<typeof ruleSchema>
+  | {
+      op: "and" | "or";
+      rules: NodeInput[];
+    };
 
-const groupSchema = z
-  .object({
-    op: z.literal("or"),
-    rules: z.array(z.union([allSchema, ruleSchema])).max(50),
-  })
-  .strict();
+// Groups nest without a depth limit; only the size of each list is capped.
+const nodeSchema: z.ZodType<NodeInput> = z.lazy(() =>
+  z.union([
+    z
+      .object({
+        op: z.enum(["and", "or"]),
+        rules: z.array(nodeSchema).max(50),
+      })
+      .strict(),
+    ruleSchema,
+  ]),
+);
 
 /** Validates a filter before it's stored (saved views, V3) or taken from an
  *  API call (V12). */
 export const issueFilterSchema = z
   .object({
     op: z.literal("and"),
-    rules: z.array(z.union([groupSchema, ruleSchema])).max(50),
+    rules: z.array(nodeSchema).max(50),
   })
   .strict();
 
@@ -316,13 +327,9 @@ export function pruneMissingRefs(
     return kept.length ? { ...rule, value: kept } : null;
   };
 
-  const rules = filter.rules.flatMap((node): (FilterRule | FilterGroup)[] => {
-    if (!isGroup(node)) {
-      const rule = pruneRule(node);
-      return rule ? [rule] : [];
-    }
-    const group = mapGroupRules(node, pruneRule);
-    return group ? [group] : [];
+  const rules = filter.rules.flatMap((node) => {
+    const out = mapNode(node, pruneRule);
+    return out ? [out] : [];
   });
 
   return { filter: { op: "and", rules }, missing };
