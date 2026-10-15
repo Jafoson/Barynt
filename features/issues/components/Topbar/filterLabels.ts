@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import {
   type FilterField,
   type FilterNode,
@@ -11,7 +11,6 @@ import {
   NONE_VALUE,
   type RelativeDate,
 } from "@/features/issues/filter";
-import { formatChipDate } from "@/lib/richtext/date";
 import { fullName } from "@/lib/utils/string";
 import type {
   IssueType,
@@ -82,6 +81,20 @@ const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 export function useFilterLabels(lookups: FilterLabelLookups) {
   const t = useTranslations();
+  const format = useFormatter();
+
+  /** "2026-10-23" → "23. Okt. 2026" in the page's language. Pinned to UTC
+   *  noon, so server and browser (whatever their own locale and time zone)
+   *  print the same day — anything else breaks hydration. */
+  const day = (iso: string) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return format.dateTime(new Date(Date.UTC(y, m - 1, d, 12)), {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+  };
 
   const field = (f: FilterField): string => {
     switch (f) {
@@ -186,9 +199,7 @@ export function useFilterLabels(lookups: FilterLabelLookups) {
       case "updated":
         if (String(v) === "today") return t("filters.relToday");
         // A day: "23. Okt. 2026", like a date chip.
-        return ISO_DAY.test(String(v))
-          ? formatChipDate(String(v))
-          : relative(String(v));
+        return ISO_DAY.test(String(v)) ? day(String(v)) : relative(String(v));
       default:
         return String(v);
     }
