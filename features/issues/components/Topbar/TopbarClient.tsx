@@ -36,7 +36,7 @@ import { AreaTabs } from "./components/AreaTabs";
 import { FilterEditor } from "./components/FilterEditor";
 import { FilterPopup } from "./components/FilterPopup";
 import { IssueSearch } from "./components/IssueSearch";
-import { TopbarFilters } from "./components/TopbarFilters";
+import { ActiveFilters, TopbarFilters } from "./components/TopbarFilters";
 import { ViewSettings } from "./components/ViewSettings";
 import { ViewSwitch } from "./components/ViewSwitch";
 import styles from "./topbar.module.scss";
@@ -374,6 +374,20 @@ export function TopbarClient({
               onNegate={setNegated}
             />
           </div>
+
+          {/* Tablet and phone: the active filters in a row below. */}
+          <ActiveFilters
+            tree={tree}
+            lookups={{
+              statuses,
+              priorities,
+              issueTypes,
+              members,
+              labels,
+              projects,
+            }}
+            onRemove={removeExtra}
+          />
 
           <div className={styles.trailing}>
             {views && (

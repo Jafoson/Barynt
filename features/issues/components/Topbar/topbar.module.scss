@@ -222,6 +222,44 @@
   }
 }
 
+/* Tablet and phone: every active filter in a row of its own below the
+   filter button, scrolling sideways (`ActiveFilters`). */
+.activeRow {
+  display: none;
+
+  @include bp.tablet-down {
+    order: 99;
+    flex: 1 1 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    padding-bottom: 0.125rem;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    & > * {
+      flex: none;
+    }
+
+    .opPill {
+      margin: 0;
+    }
+  }
+}
+
+/* A group in that row: its parts, its own × at the end. */
+.activeGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
 /* One condition of a group, outlined in its field's color (`--filter-accent`
    from `FILTER_ACCENT`), neutral for fields without a chip. A click on the
    text opens the editor; a × appears on hover (always without a hover) and
@@ -242,6 +280,8 @@
 }
 
 .condLabel {
+  display: inline-flex;
+  align-items: center;
   height: 100%;
   padding: 0 0.5625rem;
   border: 0;
@@ -255,6 +295,11 @@
   &:focus-visible {
     outline: 2px solid var(--tertiary);
     outline-offset: -2px;
+  }
+
+  /* Plain text where there's no editor to open (tablet/phone row). */
+  &:is(span) {
+    cursor: default;
   }
 }
 

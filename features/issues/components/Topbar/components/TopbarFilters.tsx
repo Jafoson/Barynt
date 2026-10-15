@@ -8,6 +8,7 @@ import { Chip } from "@/components/ui/atoms/Chip/Chip";
 import {
   type FilterNode,
   type FilterRule,
+  type IssueFilter,
   isGroup,
 } from "@/features/issues/filter";
 import { visibleDetailFields } from "@/features/projects/detail-fields";
@@ -20,7 +21,7 @@ import type {
   User,
 } from "@/types";
 import { FILTER_ACCENT } from "../filterAccent";
-import { useFilterLabels } from "../filterLabels";
+import { type FilterLabelLookups, useFilterLabels } from "../filterLabels";
 import type { ChipField } from "../filterModel";
 import styles from "../topbar.module.scss";
 import type { FilterKey, FilterState, IssueArea } from "../useTopbar";
@@ -290,7 +291,8 @@ function GroupParts({
 }: {
   node: FilterNode;
   labelsOf: ReturnType<typeof useFilterLabels>;
-  onOpen: () => void;
+  /** Opens the editor — without it the text is just text. */
+  onOpen?: () => void;
   onRemove: (path: number[]) => void;
   path?: number[];
 }) {
@@ -308,11 +310,17 @@ function GroupParts({
             : undefined
         }
       >
-        <button type="button" className={styles.condLabel} onClick={onOpen}>
-          <span>
+        {onOpen ? (
+          <button type="button" className={styles.condLabel} onClick={onOpen}>
+            <span>
+              <RuleText rule={node} labelsOf={labelsOf} />
+            </span>
+          </button>
+        ) : (
+          <span className={styles.condLabel}>
             <RuleText rule={node} labelsOf={labelsOf} />
           </span>
-        </button>
+        )}
         <button
           type="button"
           className={styles.condRemove}
@@ -355,5 +363,65 @@ function GroupParts({
         </Fragment>
       ))}
     </>
+  );
+}
+
+/**
+ * Tablet and phone: every active filter in a row of its own under the
+ * filter button, scrolling sideways — fields, single rules and UND/ODER
+ * groups alike, each condition with a × (BARY-166). The desktop shows the
+ * same through its chips and group row.
+ */
+export function ActiveFilters({
+  tree,
+  lookups,
+  onRemove,
+}: {
+  tree: IssueFilter;
+  lookups: FilterLabelLookups;
+  /** Removes the top-level node at `index` — or, with a `path`, one part. */
+  onRemove: (index: number, path?: number[]) => void;
+}) {
+  const t = useTranslations();
+  const labelsOf = useFilterLabels(lookups);
+  const nodes = tree.rules
+    .map((node, index) => ({ node, index }))
+    .filter(({ node }) => isGroup(node) || node.field !== "text");
+  if (!nodes.length) return null;
+
+  return (
+    <div className={styles.activeRow}>
+      {nodes.map(({ node, index }) =>
+        isGroup(node) ? (
+          <span
+            key={`${index}:${labelsOf.node(node)}`}
+            className={styles.activeGroup}
+          >
+            <GroupParts
+              node={node}
+              labelsOf={labelsOf}
+              onRemove={(path) => onRemove(index, path)}
+            />
+            <button
+              type="button"
+              className={styles.groupRemove}
+              aria-label={t("filters.removeRule", {
+                rule: labelsOf.node(node),
+              })}
+              onClick={() => onRemove(index)}
+            >
+              <Icon icon="lucide:x" width={13} />
+            </button>
+          </span>
+        ) : (
+          <GroupParts
+            key={`${index}:${labelsOf.node(node)}`}
+            node={node}
+            labelsOf={labelsOf}
+            onRemove={() => onRemove(index)}
+          />
+        ),
+      )}
+    </div>
   );
 }
