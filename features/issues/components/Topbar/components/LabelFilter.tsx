@@ -68,6 +68,13 @@ export function LabelFilter({
       <ChipValues name={name} values={names} negated={negated} />
     );
 
+  // No label at all (BARY-166) — the first row under the search.
+  const notSet = {
+    value: NONE_VALUE,
+    label: t("filters.notSet"),
+    icon: <Icon icon="lucide:tag" width={13} />,
+  };
+
   return (
     <FilterChip
       name={name}
@@ -96,26 +103,16 @@ export function LabelFilter({
       {(close) => (
         <>
           {onNegate && <NegateToggle negated={negated} onChange={onNegate} />}
-          {/* No label at all (BARY-166). */}
-          <SelectMenu
-            items={[
-              {
-                value: NONE_VALUE,
-                label: t("filters.notSet"),
-                icon: <Icon icon="lucide:tag" width={13} />,
-              },
-            ]}
-            value={value}
-            onPick={() => onToggle(NONE_VALUE)}
-            multi
-          />
           {!projectId ? (
             <SelectMenu
-              items={allLabels.map((l) => ({
-                value: l.id,
-                label: l.name,
-                icon: <LabelIcon color={l.color} size={13} />,
-              }))}
+              items={[
+                notSet,
+                ...allLabels.map((l) => ({
+                  value: l.id,
+                  label: l.name,
+                  icon: <LabelIcon color={l.color} size={13} />,
+                })),
+              ]}
               value={value}
               onPick={(v) => onToggle(v as string)}
               multi
@@ -135,6 +132,7 @@ export function LabelFilter({
               }}
               onClose={close}
               keepOpen
+              leadingItems={[notSet]}
             />
           )}
         </>

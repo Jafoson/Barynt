@@ -7,7 +7,10 @@ import {
   SelectAction,
   SelectEmpty,
 } from "@/components/ui/atoms/SelectMenu/atoms/SelectAction";
-import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
+import {
+  type ISelectItem,
+  SelectMenu,
+} from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { createLabel } from "@/features/issues/actions";
 import { LabelIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import type { Label } from "@/types";
@@ -23,6 +26,8 @@ interface Props {
   onCreated: (label: Label) => void;
   onClose: () => void;
   keepOpen?: boolean;
+  /** Rows above the labels, under the search (the filter's "Not set"). */
+  leadingItems?: ISelectItem[];
 }
 
 export function LabelPickerMenu({
@@ -35,6 +40,7 @@ export function LabelPickerMenu({
   onCreated,
   onClose,
   keepOpen,
+  leadingItems = [],
 }: Props) {
   const [pending, setPending] = useState<{
     name: string;
@@ -100,11 +106,14 @@ export function LabelPickerMenu({
         if (!keepOpen) onClose();
       }}
       onClose={onClose}
-      items={visible.map((l) => ({
-        value: l.id,
-        label: l.name,
-        icon: <LabelIcon color={l.color} />,
-      }))}
+      items={[
+        ...leadingItems,
+        ...visible.map((l) => ({
+          value: l.id,
+          label: l.name,
+          icon: <LabelIcon color={l.color} />,
+        })),
+      ]}
       emptyState={(q) =>
         q.trim() ? (
           <>
