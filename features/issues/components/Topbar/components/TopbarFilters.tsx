@@ -2,9 +2,14 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
+import { Fragment } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { Chip } from "@/components/ui/atoms/Chip/Chip";
-import type { FilterNode } from "@/features/issues/filter";
+import {
+  type FilterNode,
+  type FilterRule,
+  isGroup,
+} from "@/features/issues/filter";
 import { visibleDetailFields } from "@/features/projects/detail-fields";
 import type {
   IssueType,
@@ -173,26 +178,28 @@ export function TopbarFilters({
         />
       )}
 
-      {/* What the chips can't show (BARY-166): "at least", dates, OR
-          groups — one chip each; a click opens the editor. */}
-      {extras.map(({ node, index }) => (
-        <Chip
-          key={`${index}:${labelsOf.node(node)}`}
-          type="input"
-          variant="text"
-          className={styles.ruleChip}
-          data-or={("op" in node && node.op === "or") || undefined}
-          title={labelsOf.node(node)}
-          onClick={onOpenEditor}
-          onRemove={() => onRemoveExtra(index)}
-          removeLabel={t("filters.removeRule", { rule: labelsOf.node(node) })}
-        >
-          {/* One piece of text: the chip spaces out its children. */}
-          <span className={styles.ruleText}>
-            <NodeLabel node={node} labelsOf={labelsOf} />
-          </span>
-        </Chip>
-      ))}
+      {/* What the chips can't show (BARY-166): a single rule ("at least",
+          a date) gets a chip of its own; a click opens the editor. */}
+      {extras
+        .filter(({ node }) => !isGroup(node))
+        .map(({ node, index }) => (
+          <Chip
+            key={`${index}:${labelsOf.node(node)}`}
+            type="input"
+            variant="text"
+            className={styles.ruleChip}
+            title={labelsOf.node(node)}
+            onClick={onOpenEditor}
+            onRemove={() => onRemoveExtra(index)}
+            removeLabel={t("filters.removeRule", {
+              rule: labelsOf.node(node),
+            })}
+          >
+            <span className={styles.ruleText}>
+              {!isGroup(node) && <RuleText rule={node} labelsOf={labelsOf} />}
+            </span>
+          </Chip>
+        ))}
 
       {filterCount > 0 && (
         <Button
@@ -204,49 +211,101 @@ export function TopbarFilters({
           {t("actions.clear")}
         </Button>
       )}
+
+      {/* UND/ODER groups: a row of their own below, scrolling sideways —
+          each condition a chip, an UND run in a primary frame, ODER as a
+          plaque between. Groups on this level are joined by UND. */}
+      {extras.some(({ node }) => isGroup(node)) && (
+        <div className={styles.groupRow}>
+          {extras
+            .filter(({ node }) => isGroup(node))
+            .map(({ node, index }, n) => (
+              <Fragment key={`${index}:${labelsOf.node(node)}`}>
+                {n > 0 && (
+                  <span className={styles.opPill} data-op="and">
+                    {t("filters.and")}
+                  </span>
+                )}
+                <GroupParts
+                  node={node}
+                  labelsOf={labelsOf}
+                  onOpen={onOpenEditor}
+                />
+                <button
+                  type="button"
+                  className={styles.groupRemove}
+                  aria-label={t("filters.removeRule", {
+                    rule: labelsOf.node(node),
+                  })}
+                  title={t("filters.removeRule", { rule: labelsOf.node(node) })}
+                  onClick={() => onRemoveExtra(index)}
+                >
+                  <Icon icon="lucide:x" width={13} />
+                </button>
+              </Fragment>
+            ))}
+        </div>
+      )}
     </>
   );
 }
 
-/** A rule chip's text: rules as words, every UND/ODER of a group as a
- *  plaque in its box's color, nested groups in parentheses. */
-function NodeLabel({
+/** One rule in words — "is not" said by crossing the values out. */
+function RuleText({
+  rule,
+  labelsOf,
+}: {
+  rule: FilterRule;
+  labelsOf: ReturnType<typeof useFilterLabels>;
+}) {
+  if (rule.is === "none" && Array.isArray(rule.value))
+    return (
+      <>
+        {labelsOf.field(rule.field)} {labelsOf.op(rule.field, "any")}{" "}
+        <s className={styles.notValues}>
+          {rule.value.map((v) => labelsOf.value(rule.field, v)).join(", ")}
+        </s>
+      </>
+    );
+  return <>{labelsOf.rule(rule)}</>;
+}
+
+/** A group's parts in the group row: conditions as chips, a nested group
+ *  in a frame of its kind's color, UND/ODER plaques between. */
+function GroupParts({
   node,
   labelsOf,
-  nested = false,
+  onOpen,
 }: {
   node: FilterNode;
   labelsOf: ReturnType<typeof useFilterLabels>;
-  nested?: boolean;
+  onOpen: () => void;
 }) {
   const t = useTranslations();
-  if (!("op" in node)) {
-    // "is not": said by crossing the values out, not in words.
-    if (node.is === "none" && Array.isArray(node.value))
-      return (
-        <>
-          {labelsOf.field(node.field)} {labelsOf.op(node.field, "any")}{" "}
-          <s className={styles.notValues}>
-            {node.value.map((v) => labelsOf.value(node.field, v)).join(", ")}
-          </s>
-        </>
-      );
-    return <>{labelsOf.rule(node)}</>;
-  }
+  if (!isGroup(node))
+    return (
+      <button type="button" className={styles.condChip} onClick={onOpen}>
+        <RuleText rule={node} labelsOf={labelsOf} />
+      </button>
+    );
   return (
     <>
-      {nested && "("}
       {node.rules.map((child, i) => (
-        <span key={`${i}:${labelsOf.member(child)}`}>
+        <Fragment key={`${i}:${labelsOf.member(child)}`}>
           {i > 0 && (
             <span className={styles.opPill} data-op={node.op}>
               {node.op === "or" ? t("filters.or") : t("filters.and")}
             </span>
           )}
-          <NodeLabel node={child} labelsOf={labelsOf} nested />
-        </span>
+          {isGroup(child) ? (
+            <span className={styles.groupBox} data-op={child.op}>
+              <GroupParts node={child} labelsOf={labelsOf} onOpen={onOpen} />
+            </span>
+          ) : (
+            <GroupParts node={child} labelsOf={labelsOf} onOpen={onOpen} />
+          )}
+        </Fragment>
       ))}
-      {nested && ")"}
     </>
   );
 }
