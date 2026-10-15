@@ -23,6 +23,7 @@ import type {
   Status,
   User,
 } from "@/types";
+import { AreaTabs } from "./components/AreaTabs";
 import { FilterPopup } from "./components/FilterPopup";
 import { IssueSearch } from "./components/IssueSearch";
 import { TopbarFilters } from "./components/TopbarFilters";
@@ -56,6 +57,8 @@ interface TopbarClientProps {
   ) => Promise<{ ok: true } | { error: string }>;
   /** Saved views of the project (BARY-164) — absent outside a project. */
   views?: TopbarViews;
+  /** `dashboard`: only the tab row, on the project dashboard (BARY-177). */
+  mode?: "issues" | "dashboard";
 }
 
 /** What the topbar needs for a project's saved views. */
@@ -94,6 +97,7 @@ export function TopbarClient({
   onDisplayChange,
   onGroupsChange,
   views,
+  mode = "issues",
 }: TopbarClientProps) {
   const t = useTranslations();
   const searchParams = useSearchParams();
@@ -163,113 +167,146 @@ export function TopbarClient({
     <header
       className={`${styles.header}${isPending ? ` ${styles.pending}` : ""}`}
     >
-      <div className={styles.titleRow}>
-        <h1 className={styles.title}>{title}</h1>
-        <Badge className={styles.count}>{count}</Badge>
-        {views && (
-          <ViewTabs
+      {views && project ? (
+        // A project: Board · List · Dashboard | views | New view … search
+        // (BARY-177). The tabs replace the title and the board/list switch.
+        <div className={styles.tabRow}>
+          <h1 className={styles.srOnly}>{title}</h1>
+          <AreaTabs
+            workspaceId={workspaceId}
+            projectSlug={views.projectSlug}
+            active={
+              mode === "dashboard" ? "dashboard" : activeView ? null : view
+            }
+            count={count}
+            carry={
+              mode === "dashboard" || activeView ? "" : searchParams.toString()
+            }
+          />
+          {views.tabs.length > 0 && (
+            <>
+              <span className={styles.divider} />
+              <ViewTabs
+                workspaceId={workspaceId}
+                projectId={views.projectId}
+                projectSlug={views.projectSlug}
+                canShare={views.canShare}
+                views={views.tabs}
+                activeId={activeView?.id ?? null}
+                dirty={dirty}
+              />
+            </>
+          )}
+          {/* With "New view" — both not on a tablet or phone, where the
+              floating plus offers it (CSS). */}
+          <span className={`${styles.divider} ${styles.desktopOnly}`} />
+          <NewViewButton
             workspaceId={workspaceId}
             projectId={views.projectId}
             projectSlug={views.projectSlug}
             canShare={views.canShare}
-            views={views.tabs}
-            activeId={activeView?.id ?? null}
-            dirty={dirty}
+            layout={view}
+            currentParams={currentParams}
+            filterCount={filterCount}
           />
-        )}
+          {mode !== "dashboard" && (
+            <div className={styles.trailing}>
+              {/* Not on a tablet or phone (CSS). */}
+              <div className={styles.searchSlot}>
+                <IssueSearch initialValue={searchValue} onChange={search} />
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className={styles.titleRow}>
+          <h1 className={styles.title}>{title}</h1>
+          <Badge className={styles.count}>{count}</Badge>
 
-        <div className={styles.trailing}>
-          {/* Not on a tablet or phone (CSS). */}
-          {views && (
-            <NewViewButton
-              workspaceId={workspaceId}
-              projectId={views.projectId}
-              projectSlug={views.projectSlug}
-              canShare={views.canShare}
-              layout={view}
-              currentParams={currentParams}
+          <div className={styles.trailing}>
+            {/* Not on a tablet or phone (CSS). */}
+            <div className={styles.searchSlot}>
+              <IssueSearch initialValue={searchValue} onChange={search} />
+            </div>
+            {/* Not on a phone (CSS). */}
+            <div className={styles.viewSwitch}>
+              <ViewSwitch value={view} onChange={setView} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mode !== "dashboard" && (
+        <div className={styles.filterRow}>
+          {/* Desktop: one chip per filter. Tablet and phone: the same filters
+              in one popup (below). CSS shows one of the two. */}
+          <div className={styles.filterChips}>
+            <TopbarFilters
+              filters={filters}
               filterCount={filterCount}
-            />
-          )}
-          <div className={styles.searchSlot}>
-            <IssueSearch initialValue={searchValue} onChange={search} />
-          </div>
-          {/* Not on a phone (CSS). */}
-          <div className={styles.viewSwitch}>
-            <ViewSwitch value={view} onChange={setView} />
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.filterRow}>
-        {/* Desktop: one chip per filter. Tablet and phone: the same filters
-            in one popup (below). CSS shows one of the two. */}
-        <div className={styles.filterChips}>
-          <TopbarFilters
-            filters={filters}
-            filterCount={filterCount}
-            area={area}
-            projectId={project?.id ?? ""}
-            projectName={project?.name ?? ""}
-            hiddenDetailFields={project?.hiddenDetailFields ?? []}
-            workspaceId={workspaceId}
-            statuses={statuses}
-            priorities={priorities}
-            members={members}
-            labels={labels}
-            projects={projects}
-            onToggle={toggleFilter}
-            onClear={clearFilter}
-            onClearAll={clearAll}
-          />
-        </div>
-
-        <div className={styles.filterPopup}>
-          <FilterPopup
-            filters={filters}
-            filterCount={filterCount}
-            area={area}
-            hiddenDetailFields={project?.hiddenDetailFields ?? []}
-            statuses={statuses}
-            priorities={priorities}
-            members={members}
-            labels={labels}
-            projects={projects}
-            onToggle={toggleFilter}
-            onClearAll={clearAll}
-          />
-        </div>
-
-        <div className={styles.trailing}>
-          {views && (
-            <ViewSaveBar
+              area={area}
+              projectId={project?.id ?? ""}
+              projectName={project?.name ?? ""}
+              hiddenDetailFields={project?.hiddenDetailFields ?? []}
               workspaceId={workspaceId}
-              projectId={views.projectId}
-              projectSlug={views.projectSlug}
-              canShare={views.canShare}
-              activeView={activeView}
-              dirty={dirty}
-              layout={view}
-              currentParams={currentParams}
+              statuses={statuses}
+              priorities={priorities}
+              members={members}
+              labels={labels}
+              projects={projects}
+              onToggle={toggleFilter}
+              onClear={clearFilter}
+              onClearAll={clearAll}
             />
-          )}
-          <ViewSettings
-            projectHiddenFields={projectHiddenFields}
-            sortKey={sortKey}
-            onSortChange={setSort}
-            groupKey={groupKey}
-            onGroupChange={setGroup}
-            hiddenFields={hiddenCardFields}
-            onDisplayChange={onDisplayChange}
-            groupLookups={{ statuses, priorities, issueTypes, members }}
-            view={view}
-            hiddenGroups={hiddenGroups}
-            hideEmptyGroups={hideEmptyGroups}
-            showSubIssues={showSubIssues}
-            onGroupsChange={onGroupsChange}
-          />
+          </div>
+
+          <div className={styles.filterPopup}>
+            <FilterPopup
+              filters={filters}
+              filterCount={filterCount}
+              area={area}
+              hiddenDetailFields={project?.hiddenDetailFields ?? []}
+              statuses={statuses}
+              priorities={priorities}
+              members={members}
+              labels={labels}
+              projects={projects}
+              onToggle={toggleFilter}
+              onClearAll={clearAll}
+            />
+          </div>
+
+          <div className={styles.trailing}>
+            {views && (
+              <ViewSaveBar
+                workspaceId={workspaceId}
+                projectId={views.projectId}
+                projectSlug={views.projectSlug}
+                canShare={views.canShare}
+                activeView={activeView}
+                dirty={dirty}
+                layout={view}
+                currentParams={currentParams}
+              />
+            )}
+            <ViewSettings
+              projectHiddenFields={projectHiddenFields}
+              sortKey={sortKey}
+              onSortChange={setSort}
+              groupKey={groupKey}
+              onGroupChange={setGroup}
+              hiddenFields={hiddenCardFields}
+              onDisplayChange={onDisplayChange}
+              groupLookups={{ statuses, priorities, issueTypes, members }}
+              view={view}
+              hiddenGroups={hiddenGroups}
+              hideEmptyGroups={hideEmptyGroups}
+              showSubIssues={showSubIssues}
+              onGroupsChange={onGroupsChange}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </header>
   );
 }

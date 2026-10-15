@@ -8,6 +8,7 @@ import {
 } from "@/features/dashboard/queries";
 import { toDashboardScope } from "@/features/dashboard/scope";
 import { toProjectView } from "@/features/dashboard/view";
+import { Topbar } from "@/features/issues/components/Topbar/Topbar";
 import { getWorkspaceProjects } from "@/features/workspaces/queries";
 import { toRange } from "@/lib/buckets";
 import { setCurrentWorkspaceId } from "@/lib/current-workspace";
@@ -71,20 +72,25 @@ export default async function ProjectDashboardPage({
   );
 
   return (
-    <ProjectDashboard
-      {...data}
-      view={view}
-      issueBase={`/${workspace}/issue`}
-      workspaceId={workspace}
-      links={{
-        board: projectPath(workspace, projectSlug, ""),
-        list: projectPath(workspace, projectSlug, "list"),
-        members: projectPath(workspace, projectSlug, "members"),
-        settings: projectSettingsPath(workspace, projectSlug, ""),
-        teams: workspaceSettingsPath(workspace, "teams"),
-        activity: projectSettingsPath(workspace, projectSlug, "activity"),
-      }}
-      activity={activity}
-    />
+    <>
+      {/* The same tabs as the board and list (BARY-177): Board · List ·
+          Dashboard and the saved views — the way back from here. */}
+      <Topbar count={0} view="board" projectId={project.id} mode="dashboard" />
+      <ProjectDashboard
+        {...data}
+        view={view}
+        issueBase={`/${workspace}/issue`}
+        workspaceId={workspace}
+        links={{
+          board: projectPath(workspace, projectSlug, ""),
+          list: projectPath(workspace, projectSlug, "list"),
+          members: projectPath(workspace, projectSlug, "members"),
+          settings: projectSettingsPath(workspace, projectSlug, ""),
+          teams: workspaceSettingsPath(workspace, "teams"),
+          activity: projectSettingsPath(workspace, projectSlug, "activity"),
+        }}
+        activity={activity}
+      />
+    </>
   );
 }

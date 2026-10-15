@@ -125,6 +125,7 @@ export function ViewTabs({
           icon: view.icon,
           color: view.color,
           visibility: view.visibility,
+          layout: view.layout,
         },
       });
     } else if (action === "duplicate") {

@@ -1,13 +1,10 @@
 @use "breakpoints" as bp;
 
-/* The views sit in the title row between the title and the actions, filling
-   its height up to the header's top border, so the active bar lands right
-   on that line (BARY-177). Takes what room is left and scrolls beyond it. */
+/* The views sit in the tab row after Board · List · Dashboard, up to the
+   header's top border like those (BARY-177). Takes what room is left and
+   scrolls beyond it. */
 .row {
   flex: 0 1 auto;
-  align-self: stretch;
-  margin-top: -0.5rem;
-  margin-left: 0.5rem;
 }
 
 /* The "…" isn't there at rest — the tab is as wide as its name. It appears

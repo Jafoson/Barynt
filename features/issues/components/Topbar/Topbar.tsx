@@ -39,6 +39,8 @@ interface TopbarProps {
   /** The saved view this page shows (BARY-164) — absent on the plain
    *  board/list. */
   activeView?: SavedView;
+  /** `dashboard`: only the tab row, above the project dashboard (BARY-177). */
+  mode?: "issues" | "dashboard";
 }
 
 /** Title, issue count, search, filter/sort/view bar above the board and list. */
@@ -47,6 +49,7 @@ export async function Topbar({
   view,
   projectId,
   activeView,
+  mode = "issues",
 }: TopbarProps) {
   const [
     workspace,
@@ -119,6 +122,7 @@ export async function Topbar({
         onDisplayChange={onDisplayChange}
         onGroupsChange={onGroupsChange}
         views={views}
+        mode={mode}
       />
     </Suspense>
   );

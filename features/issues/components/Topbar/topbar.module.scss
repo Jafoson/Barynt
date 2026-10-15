@@ -9,6 +9,42 @@
   border-top: 1px solid var(--outline-variant);
 }
 
+/* ── Tab row (a project, BARY-177): Board · List · Dashboard | views |
+   New view … search. As tall as the tabs, which reach the header's top
+   border so the active bar sits on it; everything else centers. ── */
+
+.tabRow {
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+  min-height: 2.875rem;
+
+  & > :not(nav) {
+    align-self: center;
+  }
+}
+
+/* Between the tab groups. */
+.divider {
+  flex: none;
+  width: 1px;
+  height: 1.25rem;
+  margin: 0 0.375rem;
+  background: var(--outline-variant);
+}
+
+/* Goes together with "New view", which a tablet or phone offers in the
+   floating plus instead. */
+.desktopOnly {
+  @include bp.tablet-down {
+    display: none;
+  }
+}
+
+.srOnly {
+  @include bp.sr-only;
+}
+
 /* ── Title row: what the view is, how much is in it, how to narrow it ── */
 
 .titleRow {

@@ -705,6 +705,7 @@
   },
   "views": {
     "tabsLabel": "Views",
+    "layoutsLabel": "Ansichten",
     "newView": "Neue View",
     "saveAsNew": "Als neue View",
     "newTitle": "Neue View",
