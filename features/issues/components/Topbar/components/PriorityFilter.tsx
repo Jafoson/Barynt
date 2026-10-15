@@ -5,7 +5,7 @@ import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import { PriorityIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import type { Priority } from "@/types";
-import { MultiPriorityIcon } from "./FilterIcons";
+import { ChipIcons, ChipValues, chipTitle } from "./ChipValues";
 
 interface PriorityFilterProps {
   value: number[];
@@ -23,25 +23,30 @@ export function PriorityFilter({
   const t = useTranslations();
 
   const name = t("fields.priority");
+  const names = value.map(
+    (id) => priorities.find((p) => p.id === id)?.name ?? String(id),
+  );
   const label =
-    value.length === 0
-      ? name
-      : value.length === 1
-        ? (priorities.find((p) => p.id === value[0])?.name ?? String(value[0]))
-        : t("filters.priorities", { count: value.length });
+    value.length === 0 ? name : <ChipValues name={name} values={names} />;
 
   return (
     <FilterChip
       name={name}
       label={label}
+      title={value.length > 0 ? chipTitle(name, names) : undefined}
       active={value.length > 0}
+      accent="var(--amber)"
       onClear={onClear}
       width={190}
       icon={
         value.length <= 1 ? (
           <PriorityIcon priority={value[0] ?? 0} size={14} />
         ) : (
-          <MultiPriorityIcon />
+          <ChipIcons>
+            {value.map((id) => (
+              <PriorityIcon key={id} priority={id} size={14} />
+            ))}
+          </ChipIcons>
         )
       }
     >

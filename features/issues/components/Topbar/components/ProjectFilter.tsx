@@ -4,11 +4,9 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
-import {
-  LabelDots,
-  LabelIcon,
-} from "@/features/issues/components/IssueIcons/IssueIcons";
+import { LabelIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import type { Project } from "@/types";
+import { ChipIcons, ChipValues, chipTitle } from "./ChipValues";
 
 interface ProjectFilterProps {
   value: string[];
@@ -38,27 +36,28 @@ export function ProjectFilter({
     .filter((p): p is Project => Boolean(p));
 
   const name = t("fields.project");
+  const names = selected.map((p) => p.name);
   const label =
-    value.length === 0
-      ? name
-      : value.length === 1
-        ? (selected[0]?.name ?? name)
-        : t("filters.projects", { count: value.length });
+    value.length === 0 ? name : <ChipValues name={name} values={names} />;
 
   return (
     <FilterChip
       name={name}
       label={label}
+      title={value.length > 0 ? chipTitle(name, names) : undefined}
       active={value.length > 0}
+      accent="var(--green)"
       onClear={onClear}
       width={220}
       icon={
         selected.length === 0 ? (
           <Icon icon="lucide:folders" width={13} />
-        ) : selected.length === 1 ? (
-          <LabelIcon color={selected[0].color} size={13} />
         ) : (
-          <LabelDots labels={selected} />
+          <ChipIcons>
+            {selected.map((p) => (
+              <LabelIcon key={p.id} color={p.color} size={13} />
+            ))}
+          </ChipIcons>
         )
       }
     >

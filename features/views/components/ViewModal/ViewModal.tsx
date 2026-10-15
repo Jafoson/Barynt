@@ -35,6 +35,7 @@ export interface EditableView {
   icon: string | null;
   color: string | null;
   visibility: ViewVisibility;
+  layout: ViewLayout;
 }
 
 export interface ViewModalProps {
@@ -57,10 +58,9 @@ export interface ViewModalProps {
 }
 
 /**
- * Create and edit share one window (BARY-164). Editing leaves out the layout
- * and the "take over" box: the layout of an open view changes through the
- * board/list switch, its filters through the filter row, and both are then
- * saved with "Save".
+ * Create and edit share one window (BARY-164). Editing leaves out the "take
+ * over" box — an open view's filters change through the filter row and are
+ * saved with "Save"; its layout changes here (BARY-177).
  */
 export function ViewModal({
   workspaceId,
@@ -83,7 +83,9 @@ export function ViewModal({
   const [name, setName] = useState(view?.name ?? "");
   const [icon, setIcon] = useState<string | null>(view?.icon ?? null);
   const [color, setColor] = useState(view?.color ?? PALETTE[3]);
-  const [layout, setLayout] = useState<ViewLayout>(initialLayout);
+  const [layout, setLayout] = useState<ViewLayout>(
+    view?.layout ?? initialLayout,
+  );
   const [visibility, setVisibility] = useState<ViewVisibility>(
     view?.visibility ?? "PRIVATE",
   );
@@ -112,11 +114,16 @@ export function ViewModal({
             icon,
             color,
             visibility,
+            layout,
           });
           if (!result.ok) return setError(errorText(result));
           toast(t("views.saved"));
           close();
-          router.refresh();
+          // A new layout changes the view's address (`?layout=`): open it
+          // bare, so the page lands on its stored state again.
+          if (layout !== view.layout)
+            router.push(viewPath(workspaceId, projectSlug, result.data.slug));
+          else router.refresh();
           return;
         }
 
@@ -222,28 +229,28 @@ export function ViewModal({
             />
           </div>
 
-          {!view && (
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>{t("views.layout")}</span>
-              <SegmentedControl
-                variant="surface"
-                value={layout}
-                onChange={(v) => setLayout(v as ViewLayout)}
-                items={[
-                  {
-                    value: "board",
-                    label: t("views.layoutBoard"),
-                    icon: <Icon icon="lucide:layout-dashboard" width={15} />,
-                  },
-                  {
-                    value: "list",
-                    label: t("views.layoutList"),
-                    icon: <Icon icon="lucide:list" width={15} />,
-                  },
-                ]}
-              />
-            </div>
-          )}
+          {/* Also when editing: with no board/list switch in the topbar
+              (BARY-177), this is where a view's layout changes. */}
+          <div className={styles.field}>
+            <span className={styles.fieldLabel}>{t("views.layout")}</span>
+            <SegmentedControl
+              variant="surface"
+              value={layout}
+              onChange={(v) => setLayout(v as ViewLayout)}
+              items={[
+                {
+                  value: "board",
+                  label: t("views.layoutBoard"),
+                  icon: <Icon icon="lucide:layout-dashboard" width={15} />,
+                },
+                {
+                  value: "list",
+                  label: t("views.layoutList"),
+                  icon: <Icon icon="lucide:list" width={15} />,
+                },
+              ]}
+            />
+          </div>
 
           <fieldset className={styles.field}>
             <legend className={styles.fieldLabel}>

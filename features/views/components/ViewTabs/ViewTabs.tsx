@@ -9,12 +9,13 @@ import {
   SelectMenu,
 } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
+import { Tab, Tabs } from "@/components/ui/layout/Tabs/Tabs";
 import { deleteView, duplicateView } from "@/features/views/actions";
 import { viewIconOf } from "@/features/views/icons";
 import type { ViewLayout, ViewVisibility } from "@/features/views/schema";
 import { viewPath } from "@/features/views/url";
 import { useOpenViewModal } from "@/features/views/useOpenViewModal";
-import { getPathname, Link, useRouter } from "@/i18n/navigation";
+import { getPathname, useRouter } from "@/i18n/navigation";
 import { useUI } from "@/lib/ui-store";
 import styles from "./viewTabs.module.scss";
 
@@ -47,8 +48,9 @@ interface ViewTabsProps {
 }
 
 /**
- * The project's saved views as pills between the title and the filter row
- * (BARY-164). Board, list and dashboard aren't in here — they keep their
+ * The project's saved views as tabs in the title row, between the title and
+ * the actions (BARY-177): Material-style, the open one marked by a bar at
+ * the header's top edge. Board, list and dashboard aren't in here — they keep their
  * places in the sidebar and the board/list switch. Without any view the row
  * isn't rendered at all; "New view" in the filter row is the way in.
  */
@@ -123,6 +125,7 @@ export function ViewTabs({
           icon: view.icon,
           color: view.color,
           visibility: view.visibility,
+          layout: view.layout,
         },
       });
     } else if (action === "duplicate") {
@@ -142,7 +145,10 @@ export function ViewTabs({
         .then(() => toast(t("views.linkCopied")))
         .catch(() => toast(t("views.errorGeneric")));
     } else if (action === "delete") {
-      startTransition(async () => {
+      // Ask first, outside the transition: React holds back every update of
+      // a running async transition until it finishes — the confirm dialog
+      // opening is one of them, so asking inside it would wait forever.
+      void (async () => {
         const ok = await confirm({
           title: t("views.deleteTitle", { name: view.name }),
           description:
@@ -154,91 +160,92 @@ export function ViewTabs({
           danger: true,
         });
         if (!ok) return;
-        const result = await deleteView(view.id);
-        if (!result.ok) return toast(errorText(result.error));
-        toast(t("views.deleted"));
-        if (view.id === activeId)
-          router.push(`/${workspaceId}/project/${projectSlug}`);
-        else router.refresh();
-      });
+        startTransition(async () => {
+          const result = await deleteView(view.id);
+          if (!result.ok) return toast(errorText(result.error));
+          toast(t("views.deleted"));
+          if (view.id === activeId)
+            router.push(`/${workspaceId}/project/${projectSlug}`);
+          else router.refresh();
+        });
+      })();
     }
   };
 
   return (
-    <nav className={styles.row} aria-label={t("views.tabsLabel")}>
+    <Tabs indicator="top" label={t("views.tabsLabel")} className={styles.row}>
       {views.map((view) => {
         const active = view.id === activeId;
         return (
-          <div
+          <Tab
             key={view.id}
+            href={view.href}
+            active={active}
             className={styles.tab}
-            data-active={active || undefined}
             data-dirty={(active && dirty) || undefined}
             data-menu-open={menuFor === view.id || undefined}
-          >
-            <Link
-              href={view.href}
-              className={styles.link}
-              aria-current={active ? "page" : undefined}
-              onContextMenu={(e) => {
-                e.preventDefault();
-                setMenuFor(view.id);
-              }}
-            >
+            onLinkContextMenu={(e) => {
+              e.preventDefault();
+              setMenuFor(view.id);
+            }}
+            icon={
               <Icon
                 icon={viewIconOf(view)}
-                width={14}
-                className={styles.icon}
+                width={15}
                 style={view.color ? { color: view.color } : undefined}
               />
-              <span className={styles.name}>{view.name}</span>
-              {view.visibility !== "PRIVATE" && (
-                <Icon
-                  icon="lucide:users"
-                  width={12}
-                  className={styles.shared}
-                  aria-label={t("views.shared")}
-                />
-              )}
-            </Link>
-            <InlinePicker
-              width={240}
-              align="start"
-              open={menuFor === view.id}
-              onOpenChange={(open) => setMenuFor(open ? view.id : null)}
-              trigger={
-                <button
-                  type="button"
-                  className={styles.more}
-                  aria-label={t("views.menu")}
-                  title={t("views.menu")}
-                >
-                  <Icon icon="lucide:more-horizontal" width={14} />
-                </button>
-              }
-            >
-              {(close) => (
-                <>
-                  {view.sharedBy && (
-                    <div className={styles.menuHead}>
-                      {t("views.sharedBy", { name: view.sharedBy })}
-                    </div>
-                  )}
-                  <SelectMenu
-                    items={itemsFor(view)}
-                    value={null}
-                    onPick={(value) => {
-                      close();
-                      run(view, value);
-                    }}
-                    onClose={close}
-                  />
-                </>
-              )}
-            </InlinePicker>
-          </div>
+            }
+            trailing={
+              <InlinePicker
+                width={240}
+                align="start"
+                open={menuFor === view.id}
+                onOpenChange={(open) => setMenuFor(open ? view.id : null)}
+                trigger={
+                  <button
+                    type="button"
+                    className={styles.more}
+                    aria-label={t("views.menu")}
+                    title={t("views.menu")}
+                  >
+                    <Icon icon="lucide:more-horizontal" width={14} />
+                  </button>
+                }
+              >
+                {(close) => (
+                  <>
+                    {view.sharedBy && (
+                      <div className={styles.menuHead}>
+                        {t("views.sharedBy", { name: view.sharedBy })}
+                      </div>
+                    )}
+                    <SelectMenu
+                      items={itemsFor(view)}
+                      value={null}
+                      onPick={(value) => {
+                        close();
+                        run(view, value);
+                      }}
+                      onClose={close}
+                    />
+                  </>
+                )}
+              </InlinePicker>
+            }
+          >
+            {view.name}
+            {view.visibility !== "PRIVATE" && (
+              <Icon
+                icon="lucide:users"
+                width={12}
+                className={styles.shared}
+                aria-label={t("views.shared")}
+              />
+            )}
+            {active && dirty && <span className={styles.dirty} />}
+          </Tab>
         );
       })}
-    </nav>
+    </Tabs>
   );
 }

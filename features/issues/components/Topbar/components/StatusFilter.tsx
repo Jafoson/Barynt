@@ -5,7 +5,7 @@ import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import { StatusIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import type { Status } from "@/types";
-import { MultiStatusIcon } from "./FilterIcons";
+import { ChipIcons, ChipValues, chipTitle } from "./ChipValues";
 
 interface StatusFilterProps {
   value: string[];
@@ -26,18 +26,19 @@ export function StatusFilter({
   const selected = value[0]
     ? (statuses.find((s) => s.id === value[0]) ?? null)
     : null;
+  const names = value.map(
+    (id) => statuses.find((s) => s.id === id)?.name ?? id,
+  );
   const label =
-    value.length === 0
-      ? name
-      : value.length === 1
-        ? (selected?.name ?? value[0])
-        : t("filters.statuses", { count: value.length });
+    value.length === 0 ? name : <ChipValues name={name} values={names} />;
 
   return (
     <FilterChip
       name={name}
       label={label}
+      title={value.length > 0 ? chipTitle(name, names) : undefined}
       active={value.length > 0}
+      accent="var(--primary)"
       onClear={onClear}
       width={200}
       icon={
@@ -48,7 +49,16 @@ export function StatusFilter({
             color={selected?.color}
           />
         ) : (
-          <MultiStatusIcon />
+          <ChipIcons>
+            {value.map((id) => (
+              <StatusIcon
+                key={id}
+                status={id}
+                size={14}
+                color={statuses.find((s) => s.id === id)?.color}
+              />
+            ))}
+          </ChipIcons>
         )
       }
     >

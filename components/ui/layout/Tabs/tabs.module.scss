@@ -1,0 +1,130 @@
+@use "breakpoints" as bp;
+
+/* Material primary tabs. The row takes the full height it's given, so a
+   `top` indicator lands right on the divider above it. */
+.tabs {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.tab {
+  /* Where the rounded state layer and the indicator sit, inside the tab. */
+  --tab-inset-x: 0.25rem;
+  --tab-inset-y: 0.375rem;
+
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.875rem;
+  color: var(--on-surface-variant);
+  font-size: var(--text-sm);
+  font-weight: 600;
+
+  /* State layer: a rounded surface around the label rather than a strip
+     over the whole tab, a step darker per state — hover, keyboard focus,
+     pressed. The link covers the tab, so the tab's states are the link's. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: var(--tab-inset-y) var(--tab-inset-x);
+    border-radius: var(--radius-sm);
+    background: var(--on-surface);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s;
+  }
+
+  &:hover::after {
+    opacity: 0.08;
+  }
+
+  &:has(:focus-visible)::after {
+    opacity: 0.12;
+  }
+
+  &:active::after {
+    opacity: 0.16;
+  }
+
+  /* The label stays neutral; the bar says which tab is open. */
+  &[data-active] {
+    color: var(--on-surface);
+  }
+
+  /* The active indicator: as wide as the state layer, rounded ends,
+     against the divider (`indicator`). */
+  &[data-active]::before {
+    content: "";
+    position: absolute;
+    left: var(--tab-inset-x);
+    right: var(--tab-inset-x);
+    height: 3px;
+    border-radius: 3px;
+    background: var(--primary);
+    pointer-events: none;
+  }
+
+  [data-indicator="bottom"] > &[data-active]::before {
+    bottom: 0;
+  }
+
+  [data-indicator="top"] > &[data-active]::before {
+    top: 0;
+  }
+
+  @include bp.coarse {
+    min-height: var(--touch-min);
+  }
+}
+
+/* The link covers the whole tab (stretched), so the tab is one target. */
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+
+  /* Keyboard focus shows as the darker state layer on the tab. */
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+.icon {
+  display: inline-flex;
+  flex: none;
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Above the stretched link, so it gets its own clicks. */
+.trailing {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+}
