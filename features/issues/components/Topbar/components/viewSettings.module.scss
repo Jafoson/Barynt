@@ -446,7 +446,15 @@
   }
 }
 
-/* The phone's "Advanced filter settings" below the filter rows (BARY-166). */
+/* The phone's "Advanced filter settings" below the filter rows (BARY-166):
+   stuck to the sheet's bottom edge, however long the list. It reaches over
+   the body's own padding (`.sheetBody`) so nothing scrolls past under it. */
 .advancedFooter {
-  padding-top: 0.75rem;
+  position: sticky;
+  bottom: -0.75rem;
+  z-index: 1;
+  margin: auto -1.25rem -0.75rem;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--outline-variant);
+  background: var(--surface-container);
 }
