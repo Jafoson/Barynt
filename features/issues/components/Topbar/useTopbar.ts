@@ -282,8 +282,9 @@ export function useTopbar({
   }
 
   /** Removes one rule chip (`extras`). */
-  function removeExtra(index: number) {
-    setFilter(withoutNode(tree, index));
+  /** Removes a rule chip's node — or, with a `path`, one part of a group. */
+  function removeExtra(index: number, path?: number[]) {
+    setFilter(withoutNode(tree, index, path));
   }
 
   // Called on every keystroke — writes a ref and re-arms the timer, nothing that

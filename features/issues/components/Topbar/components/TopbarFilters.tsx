@@ -55,7 +55,8 @@ interface TopbarFiltersProps {
   onNegate: (key: ChipField, negated: boolean) => void;
   /** Rules and OR groups the chips can't show — a rule chip each. */
   extras: { node: FilterNode; index: number }[];
-  onRemoveExtra: (index: number) => void;
+  /** Removes an extra — or, with a `path`, one part of a group. */
+  onRemoveExtra: (index: number, path?: number[]) => void;
   /** A click on a rule chip opens the advanced editor. */
   onOpenEditor: () => void;
   onToggle: (key: FilterKey, value: string | number) => void;
@@ -231,6 +232,7 @@ export function TopbarFilters({
                   node={node}
                   labelsOf={labelsOf}
                   onOpen={onOpenEditor}
+                  onRemove={(path) => onRemoveExtra(index, path)}
                 />
                 <button
                   type="button"
@@ -271,22 +273,26 @@ function RuleText({
   return <>{labelsOf.rule(rule)}</>;
 }
 
-/** A group's parts in the group row: conditions as chips, a nested group
- *  in a frame of its kind's color, UND/ODER plaques between. */
+/** A group's parts in the group row: conditions as chips (a × on hover
+ *  takes one out), a nested group in a frame of its kind's color, UND/ODER
+ *  plaques between. */
 function GroupParts({
   node,
   labelsOf,
   onOpen,
+  onRemove,
+  path = [],
 }: {
   node: FilterNode;
   labelsOf: ReturnType<typeof useFilterLabels>;
   onOpen: () => void;
+  onRemove: (path: number[]) => void;
+  path?: number[];
 }) {
   const t = useTranslations();
   if (!isGroup(node))
     return (
-      <button
-        type="button"
+      <span
         className={styles.condChip}
         // The same outline as the field's own chip above.
         style={
@@ -296,10 +302,22 @@ function GroupParts({
               } as React.CSSProperties)
             : undefined
         }
-        onClick={onOpen}
       >
-        <RuleText rule={node} labelsOf={labelsOf} />
-      </button>
+        <button type="button" className={styles.condLabel} onClick={onOpen}>
+          <span>
+            <RuleText rule={node} labelsOf={labelsOf} />
+          </span>
+        </button>
+        <button
+          type="button"
+          className={styles.condRemove}
+          aria-label={t("filters.removeRule", { rule: labelsOf.rule(node) })}
+          title={t("filters.removeRule", { rule: labelsOf.rule(node) })}
+          onClick={() => onRemove(path)}
+        >
+          <Icon icon="lucide:x" width={12} />
+        </button>
+      </span>
     );
   return (
     <>
@@ -312,10 +330,22 @@ function GroupParts({
           )}
           {isGroup(child) ? (
             <span className={styles.groupBox} data-op={child.op}>
-              <GroupParts node={child} labelsOf={labelsOf} onOpen={onOpen} />
+              <GroupParts
+                node={child}
+                labelsOf={labelsOf}
+                onOpen={onOpen}
+                onRemove={onRemove}
+                path={[...path, i]}
+              />
             </span>
           ) : (
-            <GroupParts node={child} labelsOf={labelsOf} onOpen={onOpen} />
+            <GroupParts
+              node={child}
+              labelsOf={labelsOf}
+              onOpen={onOpen}
+              onRemove={onRemove}
+              path={[...path, i]}
+            />
           )}
         </Fragment>
       ))}

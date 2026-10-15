@@ -3,6 +3,7 @@ import {
   fromRootBox,
   rootBox,
   tidy,
+  withoutNode,
 } from "@/features/issues/components/Topbar/filterModel";
 import type { FilterRule, IssueFilter } from "@/features/issues/filter";
 
@@ -100,5 +101,23 @@ describe("fromRootBox", () => {
       op: "and",
       rules: [text],
     });
+  });
+});
+
+describe("withoutNode with a path", () => {
+  it("takes one condition out of a nested group and tidies up", () => {
+    // Todo AND (Bug OR (High AND me)) — remove "High".
+    expect(withoutNode(nested, 1, [1, 0])).toEqual({
+      op: "and",
+      rules: [todo, { op: "or", rules: [bug, me] }],
+    });
+  });
+
+  it("unwraps a group shrunk to one, onto the top level", () => {
+    expect(withoutNode(nested, 1, [0]).rules).toEqual([todo, high, me]);
+  });
+
+  it("removes the whole node without a path", () => {
+    expect(withoutNode(nested, 1).rules).toEqual([todo]);
   });
 });

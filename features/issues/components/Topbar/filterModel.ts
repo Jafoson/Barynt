@@ -132,9 +132,34 @@ export function extraNodes(
   );
 }
 
-/** The tree without the node at `index`. */
-export function withoutNode(filter: IssueFilter, index: number): IssueFilter {
-  return { op: "and", rules: filter.rules.filter((_, i) => i !== index) };
+/**
+ * The tree without the node at `index` — or, with a `path`, without just
+ * that part inside it (child indexes, level by level), the group tidied up
+ * after (`tidy`).
+ */
+export function withoutNode(
+  filter: IssueFilter,
+  index: number,
+  path: number[] = [],
+): IssueFilter {
+  const drop = (node: FilterNode, rest: number[]): FilterNode | null => {
+    if (!rest.length || !isGroup(node)) return null;
+    const [at, ...deeper] = rest;
+    const rules = node.rules.flatMap((child, i) => {
+      if (i !== at) return [child];
+      const kept = drop(child, deeper);
+      return kept ? [kept] : [];
+    });
+    return tidy({ op: node.op, rules });
+  };
+  const rules = filter.rules.flatMap((node, i) => {
+    if (i !== index) return [node];
+    const kept = drop(node, path);
+    if (!kept) return [];
+    // An AND left on top joins the top level, where the chips see it.
+    return isGroup(kept) && kept.op === "and" ? kept.rules : [kept];
+  });
+  return { op: "and", rules };
 }
 
 /** The tree without anything but the search text. */
