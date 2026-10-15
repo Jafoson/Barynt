@@ -1,5 +1,8 @@
+import { isCardFieldKey } from "@/features/issues/card-fields";
 import { type IssueFilter, isGroup } from "@/features/issues/filter";
-import type { SavedView, ViewLayout } from "./schema";
+import { sanitizeGroupOrder } from "@/features/issues/group-order";
+import { sanitizeHiddenGroups } from "@/features/issues/hidden-groups";
+import type { SavedView, ViewDisplay, ViewLayout } from "./schema";
 
 /**
  * A saved view and the address it opens at (BARY-164).
@@ -12,6 +15,11 @@ import type { SavedView, ViewLayout } from "./schema";
  *
  * The search box is not part of a view: typing into it neither marks the view
  * unsaved nor gets stored.
+ *
+ * The display settings are part of it too (BARY-165): hidden and reordered
+ * columns, hidden card fields, empty groups, sub-issues — as `hide`, `order`,
+ * `fields`, `empty` and `sub`, so they're saved, discarded and shared exactly
+ * like the filters.
  */
 
 /** The parameters that make up a view's state, in a fixed order. */
@@ -25,6 +33,11 @@ export const VIEW_STATE_KEYS = [
   "group",
   "sort",
   "layout",
+  "hide",
+  "order",
+  "fields",
+  "empty",
+  "sub",
 ] as const;
 
 /** Missing `group`/`sort` mean these — on a view page they don't fall back
@@ -124,7 +137,7 @@ function filterToParams(
 /** The address parameters of a view's stored state. `layout` is always set —
  *  it's how a view page tells "opened bare" from "all filters cleared". */
 export function viewParams(
-  view: Pick<SavedView, "filter" | "groupBy" | "sortBy" | "layout">,
+  view: Pick<SavedView, "filter" | "groupBy" | "sortBy" | "layout" | "display">,
   lookups: SlugLookups,
 ): URLSearchParams {
   const params = new URLSearchParams();
@@ -136,6 +149,15 @@ export function viewParams(
     params.set("group", view.groupBy);
   if (view.sortBy !== VIEW_DEFAULT_SORT) params.set("sort", view.sortBy);
   params.set("layout", view.layout);
+  const { display } = view;
+  if (display.hiddenGroups?.length)
+    params.set("hide", display.hiddenGroups.join(","));
+  if (display.groupOrder?.length)
+    params.set("order", display.groupOrder.join(","));
+  if (display.hiddenFields?.length)
+    params.set("fields", display.hiddenFields.join(","));
+  if (display.hideEmptyGroups) params.set("empty", "1");
+  if (display.showSubIssues) params.set("sub", "1");
   return params;
 }
 
@@ -158,6 +180,9 @@ function normalized(source: ParamSource, key: string): string {
   if (key === "group") return raw || VIEW_DEFAULT_GROUP;
   if (key === "sort") return raw || VIEW_DEFAULT_SORT;
   if (key === "layout") return layoutFromParam(raw);
+  if (key === "empty" || key === "sub") return raw === "1" ? "1" : "0";
+  // The order of columns is the point of `order` — don't sort it away.
+  if (key === "order") return raw.split(",").filter(Boolean).join(",");
   return raw.split(",").filter(Boolean).sort().join(",");
 }
 
@@ -185,4 +210,18 @@ export function viewPath(
   viewSlug: string,
 ): string {
   return `/${workspaceId}/project/${projectSlug}/view/${viewSlug}`;
+}
+
+/** The display settings an address spells out — what a view page draws
+ *  with and what "Save" stores. Anything implausible is dropped. */
+export function displayFromParams(source: ParamSource): Required<ViewDisplay> {
+  const list = (key: string) =>
+    (read(source, key) ?? "").split(",").filter(Boolean);
+  return {
+    hiddenGroups: sanitizeHiddenGroups(list("hide")),
+    groupOrder: sanitizeGroupOrder(list("order")),
+    hiddenFields: list("fields").filter(isCardFieldKey),
+    hideEmptyGroups: read(source, "empty") === "1",
+    showSubIssues: read(source, "sub") === "1",
+  };
 }

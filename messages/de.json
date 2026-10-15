@@ -184,7 +184,11 @@
     "groupsAll": "Alle",
     "hideEmptyGroups": "Leere Gruppen automatisch ausblenden",
     "showSubIssues": "Unteraufgaben anzeigen",
-    "reset": "Zurücksetzen"
+    "reset": "Zurücksetzen",
+    "resetOrder": "Reihenfolge zurücksetzen",
+    "moveGroup": "„{group}“ verschieben (Alt+↑/↓)",
+    "moveUp": "„{group}“ nach oben",
+    "moveDown": "„{group}“ nach unten"
   },
   "settings": {
     "title": "Einstellungen",
@@ -701,7 +705,8 @@
     "moveTo": "Verschieben nach…",
     "movedTo": "Verschoben nach {group}",
     "boardColumns": "Board-Spalten",
-    "toCreate": "zum Erstellen"
+    "toCreate": "zum Erstellen",
+    "moveColumn": "Spalte „{group}“ verschieben"
   },
   "views": {
     "tabsLabel": "Views",

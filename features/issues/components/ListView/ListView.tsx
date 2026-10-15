@@ -28,6 +28,7 @@ import {
   groupPatch,
   visibleGroups,
 } from "@/features/issues/group";
+import { orderGroups } from "@/features/issues/group-order";
 import { isGroupHidden } from "@/features/issues/hidden-groups";
 import { useIssueOpen } from "@/features/issues/issue-links";
 import { rankBetween } from "@/features/issues/rank";
@@ -82,6 +83,8 @@ interface ListViewProps {
   hiddenGroups: string[];
   /** Groups without an issue hide themselves (BARY-47). */
   hideEmptyGroups: boolean;
+  /** Own order of the groups, `group-order.ts` entries (BARY-165). */
+  groupOrder?: string[];
   /** What's shown instead of the empty table. Default: "No tasks". */
   emptyTitle?: string;
 }
@@ -101,6 +104,7 @@ export function ListView({
   groupKey,
   hiddenGroups,
   hideEmptyGroups,
+  groupOrder = [],
   emptyTitle,
 }: ListViewProps) {
   const { projects, members, labels, statuses, priorities, issueTypes } =
@@ -176,7 +180,7 @@ export function ListView({
     },
     shown,
   );
-  const allGroups = visibleGroups(defs, shown);
+  const allGroups = visibleGroups(orderGroups(defs, groupOrder), shown);
   // Groups hidden in the display settings — one by one, or every empty one
   // (BARY-47) — leave the table altogether: no rows, no drop
   // target, no "Move to…" entry — the issues in them stay as they are.

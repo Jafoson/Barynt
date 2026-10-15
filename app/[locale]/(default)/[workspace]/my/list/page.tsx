@@ -52,6 +52,7 @@ export default async function MyListPage({
         hiddenCardFields={hiddenCardFields}
         hiddenGroups={groups.hiddenGroups}
         hideEmptyGroups={groups.hideEmptyGroups}
+        groupOrder={groups.groupOrder}
         sortKey={sortKeyFromParam(filters.sort ?? defaults.defaultSort)}
         groupKey={groupKeyFromParam(filters.group ?? defaults.defaultGrouping)}
         emptyTitle={t("empty.noAssignedIssues")}

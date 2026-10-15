@@ -296,6 +296,30 @@ export function useTopbar({
     );
   }
 
+  /**
+   * A saved view's display settings live in its address (BARY-165): the
+   * panel writes them there, so they show as unsaved like the filters.
+   */
+  function setViewDisplay(patch: {
+    hiddenFields?: string[];
+    hiddenGroups?: string[];
+    groupOrder?: string[];
+    hideEmptyGroups?: boolean;
+    showSubIssues?: boolean;
+  }) {
+    const setList = (p: URLSearchParams, key: string, value: string[]) =>
+      value.length ? p.set(key, value.join(",")) : p.delete(key);
+    pushParams((p) => {
+      if (patch.hiddenFields) setList(p, "fields", patch.hiddenFields);
+      if (patch.hiddenGroups) setList(p, "hide", patch.hiddenGroups);
+      if (patch.groupOrder) setList(p, "order", patch.groupOrder);
+      if (patch.hideEmptyGroups !== undefined)
+        patch.hideEmptyGroups ? p.set("empty", "1") : p.delete("empty");
+      if (patch.showSubIssues !== undefined)
+        patch.showSubIssues ? p.set("sub", "1") : p.delete("sub");
+    });
+  }
+
   return {
     isPending,
     area,
@@ -314,5 +338,6 @@ export function useTopbar({
     setSort,
     setGroup,
     setView,
+    setViewDisplay,
   };
 }

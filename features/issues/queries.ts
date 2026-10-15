@@ -1219,12 +1219,15 @@ export interface ViewGroupPreference {
   hideEmptyGroups: boolean;
   /** Sub-issues as cards of their own — only the board reads it. */
   showSubIssues: boolean;
+  /** Own order of the groups (BARY-165), `group-order.ts` entries. */
+  groupOrder: string[];
 }
 
 const NO_GROUP_PREFERENCE: ViewGroupPreference = {
   hiddenGroups: [],
   hideEmptyGroups: false,
   showSubIssues: false,
+  groupOrder: [],
 };
 
 /**
@@ -1257,6 +1260,7 @@ export const getIssueViewGroups = cache(
         hiddenGroups: true,
         hideEmptyGroups: true,
         showSubIssues: true,
+        groupOrder: true,
       },
     });
     return pref ?? (await groupDefaults(userId));
@@ -1275,6 +1279,7 @@ export const getMyIssuesViewGroups = cache(
         hiddenGroups: true,
         hideEmptyGroups: true,
         showSubIssues: true,
+        groupOrder: true,
       },
     });
     return pref ?? (await groupDefaults(userId));

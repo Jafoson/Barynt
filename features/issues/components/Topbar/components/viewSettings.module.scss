@@ -229,3 +229,219 @@
     }
   }
 }
+
+/* ── Columns: shown/hidden and their order (BARY-165) ── */
+
+.orderList {
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+}
+
+.orderRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0 0.25rem;
+  border-radius: var(--radius-sm);
+  /* Dragging shouldn't select the labels along the way. */
+  user-select: none;
+
+  &[data-hidden] {
+    color: var(--outline);
+  }
+
+  /* The dragged row stays in place and steps back (like the issue list). */
+  &[data-dragging] {
+    opacity: 0.4;
+  }
+
+  /* The insertion line with its dot — the issue list's visual language. */
+  &[data-drop]::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0.25rem 0;
+    height: 0.125rem;
+    border-radius: 0.125rem;
+    background: var(--primary);
+    pointer-events: none;
+  }
+
+  &[data-drop]::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0.25rem;
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 50%;
+    background: var(--primary);
+    pointer-events: none;
+  }
+
+  &[data-drop="above"] {
+    &::before {
+      top: -0.0625rem;
+    }
+
+    &::after {
+      top: -0.1875rem;
+    }
+  }
+
+  &[data-drop="below"] {
+    &::before {
+      bottom: -0.0625rem;
+    }
+
+    &::after {
+      bottom: -0.1875rem;
+    }
+  }
+}
+
+/* Shows when the row is meant, like the issue list's handle. */
+.orderHandle {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.5rem;
+  height: 1.75rem;
+  color: var(--outline);
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.12s;
+
+  .orderRow:hover &,
+  .orderRow:focus-within & {
+    opacity: 1;
+  }
+
+  @include bp.no-hover {
+    opacity: 1;
+  }
+}
+
+.orderToggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2rem;
+  padding: 0 0.5rem 0 0.25rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container-high);
+  }
+
+  &:has(:focus-visible) {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+
+  @include bp.coarse {
+    min-height: var(--touch-min);
+  }
+}
+
+/* The real checkbox — read and operated by keyboard and assistive tech, drawn
+   by the icon next to it. */
+.orderInput {
+  @include bp.sr-only;
+}
+
+.orderCheck {
+  flex: none;
+
+  .orderInput:checked + & {
+    color: var(--primary);
+  }
+}
+
+/* Up/down at the right edge — reordering without dragging. They show when
+   the row is meant (hover, keyboard inside it), keeping their space so the
+   rows don't shift; without hover (touch) they're always there. */
+.orderArrows {
+  display: flex;
+  flex: none;
+  gap: 0.125rem;
+  opacity: 0;
+  transition: opacity 0.12s;
+
+  .orderRow:hover &,
+  .orderRow:focus-within & {
+    opacity: 1;
+  }
+
+  @include bp.no-hover {
+    opacity: 1;
+  }
+}
+
+.orderArrow {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  @include bp.coarse {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+}
+
+.orderLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orderReset {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-top: 1px solid var(--outline-variant);
+  background: transparent;
+  color: var(--primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container-high);
+  }
+}

@@ -138,3 +138,51 @@
     border-color: var(--tertiary);
   }
 }
+
+/* ── Moving a whole column (BARY-165) ── */
+
+/* The handle in the header — on hover, with a mouse (a phone or tablet
+   reorders through the display panel). */
+.columnHandle {
+  display: none;
+  place-items: center;
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  /* After the "+", or at the right edge without one. */
+  margin-left: auto;
+  border-radius: var(--radius-sm);
+  color: var(--on-surface-variant);
+  cursor: grab;
+
+  .headerAdd + & {
+    margin-left: 0;
+  }
+
+  &:hover {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  .colHeader:hover & {
+    @include bp.desktop {
+      display: grid;
+    }
+  }
+}
+
+/* The dragged column, waiting in the slot it would land in: an empty,
+   dashed frame — the column itself follows the pointer. */
+.col[data-column-dragging] {
+  border: 2px dashed var(--primary);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--primary) 6%, transparent);
+
+  & > * {
+    visibility: hidden;
+  }
+}

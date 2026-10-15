@@ -358,6 +358,33 @@ describe("saveViewState", () => {
       groupBy: "assignee",
       sortBy: "dueDate",
       layout: "list",
+      // Nothing in the address about display: the defaults (BARY-165).
+      display: {
+        hiddenGroups: [],
+        groupOrder: [],
+        hiddenFields: [],
+        hideEmptyGroups: false,
+        showSubIssues: false,
+      },
+    });
+  });
+
+  it("stores the display settings of the address (BARY-165)", async () => {
+    rows = [viewRow()];
+    await saveViewState("v1", {
+      layout: "board",
+      hide: "status:done",
+      order: "status:review,status:todo",
+      sub: "1",
+    });
+    expect(
+      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object }).data,
+    ).toMatchObject({
+      display: {
+        hiddenGroups: ["status:done"],
+        groupOrder: ["status:review", "status:todo"],
+        showSubIssues: true,
+      },
     });
   });
 

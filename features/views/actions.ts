@@ -26,7 +26,7 @@ import {
   type ViewUserStateInput,
   viewUserStateSchema,
 } from "./schema";
-import { layoutFromParam, pickViewState } from "./url";
+import { displayFromParams, layoutFromParam, pickViewState } from "./url";
 
 /**
  * Saved views (BARY-163). Like the label management, these don't throw but
@@ -338,7 +338,8 @@ export async function setViewUserState(
 
 /**
  * The stored fields an address stands for: its filters resolved to ids (the
- * same lookup the board itself does), grouping, order and layout. The search
+ * same lookup the board itself does), grouping, order, layout and display
+ * settings (BARY-165). The search
  * text isn't part of a view and is ignored (`pickViewState`).
  */
 async function stateFromParams(
@@ -351,6 +352,7 @@ async function stateFromParams(
     groupBy: state.group && isGroupKey(state.group) ? state.group : null,
     sortBy: state.sort && isSortKey(state.sort) ? state.sort : "manual",
     layout: layoutFromParam(state.layout),
+    display: displayFromParams(state),
   } as const;
 }
 
@@ -390,5 +392,6 @@ export async function createViewFromParams(
     filter: state.filter,
     groupBy: state.groupBy,
     sortBy: state.sortBy,
+    display: state.display,
   });
 }

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getMyPreferences } from "@/features/account/queries";
+import { setIssueViewGroups } from "@/features/issues/actions";
 import { Board } from "@/features/issues/components/Board/Board";
 import { BoardUnlessPhone } from "@/features/issues/components/Board/BoardUnlessPhone";
 import { IssuePeek } from "@/features/issues/components/IssuePeek/IssuePeek";
@@ -60,6 +61,8 @@ export default async function BoardPage({
           hiddenCardFields={hiddenCardFields}
           hiddenGroups={groups.hiddenGroups}
           hideEmptyGroups={groups.hideEmptyGroups}
+          groupOrder={groups.groupOrder}
+          onGroupsChange={setIssueViewGroups.bind(null, project.id, "board")}
           sortKey={sortKeyFromParam(filters.sort ?? defaults.defaultSort)}
           groupKey={groupKeyFromParam(
             filters.group ?? defaults.defaultGrouping,

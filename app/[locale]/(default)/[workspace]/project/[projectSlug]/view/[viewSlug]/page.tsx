@@ -5,15 +5,12 @@ import { ListView } from "@/features/issues/components/ListView/ListView";
 import { Topbar } from "@/features/issues/components/Topbar/Topbar";
 import { getIssueComposerData } from "@/features/issues/editor-data";
 import { groupKeyFromParam } from "@/features/issues/group";
-import {
-  getIssuesByProject,
-  getIssueViewGroups,
-  getIssueViewPreference,
-} from "@/features/issues/queries";
+import { getIssuesByProject } from "@/features/issues/queries";
 import { sortKeyFromParam } from "@/features/issues/sort";
 import { BoardOrPhoneList } from "@/features/views/components/BoardOrPhoneList/BoardOrPhoneList";
 import { getViewBySlug } from "@/features/views/queries";
 import {
+  displayFromParams,
   layoutFromParam,
   VIEW_DEFAULT_GROUP,
   VIEW_DEFAULT_SORT,
@@ -91,16 +88,16 @@ export default async function SavedViewPage({
   const groupKey = groupKeyFromParam(filters.group ?? VIEW_DEFAULT_GROUP);
   const sortKey = sortKeyFromParam(filters.sort ?? VIEW_DEFAULT_SORT);
 
-  // Display settings (hidden fields and groups) stay the person's own per
-  // layout for now; V5 moves them into the view.
-  const groups = await getIssueViewGroups(project.id, layout);
-  const [issues, statuses, composer, hiddenCardFields] = await Promise.all([
+  // Display settings belong to the view and live in its address like the
+  // filters (BARY-165): hidden and reordered columns, hidden card fields,
+  // empty groups, sub-issues.
+  const display = displayFromParams(filters);
+  const [issues, statuses, composer] = await Promise.all([
     getIssuesByProject(project.id, filters, {
-      subIssues: layout === "list" || groups.showSubIssues,
+      subIssues: layout === "list" || display.showSubIssues,
     }),
     getWorkspaceStatuses(),
     getIssueComposerData(),
-    getIssueViewPreference(project.id, layout),
   ]);
   if (!composer) notFound();
 
@@ -109,9 +106,10 @@ export default async function SavedViewPage({
       issues={issues}
       projectId={project.id}
       composer={composer}
-      hiddenCardFields={hiddenCardFields}
-      hiddenGroups={groups.hiddenGroups}
-      hideEmptyGroups={groups.hideEmptyGroups}
+      hiddenCardFields={display.hiddenFields}
+      hiddenGroups={display.hiddenGroups}
+      hideEmptyGroups={display.hideEmptyGroups}
+      groupOrder={display.groupOrder}
       sortKey={sortKey}
       groupKey={groupKey}
     />
@@ -133,9 +131,11 @@ export default async function SavedViewPage({
               projectId={project.id}
               statuses={statuses}
               composer={composer}
-              hiddenCardFields={hiddenCardFields}
-              hiddenGroups={groups.hiddenGroups}
-              hideEmptyGroups={groups.hideEmptyGroups}
+              hiddenCardFields={display.hiddenFields}
+              hiddenGroups={display.hiddenGroups}
+              hideEmptyGroups={display.hideEmptyGroups}
+              groupOrder={display.groupOrder}
+              displayInUrl
               sortKey={sortKey}
               groupKey={groupKey}
             />
