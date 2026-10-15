@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
+import { FILTER_ACCENT } from "../filterAccent";
 import styles from "../topbar.module.scss";
 import { ChipValues, chipTitle } from "./ChipValues";
 
@@ -44,7 +45,7 @@ export function DueDateFilter({
       label={label}
       title={value.length > 0 ? chipTitle(name, names) : undefined}
       active={value.length > 0}
-      accent="var(--red)"
+      accent={FILTER_ACCENT.dueDate}
       onClear={onClear}
       width={190}
       icon={

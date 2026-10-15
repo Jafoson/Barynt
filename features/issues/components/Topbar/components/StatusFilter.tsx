@@ -5,6 +5,7 @@ import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import { StatusIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import type { Status } from "@/types";
+import { FILTER_ACCENT } from "../filterAccent";
 import { ChipIcons, ChipValues, chipTitle } from "./ChipValues";
 import { NegateToggle } from "./NegateToggle";
 
@@ -52,7 +53,7 @@ export function StatusFilter({
           : undefined
       }
       active={value.length > 0}
-      accent="var(--primary)"
+      accent={FILTER_ACCENT.status}
       onClear={onClear}
       width={200}
       icon={

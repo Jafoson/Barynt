@@ -10,6 +10,7 @@ import { LabelIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import { LabelPickerMenu } from "@/features/issues/components/LabelPickerMenu/LabelPickerMenu";
 import { NONE_VALUE } from "@/features/issues/filter";
 import type { Label } from "@/types";
+import { FILTER_ACCENT } from "../filterAccent";
 import { ChipIcons, ChipValues, chipTitle } from "./ChipValues";
 import { NegateToggle } from "./NegateToggle";
 
@@ -85,7 +86,7 @@ export function LabelFilter({
           : undefined
       }
       active={value.length > 0}
-      accent="var(--blue)"
+      accent={FILTER_ACCENT.label}
       onClear={onClear}
       width={220}
       icon={

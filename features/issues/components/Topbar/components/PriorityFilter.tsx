@@ -5,6 +5,7 @@ import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import { PriorityIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import type { Priority } from "@/types";
+import { FILTER_ACCENT } from "../filterAccent";
 import { ChipIcons, ChipValues, chipTitle } from "./ChipValues";
 import { NegateToggle } from "./NegateToggle";
 
@@ -49,7 +50,7 @@ export function PriorityFilter({
           : undefined
       }
       active={value.length > 0}
-      accent="var(--amber)"
+      accent={FILTER_ACCENT.priority}
       onClear={onClear}
       width={190}
       icon={

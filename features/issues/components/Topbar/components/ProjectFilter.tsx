@@ -6,6 +6,7 @@ import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import { LabelIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import type { Project } from "@/types";
+import { FILTER_ACCENT } from "../filterAccent";
 import { ChipIcons, ChipValues, chipTitle } from "./ChipValues";
 import { NegateToggle } from "./NegateToggle";
 
@@ -60,7 +61,7 @@ export function ProjectFilter({
           : undefined
       }
       active={value.length > 0}
-      accent="var(--green)"
+      accent={FILTER_ACCENT.project}
       onClear={onClear}
       width={220}
       icon={

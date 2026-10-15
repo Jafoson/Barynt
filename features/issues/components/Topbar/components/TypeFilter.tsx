@@ -6,6 +6,7 @@ import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import { TypeIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import type { IssueType } from "@/types";
+import { FILTER_ACCENT } from "../filterAccent";
 import { ChipIcons, ChipValues, chipTitle } from "./ChipValues";
 import { NegateToggle } from "./NegateToggle";
 
@@ -51,7 +52,7 @@ export function TypeFilter({
           : undefined
       }
       active={value.length > 0}
-      accent="var(--tertiary)"
+      accent={FILTER_ACCENT.type}
       onClear={onClear}
       width={200}
       icon={

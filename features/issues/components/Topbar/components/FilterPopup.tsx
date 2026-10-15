@@ -33,6 +33,7 @@ import type {
   Status,
   User,
 } from "@/types";
+import { FILTER_ACCENT } from "../filterAccent";
 import { type ChipField, extraNodes } from "../filterModel";
 import {
   type FilterKey,
@@ -626,7 +627,16 @@ export function FilterRow({
       </button>
 
       {chosen.length > 0 && (
-        <div className={styles.chips}>
+        // Like the desktop chips: a plain surface, outlined in the filter's
+        // own color.
+        <div
+          className={styles.chips}
+          style={
+            {
+              "--filter-accent": FILTER_ACCENT[facet.key],
+            } as React.CSSProperties
+          }
+        >
           {chosen.map((option) => (
             <Chip
               key={option.value}
@@ -634,6 +644,7 @@ export function FilterRow({
               variant="text"
               icon={option.icon}
               selected
+              className={styles.valueChip}
               onRemove={() => onToggle(option.value)}
               removeLabel={t("actions.clearFilter", { field: option.label })}
             >

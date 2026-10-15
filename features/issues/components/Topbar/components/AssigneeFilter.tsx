@@ -8,6 +8,7 @@ import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import { ME, NONE_VALUE } from "@/features/issues/filter";
 import { fullName } from "@/lib/utils/string";
 import type { User } from "@/types";
+import { FILTER_ACCENT } from "../filterAccent";
 import { ChipIcons, ChipValues, chipTitle } from "./ChipValues";
 import { NegateToggle } from "./NegateToggle";
 
@@ -56,7 +57,7 @@ export function AssigneeFilter({
           : undefined
       }
       active={value.length > 0}
-      accent="var(--purple)"
+      accent={FILTER_ACCENT.assignee}
       onClear={onClear}
       width={210}
       icon={

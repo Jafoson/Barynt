@@ -6,6 +6,7 @@ import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { FilterChip } from "@/components/ui/layout/FilterChip/FilterChip";
 import { NONE_VALUE } from "@/features/issues/filter";
 import { STORY_POINTS_OPTIONS } from "@/features/issues/story-points";
+import { FILTER_ACCENT } from "../filterAccent";
 import styles from "../topbar.module.scss";
 import { ChipValues, chipTitle } from "./ChipValues";
 import { NegateToggle } from "./NegateToggle";
@@ -49,7 +50,7 @@ export function StoryPointsFilter({
           : undefined
       }
       active={value.length > 0}
-      accent="var(--secondary)"
+      accent={FILTER_ACCENT.storyPoints}
       onClear={onClear}
       width={140}
       icon={
