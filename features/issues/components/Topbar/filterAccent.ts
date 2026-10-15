@@ -11,5 +11,5 @@ export const FILTER_ACCENT: Record<FilterKey, string> = {
   label: "var(--blue)",
   project: "var(--green)",
   storyPoints: "var(--lime)",
-  dueDate: "var(--red)",
+  dueDate: "var(--indigo)",
 };
