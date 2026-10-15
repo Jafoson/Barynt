@@ -30,10 +30,6 @@
   color: var(--on-surface);
 }
 
-.titleIcon {
-  flex: none;
-}
-
 /* The count trails the freshly requested URL — fade it while that is in flight. */
 .count {
   color: var(--on-surface-variant);

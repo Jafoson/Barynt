@@ -3,19 +3,19 @@
 import { Icon } from "@iconify/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { Chip } from "@/components/ui/atoms/Chip/Chip";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import {
   type ISelectItem,
   SelectMenu,
 } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
+import { Tab, Tabs } from "@/components/ui/layout/Tabs/Tabs";
 import { deleteView, duplicateView } from "@/features/views/actions";
 import { viewIconOf } from "@/features/views/icons";
 import type { ViewLayout, ViewVisibility } from "@/features/views/schema";
 import { viewPath } from "@/features/views/url";
 import { useOpenViewModal } from "@/features/views/useOpenViewModal";
-import { getPathname, Link, useRouter } from "@/i18n/navigation";
+import { getPathname, useRouter } from "@/i18n/navigation";
 import { useUI } from "@/lib/ui-store";
 import styles from "./viewTabs.module.scss";
 
@@ -48,8 +48,9 @@ interface ViewTabsProps {
 }
 
 /**
- * The project's saved views as elevated chips between the title and the
- * filter row (BARY-164); the open one in the primary color. Board, list and dashboard aren't in here — they keep their
+ * The project's saved views as tabs in the title row, between the title and
+ * the actions (BARY-177): Material-style, the open one marked by a bar at
+ * the header's top edge. Board, list and dashboard aren't in here — they keep their
  * places in the sidebar and the board/list switch. Without any view the row
  * isn't rendered at all; "New view" in the filter row is the way in.
  */
@@ -166,45 +167,29 @@ export function ViewTabs({
   };
 
   return (
-    <nav className={styles.row} aria-label={t("views.tabsLabel")}>
+    <Tabs indicator="top" label={t("views.tabsLabel")} className={styles.row}>
       {views.map((view) => {
         const active = view.id === activeId;
         return (
-          <Chip
+          <Tab
             key={view.id}
-            variant="elevated"
+            href={view.href}
+            active={active}
             className={styles.tab}
-            data-active={active || undefined}
             data-dirty={(active && dirty) || undefined}
             data-menu-open={menuFor === view.id || undefined}
+            onLinkContextMenu={(e) => {
+              e.preventDefault();
+              setMenuFor(view.id);
+            }}
             icon={
               <Icon
                 icon={viewIconOf(view)}
-                width={14}
+                width={15}
                 style={view.color ? { color: view.color } : undefined}
               />
             }
-          >
-            <span className={styles.content}>
-              <Link
-                href={view.href}
-                className={styles.link}
-                aria-current={active ? "page" : undefined}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  setMenuFor(view.id);
-                }}
-              >
-                {view.name}
-                {view.visibility !== "PRIVATE" && (
-                  <Icon
-                    icon="lucide:users"
-                    width={12}
-                    className={styles.shared}
-                    aria-label={t("views.shared")}
-                  />
-                )}
-              </Link>
+            trailing={
               <InlinePicker
                 width={240}
                 align="start"
@@ -240,10 +225,21 @@ export function ViewTabs({
                   </>
                 )}
               </InlinePicker>
-            </span>
-          </Chip>
+            }
+          >
+            {view.name}
+            {view.visibility !== "PRIVATE" && (
+              <Icon
+                icon="lucide:users"
+                width={12}
+                className={styles.shared}
+                aria-label={t("views.shared")}
+              />
+            )}
+            {active && dirty && <span className={styles.dirty} />}
+          </Tab>
         );
       })}
-    </nav>
+    </Tabs>
   );
 }

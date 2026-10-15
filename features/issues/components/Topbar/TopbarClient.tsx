@@ -1,6 +1,5 @@
 "use client";
 
-import { Icon } from "@iconify/react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
@@ -14,7 +13,6 @@ import {
   type ViewTab,
   ViewTabs,
 } from "@/features/views/components/ViewTabs/ViewTabs";
-import { viewIconOf } from "@/features/views/icons";
 import type { ViewLayout } from "@/features/views/schema";
 import { pickViewState, sameViewState } from "@/features/views/url";
 import type {
@@ -144,14 +142,14 @@ export function TopbarClient({
   // project itself already appears in the sidebar and the tab. For "my
   // issues" it says whose issues these are: that's the actual information
   // here, with the view shown as a switcher next to it.
-  // On a saved view's page the title is the view.
+  // The open saved view is marked by its tab next to the title (BARY-177);
+  // the title itself says board or list.
   const title =
-    activeView?.name ??
-    (area === "my"
+    area === "my"
       ? t("nav.myIssues")
       : view === "list"
         ? t("nav.issues")
-        : t("nav.board"));
+        : t("nav.board");
 
   // "Unsaved": the address no longer shows the view's stored state.
   const dirty =
@@ -166,18 +164,19 @@ export function TopbarClient({
       className={`${styles.header}${isPending ? ` ${styles.pending}` : ""}`}
     >
       <div className={styles.titleRow}>
-        <h1 className={styles.title}>
-          {activeView && (
-            <Icon
-              icon={viewIconOf(activeView)}
-              width={16}
-              className={styles.titleIcon}
-              style={activeView.color ? { color: activeView.color } : undefined}
-            />
-          )}
-          {title}
-        </h1>
+        <h1 className={styles.title}>{title}</h1>
         <Badge className={styles.count}>{count}</Badge>
+        {views && (
+          <ViewTabs
+            workspaceId={workspaceId}
+            projectId={views.projectId}
+            projectSlug={views.projectSlug}
+            canShare={views.canShare}
+            views={views.tabs}
+            activeId={activeView?.id ?? null}
+            dirty={dirty}
+          />
+        )}
 
         <div className={styles.trailing}>
           {/* Not on a tablet or phone (CSS). */}
@@ -201,18 +200,6 @@ export function TopbarClient({
           </div>
         </div>
       </div>
-
-      {views && (
-        <ViewTabs
-          workspaceId={workspaceId}
-          projectId={views.projectId}
-          projectSlug={views.projectSlug}
-          canShare={views.canShare}
-          views={views.tabs}
-          activeId={activeView?.id ?? null}
-          dirty={dirty}
-        />
-      )}
 
       <div className={styles.filterRow}>
         {/* Desktop: one chip per filter. Tablet and phone: the same filters
