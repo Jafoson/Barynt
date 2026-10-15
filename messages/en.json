@@ -186,7 +186,9 @@
     "showSubIssues": "Show sub-issues",
     "reset": "Reset",
     "resetOrder": "Reset order",
-    "moveGroup": "Move “{group}” (Alt+↑/↓)"
+    "moveGroup": "Move “{group}” (Alt+↑/↓)",
+    "moveUp": "Move “{group}” up",
+    "moveDown": "Move “{group}” down"
   },
   "settings": {
     "title": "Settings",

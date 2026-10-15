@@ -186,7 +186,9 @@
     "showSubIssues": "Unteraufgaben anzeigen",
     "reset": "Zurücksetzen",
     "resetOrder": "Reihenfolge zurücksetzen",
-    "moveGroup": "„{group}“ verschieben (Alt+↑/↓)"
+    "moveGroup": "„{group}“ verschieben (Alt+↑/↓)",
+    "moveUp": "„{group}“ nach oben",
+    "moveDown": "„{group}“ nach unten"
   },
   "settings": {
     "title": "Einstellungen",

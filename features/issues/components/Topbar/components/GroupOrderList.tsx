@@ -41,19 +41,25 @@ export function GroupOrderList({
     place: "before" | "after";
   } | null>(null);
 
-  const move = (group: GroupDef, by: -1 | 1) => {
+  /** One step up or down. `from` is the arrow that did it, if one did —
+   *  the keyboard then stays on that arrow, otherwise on the checkbox. */
+  const move = (group: GroupDef, by: -1 | 1, from?: "up" | "down") => {
     const index = groups.indexOf(group);
     const neighbour = groups[index + by];
     if (!neighbour) return;
     onReorder(moveGroup(groups, group, neighbour, by < 0 ? "before" : "after"));
     // The row moved in the DOM — keep the keyboard on it.
-    requestAnimationFrame(() =>
-      listRef.current
+    requestAnimationFrame(() => {
+      const row = listRef.current
         ?.querySelector<HTMLElement>(
           `[data-group-row="${CSS.escape(group.id)}"]`,
         )
-        ?.focus(),
-    );
+        ?.closest("li");
+      const arrows = row?.querySelectorAll<HTMLButtonElement>("button");
+      const arrow = from === "up" ? arrows?.[0] : arrows?.[1];
+      if (from && arrow && !arrow.disabled) arrow.focus();
+      else row?.querySelector<HTMLElement>("[data-group-row]")?.focus();
+    });
   };
 
   const end = () => {
@@ -64,7 +70,7 @@ export function GroupOrderList({
   return (
     <>
       <ul ref={listRef} className={styles.orderList}>
-        {groups.map((group) => {
+        {groups.map((group, index) => {
           const hidden = isHidden(group);
           return (
             <li
@@ -147,6 +153,29 @@ export function GroupOrderList({
                 <GroupIcon group={group} size={15} />
                 <span className={styles.orderLabel}>{group.label}</span>
               </label>
+              {/* Swap with the neighbour — the way that needs no dragging. */}
+              <span className={styles.orderArrows}>
+                <button
+                  type="button"
+                  className={styles.orderArrow}
+                  disabled={index === 0}
+                  aria-label={t("display.moveUp", { group: group.label })}
+                  title={t("display.moveUp", { group: group.label })}
+                  onClick={() => move(group, -1, "up")}
+                >
+                  <Icon icon="lucide:chevron-up" width={14} />
+                </button>
+                <button
+                  type="button"
+                  className={styles.orderArrow}
+                  disabled={index === groups.length - 1}
+                  aria-label={t("display.moveDown", { group: group.label })}
+                  title={t("display.moveDown", { group: group.label })}
+                  onClick={() => move(group, 1, "down")}
+                >
+                  <Icon icon="lucide:chevron-down" width={14} />
+                </button>
+              </span>
             </li>
           );
         })}

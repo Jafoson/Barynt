@@ -117,6 +117,14 @@ describe("DisplayPanel", () => {
     expect(html.match(/type="checkbox"[^>]*checked=""/g)).toHaveLength(2);
   });
 
+  it("offers up/down arrows, none past the ends (BARY-165)", () => {
+    const html = render({ facet: "groups" });
+    expect(html.match(/display\.moveUp/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(html.match(/display\.moveDown/g)?.length).toBeGreaterThanOrEqual(3);
+    // First row can't go up, last can't go down.
+    expect(html.match(/<button[^>]*disabled=""/g)).toHaveLength(2);
+  });
+
   it("lists the groups in their own order, with a way back (BARY-165)", () => {
     const plain = render({ facet: "groups" });
     expect(plain.indexOf("Todo")).toBeLessThan(plain.indexOf("Canceled"));

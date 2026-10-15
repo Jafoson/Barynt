@@ -367,6 +367,46 @@
   }
 }
 
+/* Up/down at the right edge — reordering without dragging. */
+.orderArrows {
+  display: flex;
+  flex: none;
+  gap: 0.125rem;
+}
+
+.orderArrow {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  @include bp.coarse {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+}
+
 .orderLabel {
   overflow: hidden;
   text-overflow: ellipsis;
