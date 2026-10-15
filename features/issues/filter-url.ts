@@ -16,6 +16,9 @@
 //   or=priority.gte:high;dueDate.within:next_7_days|label:bug
 //                               OR groups: rules `key:values` joined by `;`,
 //                               groups joined by `|`
+//   or=assignee:@me~dueDate.within:overdue;priority:urgent
+//                               an alternative of several rules that must
+//                               all hold: joined by `~`
 //
 // `@me` is whoever looks, `_none` "not set" inside a list. Values are slugs
 // (priority key, user handle, label/project slug) — readable links that
@@ -28,6 +31,7 @@
 import {
   FILTER_FIELD_KEYS,
   FILTER_FIELDS,
+  type FilterAll,
   type FilterField,
   type FilterGroup,
   type FilterOp,
@@ -35,7 +39,9 @@ import {
   type IssueFilter,
   isGroup,
   ME,
+  mapGroupRules,
   NONE_VALUE,
+  rulesOf,
 } from "./filter";
 
 /** URL suffix per operator — `any` has none. */
@@ -149,13 +155,23 @@ export function parseFilterParams(
       continue;
     }
     if (key === "or") {
+      const rulesOfPart = (part: string) => {
+        const at = part.indexOf(":");
+        return at === -1
+          ? rulesFromEntry(part, "1")
+          : rulesFromEntry(part.slice(0, at), part.slice(at + 1));
+      };
       for (const group of raw.split("|")) {
-        const inner = group.split(";").flatMap((part) => {
-          const at = part.indexOf(":");
-          return at === -1
-            ? rulesFromEntry(part, "1")
-            : rulesFromEntry(part.slice(0, at), part.slice(at + 1));
-        });
+        const inner = group
+          .split(";")
+          .flatMap((alternative): (FilterRule | FilterAll)[] => {
+            const parts = alternative.split("~");
+            // One rule: as before — a bucket list still OR-s its buckets.
+            if (parts.length === 1) return rulesOfPart(parts[0]);
+            const all = parts.flatMap(rulesOfPart);
+            if (!all.length) return [];
+            return all.length === 1 ? all : [{ op: "and", rules: all }];
+          });
         if (inner.length) rules.push({ op: "or", rules: inner });
       }
       continue;
@@ -203,11 +219,8 @@ export function mapFilterValues(
       const rule = mapRule(node);
       return rule ? [rule] : [];
     }
-    const inner = node.rules.flatMap((r) => {
-      const rule = mapRule(r);
-      return rule ? [rule] : [];
-    });
-    return inner.length ? [{ op: "or", rules: inner }] : [];
+    const group = mapGroupRules(node, mapRule);
+    return group ? [group] : [];
   });
   return { op: "and", rules };
 }
@@ -231,7 +244,7 @@ export function slugsByField(
     }
   };
   for (const node of filter.rules) {
-    if (isGroup(node)) node.rules.forEach(visit);
+    if (isGroup(node)) node.rules.flatMap(rulesOf).forEach(visit);
     else visit(node);
   }
   return Object.fromEntries(
@@ -252,7 +265,8 @@ function keyOf(rule: FilterRule): string {
 
 /** The OR group as the chip's due-date buckets, if that's all it is. */
 function bucketsOf(group: FilterGroup): string[] | null {
-  const buckets = group.rules.map(dueBucketOf);
+  if (group.rules.some((m) => "op" in m)) return null;
+  const buckets = (group.rules as FilterRule[]).map(dueBucketOf);
   return buckets.every((b) => b !== null) ? (buckets as string[]) : null;
 }
 
@@ -266,8 +280,9 @@ export function filterToParams(filter: IssueFilter): [string, string][] {
   const out: [string, string][] = [];
   const used = new Set<string>();
   const groups: string[] = [];
-  const encodeGroup = (rules: FilterRule[]) =>
-    rules.map((r) => `${keyOf(r)}:${encodeValue(r)}`).join(";");
+  const encodeRule = (r: FilterRule) => `${keyOf(r)}:${encodeValue(r)}`;
+  const encodeGroup = (members: (FilterRule | FilterAll)[]) =>
+    members.map((m) => rulesOf(m).map(encodeRule).join("~")).join(";");
 
   for (const node of filter.rules) {
     if (isGroup(node)) {

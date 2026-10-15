@@ -116,9 +116,16 @@ export interface FilterRule {
   value?: FilterValue;
 }
 
+/** Rules that must all hold — one alternative inside an OR group:
+ *  "(assignee is me AND overdue) OR urgent" (BARY-166). */
+export interface FilterAll {
+  op: "and";
+  rules: FilterRule[];
+}
+
 export interface FilterGroup {
   op: "or";
-  rules: FilterRule[];
+  rules: (FilterRule | FilterAll)[];
 }
 
 export interface IssueFilter {
@@ -130,6 +137,31 @@ export const EMPTY_FILTER: IssueFilter = { op: "and", rules: [] };
 
 export function isGroup(node: FilterRule | FilterGroup): node is FilterGroup {
   return "op" in node;
+}
+
+/** The rules of one alternative of an OR group. */
+export function rulesOf(member: FilterRule | FilterAll): FilterRule[] {
+  return "op" in member ? member.rules : [member];
+}
+
+/**
+ * An OR group with every rule passed through `map` — `null` drops the rule.
+ * An alternative that loses all its rules drops out, one left with a single
+ * rule becomes that rule; `null` when nothing is left.
+ */
+export function mapGroupRules(
+  group: FilterGroup,
+  map: (rule: FilterRule) => FilterRule | null,
+): FilterGroup | null {
+  const members = group.rules.flatMap((member): (FilterRule | FilterAll)[] => {
+    const kept = rulesOf(member).flatMap((r) => {
+      const out = map(r);
+      return out ? [out] : [];
+    });
+    if (!kept.length) return [];
+    return kept.length === 1 ? [kept[0]] : [{ op: "and", rules: kept }];
+  });
+  return members.length ? { op: "or", rules: members } : null;
 }
 
 /**
@@ -221,8 +253,15 @@ const ruleSchema = z
     }
   });
 
+const allSchema = z
+  .object({ op: z.literal("and"), rules: z.array(ruleSchema).min(1).max(50) })
+  .strict();
+
 const groupSchema = z
-  .object({ op: z.literal("or"), rules: z.array(ruleSchema).max(50) })
+  .object({
+    op: z.literal("or"),
+    rules: z.array(z.union([allSchema, ruleSchema])).max(50),
+  })
   .strict();
 
 /** Validates a filter before it's stored (saved views, V3) or taken from an
@@ -282,11 +321,8 @@ export function pruneMissingRefs(
       const rule = pruneRule(node);
       return rule ? [rule] : [];
     }
-    const inner = node.rules.flatMap((r) => {
-      const rule = pruneRule(r);
-      return rule ? [rule] : [];
-    });
-    return inner.length ? [{ op: "or", rules: inner }] : [];
+    const group = mapGroupRules(node, pruneRule);
+    return group ? [group] : [];
   });
 
   return { filter: { op: "and", rules }, missing };

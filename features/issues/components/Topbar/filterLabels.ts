@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import {
+  type FilterAll,
   type FilterField,
   type FilterGroup,
   type FilterOp,
@@ -10,6 +11,7 @@ import {
   ME,
   NONE_VALUE,
   type RelativeDate,
+  rulesOf,
 } from "@/features/issues/filter";
 import { fullName } from "@/lib/utils/string";
 import type {
@@ -198,9 +200,15 @@ export function useFilterLabels(lookups: FilterLabelLookups) {
     return `${head} ${values.map((v) => value(r.field, v)).join(", ")}`;
   };
 
+  /** One alternative of an OR group: a rule, or rules joined by "and". */
+  const member = (m: FilterRule | FilterAll): string =>
+    rulesOf(m)
+      .map(rule)
+      .join(` ${t("filters.and")} `);
+
   /** A rule or a whole OR group in one line. */
   const node = (n: FilterRule | FilterGroup): string =>
-    isGroup(n) ? n.rules.map(rule).join(` ${t("filters.or")} `) : rule(n);
+    isGroup(n) ? n.rules.map(member).join(` ${t("filters.or")} `) : rule(n);
 
-  return { field, op, value, relative, rule, node };
+  return { field, op, value, relative, rule, member, node };
 }

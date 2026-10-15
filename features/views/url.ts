@@ -126,13 +126,19 @@ function filterSignature(source: ParamSource): string {
     Array.isArray(rule.value)
       ? { ...rule, value: [...rule.value].map(String).sort() }
       : rule;
+  const byJson = (x: unknown, y: unknown) =>
+    JSON.stringify(x).localeCompare(JSON.stringify(y));
   const rules = tree.rules.map((node) =>
     "op" in node
       ? {
           op: node.op,
           rules: node.rules
-            .map(sortValue)
-            .sort((x, y) => JSON.stringify(x).localeCompare(JSON.stringify(y))),
+            .map((m) =>
+              "op" in m
+                ? { op: m.op, rules: m.rules.map(sortValue).sort(byJson) }
+                : sortValue(m),
+            )
+            .sort(byJson),
         }
       : sortValue(node),
   );

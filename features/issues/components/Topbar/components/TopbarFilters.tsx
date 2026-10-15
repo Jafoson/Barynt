@@ -188,12 +188,12 @@ export function TopbarFilters({
           removeLabel={t("filters.removeRule", { rule: labelsOf.node(node) })}
         >
           {"op" in node
-            ? node.rules.map((rule, i) => (
-                <span key={`${i}:${labelsOf.rule(rule)}`}>
+            ? node.rules.map((member, i) => (
+                <span key={`${i}:${labelsOf.member(member)}`}>
                   {i > 0 && (
                     <span className={styles.orPill}>{t("filters.or")}</span>
                   )}
-                  {labelsOf.rule(rule)}
+                  {labelsOf.member(member)}
                 </span>
               ))
             : labelsOf.rule(node)}

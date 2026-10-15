@@ -179,3 +179,56 @@ describe("schema", () => {
     expect(parseIssueFilter(filter)).toEqual(filter);
   });
 });
+
+describe("alternatives of several rules (BARY-166)", () => {
+  const query = "or=assignee:@me~dueDate.within:overdue;priority:urgent";
+
+  it("reads `~` as rules that must all hold", () => {
+    expect(parseFilterParams(new URLSearchParams(query)).rules).toEqual([
+      {
+        op: "or",
+        rules: [
+          {
+            op: "and",
+            rules: [
+              { field: "assignee", is: "any", value: ["@me"] },
+              { field: "dueDate", is: "within", value: "overdue" },
+            ],
+          },
+          { field: "priority", is: "any", value: ["urgent"] },
+        ],
+      },
+    ]);
+  });
+
+  it("survives the round trip through ids", () => {
+    expect(decodeURIComponent(roundTrip(query))).toBe(query);
+  });
+
+  it("is a valid stored filter", () => {
+    const tree = mapFilterValues(
+      parseFilterParams(new URLSearchParams(query)),
+      slugToId(lookups),
+    );
+    expect(tree.rules).toHaveLength(1);
+    expect(parseIssueFilter(tree)).toEqual(tree);
+  });
+
+  it("drops an alternative whose values are all gone", () => {
+    const tree = mapFilterValues(
+      parseFilterParams(
+        new URLSearchParams("or=label:gone~priority:high;priority:urgent"),
+      ),
+      slugToId(lookups),
+    );
+    expect(tree.rules).toEqual([
+      {
+        op: "or",
+        rules: [
+          { field: "priority", is: "any", value: [3] },
+          { field: "priority", is: "any", value: [4] },
+        ],
+      },
+    ]);
+  });
+});

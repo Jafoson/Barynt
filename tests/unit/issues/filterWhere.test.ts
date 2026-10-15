@@ -50,6 +50,38 @@ describe("toIssueWhere", () => {
     });
   });
 
+  it("ANDs the rules of one alternative inside a group", async () => {
+    expect(
+      await where({
+        op: "and",
+        rules: [
+          {
+            op: "or",
+            rules: [
+              {
+                op: "and",
+                rules: [
+                  { field: "status", is: "any", value: ["todo"] },
+                  { field: "priority", is: "gte", value: 3 },
+                ],
+              },
+              { field: "label", is: "empty" },
+            ],
+          },
+        ],
+      }),
+    ).toEqual({
+      AND: [
+        {
+          OR: [
+            { AND: [{ status: { in: ["todo"] } }, { priority: { gte: 3 } }] },
+            { labels: { isEmpty: true } },
+          ],
+        },
+      ],
+    });
+  });
+
   it("drops a rule without values instead of matching nothing", async () => {
     expect(await one({ field: "label", is: "any", value: [] })).toEqual({});
   });

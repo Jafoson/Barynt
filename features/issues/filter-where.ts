@@ -1,6 +1,7 @@
 import type { Prisma } from "@/lib/generated/prisma/client";
 import type { StatusCategory } from "@/lib/status-category";
 import {
+  type FilterAll,
   type FilterGroup,
   type FilterRule,
   type IssueFilter,
@@ -8,6 +9,7 @@ import {
   ME,
   NONE_VALUE,
   type RelativeDate,
+  rulesOf,
 } from "./filter";
 
 type Where = Prisma.IssueWhereInput;
@@ -280,9 +282,19 @@ async function groupWhere(
   group: FilterGroup,
   ctx: FilterContext,
 ): Promise<Where | null> {
-  const parts = (
-    await Promise.all(group.rules.map((r) => ruleWhere(r, ctx)))
-  ).filter((w): w is Where => w !== null);
+  // An alternative is one rule or several that must all hold.
+  const alternative = async (
+    member: FilterRule | FilterAll,
+  ): Promise<Where | null> => {
+    const all = (
+      await Promise.all(rulesOf(member).map((r) => ruleWhere(r, ctx)))
+    ).filter((w): w is Where => w !== null);
+    if (!all.length) return null;
+    return all.length === 1 ? all[0] : { AND: all };
+  };
+  const parts = (await Promise.all(group.rules.map(alternative))).filter(
+    (w): w is Where => w !== null,
+  );
   if (!parts.length) return null;
   return parts.length === 1 ? parts[0] : { OR: parts };
 }

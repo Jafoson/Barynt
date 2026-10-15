@@ -2,12 +2,10 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
-import { NativeSelect } from "@/components/ui/atoms/NativeSelect/NativeSelect";
-import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import {
   type ISelectItem,
   SelectMenu,
@@ -20,7 +18,6 @@ import {
 } from "@/features/issues/components/IssueIcons/IssueIcons";
 import {
   type FilterField,
-  type FilterGroup,
   type FilterOp,
   type FilterRule,
   type IssueFilter,
@@ -38,9 +35,8 @@ import {
   RELATIVE_OPTIONS,
   useFilterLabels,
 } from "../filterLabels";
+import { fromAlternatives, toAlternatives } from "../filterModel";
 import styles from "./filterEditor.module.scss";
-
-type Node = FilterRule | FilterGroup;
 
 interface FilterEditorProps {
   /** The current filter, ids — search text included, which stays as is. */
@@ -51,8 +47,7 @@ interface FilterEditorProps {
   area: "project" | "my";
   onDone: () => void;
   /** Inside the phone's filter sheet: no footer — "remove all" sits in the
-   *  sheet's bar and its back button is "done" — and a layout for a narrow,
-   *  touch screen. */
+   *  sheet's bar and its back button is "done" — and touch-sized controls. */
   inSheet?: boolean;
 }
 
@@ -70,10 +65,12 @@ const relativeFor = (field: FilterField) =>
     : RELATIVE_OPTIONS.filter((r) => r !== "overdue" && r !== "next_7_days");
 
 /**
- * The advanced filter (BARY-166): the whole tree as conditions — field,
- * operator, value — with one sentence on top saying how they combine ("all"
- * or "at least one"), UND/ODER plaques between them, and groups ("one of
- * these is enough") only for mixing both. Every change applies at once.
+ * The advanced filter (BARY-166): one list of conditions — field, operator,
+ * values — with a switch between every two: UND or ODER. UND binds tighter,
+ * so what's joined by UND belongs together and an ODER starts the next
+ * alternative: "(me UND overdue) ODER urgent". With more than one
+ * alternative each gets a bar of its own color along its side. Every
+ * change applies at once.
  */
 export function FilterEditor({
   filter,
@@ -86,14 +83,13 @@ export function FilterEditor({
   const t = useTranslations();
   const labels = useFilterLabels(lookups);
 
-  const text = filter.rules.filter((n) => !isGroup(n) && n.field === "text");
+  const text = filter.rules.filter(
+    (n): n is FilterRule => !isGroup(n) && n.field === "text",
+  );
   // The editor's own copy — a condition just added has no value yet and
   // wouldn't survive the round trip through the URL.
-  const [nodes, setNodes] = useState<Node[]>(() =>
-    filter.rules.filter((n) => isGroup(n) || n.field !== "text"),
-  );
-  const [anyMode, setAnyMode] = useState(
-    () => nodes.length === 1 && isGroup(nodes[0]),
+  const [alts, setAlts] = useState<FilterRule[][]>(() =>
+    toAlternatives(filter),
   );
 
   // Stable keys across edits: a replaced rule inherits its predecessor's
@@ -112,9 +108,10 @@ export function FilterEditor({
     return to;
   };
 
-  const emit = (next: Node[]) => {
-    setNodes(next);
-    onChange({ op: "and", rules: [...next, ...text] });
+  const emit = (next: FilterRule[][]) => {
+    const kept = next.filter((alt) => alt.length > 0);
+    setAlts(kept);
+    onChange(fromAlternatives(kept, text));
   };
 
   const fields = EDITOR_FIELDS.filter((f) => f !== "project" || area === "my");
@@ -214,204 +211,98 @@ export function FilterEditor({
     return value === undefined ? { field, is } : { field, is, value };
   };
 
-  // ── Reading and writing what's shown ──
+  // ── Editing the list ──
 
-  const anyRules: FilterRule[] =
-    anyMode && nodes[0] && isGroup(nodes[0]) ? nodes[0].rules : [];
-  const hasGroups = nodes.some(isGroup);
-
-  const setAnyRules = (rules: FilterRule[]) =>
+  const setRule = (a: number, r: number, next: FilterRule) =>
     emit(
-      rules.length
-        ? [
-            nodes[0] && isGroup(nodes[0])
-              ? inherit(nodes[0], { op: "or" as const, rules })
-              : { op: "or" as const, rules },
-          ]
-        : [],
+      alts.map((alt, i) =>
+        i === a
+          ? alt.map((rule, j) => (j === r ? inherit(rule, next) : rule))
+          : alt,
+      ),
     );
 
-  const switchMode = (toAny: boolean) => {
-    if (toAny === anyMode) return;
-    setAnyMode(toAny);
-    if (toAny) {
-      const rules = nodes.filter((n): n is FilterRule => !isGroup(n));
-      emit(rules.length ? [{ op: "or", rules }] : []);
-    } else emit(anyRules);
+  const removeRule = (a: number, r: number) =>
+    emit(alts.map((alt, i) => (i === a ? alt.filter((_, j) => j !== r) : alt)));
+
+  /** The switch after rule `r` of alternative `a`: ODER splits the
+   *  alternative there, UND (on its last rule) joins it with the next. */
+  const setLink = (a: number, r: number, or: boolean) => {
+    const alt = alts[a];
+    const last = r === alt.length - 1;
+    if (or && !last)
+      emit([
+        ...alts.slice(0, a),
+        alt.slice(0, r + 1),
+        alt.slice(r + 1),
+        ...alts.slice(a + 1),
+      ]);
+    else if (!or && last && a + 1 < alts.length)
+      emit([
+        ...alts.slice(0, a),
+        [...alt, ...alts[a + 1]],
+        ...alts.slice(a + 2),
+      ]);
   };
 
-  const ruleRow = (
-    rule: FilterRule,
-    onRule: (next: FilterRule) => void,
-    onRemove: () => void,
-  ) => (
-    <ConditionRow
-      rule={rule}
-      fields={fields}
-      labels={labels}
-      options={options}
-      defaultValue={defaultValue}
-      onChange={onRule}
-      onRemove={onRemove}
-    />
-  );
+  const addRule = () =>
+    emit(
+      alts.length
+        ? [...alts.slice(0, -1), [...alts[alts.length - 1], newRule()]]
+        : [[newRule()]],
+    );
 
-  const Link = ({ kind }: { kind: "and" | "or" }) => (
-    <div className={styles.link}>
-      <span className={styles.pill} data-kind={kind}>
-        {kind === "and" ? t("filters.and") : t("filters.or")}
-      </span>
-    </div>
-  );
+  const count = alts.reduce((n, alt) => n + alt.length, 0);
 
   return (
     <div className={styles.editor} data-sheet={inSheet || undefined}>
-      <div className={styles.mode}>
-        <span>{t("filters.modeIntro")}</span>
-        <SegmentedControl
-          variant="surface"
-          value={anyMode ? "any" : "all"}
-          onChange={(v) => switchMode(v === "any")}
-          items={[
-            { value: "all", label: t("filters.modeAll") },
-            { value: "any", label: t("filters.modeAny") },
-          ]}
-        />
-        <span>{t("filters.modeOutro")}</span>
-      </div>
-      {!anyMode && hasGroups && (
-        <p className={styles.hint}>{t("filters.modeGroupsHint")}</p>
+      {count > 1 && <p className={styles.hint}>{t("filters.linkHint")}</p>}
+
+      {count === 0 ? (
+        <p className={styles.empty}>{t("filters.empty")}</p>
+      ) : (
+        <div className={styles.list}>
+          {alts.map((alt, a) => (
+            <Fragment key={keyOf(alt[0])}>
+              {a > 0 && (
+                <LinkSwitch
+                  or
+                  onChange={(or) => setLink(a - 1, alts[a - 1].length - 1, or)}
+                />
+              )}
+              <div
+                className={styles.alternative}
+                data-bar={alts.length > 1 ? a % 2 : undefined}
+              >
+                {alt.map((rule, r) => (
+                  <Fragment key={keyOf(rule)}>
+                    {r > 0 && (
+                      <LinkSwitch
+                        or={false}
+                        onChange={(or) => setLink(a, r - 1, or)}
+                      />
+                    )}
+                    <ConditionCard
+                      rule={rule}
+                      fields={fields}
+                      labels={labels}
+                      options={options}
+                      defaultValue={defaultValue}
+                      onChange={(next) => setRule(a, r, next)}
+                      onRemove={() => removeRule(a, r)}
+                    />
+                  </Fragment>
+                ))}
+              </div>
+            </Fragment>
+          ))}
+        </div>
       )}
 
-      <div className={styles.list}>
-        {anyMode ? (
-          anyRules.length === 0 ? (
-            <p className={styles.empty}>{t("filters.empty")}</p>
-          ) : (
-            anyRules.map((rule, i) => (
-              <div key={keyOf(rule)}>
-                {i > 0 && <Link kind="or" />}
-                {ruleRow(
-                  rule,
-                  (next) =>
-                    setAnyRules(
-                      anyRules.map((r, j) => (j === i ? inherit(r, next) : r)),
-                    ),
-                  () => setAnyRules(anyRules.filter((_, j) => j !== i)),
-                )}
-              </div>
-            ))
-          )
-        ) : nodes.length === 0 ? (
-          <p className={styles.empty}>{t("filters.empty")}</p>
-        ) : (
-          nodes.map((node, i) => (
-            <div key={keyOf(node)}>
-              {i > 0 && <Link kind="and" />}
-              {isGroup(node) ? (
-                <div className={styles.group}>
-                  <div className={styles.groupHead}>
-                    {t("filters.groupTitle")}
-                  </div>
-                  {node.rules.map((rule, j) => (
-                    <div key={keyOf(rule)}>
-                      {j > 0 && <Link kind="or" />}
-                      {ruleRow(
-                        rule,
-                        (next) =>
-                          emit(
-                            nodes.map((n, k) =>
-                              k === i
-                                ? inherit(node, {
-                                    op: "or" as const,
-                                    rules: node.rules.map((r, m) =>
-                                      m === j ? inherit(r, next) : r,
-                                    ),
-                                  })
-                                : n,
-                            ),
-                          ),
-                        () => {
-                          const rest = node.rules.filter((_, m) => m !== j);
-                          emit(
-                            rest.length
-                              ? nodes.map((n, k) =>
-                                  k === i
-                                    ? inherit(node, {
-                                        op: "or" as const,
-                                        rules: rest,
-                                      })
-                                    : n,
-                                )
-                              : nodes.filter((_, k) => k !== i),
-                          );
-                        },
-                      )}
-                    </div>
-                  ))}
-                  <div className={styles.adds}>
-                    <button
-                      type="button"
-                      className={styles.add}
-                      data-kind="or"
-                      onClick={() =>
-                        emit(
-                          nodes.map((n, k) =>
-                            k === i
-                              ? inherit(node, {
-                                  op: "or" as const,
-                                  rules: [...node.rules, newRule()],
-                                })
-                              : n,
-                          ),
-                        )
-                      }
-                    >
-                      <Icon icon="lucide:plus" width={13} />
-                      {t("filters.addAlternative")}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                ruleRow(
-                  node,
-                  (next) =>
-                    emit(nodes.map((n, k) => (k === i ? inherit(n, next) : n))),
-                  () => emit(nodes.filter((_, k) => k !== i)),
-                )
-              )}
-            </div>
-          ))
-        )}
-      </div>
-
-      <div className={styles.adds}>
-        <button
-          type="button"
-          className={styles.add}
-          onClick={() =>
-            anyMode
-              ? setAnyRules([...anyRules, newRule()])
-              : emit([...nodes, newRule()])
-          }
-        >
-          <Icon icon="lucide:plus" width={13} />
-          {t("filters.addCondition")}
-        </button>
-        {!anyMode && (
-          <button
-            type="button"
-            className={styles.add}
-            data-kind="or"
-            onClick={() =>
-              emit([...nodes, { op: "or", rules: [newRule("priority")] }])
-            }
-          >
-            <Icon icon="lucide:plus" width={13} />
-            {t("filters.addGroup")}
-          </button>
-        )}
-      </div>
+      <button type="button" className={styles.add} onClick={addRule}>
+        <Icon icon="lucide:plus" width={13} />
+        {t("filters.addCondition")}
+      </button>
 
       {!inSheet && (
         <div className={styles.footer}>
@@ -419,7 +310,7 @@ export function FilterEditor({
             variant="ghost"
             size="sm"
             className={styles.removeAll}
-            disabled={nodes.length === 0}
+            disabled={count === 0}
             onClick={() => emit([])}
           >
             {t("filters.removeAll")}
@@ -433,9 +324,72 @@ export function FilterEditor({
   );
 }
 
+/** UND | ODER between two conditions. */
+function LinkSwitch({
+  or,
+  onChange,
+}: {
+  or: boolean;
+  onChange: (or: boolean) => void;
+}) {
+  const t = useTranslations();
+  return (
+    <fieldset className={styles.link} aria-label={t("filters.link")}>
+      <button
+        type="button"
+        aria-pressed={!or}
+        data-kind="and"
+        onClick={() => onChange(false)}
+      >
+        {t("filters.and")}
+      </button>
+      <button
+        type="button"
+        aria-pressed={or}
+        data-kind="or"
+        onClick={() => onChange(true)}
+      >
+        {t("filters.or")}
+      </button>
+    </fieldset>
+  );
+}
+
 // ─── One condition ──────────────────────────────────────────────────────────
 
-function ConditionRow({
+/** A select that reads as a word of the sentence — "Status ▾ ist nicht ▾". */
+function TokenSelect({
+  label,
+  value,
+  items,
+  onChange,
+  tone,
+}: {
+  label: string;
+  value: string;
+  items: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  tone?: "op" | "not";
+}) {
+  return (
+    <span className={styles.token} data-tone={tone}>
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {items.map((item) => (
+          <option key={item.value} value={item.value}>
+            {item.label}
+          </option>
+        ))}
+      </select>
+      <Icon icon="lucide:chevron-down" width={12} aria-hidden="true" />
+    </span>
+  );
+}
+
+function ConditionCard({
   rule,
   fields,
   labels,
@@ -475,44 +429,65 @@ function ConditionRow({
     onChange(make(rule.field, is, keep ?? defaultValue(rule.field, is)));
   };
 
-  let value: React.ReactNode = <span />;
+  let value: React.ReactNode = null;
   if (rule.field === "parent" || needsNoValue(rule.is)) {
-    value = <span />;
+    value = null;
   } else if (isList(rule.is)) {
     const selected = Array.isArray(rule.value) ? rule.value : [];
-    const summary = selected.map((v) => labels.value(rule.field, v)).join(", ");
+    const items = options(rule.field);
+    const toggle = (v: string | number) =>
+      onChange(
+        make(
+          rule.field,
+          rule.is,
+          selected.includes(v)
+            ? selected.filter((x) => x !== v)
+            : [...selected, v],
+        ),
+      );
     value = (
-      <InlinePicker
-        width={260}
-        trigger={
-          <button type="button" className={styles.select}>
-            <span className={summary ? undefined : styles.placeholder}>
-              {summary || t("filters.choose")}
+      <>
+        {selected.map((v) => {
+          const item = items.find((o) => o.value === v);
+          const name = labels.value(rule.field, v);
+          return (
+            <span key={String(v)} className={styles.chip}>
+              {item?.icon}
+              <span>{name}</span>
+              <button
+                type="button"
+                className={styles.chipRemove}
+                aria-label={t("filters.removeValue", { value: name })}
+                onClick={() => toggle(v)}
+              >
+                <Icon icon="lucide:x" width={12} />
+              </button>
             </span>
-            <Icon icon="lucide:chevron-down" width={13} />
-          </button>
-        }
-      >
-        <SelectMenu
-          items={options(rule.field)}
-          value={selected}
-          onPick={(v) => {
-            if (v === null) return;
-            const next = selected.includes(v)
-              ? selected.filter((x) => x !== v)
-              : [...selected, v];
-            onChange(make(rule.field, rule.is, next));
-          }}
-          multi
-          searchable
-        />
-      </InlinePicker>
+          );
+        })}
+        <InlinePicker
+          width={260}
+          trigger={
+            <button type="button" className={styles.addValue}>
+              <Icon icon="lucide:plus" width={13} />
+              {selected.length === 0 && t("filters.pickValue")}
+            </button>
+          }
+        >
+          <SelectMenu
+            items={items}
+            value={selected}
+            onPick={(v) => v !== null && toggle(v)}
+            multi
+            searchable
+          />
+        </InlinePicker>
+      </>
     );
   } else if (rule.is === "gte" || rule.is === "lte") {
     value = (
-      <NativeSelect
+      <TokenSelect
         label={t("filters.value")}
-        className={styles.native}
         value={String(rule.value ?? "")}
         items={options(rule.field)
           .filter((o) => o.value !== ME && o.value !== NONE_VALUE)
@@ -522,9 +497,8 @@ function ConditionRow({
     );
   } else if (rule.is === "within") {
     value = (
-      <NativeSelect
+      <TokenSelect
         label={t("filters.value")}
-        className={styles.native}
         value={String(rule.value ?? "")}
         items={(isDateField(rule.field)
           ? relativeFor(rule.field)
@@ -548,31 +522,35 @@ function ConditionRow({
   }
 
   return (
-    <div className={styles.condition}>
-      <NativeSelect
-        label={t("filters.field")}
-        className={styles.native}
-        value={rule.field}
-        items={fields.map((f) => ({ value: f, label: labels.field(f) }))}
-        onChange={(v) => setField(v as FilterField)}
-      />
-      <NativeSelect
-        label={t("filters.operator")}
-        className={styles.native}
-        value={rule.is}
-        items={ops.map((o) => ({ value: o, label: labels.op(rule.field, o) }))}
-        onChange={(v) => setOp(v as FilterOp)}
-      />
-      <div className={styles.value}>{value}</div>
-      <button
-        type="button"
-        className={styles.remove}
-        aria-label={t("filters.removeCondition")}
-        title={t("filters.removeCondition")}
-        onClick={onRemove}
-      >
-        <Icon icon="lucide:x" width={14} />
-      </button>
+    <div className={styles.card}>
+      <div className={styles.head}>
+        <TokenSelect
+          label={t("filters.field")}
+          value={rule.field}
+          items={fields.map((f) => ({ value: f, label: labels.field(f) }))}
+          onChange={(v) => setField(v as FilterField)}
+        />
+        <TokenSelect
+          label={t("filters.operator")}
+          tone={rule.is === "none" ? "not" : "op"}
+          value={rule.is}
+          items={ops.map((o) => ({
+            value: o,
+            label: labels.op(rule.field, o),
+          }))}
+          onChange={(v) => setOp(v as FilterOp)}
+        />
+        <button
+          type="button"
+          className={styles.remove}
+          aria-label={t("filters.removeCondition")}
+          title={t("filters.removeCondition")}
+          onClick={onRemove}
+        >
+          <Icon icon="lucide:x" width={14} />
+        </button>
+      </div>
+      {value && <div className={styles.values}>{value}</div>}
     </div>
   );
 }
