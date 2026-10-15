@@ -35,6 +35,7 @@ export function PriorityFilter({
       label={label}
       title={value.length > 0 ? chipTitle(name, names) : undefined}
       active={value.length > 0}
+      accent="var(--amber)"
       onClear={onClear}
       width={190}
       icon={

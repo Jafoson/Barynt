@@ -46,6 +46,7 @@ export function ProjectFilter({
       label={label}
       title={value.length > 0 ? chipTitle(name, names) : undefined}
       active={value.length > 0}
+      accent="var(--green)"
       onClear={onClear}
       width={220}
       icon={

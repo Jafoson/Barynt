@@ -38,6 +38,7 @@ export function StatusFilter({
       label={label}
       title={value.length > 0 ? chipTitle(name, names) : undefined}
       active={value.length > 0}
+      accent="var(--primary)"
       onClear={onClear}
       width={200}
       icon={

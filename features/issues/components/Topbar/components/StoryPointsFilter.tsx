@@ -32,6 +32,7 @@ export function StoryPointsFilter({
       label={label}
       title={value.length > 0 ? chipTitle(name, names) : undefined}
       active={value.length > 0}
+      accent="var(--secondary)"
       onClear={onClear}
       width={140}
       icon={

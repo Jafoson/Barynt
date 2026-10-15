@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { Chip } from "@/components/ui/atoms/Chip/Chip";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
+import styles from "./filterChip.module.scss";
 
 interface FilterChipProps {
   /** Field name, used for the clear button's accessible label. */
@@ -12,6 +13,12 @@ interface FilterChipProps {
   label: React.ReactNode;
   /** Tooltip — e.g. the full selection when the label shortens it. */
   title?: string;
+  /**
+   * A CSS color for the outline while active. With it, an active chip sits
+   * on a neutral surface with this outline instead of the chip's own
+   * selected color — so a row of set filters tells them apart by field.
+   */
+  accent?: string;
   icon: React.ReactNode;
   /** Highlights the chip and — together with `onClear` — reveals the clear button. */
   active: boolean;
@@ -39,6 +46,7 @@ export function FilterChip({
   name,
   label,
   title,
+  accent,
   icon,
   active,
   onClear,
@@ -66,6 +74,12 @@ export function FilterChip({
           removeLabel={t("actions.clearFilter", { field: name })}
           data-field-nav={fieldNav || undefined}
           title={title}
+          className={accent && active ? styles.accented : undefined}
+          style={
+            accent && active
+              ? ({ "--filter-accent": accent } as React.CSSProperties)
+              : undefined
+          }
         >
           {label}
         </Chip>

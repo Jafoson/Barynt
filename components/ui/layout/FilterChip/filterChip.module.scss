@@ -1,0 +1,12 @@
+/* An active chip with its own accent (`accent`): a neutral surface and the
+   accent as outline instead of the chip's selected (tertiary) color. Doubled
+   class to outrank the chip's `.selected`. */
+.accented.accented {
+  background: var(--surface-container-high);
+  border-color: var(--filter-accent);
+  color: var(--on-surface);
+
+  &::after {
+    background: var(--on-surface);
+  }
+}

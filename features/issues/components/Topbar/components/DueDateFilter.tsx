@@ -44,6 +44,7 @@ export function DueDateFilter({
       label={label}
       title={value.length > 0 ? chipTitle(name, names) : undefined}
       active={value.length > 0}
+      accent="var(--red)"
       onClear={onClear}
       width={190}
       icon={

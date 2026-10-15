@@ -37,6 +37,7 @@ export function AssigneeFilter({
       label={label}
       title={value.length > 0 ? chipTitle(name, names) : undefined}
       active={value.length > 0}
+      accent="var(--purple)"
       onClear={onClear}
       width={210}
       icon={
