@@ -208,6 +208,12 @@
   white-space: nowrap;
 }
 
+/* "is not" values in a rule chip — crossed out. */
+.notValues {
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--on-surface) 70%, transparent);
+}
+
 /* UND / ODER inside a rule chip — the colors of the editor's boxes. */
 .opPill {
   --pill: var(--primary);

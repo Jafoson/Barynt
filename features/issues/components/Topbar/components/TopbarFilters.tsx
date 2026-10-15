@@ -220,7 +220,19 @@ function NodeLabel({
   nested?: boolean;
 }) {
   const t = useTranslations();
-  if (!("op" in node)) return <>{labelsOf.rule(node)}</>;
+  if (!("op" in node)) {
+    // "is not": said by crossing the values out, not in words.
+    if (node.is === "none" && Array.isArray(node.value))
+      return (
+        <>
+          {labelsOf.field(node.field)} {labelsOf.op(node.field, "any")}{" "}
+          <s className={styles.notValues}>
+            {node.value.map((v) => labelsOf.value(node.field, v)).join(", ")}
+          </s>
+        </>
+      );
+    return <>{labelsOf.rule(node)}</>;
+  }
   return (
     <>
       {nested && "("}
