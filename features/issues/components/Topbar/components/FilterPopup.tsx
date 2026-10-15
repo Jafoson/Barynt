@@ -209,7 +209,7 @@ function FilterSheet({
     showBack: false,
     alwaysSearch: true,
     hideReset: true,
-    hideAdvancedRow: true,
+    advancedButton: true,
     onToggle: (key: FilterKey, value: string | number) => {
       setFilters((current) => {
         const list = current[key] as (string | number)[];
@@ -236,7 +236,6 @@ function FilterSheet({
     },
   };
   const openFacet = buildFacets(panelProps, t).find((f) => f.key === facet);
-  const extras = extraNodes(panelProps.tree).length;
 
   return (
     <Modal variant="sheet" style={swipe.style} {...swipe.handlers}>
@@ -258,21 +257,6 @@ function FilterSheet({
                 disabled: filterCount === 0,
                 onClick: panelProps.onClearAll,
               }
-        }
-        // Reset → Advanced → close (BARY-166): the editor from the bar,
-        // not from a row.
-        extra={
-          facet ? undefined : (
-            <Button
-              variant="elevated"
-              size="sm"
-              icon={<Icon icon="lucide:list-filter" width={14} />}
-              onClick={() => panelProps.onFacetChange("advanced")}
-            >
-              {t("filters.advanced")}
-              {extras > 0 && ` · ${extras}`}
-            </Button>
-          )
         }
         onClose={close}
         closeLabel={t("actions.close")}
@@ -296,8 +280,9 @@ type FilterPanelProps = FilterPopupProps & {
   alwaysSearch?: boolean;
   /** No reset link below the rows — the sheet has it in its bar. */
   hideReset?: boolean;
-  /** No "Advanced" row — the sheet has it in its bar, too. */
-  hideAdvancedRow?: boolean;
+  /** "Advanced" as a full-width button below the rows instead of a row —
+   *  the phone's sheet. */
+  advancedButton?: boolean;
 };
 
 /** The filters that apply here, in order, with their values. */
@@ -527,9 +512,20 @@ function FilterPanel(props: FilterPanelProps) {
         />
       ))}
 
-      {/* Everything else — "is not", OR groups, dates (BARY-166). The
-          phone's sheet has it as a button in its bar instead. */}
-      {!props.hideAdvancedRow && (
+      {/* Everything else — "is not", OR groups, dates (BARY-166). */}
+      {props.advancedButton ? (
+        <div className={styles.advancedFooter}>
+          <Button
+            variant="elevated"
+            full
+            icon={<Icon icon="lucide:list-filter" width={14} />}
+            onClick={() => onFacetChange("advanced")}
+          >
+            {t("filters.advancedSettings")}
+            {extras > 0 && ` · ${extras}`}
+          </Button>
+        </div>
+      ) : (
         <div className={styles.facet}>
           <button
             type="button"

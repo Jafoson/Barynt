@@ -445,3 +445,8 @@
     background: var(--surface-container-high);
   }
 }
+
+/* The phone's "Advanced filter settings" below the filter rows (BARY-166). */
+.advancedFooter {
+  padding-top: 0.75rem;
+}

@@ -16,9 +16,6 @@ interface SheetHeaderProps {
     /** Longer wording for screen readers, when `label` is short. */
     ariaLabel?: string;
   };
-  /** Anything between the text action and the close button — a second
-   *  button, say. */
-  extra?: React.ReactNode;
   onClose: () => void;
   /** Accessible label for the close button — please pass this localized. */
   closeLabel: string;
@@ -37,7 +34,6 @@ export function SheetHeader({
   onBack,
   backLabel,
   action,
-  extra,
   onClose,
   closeLabel,
 }: SheetHeaderProps) {
@@ -68,7 +64,6 @@ export function SheetHeader({
           {action.label}
         </button>
       )}
-      {extra}
       <button
         type="button"
         className={styles.iconButton}

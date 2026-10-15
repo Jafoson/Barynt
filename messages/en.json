@@ -695,6 +695,7 @@
     "notSet": "Not set",
     "advanced": "Advanced",
     "advancedTitle": "Filter",
+    "advancedSettings": "Advanced filter settings",
     "modeIntro": "Show issues where",
     "modeAll": "all",
     "modeAny": "at least one",
