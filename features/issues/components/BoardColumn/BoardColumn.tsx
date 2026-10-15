@@ -47,10 +47,8 @@ interface BoardColumnProps {
   /** Moving the whole column by a handle in its header (BARY-165). */
   columnDrag?: {
     label: string;
-    /** This column is the one being dragged. */
+    /** This column is the one being dragged — drawn as a placeholder. */
     dragging: boolean;
-    /** A dragged column would land on this side of this one. */
-    dropPlace: "before" | "after" | null;
     onStart: (e: React.DragEvent) => void;
     onEnd: () => void;
   };
@@ -117,7 +115,19 @@ export function BoardColumn({
     <div
       className={`${styles.col}${isOver ? ` ${styles.dragOver}` : ""}`}
       data-column-dragging={columnDrag?.dragging || undefined}
-      data-column-drop={columnDrag?.dropPlace ?? undefined}
+      // The whole column grabs it — wherever there's no card (BARY-165). A
+      // card is draggable itself; its drag start bubbles up here and is
+      // left to the card.
+      draggable={columnDrag ? true : undefined}
+      data-column-draggable={columnDrag ? true : undefined}
+      onDragStart={(e) => {
+        if ((e.target as HTMLElement).closest("[data-issue-id]")) return;
+        columnDrag?.onStart(e);
+      }}
+      onDragEnd={(e) => {
+        if ((e.target as HTMLElement).closest("[data-issue-id]")) return;
+        columnDrag?.onEnd();
+      }}
       // Read by `Board` to tell which column the phone's switcher is on and
       // to scroll to one.
       data-group-id={group.id}
@@ -125,7 +135,7 @@ export function BoardColumn({
       onDragLeave={onColumnDragLeave}
       onDrop={onColumnDrop}
     >
-      <div className={styles.colHeader}>
+      <div className={styles.colHeader} title={columnDrag?.label}>
         <GroupIcon group={group} size={16} />
         <span className={styles.colTitle}>{group.label}</span>
         <Badge mono>{issues.length}</Badge>
@@ -140,16 +150,12 @@ export function BoardColumn({
           />
         )}
         {columnDrag && (
-          <span
-            className={styles.columnHandle}
-            draggable
-            title={columnDrag.label}
+          <Icon
+            icon="lucide:grip-vertical"
+            width={14}
+            className={styles.columnGrip}
             aria-hidden="true"
-            onDragStart={columnDrag.onStart}
-            onDragEnd={columnDrag.onEnd}
-          >
-            <Icon icon="lucide:grip-vertical" width={14} />
-          </span>
+          />
         )}
       </div>
 

@@ -141,50 +141,42 @@
 
 /* ── Moving a whole column (BARY-165) ── */
 
-/* The handle in the header — only on hover, only with a mouse (a phone or
-   tablet reorders through the display panel). */
-.columnHandle {
+/* The column is the grip wherever there's no card: grab cursor, and a grip
+   icon in the header on hover as a hint. */
+.col[data-column-draggable] {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.columnGrip {
   display: none;
-  /* Right edge of the header — after the "+", or in its place without one. */
+  flex: none;
+  color: var(--on-surface-variant);
+  /* After the "+", or at the right edge without one. */
   margin-left: auto;
 
   .headerAdd + & {
     margin-left: 0;
   }
 
-  place-items: center;
-  width: 1.375rem;
-  height: 1.375rem;
-  border-radius: var(--radius-sm);
-  color: var(--on-surface-variant);
-  cursor: grab;
-
-  &:hover {
-    background: var(--surface-container-high);
-    color: var(--on-surface);
-  }
-
-  &:active {
-    cursor: grabbing;
-  }
-
   .colHeader:hover & {
     @include bp.desktop {
-      display: grid;
+      display: block;
     }
   }
 }
 
-/* The column on its way somewhere else. */
+/* The dragged column, waiting in the slot it would land in: an empty,
+   dashed frame — the column itself follows the pointer. */
 .col[data-column-dragging] {
-  opacity: 0.45;
-}
+  border: 2px dashed var(--primary);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--primary) 6%, transparent);
 
-/* Where it would land: a bar on that side of the column under the pointer. */
-.col[data-column-drop="before"] {
-  box-shadow: inset 3px 0 0 var(--primary);
-}
-
-.col[data-column-drop="after"] {
-  box-shadow: inset -3px 0 0 var(--primary);
+  & > * {
+    visibility: hidden;
+  }
 }

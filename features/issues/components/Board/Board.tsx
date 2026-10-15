@@ -11,11 +11,7 @@ import {
   groupDefs,
   visibleGroups,
 } from "@/features/issues/group";
-import {
-  groupOrderEntries,
-  moveGroup,
-  orderGroups,
-} from "@/features/issues/group-order";
+import { groupOrderEntries, orderGroups } from "@/features/issues/group-order";
 import { isGroupHidden } from "@/features/issues/hidden-groups";
 import { useIssueOpen } from "@/features/issues/issue-links";
 import type { SortKey } from "@/features/issues/sort";
@@ -71,12 +67,6 @@ interface BoardProps {
     patch: ViewGroupsPatch,
   ) => Promise<{ ok: true } | { error: string }>;
   displayInUrl?: boolean;
-}
-
-/** Which side of the column under the pointer a dragged column lands on. */
-interface ColumnDropTarget {
-  id: string;
-  place: "before" | "after";
 }
 
 export function Board({
@@ -162,7 +152,15 @@ export function Board({
   const storedOrder = groupOrder.join(",");
   // biome-ignore lint/correctness/useExhaustiveDependencies: resync on a new stored order only
   useEffect(() => setOrder(groupOrder), [storedOrder]);
-  const orderedDefs = orderGroups(defs, order);
+  // While a column is dragged (BARY-165) the board shows where it would land:
+  // the other columns move aside live, the dragged one stays as a
+  // placeholder in its new slot. `preview` is that order, by group id.
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string[] | null>(null);
+  const storedDefs = orderGroups(defs, order);
+  const orderedDefs = preview
+    ? preview.flatMap((id) => storedDefs.filter((g) => g.id === id))
+    : storedDefs;
   // Every grouping adds a column per value in use; statuses list all of them,
   // but a status that isn't a workflow column (Canceled) is hidden here until
   // someone turns it on in the display settings (`isGroupHidden`).
@@ -242,10 +240,6 @@ export function Board({
   const searchParams = useSearchParams();
   const [, startOrderTransition] = useTransition();
   const canMoveColumns = displayInUrl || !!onGroupsChange;
-  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
-  const [columnTarget, setColumnTarget] = useState<ColumnDropTarget | null>(
-    null,
-  );
 
   const saveOrder = (next: GroupDef[]) => {
     const entries = groupOrderEntries(next);
@@ -262,35 +256,69 @@ export function Board({
     }
   };
 
-  const endColumnDrag = () => {
-    setDraggedColumn(null);
-    setColumnTarget(null);
+  // A drop commits the preview; a drag that ends anywhere else puts the
+  // columns back.
+  const dropped = useRef(false);
+
+  const startColumnDrag = (group: GroupDef) => (e: React.DragEvent) => {
+    dropped.current = false;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("application/x-barynt-column", group.id);
+    // The whole column follows the pointer, not just the header.
+    const column = (e.currentTarget as HTMLElement).closest<HTMLElement>(
+      "[data-group-id]",
+    );
+    if (column) {
+      const rect = column.getBoundingClientRect();
+      e.dataTransfer.setDragImage(
+        column,
+        e.clientX - rect.left,
+        e.clientY - rect.top,
+      );
+    }
+    // Next frame: the drag image is taken from the column as it is now,
+    // before it turns into the placeholder.
+    const ids = storedDefs.map((g) => g.id);
+    requestAnimationFrame(() => {
+      setDraggedColumn(group.id);
+      setPreview(ids);
+    });
   };
 
-  /** While a column is being dragged, the columns take it instead of cards. */
+  const endColumnDrag = () => {
+    setDraggedColumn(null);
+    setPreview(null);
+  };
+
+  /** While a column is being dragged, the columns take it instead of cards:
+   *  hovering one moves the dragged column to its side — after it when it's
+   *  to the right, before it when it's to the left — so the columns swap
+   *  places as the pointer crosses them. */
   const columnDropHandlers = (group: GroupDef) => ({
     onDragOver: (e: React.DragEvent) => {
       e.preventDefault();
-      const rect = e.currentTarget.getBoundingClientRect();
-      const place = e.clientX < rect.left + rect.width / 2 ? "before" : "after";
-      setColumnTarget((cur) =>
-        cur?.id === group.id && cur.place === place
-          ? cur
-          : { id: group.id, place },
+      if (!draggedColumn || !preview || group.id === draggedColumn) return;
+      const from = preview.indexOf(draggedColumn);
+      const over = preview.indexOf(group.id);
+      if (from === -1 || over === -1) return;
+      const next = preview.filter((id) => id !== draggedColumn);
+      next.splice(
+        next.indexOf(group.id) + (over > from ? 1 : 0),
+        0,
+        draggedColumn,
       );
+      if (next.join(",") !== preview.join(",")) setPreview(next);
     },
-    onDragLeave: (e: React.DragEvent) => {
-      if (!e.currentTarget.contains(e.relatedTarget as Node))
-        setColumnTarget((cur) => (cur?.id === group.id ? null : cur));
-    },
+    onDragLeave: () => {},
     onDrop: (e: React.DragEvent) => {
       e.preventDefault();
-      const moved = orderedDefs.find((g) => g.id === draggedColumn);
-      const target = orderedDefs.find((g) => g.id === group.id);
-      const place = columnTarget?.place ?? "before";
+      dropped.current = true;
+      const next = orderedDefs;
+      const changed =
+        next.map((g) => g.id).join(",") !==
+        storedDefs.map((g) => g.id).join(",");
       endColumnDrag();
-      if (moved && target && moved !== target)
-        saveOrder(moveGroup(orderedDefs, moved, target, place));
+      if (changed) saveOrder(next);
     },
   });
 
@@ -479,20 +507,10 @@ export function Board({
                   ? {
                       label: t("issues.moveColumn", { group: group.label }),
                       dragging: draggedColumn === group.id,
-                      dropPlace:
-                        columnTarget?.id === group.id &&
-                        draggedColumn !== group.id
-                          ? columnTarget.place
-                          : null,
-                      onStart: (e: React.DragEvent) => {
-                        e.dataTransfer.effectAllowed = "move";
-                        e.dataTransfer.setData(
-                          "application/x-barynt-column",
-                          group.id,
-                        );
-                        setDraggedColumn(group.id);
+                      onStart: startColumnDrag(group),
+                      onEnd: () => {
+                        if (!dropped.current) endColumnDrag();
                       },
-                      onEnd: endColumnDrag,
                     }
                   : undefined
               }
