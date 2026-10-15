@@ -55,6 +55,8 @@ interface TopbarFiltersProps {
   onNegate: (key: ChipField, negated: boolean) => void;
   /** Rules and OR groups the chips can't show — a rule chip each. */
   extras: { node: FilterNode; index: number }[];
+  /** The "Advanced" button with its editor — placed before "reset". */
+  advanced?: React.ReactNode;
   /** Removes an extra — or, with a `path`, one part of a group. */
   onRemoveExtra: (index: number, path?: number[]) => void;
   /** A click on a rule chip opens the advanced editor. */
@@ -82,6 +84,7 @@ export function TopbarFilters({
   onNegate,
   extras,
   onRemoveExtra,
+  advanced,
   onOpenEditor,
   onToggle,
   onClear,
@@ -202,6 +205,8 @@ export function TopbarFilters({
             </span>
           </Chip>
         ))}
+
+      {advanced}
 
       {filterCount > 0 && (
         <Button
