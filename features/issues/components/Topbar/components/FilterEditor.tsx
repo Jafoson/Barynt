@@ -222,15 +222,17 @@ export function FilterEditor({
 
   return (
     <div className={styles.editor} data-sheet={inSheet || undefined}>
-      <Box
-        box={root}
-        top
-        card={card}
-        newRule={newRule}
-        keyOf={keyOf}
-        inherit={inherit}
-        onChange={emit}
-      />
+      <div className={styles.scroll}>
+        <Box
+          box={root}
+          top
+          card={card}
+          newRule={newRule}
+          keyOf={keyOf}
+          inherit={inherit}
+          onChange={emit}
+        />
+      </div>
 
       {!inSheet && (
         <div className={styles.footer}>

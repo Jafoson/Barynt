@@ -4,8 +4,21 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  /* Never taller than the screen allows: the boxes scroll, the footer
+     stays put. */
+  max-height: min(42rem, calc(100dvh - 8rem));
   padding: 0.625rem;
   font-size: var(--text-sm);
+}
+
+.scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Room for focus rings at the edges. */
+  margin: -0.25rem;
+  padding: 0.25rem;
 }
 
 .empty {
@@ -284,6 +297,7 @@
 }
 
 .footer {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -307,7 +321,13 @@
    touch height, "add" the whole width. */
 .editor[data-sheet] {
   gap: 0.625rem;
+  /* The sheet scrolls as a whole. */
+  max-height: none;
   padding: 0.25rem 0 0.5rem;
+
+  .scroll {
+    overflow: visible;
+  }
 
   .token > select {
     min-height: 2.5rem;

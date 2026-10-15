@@ -161,7 +161,10 @@ export function FilterPopup(props: FilterPopupProps) {
       onOpenChange={(open) => !open && setFacet(null)}
     >
       {() => (
-        <div className={`${styles.panel} ${styles.scrolling}`}>
+        // The editor scrolls its boxes itself, its buttons stay put.
+        <div
+          className={`${styles.panel}${facet === "advanced" ? "" : ` ${styles.scrolling}`}`}
+        >
           <FilterPanel
             {...props}
             facet={facet}
