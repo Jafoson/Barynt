@@ -28,8 +28,9 @@ interface NewViewButtonProps {
  * hidden then). With filters set it reads "Save as new view": the dialog
  * takes them over.
  *
- * Not on a phone (CSS): there the same action is a choice in the floating
- * plus, which this button registers for as long as it's mounted.
+ * Not on a phone or tablet (CSS, same breakpoint as the floating plus): there
+ * the same action is a choice in the plus, which this button registers for
+ * as long as it's mounted.
  */
 export function NewViewButton({
   workspaceId,

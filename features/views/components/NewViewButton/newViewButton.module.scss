@@ -7,8 +7,9 @@
   flex: none;
   height: var(--control-h);
 
-  /* Phone: offered in the floating plus instead (`NewIssueFabClient`). */
-  @include bp.phone {
+  /* Wherever the floating plus shows (phone and tablet, the same mixin as
+     `newIssueFab.module.scss`), it offers this action instead. */
+  @include bp.tablet-down {
     display: none;
   }
 }
