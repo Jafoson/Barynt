@@ -115,19 +115,6 @@ export function BoardColumn({
     <div
       className={`${styles.col}${isOver ? ` ${styles.dragOver}` : ""}`}
       data-column-dragging={columnDrag?.dragging || undefined}
-      // The whole column grabs it — wherever there's no card (BARY-165). A
-      // card is draggable itself; its drag start bubbles up here and is
-      // left to the card.
-      draggable={columnDrag ? true : undefined}
-      data-column-draggable={columnDrag ? true : undefined}
-      onDragStart={(e) => {
-        if ((e.target as HTMLElement).closest("[data-issue-id]")) return;
-        columnDrag?.onStart(e);
-      }}
-      onDragEnd={(e) => {
-        if ((e.target as HTMLElement).closest("[data-issue-id]")) return;
-        columnDrag?.onEnd();
-      }}
       // Read by `Board` to tell which column the phone's switcher is on and
       // to scroll to one.
       data-group-id={group.id}
@@ -135,7 +122,7 @@ export function BoardColumn({
       onDragLeave={onColumnDragLeave}
       onDrop={onColumnDrop}
     >
-      <div className={styles.colHeader} title={columnDrag?.label}>
+      <div className={styles.colHeader}>
         <GroupIcon group={group} size={16} />
         <span className={styles.colTitle}>{group.label}</span>
         <Badge mono>{issues.length}</Badge>
@@ -150,12 +137,18 @@ export function BoardColumn({
           />
         )}
         {columnDrag && (
-          <Icon
-            icon="lucide:grip-vertical"
-            width={14}
-            className={styles.columnGrip}
+          // The handle grabs the column; while dragging, the whole column
+          // follows the pointer (`Board`, `setDragImage`).
+          <span
+            className={styles.columnHandle}
+            draggable
+            title={columnDrag.label}
             aria-hidden="true"
-          />
+            onDragStart={columnDrag.onStart}
+            onDragEnd={columnDrag.onEnd}
+          >
+            <Icon icon="lucide:grip-vertical" width={14} />
+          </span>
         )}
       </div>
 

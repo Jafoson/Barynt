@@ -239,30 +239,68 @@
 }
 
 .orderRow {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.125rem;
   padding: 0 0.25rem;
   border-radius: var(--radius-sm);
+  /* Dragging shouldn't select the labels along the way. */
+  user-select: none;
 
   &[data-hidden] {
     color: var(--outline);
   }
 
+  /* The dragged row stays in place and steps back (like the issue list). */
   &[data-dragging] {
-    opacity: 0.45;
+    opacity: 0.4;
   }
 
-  /* Where the dragged row would land: a line on that edge. */
-  &[data-drop="before"] {
-    box-shadow: inset 0 2px 0 var(--primary);
+  /* The insertion line with its dot — the issue list's visual language. */
+  &[data-drop]::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0.25rem 0;
+    height: 0.125rem;
+    border-radius: 0.125rem;
+    background: var(--primary);
+    pointer-events: none;
   }
 
-  &[data-drop="after"] {
-    box-shadow: inset 0 -2px 0 var(--primary);
+  &[data-drop]::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0.25rem;
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 50%;
+    background: var(--primary);
+    pointer-events: none;
+  }
+
+  &[data-drop="above"] {
+    &::before {
+      top: -0.0625rem;
+    }
+
+    &::after {
+      top: -0.1875rem;
+    }
+  }
+
+  &[data-drop="below"] {
+    &::before {
+      bottom: -0.0625rem;
+    }
+
+    &::after {
+      bottom: -0.1875rem;
+    }
   }
 }
 
+/* Shows when the row is meant, like the issue list's handle. */
 .orderHandle {
   display: grid;
   place-items: center;
@@ -271,9 +309,16 @@
   height: 1.75rem;
   color: var(--outline);
   cursor: grab;
+  opacity: 0;
+  transition: opacity 0.12s;
 
-  &:active {
-    cursor: grabbing;
+  .orderRow:hover &,
+  .orderRow:focus-within & {
+    opacity: 1;
+  }
+
+  @include bp.no-hover {
+    opacity: 1;
   }
 }
 

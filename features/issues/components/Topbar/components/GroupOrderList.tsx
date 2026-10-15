@@ -70,13 +70,25 @@ export function GroupOrderList({
             <li
               key={group.id}
               className={styles.orderRow}
+              // Like the issue list: the whole row is draggable, the handle
+              // shows on hover, the row stays put and fades while a line
+              // marks where it lands.
+              draggable
               data-hidden={hidden || undefined}
               data-dragging={dragged === group.id || undefined}
               data-drop={
                 target?.id === group.id && dragged !== group.id
-                  ? target.place
+                  ? target.place === "before"
+                    ? "above"
+                    : "below"
                   : undefined
               }
+              onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("application/x-barynt-group", group.id);
+                setDragged(group.id);
+              }}
+              onDragEnd={end}
               onDragOver={(e) => {
                 if (!dragged) return;
                 e.preventDefault();
@@ -100,18 +112,8 @@ export function GroupOrderList({
             >
               <span
                 className={styles.orderHandle}
-                draggable
                 title={t("display.moveGroup", { group: group.label })}
                 aria-hidden="true"
-                onDragStart={(e) => {
-                  e.dataTransfer.effectAllowed = "move";
-                  e.dataTransfer.setData(
-                    "application/x-barynt-group",
-                    group.id,
-                  );
-                  setDragged(group.id);
-                }}
-                onDragEnd={end}
               >
                 <Icon icon="lucide:grip-vertical" width={14} />
               </span>

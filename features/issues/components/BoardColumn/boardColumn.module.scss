@@ -141,30 +141,36 @@
 
 /* ── Moving a whole column (BARY-165) ── */
 
-/* The column is the grip wherever there's no card: grab cursor, and a grip
-   icon in the header on hover as a hint. */
-.col[data-column-draggable] {
-  cursor: grab;
-
-  &:active {
-    cursor: grabbing;
-  }
-}
-
-.columnGrip {
+/* The handle in the header — on hover, with a mouse (a phone or tablet
+   reorders through the display panel). */
+.columnHandle {
   display: none;
+  place-items: center;
   flex: none;
-  color: var(--on-surface-variant);
+  width: 1.375rem;
+  height: 1.375rem;
   /* After the "+", or at the right edge without one. */
   margin-left: auto;
+  border-radius: var(--radius-sm);
+  color: var(--on-surface-variant);
+  cursor: grab;
 
   .headerAdd + & {
     margin-left: 0;
   }
 
+  &:hover {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
   .colHeader:hover & {
     @include bp.desktop {
-      display: block;
+      display: grid;
     }
   }
 }
