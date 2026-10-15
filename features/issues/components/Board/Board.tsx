@@ -20,6 +20,7 @@ import { usePathname, useRouter } from "@/i18n/navigation";
 import { useHasOpenModal } from "@/lib/context";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import { useUI } from "@/lib/ui-store";
+import { startDragPreview } from "@/lib/utils/dragPreview";
 import { useShiftScroll } from "@/lib/utils/useShiftScroll";
 import type { IssueDetail, Status } from "@/types";
 import styles from "./board.module.scss";
@@ -259,25 +260,22 @@ export function Board({
   // A drop commits the preview; a drag that ends anywhere else puts the
   // columns back.
   const dropped = useRef(false);
+  const stopPreview = useRef<(() => void) | null>(null);
 
   const startColumnDrag = (group: GroupDef) => (e: React.DragEvent) => {
     dropped.current = false;
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("application/x-barynt-column", group.id);
-    // The whole column follows the pointer, not just the header.
+    // The whole column follows the pointer, solid like a dragged card.
     const column = (e.currentTarget as HTMLElement).closest<HTMLElement>(
       "[data-group-id]",
     );
-    if (column) {
-      const rect = column.getBoundingClientRect();
-      e.dataTransfer.setDragImage(
-        column,
-        e.clientX - rect.left,
-        e.clientY - rect.top,
-      );
-    }
-    // Next frame: the drag image is taken from the column as it is now,
-    // before it turns into the placeholder.
+    if (column)
+      stopPreview.current = startDragPreview(e, column, {
+        background: "var(--surface-container-low)",
+      });
+    // Next frame: the copy is taken from the column as it is now, before it
+    // turns into the placeholder.
     const ids = storedDefs.map((g) => g.id);
     requestAnimationFrame(() => {
       setDraggedColumn(group.id);
@@ -286,6 +284,8 @@ export function Board({
   };
 
   const endColumnDrag = () => {
+    stopPreview.current?.();
+    stopPreview.current = null;
     setDraggedColumn(null);
     setPreview(null);
   };
@@ -509,6 +509,8 @@ export function Board({
                       dragging: draggedColumn === group.id,
                       onStart: startColumnDrag(group),
                       onEnd: () => {
+                        stopPreview.current?.();
+                        stopPreview.current = null;
                         if (!dropped.current) endColumnDrag();
                       },
                     }
