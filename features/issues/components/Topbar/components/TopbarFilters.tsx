@@ -259,7 +259,7 @@ export function TopbarFilters({
   );
 }
 
-/** One rule in words — "is not" said by crossing the values out. */
+/** One rule in words — "is not" said by crossing it out. */
 function RuleText({
   rule,
   labelsOf,
@@ -269,14 +269,15 @@ function RuleText({
 }) {
   // One inline run: in a flex parent, loose text pieces lose the spaces
   // between them.
+  // "is not": the whole condition crossed out, read as "is" — easier to
+  // spot than the words.
   if (rule.is === "none" && Array.isArray(rule.value))
     return (
-      <span>
-        {`${labelsOf.field(rule.field)} ${labelsOf.op(rule.field, "any")} `}
-        <s className={styles.notValues}>
-          {rule.value.map((v) => labelsOf.value(rule.field, v)).join(", ")}
-        </s>
-      </span>
+      <s className={styles.notValues}>
+        {`${labelsOf.field(rule.field)} ${labelsOf.op(rule.field, "any")} ${rule.value
+          .map((v) => labelsOf.value(rule.field, v))
+          .join(", ")}`}
+      </s>
     );
   return <span>{labelsOf.rule(rule)}</span>;
 }
