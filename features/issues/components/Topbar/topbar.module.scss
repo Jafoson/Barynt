@@ -222,14 +222,15 @@
   }
 }
 
-/* One condition of a group. */
+/* One condition of a group, outlined in its field's color (`--filter-accent`
+   from `FILTER_ACCENT`), neutral for fields without a chip. */
 .condChip {
   display: inline-flex;
   align-items: center;
   flex: none;
   height: 1.75rem;
   padding: 0 0.5625rem;
-  border: 1px solid var(--outline);
+  border: 1px solid var(--filter-accent, var(--outline));
   border-radius: var(--radius-sm);
   background: var(--surface-container-high);
   color: var(--on-surface);
@@ -239,7 +240,7 @@
   cursor: pointer;
 
   &:hover {
-    border-color: var(--on-surface-variant);
+    background: var(--surface-container-highest);
   }
 
   &:focus-visible {

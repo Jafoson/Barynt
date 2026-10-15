@@ -19,6 +19,7 @@ import type {
   Status,
   User,
 } from "@/types";
+import { FILTER_ACCENT } from "../filterAccent";
 import { useFilterLabels } from "../filterLabels";
 import type { ChipField } from "../filterModel";
 import styles from "../topbar.module.scss";
@@ -284,7 +285,19 @@ function GroupParts({
   const t = useTranslations();
   if (!isGroup(node))
     return (
-      <button type="button" className={styles.condChip} onClick={onOpen}>
+      <button
+        type="button"
+        className={styles.condChip}
+        // The same outline as the field's own chip above.
+        style={
+          node.field in FILTER_ACCENT
+            ? ({
+                "--filter-accent": FILTER_ACCENT[node.field as FilterKey],
+              } as React.CSSProperties)
+            : undefined
+        }
+        onClick={onOpen}
+      >
         <RuleText rule={node} labelsOf={labelsOf} />
       </button>
     );
