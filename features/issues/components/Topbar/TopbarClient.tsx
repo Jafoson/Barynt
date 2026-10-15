@@ -189,6 +189,7 @@ export function TopbarClient({
               canShare={views.canShare}
               layout={view}
               currentParams={currentParams}
+              filterCount={filterCount}
             />
           )}
           <div className={styles.searchSlot}>

@@ -712,6 +712,7 @@
   "views": {
     "tabsLabel": "Views",
     "newView": "New view",
+    "saveAsNew": "Save as new view",
     "newTitle": "New view",
     "editTitle": "Edit view",
     "namePlaceholder": "e.g. My bugs",
