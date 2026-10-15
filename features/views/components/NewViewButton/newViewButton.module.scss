@@ -1,0 +1,12 @@
+@use "breakpoints" as bp;
+
+.button {
+  flex: none;
+}
+
+/* Phone: the icon is enough, the bar has no room for the word. */
+.label {
+  @include bp.phone {
+    display: none;
+  }
+}

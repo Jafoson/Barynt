@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import type { ViewGroupsPatch } from "@/features/issues/actions";
+import { NewViewButton } from "@/features/views/components/NewViewButton/NewViewButton";
 import {
   type ActiveViewInfo,
   ViewSaveBar,
@@ -180,6 +181,16 @@ export function TopbarClient({
 
         <div className={styles.trailing}>
           {/* Not on a tablet or phone (CSS). */}
+          {views && (
+            <NewViewButton
+              workspaceId={workspaceId}
+              projectId={views.projectId}
+              projectSlug={views.projectSlug}
+              canShare={views.canShare}
+              layout={view}
+              currentParams={currentParams}
+            />
+          )}
           <div className={styles.searchSlot}>
             <IssueSearch initialValue={searchValue} onChange={search} />
           </div>
@@ -250,7 +261,6 @@ export function TopbarClient({
               canShare={views.canShare}
               activeView={activeView}
               dirty={dirty}
-              filterCount={filterCount}
               layout={view}
               currentParams={currentParams}
             />

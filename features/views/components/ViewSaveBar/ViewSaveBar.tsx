@@ -28,20 +28,17 @@ interface ViewSaveBarProps {
   /** `null` on the plain board/list. */
   activeView: ActiveViewInfo | null;
   dirty: boolean;
-  /** Active filter chips — on the plain board/list "New view" waits for one. */
-  filterCount: number;
   layout: ViewLayout;
   /** The address's view state right now (`pickViewState`). */
   currentParams: Record<string, string>;
 }
 
 /**
- * The end of the filter row that turns what you see into a view (BARY-164).
- *
- * - Plain board/list with a filter set: "New view".
- * - An open view whose address left its stored state: "Unsaved", Discard,
- *   New view, and Save where the person may change the view. Someone else's
- *   shared view says whose it is instead of offering Save.
+ * The end of the filter row once an open view's address left its stored
+ * state (BARY-164): "Unsaved", Discard, New view (the changes as a view of
+ * their own), and Save where the person may change the view. Someone else's
+ * shared view says whose it is instead of offering Save. Creating a view from
+ * scratch is the button next to the search (`NewViewButton`).
  *
  * On a phone it floats above the list (CSS) rather than squeezing into the
  * filter row.
@@ -53,7 +50,6 @@ export function ViewSaveBar({
   canShare,
   activeView,
   dirty,
-  filterCount,
   layout,
   currentParams,
 }: ViewSaveBarProps) {
@@ -85,11 +81,7 @@ export function ViewSaveBar({
     </Button>
   );
 
-  if (!activeView) {
-    if (filterCount === 0) return null;
-    return <div className={styles.inline}>{newButton}</div>;
-  }
-  if (!dirty) return null;
+  if (!activeView || !dirty) return null;
 
   const save = () =>
     startTransition(async () => {
