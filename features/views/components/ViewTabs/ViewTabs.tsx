@@ -3,6 +3,7 @@
 import { Icon } from "@iconify/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
+import { Chip } from "@/components/ui/atoms/Chip/Chip";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import {
   type ISelectItem,
@@ -47,8 +48,8 @@ interface ViewTabsProps {
 }
 
 /**
- * The project's saved views as pills between the title and the filter row
- * (BARY-164). Board, list and dashboard aren't in here — they keep their
+ * The project's saved views as elevated chips between the title and the
+ * filter row (BARY-164); the open one in the primary color. Board, list and dashboard aren't in here — they keep their
  * places in the sidebar and the board/list switch. Without any view the row
  * isn't rendered at all; "New view" in the filter row is the way in.
  */
@@ -169,12 +170,57 @@ export function ViewTabs({
       {views.map((view) => {
         const active = view.id === activeId;
         return (
-          <div
+          <Chip
             key={view.id}
+            variant="elevated"
             className={styles.tab}
             data-active={active || undefined}
             data-dirty={(active && dirty) || undefined}
             data-menu-open={menuFor === view.id || undefined}
+            icon={
+              <Icon
+                icon={viewIconOf(view)}
+                width={14}
+                style={view.color ? { color: view.color } : undefined}
+              />
+            }
+            trailing={
+              <InlinePicker
+                width={240}
+                align="start"
+                open={menuFor === view.id}
+                onOpenChange={(open) => setMenuFor(open ? view.id : null)}
+                trigger={
+                  <button
+                    type="button"
+                    className={styles.more}
+                    aria-label={t("views.menu")}
+                    title={t("views.menu")}
+                  >
+                    <Icon icon="lucide:more-horizontal" width={14} />
+                  </button>
+                }
+              >
+                {(close) => (
+                  <>
+                    {view.sharedBy && (
+                      <div className={styles.menuHead}>
+                        {t("views.sharedBy", { name: view.sharedBy })}
+                      </div>
+                    )}
+                    <SelectMenu
+                      items={itemsFor(view)}
+                      value={null}
+                      onPick={(value) => {
+                        close();
+                        run(view, value);
+                      }}
+                      onClose={close}
+                    />
+                  </>
+                )}
+              </InlinePicker>
+            }
           >
             <Link
               href={view.href}
@@ -185,13 +231,7 @@ export function ViewTabs({
                 setMenuFor(view.id);
               }}
             >
-              <Icon
-                icon={viewIconOf(view)}
-                width={14}
-                className={styles.icon}
-                style={view.color ? { color: view.color } : undefined}
-              />
-              <span className={styles.name}>{view.name}</span>
+              {view.name}
               {view.visibility !== "PRIVATE" && (
                 <Icon
                   icon="lucide:users"
@@ -201,42 +241,7 @@ export function ViewTabs({
                 />
               )}
             </Link>
-            <InlinePicker
-              width={240}
-              align="start"
-              open={menuFor === view.id}
-              onOpenChange={(open) => setMenuFor(open ? view.id : null)}
-              trigger={
-                <button
-                  type="button"
-                  className={styles.more}
-                  aria-label={t("views.menu")}
-                  title={t("views.menu")}
-                >
-                  <Icon icon="lucide:more-horizontal" width={14} />
-                </button>
-              }
-            >
-              {(close) => (
-                <>
-                  {view.sharedBy && (
-                    <div className={styles.menuHead}>
-                      {t("views.sharedBy", { name: view.sharedBy })}
-                    </div>
-                  )}
-                  <SelectMenu
-                    items={itemsFor(view)}
-                    value={null}
-                    onPick={(value) => {
-                      close();
-                      run(view, value);
-                    }}
-                    onClose={close}
-                  />
-                </>
-              )}
-            </InlinePicker>
-          </div>
+          </Chip>
         );
       })}
     </nav>
