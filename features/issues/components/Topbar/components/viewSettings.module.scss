@@ -367,11 +367,24 @@
   }
 }
 
-/* Up/down at the right edge — reordering without dragging. */
+/* Up/down at the right edge — reordering without dragging. They show when
+   the row is meant (hover, keyboard inside it), keeping their space so the
+   rows don't shift; without hover (touch) they're always there. */
 .orderArrows {
   display: flex;
   flex: none;
   gap: 0.125rem;
+  opacity: 0;
+  transition: opacity 0.12s;
+
+  .orderRow:hover &,
+  .orderRow:focus-within & {
+    opacity: 1;
+  }
+
+  @include bp.no-hover {
+    opacity: 1;
+  }
 }
 
 .orderArrow {
