@@ -59,6 +59,12 @@
   }
 }
 
+/* "Is not": the values are crossed out — what's left out of the list. */
+.chips[data-not] .valueChip {
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--on-surface) 70%, transparent);
+}
+
 .footer {
   display: flex;
   align-items: center;

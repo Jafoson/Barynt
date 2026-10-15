@@ -631,6 +631,7 @@ export function FilterRow({
         // own color.
         <div
           className={styles.chips}
+          data-not={negated || undefined}
           style={
             {
               "--filter-accent": FILTER_ACCENT[facet.key],
