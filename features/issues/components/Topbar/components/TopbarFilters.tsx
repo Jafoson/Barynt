@@ -267,16 +267,18 @@ function RuleText({
   rule: FilterRule;
   labelsOf: ReturnType<typeof useFilterLabels>;
 }) {
+  // One inline run: in a flex parent, loose text pieces lose the spaces
+  // between them.
   if (rule.is === "none" && Array.isArray(rule.value))
     return (
-      <>
-        {labelsOf.field(rule.field)} {labelsOf.op(rule.field, "any")}{" "}
+      <span>
+        {`${labelsOf.field(rule.field)} ${labelsOf.op(rule.field, "any")} `}
         <s className={styles.notValues}>
           {rule.value.map((v) => labelsOf.value(rule.field, v)).join(", ")}
         </s>
-      </>
+      </span>
     );
-  return <>{labelsOf.rule(rule)}</>;
+  return <span>{labelsOf.rule(rule)}</span>;
 }
 
 /** A group's parts in the group row: conditions as chips (a × on hover
@@ -312,9 +314,7 @@ function GroupParts({
       >
         {onOpen ? (
           <button type="button" className={styles.condLabel} onClick={onOpen}>
-            <span>
-              <RuleText rule={node} labelsOf={labelsOf} />
-            </span>
+            <RuleText rule={node} labelsOf={labelsOf} />
           </button>
         ) : (
           <span className={styles.condLabel}>
