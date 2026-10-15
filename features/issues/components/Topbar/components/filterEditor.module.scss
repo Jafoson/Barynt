@@ -314,7 +314,7 @@
 
 /* The sheet's body brings its own padding; everything a finger taps gets
    touch height, "add" the whole width. */
-.editor[data-sheet] {
+.editor[data-in-sheet] {
   gap: 0.625rem;
   /* The sheet scrolls as a whole. */
   max-height: none;

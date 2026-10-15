@@ -221,7 +221,7 @@ export function FilterEditor({
   const count = rulesIn(root).length;
 
   return (
-    <div className={styles.editor} data-sheet={inSheet || undefined}>
+    <div className={styles.editor} data-in-sheet={inSheet || undefined}>
       <div className={styles.scroll}>
         <Box
           box={root}
