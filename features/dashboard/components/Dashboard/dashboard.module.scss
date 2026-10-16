@@ -39,8 +39,17 @@
 /* ── Phone: range over the whole width, then scope · customized · edit
    in one row; in edit mode the actions share a row of their own. ── */
 .range,
-.scope {
+.scope,
+.notPhone {
   display: contents;
+}
+
+.onlyPhone {
+  display: none;
+
+  @include bp.phone {
+    display: contents;
+  }
 }
 
 @include bp.phone {
@@ -68,14 +77,9 @@
     flex: 0 1 auto;
   }
 
-  .personalText {
+  .toolbar .personal,
+  .notPhone {
     display: none;
-  }
-
-  .personal {
-    width: 1.625rem;
-    justify-content: center;
-    padding: 0;
   }
 
   [data-editing] .hint {

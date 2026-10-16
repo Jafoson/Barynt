@@ -343,17 +343,33 @@ export function Dashboard({
                 </span>
               </span>
             )}
-            <Button
-              variant="elevated"
-              size="sm"
-              icon={<Icon icon="lucide:layout-dashboard" width={15} />}
-              onClick={() => {
-                setDraft(layout.widgets);
-                setEditing(true);
-              }}
-            >
-              {t("edit")}
-            </Button>
+            {/* On a phone just the icon — the row has no room for words. */}
+            <span className={styles.notPhone}>
+              <Button
+                variant="elevated"
+                size="sm"
+                icon={<Icon icon="lucide:layout-dashboard" width={15} />}
+                onClick={() => {
+                  setDraft(layout.widgets);
+                  setEditing(true);
+                }}
+              >
+                {t("edit")}
+              </Button>
+            </span>
+            <span className={styles.onlyPhone}>
+              <Button
+                variant="elevated"
+                size="sm"
+                icon={<Icon icon="lucide:layout-dashboard" width={16} />}
+                aria-label={t("edit")}
+                title={t("edit")}
+                onClick={() => {
+                  setDraft(layout.widgets);
+                  setEditing(true);
+                }}
+              />
+            </span>
           </>
         )}
       </div>
