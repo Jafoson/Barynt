@@ -577,20 +577,17 @@ function FilterPanel(props: FilterPanelProps) {
           </Button>
         </div>
       ) : (
-        <div className={styles.facet}>
-          <button
-            type="button"
-            className={`${styles.row} ${styles.facetRow}`}
-            aria-haspopup="true"
-            onClick={() => onFacetChange("advanced")}
-          >
-            <span className={styles.rowLabel}>{t("filters.advanced")}</span>
-            <span className={styles.pick}>
-              {extras > 0 && <Badge size="sm">{extras}</Badge>}
-              <Icon icon="lucide:chevron-right" width={14} />
-            </span>
-          </button>
-        </div>
+        // A primary text button, so it doesn't pass for one more field.
+        <Button
+          variant="text"
+          className={styles.advancedLink}
+          icon={<Icon icon="lucide:list-filter" width={14} />}
+          iconRight={extras > 0 ? <Badge size="sm">{extras}</Badge> : undefined}
+          aria-haspopup="true"
+          onClick={() => onFacetChange("advanced")}
+        >
+          {t("filters.advancedSettings")}
+        </Button>
       )}
 
       {!hideReset && (

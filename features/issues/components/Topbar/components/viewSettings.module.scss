@@ -494,3 +494,11 @@
   color: var(--on-surface-variant);
   font-weight: 400;
 }
+
+/* The popup's way into the advanced editor (BARY-166): a primary text
+   button. Doubled class to outrank the button's own color. */
+.advancedLink.advancedLink {
+  align-self: flex-start;
+  color: var(--primary);
+  font-weight: 600;
+}
