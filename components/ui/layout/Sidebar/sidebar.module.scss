@@ -413,6 +413,18 @@
   }
 }
 
+/* The favorites (V7). On a phone only the project list below scrolls, so
+   a long favorites list gets a height of its own. */
+.favoritesWrapper {
+  display: flex;
+  flex-direction: column;
+
+  @include bp.phone {
+    max-height: 30vh;
+    overflow-y: auto;
+  }
+}
+
 .projectTabsWrapper{
   /* No scrolling of its own — `.scroll` above scrolls the whole menu
      (on a phone: this list alone, see `.scrollProjects`). */

@@ -10,7 +10,11 @@ import {
 } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import { Tab, Tabs } from "@/components/ui/layout/Tabs/Tabs";
-import { deleteView, duplicateView } from "@/features/views/actions";
+import {
+  deleteView,
+  duplicateView,
+  setViewUserState,
+} from "@/features/views/actions";
 import { viewIconOf } from "@/features/views/icons";
 import type { ViewLayout, ViewVisibility } from "@/features/views/schema";
 import { viewPath } from "@/features/views/url";
@@ -33,6 +37,10 @@ export interface ViewTab {
   href: string;
   /** Name of who shared it — set only for someone else's shared view. */
   sharedBy: string | null;
+  /** The viewer's own state (V7). */
+  pinned: boolean;
+  favorite: boolean;
+  startView: boolean;
 }
 
 interface ViewTabsProps {
@@ -82,6 +90,29 @@ export function ViewTabs({
         : t("views.errorGeneric");
 
   const itemsFor = (view: ViewTab): ISelectItem[] => [
+    // The viewer's own switches (V7), each saying what a click does now.
+    {
+      value: "pin",
+      label: view.pinned ? t("views.unpin") : t("views.pin"),
+      icon: (
+        <Icon icon={view.pinned ? "lucide:pin-off" : "lucide:pin"} width={15} />
+      ),
+    },
+    {
+      value: "favorite",
+      label: view.favorite ? t("views.unfavorite") : t("views.favorite"),
+      icon: (
+        <Icon
+          icon={view.favorite ? "lucide:star-off" : "lucide:star"}
+          width={15}
+        />
+      ),
+    },
+    {
+      value: "startView",
+      label: view.startView ? t("views.unsetStartView") : t("views.startView"),
+      icon: <Icon icon="lucide:house" width={15} />,
+    },
     ...(view.canEdit
       ? [
           {
@@ -112,8 +143,38 @@ export function ViewTabs({
       : []),
   ];
 
+  const setState = (
+    view: ViewTab,
+    patch: { pinned?: boolean; favorite?: boolean; startView?: boolean },
+    done: string,
+  ) =>
+    startTransition(async () => {
+      const result = await setViewUserState(view.id, patch);
+      if (!result.ok) return toast(errorText(result.error));
+      toast(done);
+      router.refresh();
+    });
+
   const run = (view: ViewTab, action: string | number | null) => {
-    if (action === "edit") {
+    if (action === "pin") {
+      setState(
+        view,
+        { pinned: !view.pinned },
+        view.pinned ? t("views.unpinned") : t("views.pinned"),
+      );
+    } else if (action === "favorite") {
+      setState(
+        view,
+        { favorite: !view.favorite },
+        view.favorite ? t("views.unfavorited") : t("views.favorited"),
+      );
+    } else if (action === "startView") {
+      setState(
+        view,
+        { startView: !view.startView },
+        view.startView ? t("views.startViewOff") : t("views.startViewOn"),
+      );
+    } else if (action === "edit") {
       openViewModal({
         workspaceId,
         projectId,

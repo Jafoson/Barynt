@@ -93,6 +93,7 @@ export const getMyPreferences = cache(async (): Promise<Preferences> => {
     adminNoticeHidden,
     projectLanding,
     startPage,
+    startViewId,
     issueOpenMode,
     issuePageOpenMode,
     defaultGrouping,
@@ -112,6 +113,7 @@ export const getMyPreferences = cache(async (): Promise<Preferences> => {
     ...toBehavior({
       projectLanding,
       startPage,
+      startViewId,
       issueOpenMode,
       issuePageOpenMode,
       defaultGrouping,

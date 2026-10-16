@@ -1,13 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { isGroupKey } from "@/features/issues/group";
 import { resolveUrlFilter } from "@/features/issues/queries";
 import { isSortKey } from "@/features/issues/sort";
 import { recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
-import { currentUserId } from "@/lib/permissions";
+import { can, currentUserId } from "@/lib/permissions";
 import { slugify } from "@/lib/slug";
 import { uid } from "@/lib/utils/id";
 import {
@@ -16,7 +17,12 @@ import {
   canEditView,
   canSeeView,
 } from "./access";
-import { mapView, viewAccessFacts } from "./queries";
+import {
+  getVisibleProjectViews,
+  mapView,
+  type ProjectViewEntry,
+  viewAccessFacts,
+} from "./queries";
 import {
   type CreateViewInput,
   createViewSchema,
@@ -324,11 +330,111 @@ export async function setViewUserState(
   const loaded = await loadView(id, userId);
   if (!loaded || !canSeeView(loaded.row, loaded.facts)) return fail("notFound");
 
-  await db.savedViewUserState.upsert({
-    where: { userId_viewId: { userId, viewId: id } },
-    create: { userId, viewId: id, ...parsed.data },
-    update: parsed.data,
+  const data = { ...parsed.data };
+  // Starred without a place: at the end of the favorites. Unstarred: out.
+  if (data.favorite === true && data.favoritePosition === undefined)
+    data.favoritePosition = await nextFavoritePosition(userId);
+  if (data.favorite === false) data.favoritePosition = null;
+
+  await db.$transaction(async (tx) => {
+    // One start view per project and person: the others step down.
+    if (data.startView && loaded.row.projectId)
+      await tx.savedViewUserState.updateMany({
+        where: {
+          userId,
+          startView: true,
+          viewId: { not: id },
+          view: { projectId: loaded.row.projectId },
+        },
+        data: { startView: false },
+      });
+    await tx.savedViewUserState.upsert({
+      where: { userId_viewId: { userId, viewId: id } },
+      create: { userId, viewId: id, ...data },
+      update: data,
+    });
   });
+
+  revalidatePath("/", "layout");
+  return { ok: true, data: null };
+}
+
+// ─── Favorites (V7) ─────────────────────────────────────────────────────────
+
+/** After the last favorite — views and projects share one list. */
+async function nextFavoritePosition(userId: string): Promise<number> {
+  const [views, projects] = await Promise.all([
+    db.savedViewUserState.aggregate({
+      where: { userId, favorite: true },
+      _max: { favoritePosition: true },
+    }),
+    db.projectUserState.aggregate({
+      where: { userId, favorite: true },
+      _max: { favoritePosition: true },
+    }),
+  ]);
+  return (
+    Math.max(
+      views._max.favoritePosition ?? 0,
+      projects._max.favoritePosition ?? 0,
+    ) + 1
+  );
+}
+
+/** Stars or unstars a project for the caller — on any project they see. */
+export async function setProjectFavorite(
+  projectId: string,
+  favorite: boolean,
+): Promise<ViewResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  if (typeof favorite !== "boolean") return fail("invalid");
+  if (!(await can(userId, "project.view", { projectId })))
+    return fail("notFound");
+
+  const data = {
+    favorite,
+    favoritePosition: favorite ? await nextFavoritePosition(userId) : null,
+  };
+  await db.projectUserState.upsert({
+    where: { userId_projectId: { userId, projectId } },
+    create: { userId, projectId, ...data },
+    update: data,
+  });
+
+  revalidatePath("/", "layout");
+  return { ok: true, data: null };
+}
+
+const favoriteOrderSchema = z
+  .array(
+    z.object({ kind: z.enum(["view", "project"]), id: z.string().max(100) }),
+  )
+  .max(200);
+
+/** The caller's favorites in a new order (drag & drop in the sidebar).
+ *  Entries that aren't their favorites are skipped. */
+export async function reorderFavorites(
+  entries: { kind: "view" | "project"; id: string }[],
+): Promise<ViewResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  const parsed = favoriteOrderSchema.safeParse(entries);
+  if (!parsed.success) return fail("invalid");
+
+  await db.$transaction(
+    parsed.data.map((entry, i) =>
+      entry.kind === "view"
+        ? db.savedViewUserState.updateMany({
+            where: { userId, viewId: entry.id, favorite: true },
+            data: { favoritePosition: i + 1 },
+          })
+        : db.projectUserState.updateMany({
+            where: { userId, projectId: entry.id, favorite: true },
+            data: { favoritePosition: i + 1 },
+          }),
+    ),
+  );
 
   revalidatePath("/", "layout");
   return { ok: true, data: null };
@@ -394,4 +500,13 @@ export async function createViewFromParams(
     sortBy: state.sortBy,
     display: state.display,
   });
+}
+
+/** The views the switcher (key V) offers — every project view the caller
+ *  sees in the workspace (V7). */
+export async function listSwitchableViews(
+  workspaceId: string,
+): Promise<ProjectViewEntry[]> {
+  if (typeof workspaceId !== "string") return [];
+  return getVisibleProjectViews(workspaceId);
 }

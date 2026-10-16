@@ -23,6 +23,7 @@ import {
   type NotificationKey,
   type Theme,
 } from "@/features/account/types";
+import { getVisibleViewById } from "@/features/views/queries";
 import { type ApiScope, isApiScope } from "@/lib/api/scopes";
 import { hashApiToken } from "@/lib/api-auth";
 import { db } from "@/lib/db";
@@ -277,6 +278,17 @@ export async function updateBehavior(
     if (typeof value !== "boolean")
       return { error: `Unknown value for ${key}.` };
     write[key] = value;
+  }
+
+  // Only an id the person can see right now — checked like any view link.
+  if (data.startViewId !== undefined) {
+    if (data.startViewId !== null) {
+      if (typeof data.startViewId !== "string")
+        return { error: "Unknown view." };
+      const view = await getVisibleViewById(data.startViewId);
+      if (!view) return { error: "Unknown view." };
+    }
+    write.startViewId = data.startViewId;
   }
 
   if (data.timeZone !== undefined) {

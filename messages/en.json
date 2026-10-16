@@ -569,7 +569,14 @@
       "members": "Go to Members",
       "teams": "Go to Teams",
       "settings": "Go to Settings"
-    }
+    },
+    "switchView": "Go to view",
+    "switchViewEllipsis": "Go to view…",
+    "searchViews": "Search views or projects…",
+    "viewsHere": "This project",
+    "viewsElsewhere": "Other projects",
+    "views": "Views",
+    "noViews": "No view yet — create one in a project."
   },
   "login": {
     "subtitle": "Continue to Barynt Issue Tracker",
@@ -798,7 +805,21 @@
     "errorForbidden": "You don't have permission for that.",
     "errorNotFound": "This view no longer exists.",
     "errorInvalid": "That input isn't valid.",
-    "errorGeneric": "That didn't work. Try again."
+    "errorGeneric": "That didn't work. Try again.",
+    "pin": "Pin to sidebar",
+    "unpin": "Unpin from sidebar",
+    "favorite": "Add to favorites",
+    "unfavorite": "Remove from favorites",
+    "startView": "Make project start view",
+    "unsetStartView": "Stop being start view",
+    "pinned": "Pinned to the sidebar",
+    "unpinned": "Unpinned from the sidebar",
+    "favorited": "Added to favorites",
+    "unfavorited": "Removed from favorites",
+    "startViewOn": "Now the project's start view",
+    "startViewOff": "No longer the start view",
+    "sidebarHeading": "Views",
+    "favoritesHeading": "Favorites"
   },
   "realtime": {
     "staleGlobal": "There are changes.",
@@ -1117,7 +1138,8 @@
     "shortcutNavOpen": "Open the focused item",
     "shortcutSubmit": "Save or create",
     "shortcutSubmitDesc": "Also works right inside the text field.",
-    "shortcutLink": "Insert or edit a link"
+    "shortcutLink": "Insert or edit a link",
+    "shortcutSwitchView": "Go to view"
   },
   "apiKeys": {
     "title": "API keys",
@@ -1488,6 +1510,11 @@
     "shortcutSequenceHint": "Only the second key can be changed.",
     "issuePageOpenMode": "“Open full page” in an issue",
     "issuePageOpenModeDesc": "What the button at the top of the issue detail (and the O key) does: open the issue's full page.",
-    "openSameTab": "In the same tab"
+    "openSameTab": "In the same tab",
+    "landingView": "Start view",
+    "landingViewHint": "Set a project's start view in a view tab's menu. Without one, the board opens.",
+    "startView": "A view",
+    "startViewPick": "Which view",
+    "startViewNone": "No view to pick yet — create one in a project first."
   }
 }

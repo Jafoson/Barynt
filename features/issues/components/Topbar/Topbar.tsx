@@ -183,6 +183,9 @@ async function loadTopbarViews({
     canEdit: v.canEdit,
     href: hrefOf(v),
     sharedBy: sharedByOf(v),
+    pinned: v.pinned,
+    favorite: v.favorite,
+    startView: v.startView,
   }));
 
   return {
