@@ -27,7 +27,6 @@ import {
   chipState,
   conditionCount,
   dueBuckets,
-  extraNodes,
   onlySearch,
   withChip,
   withDueBuckets,
@@ -179,8 +178,6 @@ export function useTopbar({
     project: isNot("project"),
     storyPoints: isNot("storyPoints"),
   };
-  /** Rules and OR groups the chips can't show — a rule chip each. */
-  const extras = extraNodes(tree);
 
   // The typed text belongs to the search box alone (see IssueSearch): it renders
   // every keystroke locally, while the URL follows on a debounce. The box is
@@ -273,16 +270,8 @@ export function useTopbar({
       setFilter(withChip(tree, key, chip(key).values, value));
   }
 
-  function clearFilter(key: FilterKey) {
-    setFilter(
-      key === "dueDate"
-        ? withDueBuckets(tree, [])
-        : withChip(tree, key, [], false),
-    );
-  }
-
-  /** Removes one rule chip (`extras`). */
-  /** Removes a rule chip's node — or, with a `path`, one part of a group. */
+  /** Removes a top-level node of the filter — or, with a `path`, one part
+   *  of a group (the active-filter row's ×). */
   function removeExtra(index: number, path?: number[]) {
     setFilter(withoutNode(tree, index, path));
   }
@@ -370,7 +359,6 @@ export function useTopbar({
     filters,
     negated,
     tree,
-    extras,
     filterCount,
     searchValue: urlQuery,
     sortKey,
@@ -378,7 +366,6 @@ export function useTopbar({
     view,
     toggleFilter,
     setNegated,
-    clearFilter,
     removeExtra,
     setFilter,
     clearAll,

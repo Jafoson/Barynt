@@ -99,25 +99,6 @@
   opacity: 0.6;
 }
 
-/* The filter chips sit in the filter row like before (`display: contents`
-   lets them wrap with it); at tablet width and below they give way to the
-   filter popup. */
-.filterChips {
-  display: contents;
-
-  @include bp.tablet-down {
-    display: none;
-  }
-}
-
-.filterPopup {
-  display: none;
-
-  @include bp.tablet-down {
-    display: block;
-  }
-}
-
 /* Tablet and phone: no search field in the bar. */
 .searchSlot {
   @include bp.tablet-down {
@@ -139,36 +120,11 @@
   margin-left: auto;
 }
 
-/* Doubled class: the ghost button sets its own color with a single class,
-   and which of the two won depended on stylesheet order. */
-.clearAll.clearAll {
-  color: var(--primary);
-}
-
 /* ── Filter chip icons ── */
-
-/* Multi-selection stand-in: reads as "several values", so it stays quieter
-   than the concrete per-value icons it replaces. */
-.glyphMuted {
-  flex: none;
-  display: block;
-  opacity: 0.55;
-}
-
 
 /* ── Set filters spell out their values (BARY-177) ── */
 
 .chipKey,
-.chipMore {
-  color: var(--on-surface-variant);
-}
-
-.chipIcons {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.125rem;
-}
-
 /* "is / is not" at the top of a chip's dropdown (BARY-166). */
 .negate {
   padding: 0 0 0.25rem;
@@ -184,23 +140,9 @@
   }
 }
 
-/* A single rule the chips can't show — "at least", a date (BARY-166).
-   Outlined like a set chip. Groups go to `.groupRow`. */
-.ruleChip {
-  background: var(--surface-container-high);
-  border-color: var(--outline);
-  color: var(--on-surface);
-
-  & > span > span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-  }
-}
-
-/* The UND/ODER groups: a row of their own under the filters (it wraps to
-   a new line through `flex-basis`), scrolling sideways when long. */
-.groupRow {
+/* Every active filter in a row of its own below the filter button,
+   scrolling sideways (`ActiveFilters`). */
+.activeRow {
   order: 99;
   flex: 1 1 100%;
   display: flex;
@@ -209,47 +151,19 @@
   min-width: 0;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  scrollbar-width: thin;
+  scrollbar-width: none;
   padding-bottom: 0.125rem;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   & > * {
     flex: none;
   }
 
-  /* The row's gap spaces them already. */
   .opPill {
     margin: 0;
-  }
-}
-
-/* Tablet and phone: every active filter in a row of its own below the
-   filter button, scrolling sideways (`ActiveFilters`). */
-.activeRow {
-  display: none;
-
-  @include bp.tablet-down {
-    order: 99;
-    flex: 1 1 100%;
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    min-width: 0;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-    padding-bottom: 0.125rem;
-
-    &::-webkit-scrollbar {
-      display: none;
-    }
-
-    & > * {
-      flex: none;
-    }
-
-    .opPill {
-      margin: 0;
-    }
   }
 }
 
@@ -378,12 +292,6 @@
   }
 }
 
-/* A rule chip's text, one inline run. */
-.ruleText {
-  display: inline;
-  white-space: nowrap;
-}
-
 /* A day inside a condition, as a small chip like a description's date. */
 .dateChip {
   display: inline-flex;
@@ -426,12 +334,3 @@
   }
 }
 
-/* "Advanced" — the filter editor's trigger (BARY-166). */
-.advanced {
-  color: var(--on-surface-variant);
-
-  /* Tablet and phone: a row in the filter popup instead. */
-  @include bp.tablet-down {
-    display: none;
-  }
-}
