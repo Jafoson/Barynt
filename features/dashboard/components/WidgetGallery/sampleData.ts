@@ -244,57 +244,52 @@ export function sampleData(widget: Widget, words: SampleWords): WidgetData {
           workspaceRef: null,
         })),
       };
-    case "members":
+    case "members": {
+      const row = (user: User, open: number) => ({ user, open, href: "#" });
       return {
         type: "members",
         groups: [
-          { key: "lead", name: words.role("lead"), rank: 4, members: [MARA] },
+          {
+            key: "lead",
+            name: words.role("lead"),
+            rank: 4,
+            members: [row(MARA, 8)],
+          },
           {
             key: "member",
             name: words.role("member"),
             rank: 3,
-            members: [JASON, HIRO, LEA],
+            members: [row(HIRO, 3), row(JASON, 5), row(LEA, 2)],
           },
           {
             key: "viewer",
             name: words.role("viewer"),
             rank: 2,
-            members: [NOAH],
+            members: [row(NOAH, 0)],
           },
         ],
         total: 5,
-        href: null,
+        href: "#",
       };
+    }
     case "teams":
       return {
         type: "teams",
         teams: [
-          {
-            id: "s-t1",
-            name: "Mobile",
-            key: "MOB",
-            color: "#3b9d6e",
-            members: 4,
-            lead: MARA,
-          },
-          {
-            id: "s-t2",
-            name: "Platform",
-            key: "PLT",
-            color: "#d5733b",
-            members: 3,
-            lead: HIRO,
-          },
-          {
-            id: "s-t3",
-            name: "Web",
-            key: "WEB",
-            color: "#6e63e6",
-            members: 5,
-            lead: JASON,
-          },
-        ],
-        href: null,
+          ["s-t1", "Mobile", "MOB", "#3b9d6e", MARA, [MARA, LEA, HIRO, NOAH]],
+          ["s-t2", "Platform", "PLT", "#d5733b", HIRO, [HIRO, JASON, NOAH]],
+          ["s-t3", "Web", "WEB", "#6e63e6", JASON, PEOPLE],
+        ].map(([id, name, key, color, lead, people]) => ({
+          id: id as string,
+          name: name as string,
+          key: key as string,
+          color: color as string,
+          lead: lead as User,
+          people: people as User[],
+          members: (people as User[]).length,
+          href: "#",
+        })),
+        href: "#",
       };
     case "labels":
       return {
@@ -313,11 +308,12 @@ export function sampleData(widget: Widget, words: SampleWords): WidgetData {
           color: color as string,
           open: open as number,
           own: i > 4,
+          href: "#",
         })),
         projectId: null,
         workspaceId: "",
         canCreate: false,
-        href: null,
+        href: "#",
       };
     case "projects":
       return {

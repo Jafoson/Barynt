@@ -1785,6 +1785,8 @@
     "sampleRole_lead": "Leads",
     "sampleRole_member": "Contributors",
     "sampleRole_viewer": "Readers",
-    "sampleNote": "Q4 focus: stability over features.\n• Crash rate below 0.5%\n• Passkeys everywhere"
+    "sampleNote": "Q4 focus: stability over features.\n• Crash rate below 0.5%\n• Passkeys everywhere",
+    "openIssuesOf": "Open issues: {name}",
+    "teamSub": "{count, plural, one {# member} other {# members}} · lead {lead}"
   }
 }

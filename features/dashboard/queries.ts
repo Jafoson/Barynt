@@ -1120,27 +1120,52 @@ const WS_ROSTER_ROLE_KEYS = new Set<string>([
   WORKSPACE_GUEST_ROLE_KEY,
 ]);
 
-async function members(
+/** The list page of the dashboard's place, filtered to open issues. */
+function openListHref(
   workspaceId: string,
-  projectId: string | null,
-): Promise<WidgetData> {
+  projectSlug: string | null,
+  params: Record<string, string>,
+): string {
+  const base = projectSlug
+    ? projectPath(workspaceId, projectSlug, "list")
+    : workspacePath(workspaceId, "issues/list");
+  const query = new URLSearchParams({
+    ...params,
+    "statusCategory.not": "completed,canceled",
+  });
+  return `${base}?${query}`;
+}
+
+async function members(ctx: Ctx): Promise<WidgetData> {
+  const { workspaceId, projectId } = ctx.resolved;
   const place = await placeOf(workspaceId, projectId);
   const select = {
     user: { select: USER_SELECT },
     role: { select: { key: true, name: true, rank: true } },
   } as const;
-  const rows = projectId
-    ? await db.projectMember.findMany({
-        // Locked out of the project isn't "a member" to show off.
-        where: { projectId, role: { key: { not: PROJECT_BLOCKED_ROLE_KEY } } },
-        select,
-        orderBy: { user: { firstName: "asc" } },
-      })
-    : await db.workspaceMember.findMany({
-        where: { workspaceId },
-        select,
-        orderBy: { user: { firstName: "asc" } },
-      });
+  const [rows, open] = await Promise.all([
+    projectId
+      ? db.projectMember.findMany({
+          // Locked out of the project isn't "a member" to show off.
+          where: {
+            projectId,
+            role: { key: { not: PROJECT_BLOCKED_ROLE_KEY } },
+          },
+          select,
+          orderBy: { user: { firstName: "asc" } },
+        })
+      : db.workspaceMember.findMany({
+          where: { workspaceId },
+          select,
+          orderBy: { user: { firstName: "asc" } },
+        }),
+    db.issue.groupBy({
+      by: ["assigneeId"],
+      where: { AND: [ctx.base, { status: { notIn: ctx.closed } }] },
+      _count: { _all: true },
+    }),
+  ]);
+  const openBy = new Map(open.map((row) => [row.assigneeId, row._count._all]));
   const seeAll = projectId ? true : place.workspace.has("member.view");
   const groups = new Map<string, RoleGroup>();
   for (const row of rows) {
@@ -1151,7 +1176,13 @@ async function members(
       rank: row.role.rank,
       members: [],
     };
-    group.members.push(await mapUser(row.user));
+    group.members.push({
+      user: await mapUser(row.user),
+      open: openBy.get(row.user.id) ?? 0,
+      href: openListHref(workspaceId, place.slug, {
+        assignee: row.user.handle,
+      }),
+    });
     groups.set(row.role.key, group);
   }
   return {
@@ -1168,10 +1199,9 @@ async function members(
   };
 }
 
-async function teams(
-  workspaceId: string,
-  projectId: string | null,
-): Promise<WidgetData> {
+async function teams(ctx: Ctx): Promise<WidgetData> {
+  const { workspaceId, projectId } = ctx.resolved;
+  const place = await placeOf(workspaceId, projectId);
   const rows = await db.team.findMany({
     where: projectId ? { projects: { some: { projectId } } } : { workspaceId },
     select: {
@@ -1180,7 +1210,10 @@ async function teams(
       key: true,
       color: true,
       lead: { select: USER_SELECT },
-      _count: { select: { members: true } },
+      members: {
+        select: { user: { select: USER_SELECT } },
+        orderBy: { user: { firstName: "asc" } },
+      },
     },
     orderBy: { name: "asc" },
   });
@@ -1192,8 +1225,16 @@ async function teams(
         name: row.name,
         key: row.key,
         color: row.color,
-        members: row._count.members,
+        members: row.members.length,
         lead: row.lead ? await mapUser(row.lead) : null,
+        people: await Promise.all(
+          row.members.slice(0, 6).map((m) => mapUser(m.user)),
+        ),
+        href: row.members.length
+          ? openListHref(workspaceId, place.slug, {
+              assignee: row.members.map((m) => m.user.handle).join(","),
+            })
+          : null,
       })),
     ),
     href: workspacePath(workspaceId, "teams"),
@@ -1217,7 +1258,13 @@ async function labels(ctx: Ctx): Promise<WidgetData> {
             ],
           }
         : { workspaceId, projectId: null },
-      select: { id: true, name: true, color: true, projectId: true },
+      select: {
+        id: true,
+        name: true,
+        color: true,
+        slug: true,
+        projectId: true,
+      },
       orderBy: { name: "asc" },
     }),
     db.issue.findMany({
@@ -1235,6 +1282,7 @@ async function labels(ctx: Ctx): Promise<WidgetData> {
       color: row.color,
       open: counts.get(row.id) ?? 0,
       own: row.projectId !== null,
+      href: openListHref(workspaceId, place.slug, { label: row.slug }),
     }))
     .sort((a, b) => b.open - a.open || a.name.localeCompare(b.name));
   const canCreate = projectId
@@ -1436,9 +1484,9 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
       return { type: "activity", entries: view.entries };
     }
     case "members":
-      return members(resolved.workspaceId, resolved.projectId);
+      return members(ctx);
     case "teams":
-      return teams(resolved.workspaceId, resolved.projectId);
+      return teams(ctx);
     case "labels":
       return labels(ctx);
     case "projects":

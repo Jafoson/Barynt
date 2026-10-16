@@ -883,39 +883,11 @@
   }
 }
 
-/* A team, a project: one row with a badge, a name and a count. */
-.entity {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  gap: 0.5625rem;
-  align-items: center;
-  padding: 0.4375rem 0.25rem;
-  margin-inline: -0.25rem;
-  border-top: 1px solid var(--rule);
-  border-radius: 0.5rem;
-  font-size: 0.78125rem;
-  color: inherit;
-  text-decoration: none;
-
-  &:first-child {
-    border-top-color: transparent;
-  }
-
-  &:is(a):hover {
-    background: var(--track);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--tertiary);
-    outline-offset: -2px;
-  }
-}
-
 .teamKey {
   display: grid;
   place-items: center;
-  min-width: 1.75rem;
-  height: 1.375rem;
+  min-width: 2rem;
+  height: 1.75rem;
   padding: 0 0.3125rem;
   border-radius: 0.375rem;
   background: color-mix(in srgb, var(--c) 22%, transparent);
@@ -1062,7 +1034,176 @@
   }
 
   .rows > :nth-child(n + 3),
-  .tiles > :nth-child(n + 3) {
+  .tiles > :nth-child(n + 3),
+  .scrollList > :nth-child(n + 3) {
+    display: none;
+  }
+}
+
+/* ── Lists: people, teams, labels, projects ──────────────────────────────
+   Rows like a settings list on iOS: a mark, a name with a quiet line
+   below, a count, and an arrow once the pointer is on it. The list
+   scrolls when it's longer than the widget. */
+.scrollList {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  margin-inline: -0.375rem;
+  padding-inline: 0.375rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+
+  & + & {
+    margin-top: 0.5rem;
+  }
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0.25rem 0.375rem 0.375rem;
+  font-size: 0.65625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+
+  & > span {
+    padding: 0 0.375rem;
+    border-radius: var(--radius-pill);
+    background: var(--track);
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+  padding: 0.4375rem 0.375rem;
+  border-radius: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 0.12s;
+
+  &:is(a):hover {
+    background: var(--track);
+  }
+
+  &:is(a):active {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: -2px;
+  }
+}
+
+.rowLead {
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.rowName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.rowSub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+
+.rowGo {
+  flex: none;
+  margin-left: -0.25rem;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.12s;
+
+  .item:hover &,
+  .item:focus-visible & {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    opacity: 0.6;
+  }
+}
+
+/* Open issues: a pill in the accent, quiet when zero. */
+.count {
+  flex: none;
+  min-width: 1.5rem;
+  padding: 0.0625rem 0.4375rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+
+  &[data-zero] {
+    background: var(--track);
+    color: var(--muted);
+    font-weight: 500;
+  }
+}
+
+.labelMark {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--c) 22%, transparent);
+
+  &::after {
+    content: "";
+    display: block;
+    width: 0.625rem;
+    height: 0.625rem;
+    margin: 0.5625rem;
+    border-radius: 50%;
+    background: var(--c);
+  }
+}
+
+.rowFaces {
+  flex: none;
+  margin-top: 0;
+
+  & > * {
+    margin-right: -0.375rem;
+  }
+}
+
+@container w (max-width: 20rem) {
+  .rowFaces {
     display: none;
   }
 }

@@ -92,11 +92,19 @@ export interface AboutData {
   editHref: string | null;
 }
 
+export interface MemberRow {
+  user: User;
+  /** Open issues assigned to them, within the dashboard's scope. */
+  open: number;
+  /** Their open issues as a list. */
+  href: string;
+}
+
 export interface RoleGroup {
   key: string;
   name: string;
   rank: number;
-  members: User[];
+  members: MemberRow[];
 }
 
 export interface TeamRow {
@@ -106,6 +114,10 @@ export interface TeamRow {
   color: string;
   members: number;
   lead: User | null;
+  /** Its people, for the face stack. */
+  people: User[];
+  /** The open issues of everyone in it, as a list. */
+  href: string | null;
 }
 
 export interface LabelRow {
@@ -116,6 +128,8 @@ export interface LabelRow {
   open: number;
   /** Belongs to the project alone, not the whole workspace. */
   own: boolean;
+  /** Its open issues as a list. */
+  href: string;
 }
 
 export interface ProjectRow {
