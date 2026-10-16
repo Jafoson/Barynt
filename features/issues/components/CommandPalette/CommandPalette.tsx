@@ -9,6 +9,10 @@ import { searchIssuesForPalette } from "@/features/issues/actions";
 import { StatusIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import { issuePath } from "@/features/issues/issue-links";
 import { getRecentIssueIdentifiers } from "@/features/issues/recent-issues";
+import { listSwitchableViews } from "@/features/views/actions";
+import { viewIconOf } from "@/features/views/icons";
+import type { ProjectViewEntry } from "@/features/views/queries";
+import { viewPath } from "@/features/views/url";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import type { Translator } from "@/i18n/types";
 import { modKey } from "@/lib/a11y";
@@ -92,6 +96,8 @@ export function CommandPalette({
   // meant for the `#` mention trigger and the no-query "recent" list below,
   // not for real search.
   const [liveIssueHits, setLiveIssueHits] = useState<SearchableIssue[]>([]);
+  // The project views the person sees — searchable here like projects (V7).
+  const [views, setViews] = useState<ProjectViewEntry[]>([]);
   const searchSeq = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -146,9 +152,10 @@ export function CommandPalette({
       setCursor(0);
       setViewMode(startInViews);
       setRecentIdentifiers(getRecentIssueIdentifiers());
+      listSwitchableViews(workspaceId).then(setViews);
       setTimeout(() => inputRef.current?.focus(), 30);
     }
-  }, [open, startInViews]);
+  }, [open, startInViews, workspaceId]);
 
   // Arrow-key navigation moves `cursor` without touching scroll position,
   // so once the list is taller than the viewport the active row can end up
@@ -196,6 +203,17 @@ export function CommandPalette({
     (p) => p.name.toLowerCase().includes(lq) || "board".includes(lq),
   );
 
+  // Only with a query: without one, "Go to view…" (key V) lists them all.
+  const viewHits = lq
+    ? views
+        .filter(
+          (v) =>
+            v.name.toLowerCase().includes(lq) ||
+            v.projectName.toLowerCase().includes(lq),
+        )
+        .slice(0, 6)
+    : [];
+
   const identifierOf = (i: SearchableIssue) =>
     `${projects.find((p) => p.id === i.project)?.prefix ?? "?"}-${i.key}`;
 
@@ -221,6 +239,7 @@ export function CommandPalette({
       }
     | { kind: "nav"; href: string; label: string; icon: string }
     | { kind: "board"; href: string; project: Project }
+    | { kind: "view"; href: string; view: ProjectViewEntry }
     | {
         kind: "issue";
         id: string;
@@ -241,6 +260,11 @@ export function CommandPalette({
       kind: "board" as const,
       href: `${base}/project/${p.slug}`,
       project: p,
+    })),
+    ...viewHits.map((v) => ({
+      kind: "view" as const,
+      href: viewPath(workspaceId, v.projectSlug, v.slug),
+      view: v,
     })),
     ...navHits.map((e) => ({
       kind: "nav" as const,
@@ -281,7 +305,11 @@ export function CommandPalette({
       item.run();
       // A command that changes the palette keeps it open.
       if (item.id === "switch-view") return;
-    } else if (item.kind === "nav" || item.kind === "board") {
+    } else if (
+      item.kind === "nav" ||
+      item.kind === "board" ||
+      item.kind === "view"
+    ) {
       router.push(item.href);
     } else {
       router.push(issuePath(workspaceId, item.identifier));
@@ -434,13 +462,48 @@ export function CommandPalette({
                   })}
                 </>
               )}
+              {viewHits.length > 0 && (
+                <>
+                  <div className={styles.groupLabel}>{t("palette.views")}</div>
+                  {viewHits.map((v, idx) => {
+                    const absIdx = commandHits.length + boardHits.length + idx;
+                    const href = viewPath(workspaceId, v.projectSlug, v.slug);
+                    return (
+                      <button
+                        type="button"
+                        key={v.id}
+                        className={`${styles.row}${absIdx === cursor ? ` ${styles.active}` : ""}`}
+                        onMouseEnter={() => setCursor(absIdx)}
+                        onClick={() => select({ kind: "view", href, view: v })}
+                      >
+                        <Icon
+                          icon={viewIconOf(v)}
+                          width={15}
+                          color={v.color ?? undefined}
+                        />
+                        <span>{v.name}</span>
+                        <span
+                          className="faint"
+                          style={{ marginLeft: "auto", fontSize: 12 }}
+                        >
+                          {v.projectName}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
               {navHits.length > 0 && (
                 <>
                   <div className={styles.groupLabel}>
                     {t("palette.navigation")}
                   </div>
                   {navHits.map((e, idx) => {
-                    const absIdx = commandHits.length + boardHits.length + idx;
+                    const absIdx =
+                      commandHits.length +
+                      boardHits.length +
+                      viewHits.length +
+                      idx;
                     return (
                       <button
                         type="button"
@@ -471,8 +534,9 @@ export function CommandPalette({
                   {issueHits.map((i, idx) => {
                     const absIdx =
                       commandHits.length +
-                      navHits.length +
                       boardHits.length +
+                      viewHits.length +
+                      navHits.length +
                       idx;
                     const identifier = identifierOf(i);
                     return (
