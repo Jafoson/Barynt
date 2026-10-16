@@ -641,6 +641,10 @@ model SavedView {
   name     String
   /// Eindeutig im Workspace, Teil der Adresse (`…/view/<slug>`).
   slug     String
+  /// System-View des Workspace (V8): "my-issues" | "created-by-me". Wird bei
+  /// Bedarf angelegt (`ensureSystemViews`), gehört niemandem, ist nicht
+  /// änderbar oder löschbar; der Name kommt aus den Übersetzungen.
+  systemKey String?
   icon     String?
   color    String?
   /// Reihenfolge der Tabs; Float, damit Umsortieren nur eine Zeile ändert.
@@ -668,6 +672,7 @@ model SavedView {
   userStates SavedViewUserState[]
 
   @@unique([workspaceId, slug])
+  @@unique([workspaceId, systemKey])
   @@index([projectId])
   @@index([ownerId])
 }
@@ -687,6 +692,10 @@ model SavedViewUserState {
   /// Projektnamen öffnet sie, wenn `projectLanding = "view"`. Höchstens eine
   /// je Projekt und Person (`setViewUserState` räumt die anderen ab).
   startView        Boolean  @default(false)
+  /// Eigene Wahl Board/Liste bei System-Views (V8): "board" | "list".
+  /// `null` = das Layout der View. Bei anderen Views gehört das Layout zur
+  /// View selbst.
+  layout           String?
   /// Einträge "<groupKey>:<groupId>" wie `IssueViewPreference.hiddenGroups`.
   collapsedGroups  String[] @default([])
 

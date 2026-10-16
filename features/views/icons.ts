@@ -15,6 +15,9 @@ export const VIEW_ICONS = [
   "lucide:target",
   "lucide:zap",
   "lucide:user",
+  // The system views' own (V8) — "My issues", "Created by me".
+  "lucide:circle-user",
+  "lucide:pen-line",
   "lucide:users",
   "lucide:calendar",
   "lucide:circle-check",

@@ -139,6 +139,7 @@ export function Board({
       priorities: composer.priorities,
       issueTypes: composer.issueTypes,
       members: composer.members,
+      projects: composer.projects,
     },
     {
       unassigned: t("fields.unassigned"),

@@ -22,8 +22,9 @@ export interface ActiveViewInfo {
 
 interface ViewSaveBarProps {
   workspaceId: string;
-  projectId: string;
-  projectSlug: string;
+  /** `null` for a cross-project view (V8). */
+  projectId: string | null;
+  projectSlug: string | null;
   canShare: boolean;
   /** `null` on the plain board/list. */
   activeView: ActiveViewInfo | null;

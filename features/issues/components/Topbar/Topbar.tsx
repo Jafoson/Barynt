@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import {
   setIssueViewFieldVisibility,
@@ -12,9 +13,10 @@ import {
   getMyIssuesViewPreference,
 } from "@/features/issues/queries";
 import type { ViewTab } from "@/features/views/components/ViewTabs/ViewTabs";
-import { getProjectViews } from "@/features/views/queries";
+import { getProjectViews, getWorkspaceViews } from "@/features/views/queries";
 import type { SavedView } from "@/features/views/schema";
-import { type SlugLookups, viewParams } from "@/features/views/url";
+import { ensureSystemViews } from "@/features/views/system";
+import { type SlugLookups, viewParams, viewPath } from "@/features/views/url";
 import {
   getCurrentWorkspace,
   getWorkspaceIssueTypes,
@@ -34,7 +36,7 @@ interface TopbarProps {
   count: number;
   /** Which board/list is showing — decides whose display preference to load. */
   view: "board" | "list";
-  /** Left out for the cross-project "my issues" board/list (BARY-33). */
+  /** Left out across projects — the workspace's board, list and views. */
   projectId?: string;
   /** The saved view this page shows (BARY-164) — absent on the plain
    *  board/list. */
@@ -80,16 +82,18 @@ export async function Topbar({
   if (!workspace) return null;
 
   const project = projectId ? projects.find((p) => p.id === projectId) : null;
-  const views = project
-    ? await loadTopbarViews({
-        workspaceId: workspace.id,
-        projectId: project.id,
-        projectSlug: project.slug,
-        lookups: { priorities, members: withHandles(members), labels },
-        members,
-        activeView,
-      })
-    : undefined;
+  // A project's views — or, outside a project, the workspace's (V8).
+  const views =
+    projectId && !project
+      ? undefined
+      : await loadTopbarViews({
+          workspaceId: workspace.id,
+          projectId: project?.id ?? null,
+          projectSlug: project?.slug ?? null,
+          lookups: { priorities, members: withHandles(members), labels },
+          members,
+          activeView,
+        });
 
   // Bound Server Actions, not closures — Client Components can only receive
   // props across the boundary that are themselves Server Actions; binding
@@ -150,21 +154,32 @@ async function loadTopbarViews({
   activeView,
 }: {
   workspaceId: string;
-  projectId: string;
-  projectSlug: string;
+  /** `null`: the workspace's cross-project views (V8). */
+  projectId: string | null;
+  projectSlug: string | null;
   lookups: SlugLookups;
   members: User[];
   activeView?: SavedView;
 }): Promise<TopbarViews> {
+  if (!projectId) await ensureSystemViews(workspaceId);
   const [views, canShare, me] = await Promise.all([
-    getProjectViews(workspaceId, projectId),
-    hasPermission("view.share", { projectId }),
+    projectId
+      ? getProjectViews(workspaceId, projectId)
+      : getWorkspaceViews(workspaceId),
+    hasPermission("view.share", projectId ? { projectId } : { workspaceId }),
     currentUserId(),
   ]);
 
-  const base = `/${workspaceId}/project/${projectSlug}/view`;
+  // Across projects (V8) the system views come first and say what sets
+  // them apart ("Assigned", "Created by me"); the workspace's own follow.
+  const t = projectId ? null : await getTranslations();
+  const shown = [
+    ...views.filter((v) => v.systemKey),
+    ...views.filter((v) => !v.systemKey),
+  ];
+
   const hrefOf = (v: SavedView) =>
-    `${base}/${v.slug}?${viewParams(v, lookups).toString()}`;
+    `${viewPath(workspaceId, projectSlug, v.slug)}?${viewParams(v, lookups).toString()}`;
   // Only for someone else's shared view — your own needs no attribution.
   const sharedByOf = (v: SavedView) => {
     if (v.visibility === "PRIVATE" || v.ownerId === me) return null;
@@ -172,9 +187,10 @@ async function loadTopbarViews({
     return owner ? fullName(owner) : null;
   };
 
-  const tabs: ViewTab[] = views.map((v) => ({
+  const tabs: ViewTab[] = shown.map((v) => ({
     id: v.id,
-    name: v.name,
+    // In "My issues" the tabs say what sets them apart ("Assigned").
+    name: t && v.systemKey ? t(`views.systemTab.${v.systemKey}`) : v.name,
     slug: v.slug,
     icon: v.icon,
     color: v.color,
@@ -183,6 +199,7 @@ async function loadTopbarViews({
     canEdit: v.canEdit,
     href: hrefOf(v),
     sharedBy: sharedByOf(v),
+    system: Boolean(v.systemKey),
     pinned: v.pinned,
     favorite: v.favorite,
     startView: v.startView,
@@ -204,6 +221,7 @@ async function loadTopbarViews({
           color: activeView.color,
           layout: activeView.layout,
           canonical: viewParams(activeView, lookups).toString(),
+          systemKey: activeView.systemKey,
         }
       : null,
   };

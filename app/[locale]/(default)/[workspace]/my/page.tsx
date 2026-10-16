@@ -1,29 +1,10 @@
 import { notFound, redirect } from "next/navigation";
-import { getMyPreferences } from "@/features/account/queries";
-import { setMyIssuesViewGroups } from "@/features/issues/actions";
-import { Board } from "@/features/issues/components/Board/Board";
-import { BoardUnlessPhone } from "@/features/issues/components/Board/BoardUnlessPhone";
-import { IssuePeek } from "@/features/issues/components/IssuePeek/IssuePeek";
-import { Topbar } from "@/features/issues/components/Topbar/Topbar";
-import { getIssueComposerData } from "@/features/issues/editor-data";
-import { groupKeyFromParam } from "@/features/issues/group";
-import {
-  getMyIssues,
-  getMyIssuesViewGroups,
-  getMyIssuesViewPreference,
-} from "@/features/issues/queries";
-import { sortKeyFromParam } from "@/features/issues/sort";
-import { getWorkspaceStatuses } from "@/features/workspaces/queries";
-import { setCurrentWorkspaceId } from "@/lib/current-workspace";
-import { getSession } from "@/lib/session";
+import { ensureSystemViews } from "@/features/views/system";
+import { canEnterWorkspace, currentUserId } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Your own issues as a board — the same view as in a project, just across
- * all projects you're responsible for. No new issue gets created here: the
- * project it would belong to is missing (see `Board`).
- */
+/** "My issues" is a system view since V8 — the old address leads there. */
 export default async function MyPage({
   params,
   searchParams,
@@ -32,46 +13,13 @@ export default async function MyPage({
   searchParams: Promise<Record<string, string>>;
 }) {
   const { locale, workspace } = await params;
-  const filters = await searchParams;
-  setCurrentWorkspaceId(workspace);
-  // The grouping and order a view opens with when the address names none.
-  const defaults = await getMyPreferences();
-
-  const session = await getSession();
-  if (!session) redirect(`/${locale}/login`);
-
-  const groups = await getMyIssuesViewGroups("board");
-  const [issues, statuses, composer, hiddenCardFields] = await Promise.all([
-    getMyIssues(session.userId, workspace, filters, {
-      subIssues: groups.showSubIssues,
-    }),
-    getWorkspaceStatuses(),
-    getIssueComposerData(),
-    getMyIssuesViewPreference("board"),
-  ]);
-  if (!composer) notFound();
-
-  return (
-    <>
-      <Topbar count={issues.length} view="board" />
-      <BoardUnlessPhone>
-        <Board
-          issues={issues}
-          statuses={statuses}
-          composer={composer}
-          hiddenCardFields={hiddenCardFields}
-          hiddenGroups={groups.hiddenGroups}
-          hideEmptyGroups={groups.hideEmptyGroups}
-          groupOrder={groups.groupOrder}
-          onGroupsChange={setMyIssuesViewGroups.bind(null, "board")}
-          sortKey={sortKeyFromParam(filters.sort ?? defaults.defaultSort)}
-          groupKey={groupKeyFromParam(
-            filters.group ?? defaults.defaultGrouping,
-          )}
-        />
-      </BoardUnlessPhone>
-      {/* Opens the clicked issue as a side panel (`?issue=` in the URL). */}
-      <IssuePeek data={composer} />
-    </>
+  const query = new URLSearchParams(await searchParams);
+  const userId = await currentUserId();
+  if (!userId || !(await canEnterWorkspace(userId, workspace))) notFound();
+  const slugs = await ensureSystemViews(workspace);
+  // An open issue panel or a search comes along; the view page fills in its
+  // own state.
+  redirect(
+    `/${locale}/${workspace}/view/${slugs["my-issues"]}${query.size ? `?${query}` : ""}`,
   );
 }

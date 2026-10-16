@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { listSwitchableViews } from "@/features/views/actions";
 import { viewIconOf } from "@/features/views/icons";
-import type { ProjectViewEntry } from "@/features/views/queries";
+import type { ViewEntry } from "@/features/views/queries";
 import { viewPath } from "@/features/views/url";
 import { useRouter } from "@/i18n/navigation";
 import { useHasKeyboard } from "@/lib/shortcuts/useHasKeyboard";
@@ -34,7 +34,7 @@ export function ViewSwitcher({
   const t = useTranslations();
   const router = useRouter();
   const hasKeyboard = useHasKeyboard();
-  const [views, setViews] = useState<ProjectViewEntry[] | null>(null);
+  const [views, setViews] = useState<ViewEntry[] | null>(null);
   const [q, setQ] = useState("");
   const [cursor, setCursor] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -63,18 +63,18 @@ export function ViewSwitcher({
     (v) =>
       !lq ||
       v.name.toLowerCase().includes(lq) ||
-      v.projectName.toLowerCase().includes(lq),
+      (v.projectName ?? "").toLowerCase().includes(lq),
   );
   const here = hits.filter((v) => v.projectSlug === currentProjectSlug);
   const elsewhere = hits.filter((v) => v.projectSlug !== currentProjectSlug);
   const ordered = [...here, ...elsewhere];
 
-  const go = (v: ProjectViewEntry) => {
+  const go = (v: ViewEntry) => {
     router.push(viewPath(workspaceId, v.projectSlug, v.slug));
     onClose();
   };
 
-  const row = (v: ProjectViewEntry, idx: number) => (
+  const row = (v: ViewEntry, idx: number) => (
     <button
       type="button"
       key={v.id}
@@ -86,7 +86,9 @@ export function ViewSwitcher({
       <span>{v.name}</span>
       <span className="faint" style={{ marginLeft: "auto", fontSize: 12 }}>
         {v.favorite && <Icon icon="lucide:star" width={11} />}{" "}
-        {v.projectSlug === currentProjectSlug ? "" : v.projectName}
+        {v.projectSlug === currentProjectSlug
+          ? ""
+          : (v.projectName ?? t("palette.workspaceViews"))}
       </span>
     </button>
   );
@@ -141,7 +143,11 @@ export function ViewSwitcher({
         )}
         {here.length > 0 && (
           <>
-            <div className={styles.groupLabel}>{t("palette.viewsHere")}</div>
+            <div className={styles.groupLabel}>
+              {currentProjectSlug
+                ? t("palette.viewsHere")
+                : t("palette.workspaceViews")}
+            </div>
             {here.map((v, i) => row(v, i))}
           </>
         )}

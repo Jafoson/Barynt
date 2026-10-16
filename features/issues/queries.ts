@@ -642,7 +642,28 @@ export async function getMyIssues(
   userId: string,
   workspaceId: string,
   filters: IssueFilters = {},
-  { subIssues = true }: IssueListOptions = {},
+  options: IssueListOptions = {},
+): Promise<IssueDetail[]> {
+  return getWorkspaceIssues(userId, workspaceId, filters, {
+    ...options,
+    assignedTo: userId,
+  });
+}
+
+/**
+ * The issues of every project in a workspace the user may see — the
+ * workspace's board and list and its cross-project views (V8). With
+ * `assignedTo`, only that person's ("my issues" before V8).
+ */
+export async function getWorkspaceIssues(
+  userId: string,
+  workspaceId: string,
+  filters: IssueFilters = {},
+  {
+    subIssues = true,
+    assignedTo,
+    reportedBy,
+  }: IssueListOptions & { assignedTo?: string; reportedBy?: string } = {},
 ): Promise<IssueDetail[]> {
   const visible = await accessibleProjectIds(userId, workspaceId);
   if (visible.size === 0) return [];
@@ -657,11 +678,13 @@ export async function getMyIssues(
   const where = await toIssueWhere(filter, await filterContext());
 
   const rows = await db.issue.findMany({
-    // Assignee and scope sit behind the filters — an `?assignee=` in the
-    // address can't turn "my" tasks into someone else's.
+    // Scope (and a fixed assignee) sit behind the filters — an
+    // `?assignee=` in the address can't turn "my" tasks into someone
+    // else's, a `?project=` can't reach past the visible projects.
     where: {
       ...where,
-      assigneeId: userId,
+      ...(assignedTo && { assigneeId: assignedTo }),
+      ...(reportedBy && { reporterId: reportedBy }),
       projectId: { in: scoped },
       ...(!subIssues && { parentId: null }),
     },

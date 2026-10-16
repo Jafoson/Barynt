@@ -173,7 +173,7 @@ export function ListView({
   // issues are in them.
   const defs = groupDefs(
     groupKey,
-    { statuses, priorities, issueTypes, members },
+    { statuses, priorities, issueTypes, members, projects },
     {
       unassigned: t("fields.unassigned"),
       noStoryPoints: t("fields.noStoryPoints"),

@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import type { ViewGroupsPatch } from "@/features/issues/actions";
+import { setViewUserState } from "@/features/views/actions";
 import { NewViewButton } from "@/features/views/components/NewViewButton/NewViewButton";
 import {
   type ActiveViewInfo,
@@ -13,7 +14,11 @@ import {
   type ViewTab,
   ViewTabs,
 } from "@/features/views/components/ViewTabs/ViewTabs";
-import type { ViewLayout } from "@/features/views/schema";
+import {
+  SYSTEM_VIEW_BASE,
+  type SystemViewKey,
+  type ViewLayout,
+} from "@/features/views/schema";
 import {
   displayFromParams,
   pickViewState,
@@ -69,8 +74,9 @@ interface TopbarClientProps {
 
 /** What the topbar needs for a project's saved views. */
 export interface TopbarViews {
-  projectId: string;
-  projectSlug: string;
+  /** `null` for a cross-project view (V8). */
+  projectId: string | null;
+  projectSlug: string | null;
   /** `view.share` in the project. */
   canShare: boolean;
   tabs: ViewTab[];
@@ -83,6 +89,8 @@ export interface TopbarViews {
         layout: ViewLayout;
         /** Its stored state as a query string (`viewParams`). */
         canonical: string;
+        /** Set on a system view (V8) — its fixed condition. */
+        systemKey: SystemViewKey | null;
       })
     | null;
 }
@@ -173,7 +181,15 @@ export function TopbarClient({
     !sameViewState(searchParams, new URLSearchParams(activeView.canonical));
   // What "New view"/"Save" take over: the view state of the address, with the
   // layout spelled out (the plain board/list keep theirs in the path).
-  const currentParams = { ...pickViewState(searchParams), layout: view };
+  // A system view's fixed condition isn't in the address (V8); "save as new
+  // view" takes it along as an ordinary filter.
+  const currentParams = {
+    ...(views?.active?.systemKey
+      ? SYSTEM_VIEW_BASE[views.active.systemKey]
+      : {}),
+    ...pickViewState(searchParams),
+    layout: view,
+  };
 
   // A saved view's display settings come from — and go to — its address
   // (BARY-165); the plain board and list keep the person's own preference.
@@ -198,13 +214,28 @@ export function TopbarClient({
       }
     : onGroupsChange;
 
+  // Board or list at the top of "Display" — everywhere, the same place in
+  // every view (V8); on the plain board and list it's the same as their
+  // tabs. A system view remembers the choice for this person (stored first,
+  // so the page doesn't flash "unsaved"); any other view carries it in its
+  // address like the rest.
+  const changeLayout = (next: "board" | "list") => {
+    const active = activeView ? views?.active : null;
+    if (active?.systemKey)
+      void setViewUserState(active.id, { layout: next }).then(() =>
+        setView(next),
+      );
+    else setView(next);
+  };
+
   return (
     <header
       className={`${styles.header}${isPending ? ` ${styles.pending}` : ""}`}
     >
-      {views && project ? (
-        // A project: Board · List · Dashboard | views | New view … search
-        // (BARY-177). The tabs replace the title and the board/list switch.
+      {views ? (
+        // A project or the workspace (V8): Board · List · Dashboard | views
+        // | New view … search (BARY-177). The tabs replace the title and the
+        // board/list switch.
         <div className={styles.tabRow}>
           <h1 className={styles.srOnly}>{title}</h1>
           <AreaTabs
@@ -333,13 +364,21 @@ export function TopbarClient({
               onGroupChange={setGroup}
               hiddenFields={display.hiddenFields}
               onDisplayChange={saveDisplay}
-              groupLookups={{ statuses, priorities, issueTypes, members }}
+              groupLookups={{
+                statuses,
+                priorities,
+                issueTypes,
+                members,
+                // Across projects, grouping by project exists (V8).
+                ...(area === "my" ? { projects } : {}),
+              }}
               view={view}
               hiddenGroups={display.hiddenGroups}
               hideEmptyGroups={display.hideEmptyGroups}
               showSubIssues={display.showSubIssues}
               groupOrder={display.groupOrder}
               onGroupsChange={saveGroups}
+              onLayoutChange={changeLayout}
             />
           </div>
         </div>

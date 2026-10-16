@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { Chip } from "@/components/ui/atoms/Chip/Chip";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
+import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
@@ -76,6 +77,7 @@ const GROUP_LABEL_KEY = {
   type: "fields.type",
   assignee: "fields.assignee",
   storyPoints: "fields.storyPoints",
+  project: "fields.project",
 } as const satisfies Record<GroupKey, string>;
 
 /** Group keys that only make sense while the field they group by is shown. */
@@ -88,6 +90,8 @@ const GROUP_KEY_FIELD: Partial<Record<GroupKey, DetailFieldKey>> = {
 function availableKeys(
   projectHiddenFields: string[],
   hidden: Set<CardFieldKey>,
+  /** Across projects (V8) — only there can one group by project. */
+  crossProject: boolean,
 ) {
   const projectVisible = visibleDetailFields(projectHiddenFields);
   const sortKeys = SORT_KEYS.filter((key) => {
@@ -96,6 +100,7 @@ function availableKeys(
     return !(isCardFieldKey(field) && hidden.has(field));
   });
   const groupKeys = GROUP_KEYS.filter((key) => {
+    if (key === "project") return crossProject;
     const field = GROUP_KEY_FIELD[key];
     if (!field) return true;
     return (
@@ -131,6 +136,9 @@ interface ViewSettingsProps {
   onGroupsChange: (
     patch: ViewGroupsPatch,
   ) => Promise<{ ok: true } | { error: string }>;
+  /** Board or list, chosen at the panel's top (V8) — on every board and
+   *  list, the same place everywhere. */
+  onLayoutChange?: (view: GroupView) => void;
 }
 
 /**
@@ -156,6 +164,7 @@ export function ViewSettings({
   showSubIssues,
   groupOrder,
   onGroupsChange,
+  onLayoutChange,
 }: ViewSettingsProps) {
   const t = useTranslations();
   const router = useRouter();
@@ -165,7 +174,7 @@ export function ViewSettings({
   );
 
   const { sortKeys: availableSortKeys, groupKeys: availableGroupKeys } =
-    availableKeys(projectHiddenFields, hidden);
+    availableKeys(projectHiddenFields, hidden, Boolean(groupLookups.projects));
   const activeGroupKey = availableGroupKeys.includes(groupKey)
     ? groupKey
     : "status";
@@ -304,6 +313,7 @@ export function ViewSettings({
     setSort: onSortChange,
     toggleField,
     reset,
+    layout: onLayoutChange,
   };
 
   const trigger = (
@@ -365,6 +375,7 @@ export function ViewSettings({
             facet={facet}
             onFacetChange={setFacet}
             showBack
+            onLayout={onLayoutChange}
           />
         </div>
       )}
@@ -393,6 +404,7 @@ interface SheetSource {
   setSort: (key: SortKey) => void;
   toggleField: (key: CardFieldKey) => void;
   reset: () => void;
+  layout?: (view: GroupView) => void;
 }
 
 type DisplayFacet = "group" | "sort" | "groups";
@@ -532,6 +544,15 @@ function ViewSheet({
             showBack={false}
             hideReset
             alwaysSearch={false}
+            onLayout={
+              latest.current.layout
+                ? (next) => {
+                    latest.current.layout?.(next);
+                    // The page underneath changes — the sheet goes with it.
+                    close();
+                  }
+                : undefined
+            }
           />
         </div>
       </ModalBody>
@@ -559,6 +580,8 @@ interface DisplayPanelProps {
   /** No reset button below — the sheet has it in its bar. */
   hideReset?: boolean;
   alwaysSearch?: boolean;
+  /** Board | List at the top (V8). */
+  onLayout?: (view: GroupView) => void;
 }
 
 /**
@@ -583,11 +606,13 @@ export function DisplayPanel({
   showBack,
   hideReset = false,
   alwaysSearch = false,
+  onLayout,
 }: DisplayPanelProps) {
   const t = useTranslations();
   const { sortKeys, groupKeys } = availableKeys(
     state.projectHiddenFields,
     state.hidden,
+    Boolean(state.groupLookups.projects),
   );
 
   // The groups of the active grouping (BARY-47) — for statuses all of them,
@@ -678,6 +703,28 @@ export function DisplayPanel({
 
   return (
     <>
+      {/* Board or list first: everything below depends on it (V8). */}
+      {onLayout && (
+        <div className={styles.layoutSwitch}>
+          <SegmentedControl
+            variant="surface"
+            value={state.view}
+            onChange={(v) => onLayout(v as GroupView)}
+            items={[
+              {
+                value: "board",
+                label: t("nav.board"),
+                icon: <Icon icon="lucide:layout-dashboard" width={15} />,
+              },
+              {
+                value: "list",
+                label: t("views.layoutList"),
+                icon: <Icon icon="lucide:list" width={15} />,
+              },
+            ]}
+          />
+        </div>
+      )}
       <ChoiceRow
         title={t("display.grouping")}
         value={t(GROUP_LABEL_KEY[state.groupKey])}

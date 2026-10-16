@@ -98,15 +98,39 @@ export const viewUserStateSchema = z
     favoritePosition: z.number().finite().nullable().optional(),
     /** This project's start view for the caller (V7). */
     startView: z.boolean().optional(),
+    /** The caller's own board/list on a system view (V8). */
+    layout: z.enum(["board", "list"]).nullable().optional(),
     collapsedGroups: z.array(z.string().max(200)).max(500).optional(),
   })
   .strict();
 export type ViewUserStateInput = z.input<typeof viewUserStateSchema>;
 
+// ─── System views (V8) ──────────────────────────────────────────────────────
+
+export const SYSTEM_VIEW_KEYS = ["my-issues", "created-by-me"] as const;
+export type SystemViewKey = (typeof SYSTEM_VIEW_KEYS)[number];
+
+export function isSystemViewKey(value: unknown): value is SystemViewKey {
+  return (SYSTEM_VIEW_KEYS as readonly unknown[]).includes(value);
+}
+
+/**
+ * What makes a system view what it is — applied on the server, never in
+ * the address or the filter bar, so it can't be filtered away ("My issues"
+ * without "assigned to me" would be all issues). "Save as new view" writes
+ * it into the copy as an ordinary filter.
+ */
+export const SYSTEM_VIEW_BASE: Record<SystemViewKey, Record<string, string>> = {
+  "my-issues": { assignee: "@me" },
+  "created-by-me": { reporter: "@me" },
+};
+
 /** A saved view as the app reads it — filter and display already parsed,
  *  plus the viewer's own state and whether they may change it. */
 export interface SavedView {
   id: string;
+  /** A workspace's system view (V8) — `SYSTEM_VIEWS`. */
+  systemKey: SystemViewKey | null;
   workspaceId: string;
   projectId: string | null;
   ownerId: string | null;

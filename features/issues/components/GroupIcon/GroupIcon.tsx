@@ -24,5 +24,13 @@ export function GroupIcon({ group, size }: { group: GroupDef; size: number }) {
       );
     case "storyPoints":
       return <Icon icon="lucide:hash" width={size} />;
+    case "project":
+      return (
+        <Avatar
+          avatar={{ name: group.label, color: group.color ?? "#888" }}
+          shape="square"
+          size={size + 1}
+        />
+      );
   }
 }

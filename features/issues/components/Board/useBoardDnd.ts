@@ -1,6 +1,11 @@
 import { useOptimistic, useRef, useState, useTransition } from "react";
 import { reorderIssue, updateIssue } from "@/features/issues/actions";
-import { type GroupKey, groupIdOf, groupPatch } from "@/features/issues/group";
+import {
+  canMoveBetweenGroups,
+  type GroupKey,
+  groupIdOf,
+  groupPatch,
+} from "@/features/issues/group";
 import { rankBetween } from "@/features/issues/rank";
 import {
   type SortKey,
@@ -104,6 +109,13 @@ export function useBoardDnd<T extends Issue>(
    * exactly the same thing.
    */
   const commitMove = (issue: T, groupId: string, rank: number) => {
+    // Across projects a card stays in its own (V8) — dropped into another
+    // project's column, it goes back.
+    if (
+      !canMoveBetweenGroups(groupKey) &&
+      groupId !== groupIdOf(issue, groupKey)
+    )
+      return;
     const patch = groupPatch(groupKey, groupId) as Partial<Issue>;
 
     // No `router.refresh()` after the `await` — `reorderIssue` already

@@ -1,23 +1,10 @@
 import { notFound, redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
-import { getMyPreferences } from "@/features/account/queries";
-import { IssuePeek } from "@/features/issues/components/IssuePeek/IssuePeek";
-import { ListView } from "@/features/issues/components/ListView/ListView";
-import { Topbar } from "@/features/issues/components/Topbar/Topbar";
-import { getIssueComposerData } from "@/features/issues/editor-data";
-import { groupKeyFromParam } from "@/features/issues/group";
-import {
-  getMyIssues,
-  getMyIssuesViewGroups,
-  getMyIssuesViewPreference,
-} from "@/features/issues/queries";
-import { sortKeyFromParam } from "@/features/issues/sort";
-import { setCurrentWorkspaceId } from "@/lib/current-workspace";
-import { getSession } from "@/lib/session";
+import { ensureSystemViews } from "@/features/views/system";
+import { canEnterWorkspace, currentUserId } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
-/** The same own issues as a list — with a column for the project. */
+/** "My issues" as a list was its own page before V8 — it leads to the system view. */
 export default async function MyListPage({
   params,
   searchParams,
@@ -26,39 +13,13 @@ export default async function MyListPage({
   searchParams: Promise<Record<string, string>>;
 }) {
   const { locale, workspace } = await params;
-  const filters = await searchParams;
-  setCurrentWorkspaceId(workspace);
-  // The grouping and order a view opens with when the address names none.
-  const defaults = await getMyPreferences();
-
-  const session = await getSession();
-  if (!session) redirect(`/${locale}/login`);
-
-  const [issues, composer, t, hiddenCardFields, groups] = await Promise.all([
-    getMyIssues(session.userId, workspace, filters),
-    getIssueComposerData(),
-    getTranslations(),
-    getMyIssuesViewPreference("list"),
-    getMyIssuesViewGroups("list"),
-  ]);
-  if (!composer) notFound();
-
-  return (
-    <>
-      <Topbar count={issues.length} view="list" />
-      <ListView
-        issues={issues}
-        composer={composer}
-        hiddenCardFields={hiddenCardFields}
-        hiddenGroups={groups.hiddenGroups}
-        hideEmptyGroups={groups.hideEmptyGroups}
-        groupOrder={groups.groupOrder}
-        sortKey={sortKeyFromParam(filters.sort ?? defaults.defaultSort)}
-        groupKey={groupKeyFromParam(filters.group ?? defaults.defaultGrouping)}
-        emptyTitle={t("empty.noAssignedIssues")}
-      />
-      {/* Opens the clicked issue as a side panel (`?issue=` in the URL). */}
-      <IssuePeek data={composer} />
-    </>
+  const query = new URLSearchParams(await searchParams);
+  const userId = await currentUserId();
+  if (!userId || !(await canEnterWorkspace(userId, workspace))) notFound();
+  const slugs = await ensureSystemViews(workspace);
+  // An open issue panel or a search comes along; the view page fills in its
+  // own state.
+  redirect(
+    `/${locale}/${workspace}/view/${slugs["my-issues"]}${query.size ? `?${query}` : ""}`,
   );
 }

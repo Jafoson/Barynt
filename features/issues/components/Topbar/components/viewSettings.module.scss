@@ -506,3 +506,16 @@
   color: var(--primary);
   font-weight: 600;
 }
+
+/* Board | List at the panel's top, on a saved view (V8): the whole width,
+   both halves the same. */
+.layoutSwitch {
+  & > * {
+    display: flex;
+    width: 100%;
+
+    & > * {
+      flex: 1 1 0;
+    }
+  }
+}
