@@ -243,6 +243,7 @@ async function layoutFor(
   target: DashboardTarget,
   resolved: Resolved,
   userId: string,
+  scope: DashboardScope,
 ): Promise<{ widgets: Widget[]; personal: boolean; hasShared: boolean }> {
   if (target.kind === "view") {
     return {
@@ -262,7 +263,13 @@ async function layoutFor(
     rows.find((r) => r.key === personalKey)?.widgets,
   );
   return {
-    widgets: personal ?? shared ?? defaultWidgets(target.kind),
+    // Someone looking at their own issues ("mine") starts from the personal
+    // default; the shared one is the team's view of everything.
+    widgets:
+      personal ??
+      (scope === "mine"
+        ? defaultWidgets(target.kind, "mine")
+        : (shared ?? defaultWidgets(target.kind, "all"))),
     personal: !!personal,
     hasShared: !!shared,
   };
@@ -507,6 +514,16 @@ async function kpi(
       return stock(await count({ status: "in_review" }));
     case "overdue":
       return stock(await count({ ...open, dueDate: { lt: todayStart() } }));
+    case "dueSoon":
+      return stock(
+        await count({
+          ...open,
+          dueDate: {
+            gte: todayStart(),
+            lt: new Date(todayStart().getTime() + 7 * DAY),
+          },
+        }),
+      );
     case "unassigned":
       return stock(await count({ ...open, assigneeId: null }));
     case "urgent":
@@ -1651,13 +1668,11 @@ export async function getDashboard(
   const resolved = await resolveTarget(target.kind, target.id);
   if (!resolved) return null;
 
-  const [layout, stored] = await Promise.all([
-    layoutFor(target, resolved, userId),
-    storedPrefs(target, userId),
-  ]);
+  const stored = await storedPrefs(target, userId);
   const range = toRange(params.range ?? stored.range ?? undefined);
   const wanted = toDashboardScope(params.scope, stored.scope);
   const scope: DashboardScope = resolved.canViewAll ? wanted : "mine";
+  const layout = await layoutFor(target, resolved, userId, scope);
 
   const data =
     (await computeWidgets(target, layout.widgets, range, scope)) ?? {};

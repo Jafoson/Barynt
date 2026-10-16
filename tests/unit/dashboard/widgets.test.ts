@@ -48,21 +48,29 @@ describe("The registry", () => {
 });
 
 describe("Defaults", () => {
-  for (const kind of ["project", "workspace", "view"] as const) {
-    it(`builds a valid ${kind} dashboard`, () => {
-      const widgets = defaultWidgets(kind);
+  const all = [
+    ["project", "all"],
+    ["project", "mine"],
+    ["workspace", "all"],
+    ["workspace", "mine"],
+    ["view", "all"],
+  ] as const;
+
+  for (const [kind, scope] of all) {
+    it(`builds a valid ${kind} dashboard (${scope})`, () => {
+      const widgets = defaultWidgets(kind, scope);
       expect(parseWidgets(widgets)).toEqual(widgets);
       expect(new Set(widgets.map((w) => w.id)).size).toBe(widgets.length);
     });
-  }
 
-  it("fills whole rows of eight columns", () => {
-    const cells = defaultWidgets("project").reduce(
-      (sum, w) => sum + SIZE_SPAN[w.size].cols * SIZE_SPAN[w.size].rows,
-      0,
-    );
-    expect(cells % 8).toBe(0);
-  });
+    it(`fills whole rows of eight columns (${kind}, ${scope})`, () => {
+      const cells = defaultWidgets(kind, scope).reduce(
+        (sum, w) => sum + SIZE_SPAN[w.size].cols * SIZE_SPAN[w.size].rows,
+        0,
+      );
+      expect(cells % 8).toBe(0);
+    });
+  }
 
   it("has no about card on a view", () => {
     expect(defaultWidgets("view").some((w) => w.type === "about")).toBe(false);

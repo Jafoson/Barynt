@@ -35,6 +35,8 @@ export function useWidgetTitle() {
     if (own) return own;
     if (widget.type === "kpi")
       return t(`metric_${widget.config.metric ?? "open"}`);
+    if (widget.type === "issues")
+      return t(`issuesTitle_${widget.config.sort ?? "updated"}`);
     if (widget.type === "distribution")
       return t(`group_${widget.config.groupBy ?? "status"}`);
     if (widget.type === "matrix")

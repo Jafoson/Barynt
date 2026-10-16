@@ -1815,6 +1815,12 @@
     "reset": "Zurücksetzen",
     "saveOptions": "Weitere Speicher-Optionen",
     "move": "Verschieben",
-    "addShort": "Widget"
+    "addShort": "Widget",
+    "metric_dueSoon": "Diese Woche fällig",
+    "metricHint_dueSoon": "in den nächsten 7 Tagen",
+    "issuesTitle_updated": "Zuletzt geändert",
+    "issuesTitle_created": "Neu angelegt",
+    "issuesTitle_dueDate": "Als Nächstes fällig",
+    "issuesTitle_priority": "Nach Dringlichkeit"
   }
 }

@@ -1815,6 +1815,12 @@
     "reset": "Reset",
     "saveOptions": "More ways to save",
     "move": "Move",
-    "addShort": "Widget"
+    "addShort": "Widget",
+    "metric_dueSoon": "Due this week",
+    "metricHint_dueSoon": "in the next 7 days",
+    "issuesTitle_updated": "Recently changed",
+    "issuesTitle_created": "Newly created",
+    "issuesTitle_dueDate": "Due next",
+    "issuesTitle_priority": "By urgency"
   }
 }

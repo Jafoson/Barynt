@@ -62,6 +62,7 @@ export const KPI_METRICS = [
   "created",
   "closed",
   "overdue",
+  "dueSoon",
   "unassigned",
   "urgent",
   "cycleTime",
@@ -77,6 +78,7 @@ export const METRIC_MORE_IS_GOOD: Record<KpiMetric, boolean> = {
   created: true,
   closed: true,
   overdue: false,
+  dueSoon: false,
   unassigned: false,
   urgent: false,
   cycleTime: false,
@@ -465,63 +467,128 @@ function w(
  */
 export function defaultWidgets(
   kind: "project" | "workspace" | "view",
+  scope: "all" | "mine" = "all",
 ): Widget[] {
-  // On 8 columns: the flow (4×2) beside four numbers and two halves, then
-  // four large ones, then the burn-up beside two large ones. Narrower grids
-  // reflow the same order.
-  const priority = w("priority", "distribution", "L", {
-    groupBy: "priority",
-    chart: "bars",
-    openOnly: true,
-    accent: "orange",
-  });
-  return [
-    w("flow", "flow", "XL"),
+  // Each packs into 8 columns without a gap; narrower grids reflow the same
+  // order. Chosen from the mockups (BARY-169): workspace C "calm",
+  // workspace-for-me B "focus", project A "status", project-for-me C
+  // "compact".
+  if (kind === "view") {
+    return [
+      w("flow", "flow", "XL"),
+      w("open", "kpi", "S", { metric: "open", background: "fill" }),
+      w("inProgress", "kpi", "S", {
+        metric: "inProgress",
+        accent: "amber",
+        background: "tint",
+      }),
+      w("overdue", "kpi", "S", {
+        metric: "overdue",
+        accent: "red",
+        background: "tint",
+      }),
+      w("closed", "kpi", "S", { metric: "closed", accent: "green" }),
+      w("cycle", "cycle", "M", { background: "gradient" }),
+      w("done", "progress", "M", { background: "fill" }),
+      w("status", "distribution", "L", { groupBy: "status" }),
+      w("attention", "attention", "L"),
+      w("workload", "workload", "L"),
+      w("priority", "distribution", "L", {
+        groupBy: "priority",
+        chart: "bars",
+        openOnly: true,
+        accent: "orange",
+      }),
+    ];
+  }
+
+  // The four numbers most dashboards open with — in "mine" they count the
+  // person's own issues (the scope filters).
+  const numbers = (mine: boolean) => [
     w("open", "kpi", "S", { metric: "open", background: "fill" }),
-    w("inProgress", "kpi", "S", {
-      metric: "inProgress",
-      accent: "amber",
-      background: "tint",
-    }),
-    w("overdue", "kpi", "S", {
-      metric: "overdue",
-      accent: "red",
-      background: "tint",
-    }),
-    w("closed", "kpi", "S", { metric: "closed", accent: "green" }),
-    w("cycle", "cycle", "M", { background: "gradient" }),
-    w("done", "progress", "M", { background: "fill" }),
-    w("status", "distribution", "L", { groupBy: "status" }),
-    w("attention", "attention", "L"),
-    w("workload", "workload", "L"),
-    kind === "view" ? priority : w("about", "about", "L"),
-    w("burnup", "burnup", "XL"),
-    kind === "workspace"
-      ? w("projects", "distribution", "L", {
-          groupBy: "project",
-          chart: "bars",
-          openOnly: true,
-          accent: "teal",
+    mine
+      ? w("overdue", "kpi", "S", {
+          metric: "overdue",
+          accent: "red",
+          background: "tint",
         })
-      : kind === "view"
-        ? w("types", "distribution", "L", {
-            groupBy: "type",
-            chart: "bars",
-            accent: "teal",
-          })
-        : priority,
-    w("activity", "activity", "L"),
-    // What the old overview showed: who, in which teams, with what.
-    ...(kind === "view"
-      ? []
-      : [
-          w("members", "members", "L"),
-          w("teams", "teams", "L"),
-          kind === "workspace"
-            ? w("projectList", "projects", "L")
-            : w("labels", "labels", "L"),
-          w("shortcuts", "shortcuts", "L", { background: "tint" }),
-        ]),
+      : w("inProgress", "kpi", "S", {
+          metric: "inProgress",
+          accent: "amber",
+          background: "tint",
+        }),
+    mine
+      ? w("inProgress", "kpi", "S", {
+          metric: "inProgress",
+          accent: "amber",
+          background: "tint",
+        })
+      : w("overdue", "kpi", "S", {
+          metric: "overdue",
+          accent: "red",
+          background: "tint",
+        }),
+    w("closed", "kpi", "S", { metric: "closed", accent: "green" }),
+  ];
+
+  if (kind === "workspace" && scope === "all") {
+    // C "calm": a welcome, the numbers, the movement, what needs a look,
+    // the projects, and the way on.
+    return [
+      w("about", "about", "M", { background: "gradient" }),
+      ...numbers(false),
+      w("done", "progress", "M", { background: "fill" }),
+      w("flow", "flow", "XL"),
+      w("attention", "attention", "L"),
+      w("projectList", "projects", "L"),
+      w("shortcuts", "shortcuts", "W", { background: "tint" }),
+    ];
+  }
+
+  if (kind === "workspace") {
+    // B "focus": what's due next and what moved last, two numbers, one's
+    // own pace, a note, and the way to inbox and views.
+    return [
+      w("next", "issues", "L", { sort: "dueDate", accent: "amber" }),
+      w("recent", "issues", "L", { sort: "updated" }),
+      w("open", "kpi", "S", { metric: "open", background: "fill" }),
+      w("overdue", "kpi", "S", {
+        metric: "overdue",
+        accent: "red",
+        background: "tint",
+      }),
+      w("flow", "flow", "M"),
+      w("note", "note", "M"),
+      w("shortcuts", "shortcuts", "M", {
+        background: "tint",
+        shortcuts: ["inbox", "myIssues", "views"],
+      }),
+    ];
+  }
+
+  if (scope === "all") {
+    // A "status": what the project is, its numbers and movement, then
+    // where it stands and where it snags.
+    return [
+      w("about", "about", "L", { background: "gradient" }),
+      ...numbers(false),
+      w("flow", "flow", "XL"),
+      w("status", "distribution", "L", { groupBy: "status" }),
+      w("attention", "attention", "L"),
+      w("workload", "workload", "L"),
+      w("cycle", "cycle", "M", { background: "gradient" }),
+      w("done", "progress", "M", { background: "fill" }),
+    ];
+  }
+
+  // Project for me, C "compact": my issues here, my numbers, the project
+  // in a line, and the way on.
+  return [
+    w("mine", "issues", "XL", { sort: "dueDate" }),
+    ...numbers(true),
+    w("about", "about", "M", { background: "gradient" }),
+    w("done", "progress", "M", { background: "fill" }),
+    w("shortcuts", "shortcuts", "W", { background: "tint" }),
   ];
 }
 

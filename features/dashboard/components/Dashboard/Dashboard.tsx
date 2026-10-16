@@ -179,7 +179,7 @@ export function Dashboard({
       ? null
       : layout.personal
         ? "personal"
-        : layout.canEditShared && layout.hasShared
+        : layout.canEditShared && layout.hasShared && view.scope === "all"
           ? "shared"
           : null;
 
@@ -324,7 +324,9 @@ export function Dashboard({
                 },
               ]
             : []),
-          ...(layout.canEditShared && target.kind !== "view"
+          ...(layout.canEditShared &&
+          target.kind !== "view" &&
+          view.scope === "all"
             ? [
                 {
                   value: "shared",
@@ -368,18 +370,20 @@ export function Dashboard({
       >
         {t("saveAsView")}
       </Button>
-      {layout.canEditShared && target.kind !== "view" && (
-        <Button
-          variant="elevated"
-          size="sm"
-          icon={<Icon icon="lucide:users" width={14} />}
-          onClick={() => (dirty ? save("shared") : setEditing(false))}
-          disabled={pending}
-          title={t("hintShared")}
-        >
-          {t("saveShared")}
-        </Button>
-      )}
+      {layout.canEditShared &&
+        target.kind !== "view" &&
+        view.scope === "all" && (
+          <Button
+            variant="elevated"
+            size="sm"
+            icon={<Icon icon="lucide:users" width={14} />}
+            onClick={() => (dirty ? save("shared") : setEditing(false))}
+            disabled={pending}
+            title={t("hintShared")}
+          >
+            {t("saveShared")}
+          </Button>
+        )}
       {canSave && (
         <Button
           variant="primary"
