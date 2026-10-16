@@ -46,8 +46,12 @@
   }
 }
 
-.level {
-  display: contents;
+/* Unsaved changes: badge, discard, new view, save — like a changed view. */
+.saveBar {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.375rem;
 }
 
 /* ── The grid ─────────────────────────────────────────────────────────────

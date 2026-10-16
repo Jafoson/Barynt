@@ -1562,8 +1562,6 @@
     "remove": "Remove",
     "removeNamed": "Remove {name}",
     "settingsFor": "Settings for {name}",
-    "levelPersonal": "For me",
-    "levelShared": "For everyone",
     "hintPersonal": "Your own arrangement — others keep seeing the default.",
     "hintShared": "The default for everyone who hasn't customized it.",
     "hintView": "Applies to everyone who sees this view.",
@@ -1807,6 +1805,13 @@
     "shortcut_webhooks": "Webhooks",
     "shortcut_notifications": "Notifications",
     "shortcut_account": "My account",
-    "shortcutsHidden": "More"
+    "shortcutsHidden": "More",
+    "unsaved": "Unsaved",
+    "discard": "Discard",
+    "saveAsView": "Save as new view",
+    "saveShared": "Save for everyone",
+    "savePersonal": "Save for me",
+    "save": "Save",
+    "hintEdit": "Changes apply once you save them."
   }
 }

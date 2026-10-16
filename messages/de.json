@@ -1562,8 +1562,6 @@
     "remove": "Entfernen",
     "removeNamed": "{name} entfernen",
     "settingsFor": "Einstellungen von {name}",
-    "levelPersonal": "Für mich",
-    "levelShared": "Für alle",
     "hintPersonal": "Deine eigene Anordnung — andere sehen weiter die Vorgabe.",
     "hintShared": "Vorgabe für alle, die nichts selbst angepasst haben.",
     "hintView": "Gilt für alle, die diese View sehen.",
@@ -1807,6 +1805,13 @@
     "shortcut_webhooks": "Webhooks",
     "shortcut_notifications": "Benachrichtigungen",
     "shortcut_account": "Mein Konto",
-    "shortcutsHidden": "Weitere"
+    "shortcutsHidden": "Weitere",
+    "unsaved": "Ungespeichert",
+    "discard": "Verwerfen",
+    "saveAsView": "Als neue View",
+    "saveShared": "Für alle speichern",
+    "savePersonal": "Für mich speichern",
+    "save": "Speichern",
+    "hintEdit": "Änderungen gelten erst, wenn du sie speicherst."
   }
 }

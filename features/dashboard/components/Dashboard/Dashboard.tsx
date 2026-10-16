@@ -22,6 +22,7 @@ import {
   type Widget as WidgetModel,
 } from "@/features/dashboard/widgets";
 import type { FilterLabelLookups } from "@/features/issues/components/Topbar/filterLabels";
+import { useOpenViewModal } from "@/features/views/useOpenViewModal";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import type { RangeKey } from "@/lib/buckets";
 import { useModal } from "@/lib/context";
@@ -39,6 +40,15 @@ interface Props {
   lookups: FilterLabelLookups;
   /** "my": across projects, so project is a filter field too. */
   area: "project" | "my";
+  /** What "Save as new view" needs: where the view would live, whether it
+   *  may be shared, and (for a dashboard view) the filter it takes along. */
+  newView: {
+    workspaceId: string;
+    projectId: string | null;
+    projectSlug: string | null;
+    canShare: boolean;
+    currentParams: Record<string, string>;
+  };
 }
 
 /** Changes that need fresh numbers from the server — the rest is drawing. */
@@ -62,10 +72,15 @@ const needsData = (a: WidgetModel, b: WidgetModel) =>
  * 8 columns on a wide screen, 6, 4 on a tablet, 2 on a phone; the same
  * order everywhere, gaps fill themselves.
  *
- * "Edit" works like the home screen on iOS: the widgets wiggle, "−"
- * removes one, the pill at the bottom switches its size, dragging moves
- * it, a click opens its settings. Nothing is stored until "Done" — for
- * oneself, or (admins) as the default for everyone.
+ * "Edit" works like the home screen on iOS: the widgets wiggle, "✕"
+ * removes one, the switch at the bottom changes its size, dragging moves
+ * it, a click opens its settings.
+ *
+ * Saving works like a view's (BARY-164): once the arrangement differs from
+ * the stored one, the toolbar says "Unsaved" and offers Discard, Save as new
+ * view and Save — for oneself, and with `dashboard.manage` also as the
+ * default for everyone. A dashboard view saves into the view, if the person
+ * may change it; otherwise only a new view remains.
  */
 export function Dashboard({
   view,
@@ -73,6 +88,7 @@ export function Dashboard({
   workspaceSlug,
   lookups,
   area,
+  newView,
 }: Props) {
   const t = useTranslations("widgets");
   const td = useTranslations("dashboard");
@@ -86,14 +102,15 @@ export function Dashboard({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<WidgetModel[]>(layout.widgets);
   const [data, setData] = useState<WidgetDataMap>(view.data);
-  const [level, setLevel] = useState<"personal" | "shared">(
-    layout.canEditShared && !layout.personal ? "shared" : "personal",
-  );
   const [pending, startTransition] = useTransition();
   const dragId = useRef<string | null>(null);
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
-  const widgets = editing ? draft : layout.widgets;
+  const openViewModal = useOpenViewModal();
+  // The draft is what shows; "unsaved" is it differing from what's stored.
+  const widgets = draft;
+  const dirty = JSON.stringify(draft) !== JSON.stringify(layout.widgets);
+  const canSave = target.kind !== "view" || layout.canEdit;
 
   const fetchData = (list: WidgetModel[]) => {
     if (list.length === 0) return;
@@ -132,29 +149,27 @@ export function Dashboard({
       return moveWidgetTo(list, id, list[to].id);
     });
 
-  const startEditing = () => {
-    setDraft(layout.widgets);
-    setEditing(true);
-  };
-
-  const cancel = () => {
+  const discard = () => {
     setEditing(false);
     setDraft(layout.widgets);
   };
 
-  const done = () =>
+  const save = (level: "personal" | "shared") =>
     startTransition(async () => {
       await saveDashboardWidgets(target, draft, level);
       setEditing(false);
       router.refresh();
     });
 
-  const reset = () =>
+  const reset = (level: "personal" | "shared") =>
     startTransition(async () => {
       await resetDashboardWidgets(target, level);
       setEditing(false);
       router.refresh();
     });
+
+  const saveAsView = () =>
+    openViewModal({ ...newView, initialLayout: "dashboard", widgets: draft });
 
   const openSettings = (widget: WidgetModel) =>
     openModal(
@@ -208,9 +223,49 @@ export function Dashboard({
     });
   };
 
-  const canReset =
-    target.kind !== "view" &&
-    (level === "personal" ? layout.personal : layout.hasShared);
+  // Unsaved: the same row of actions as a changed view.
+  const saveBar = dirty && (
+    <span className={styles.saveBar}>
+      <Badge size="sm" mono={false}>
+        {t("unsaved")}
+      </Badge>
+      <Button variant="ghost" size="sm" onClick={discard} disabled={pending}>
+        {t("discard")}
+      </Button>
+      <Button
+        variant={canSave ? "elevated" : "primary"}
+        size="sm"
+        icon={<Icon icon="lucide:plus" width={14} />}
+        onClick={saveAsView}
+        disabled={pending}
+      >
+        {t("saveAsView")}
+      </Button>
+      {layout.canEditShared && target.kind !== "view" && (
+        <Button
+          variant="elevated"
+          size="sm"
+          icon={<Icon icon="lucide:users" width={14} />}
+          onClick={() => save("shared")}
+          disabled={pending}
+          title={t("hintShared")}
+        >
+          {t("saveShared")}
+        </Button>
+      )}
+      {canSave && (
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => save("personal")}
+          disabled={pending}
+          title={target.kind === "view" ? t("hintView") : t("hintPersonal")}
+        >
+          {target.kind === "view" ? t("save") : t("savePersonal")}
+        </Button>
+      )}
+    </span>
+  );
 
   return (
     <div className={styles.page} data-editing={editing || undefined}>
@@ -225,49 +280,36 @@ export function Dashboard({
             >
               {t("add")}
             </Button>
-            {layout.canEditShared && target.kind !== "view" && (
-              <span className={styles.level}>
-                <SegmentedControl
-                  variant="surface"
-                  value={level}
-                  onChange={(v) => setLevel(v as "personal" | "shared")}
-                  items={[
-                    { value: "personal", label: t("levelPersonal") },
-                    { value: "shared", label: t("levelShared") },
-                  ]}
-                />
-              </span>
-            )}
-            <span className={styles.hint}>
-              {target.kind === "view"
-                ? t("hintView")
-                : level === "shared"
-                  ? t("hintShared")
-                  : t("hintPersonal")}
-            </span>
+            <span className={styles.hint}>{t("hintEdit")}</span>
             <span className={styles.spacer} />
-            {canReset && (
+            {!dirty && target.kind !== "view" && layout.personal && (
               <Button
                 variant="text"
                 size="sm"
-                onClick={reset}
+                onClick={() => reset("personal")}
                 disabled={pending}
               >
-                {t(level === "shared" ? "resetShared" : "resetPersonal")}
+                {t("resetPersonal")}
               </Button>
             )}
+            {!dirty &&
+              target.kind !== "view" &&
+              layout.canEditShared &&
+              layout.hasShared && (
+                <Button
+                  variant="text"
+                  size="sm"
+                  onClick={() => reset("shared")}
+                  disabled={pending}
+                >
+                  {t("resetShared")}
+                </Button>
+              )}
+            {saveBar}
             <Button
-              variant="ghost"
+              variant={dirty ? "ghost" : "primary"}
               size="sm"
-              onClick={cancel}
-              disabled={pending}
-            >
-              {t("cancel")}
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={done}
+              onClick={() => setEditing(false)}
               disabled={pending}
             >
               {t("done")}
@@ -292,21 +334,20 @@ export function Dashboard({
               <span className={styles.hint}>{td("scopeMineHint")}</span>
             )}
             <span className={styles.spacer} />
-            {layout.personal && (
+            {!dirty && layout.personal && (
               <Badge size="sm" mono={false}>
                 {t("personalBadge")}
               </Badge>
             )}
-            {layout.canEdit && (
-              <Button
-                variant="elevated"
-                size="sm"
-                icon={<Icon icon="lucide:layout-dashboard" width={15} />}
-                onClick={startEditing}
-              >
-                {t("edit")}
-              </Button>
-            )}
+            {saveBar}
+            <Button
+              variant="elevated"
+              size="sm"
+              icon={<Icon icon="lucide:layout-dashboard" width={15} />}
+              onClick={() => setEditing(true)}
+            >
+              {t("edit")}
+            </Button>
           </>
         )}
       </div>
@@ -399,11 +440,9 @@ export function Dashboard({
         {widgets.length === 0 && !editing && (
           <div className={styles.emptyPage}>
             <p>{t("emptyDashboard")}</p>
-            {layout.canEdit && (
-              <Button variant="primary" onClick={startEditing}>
-                {t("edit")}
-              </Button>
-            )}
+            <Button variant="primary" onClick={() => setEditing(true)}>
+              {t("edit")}
+            </Button>
           </div>
         )}
       </div>

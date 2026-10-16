@@ -34,6 +34,7 @@ export default async function ProjectDashboardPage({
         workspace={workspace}
         params={await searchParams}
         area="project"
+        place={{ projectId: project.id, projectSlug: project.slug }}
       />
     </>
   );

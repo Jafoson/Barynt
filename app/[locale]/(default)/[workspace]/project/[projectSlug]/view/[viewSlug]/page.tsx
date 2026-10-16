@@ -78,6 +78,8 @@ export default async function SavedViewPage({
           workspace={workspace}
           params={{ range: filters.range, scope: filters.scope }}
           area="project"
+          place={{ projectId: project.id, projectSlug: project.slug }}
+          savedView={view}
         />
       </>
     );

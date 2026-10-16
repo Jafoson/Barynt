@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { widgetsSchema } from "@/features/dashboard/widgets";
 import { isGroupKey } from "@/features/issues/group";
 import { resolveUrlFilter } from "@/features/issues/queries";
 import { isSortKey } from "@/features/issues/sort";
@@ -500,9 +501,17 @@ export async function createViewFromParams(
     "filter" | "groupBy" | "subGroupBy" | "sortBy" | "sortDir" | "display"
   > & { projectId: string | null },
   params: Record<string, string>,
+  /** A dashboard view's widgets (BARY-169) — "save as new view" from a
+   *  dashboard takes its arrangement along. */
+  extra: { widgets?: unknown } = {},
 ): Promise<ViewResult<SavedView>> {
   const userId = await currentUserId();
   if (!userId) return fail("unauthenticated");
+  const widgets =
+    extra.widgets === undefined
+      ? undefined
+      : widgetsSchema.safeParse(extra.widgets);
+  if (widgets && !widgets.success) return fail("invalid");
   const state = await stateFromParams(
     input.projectId
       ? { projectId: input.projectId }
@@ -514,7 +523,9 @@ export async function createViewFromParams(
     filter: state.filter,
     groupBy: state.groupBy,
     sortBy: state.sortBy,
-    display: state.display,
+    display: widgets?.success
+      ? { ...state.display, widgets: widgets.data }
+      : state.display,
   });
 }
 

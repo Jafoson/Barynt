@@ -212,6 +212,13 @@ export const PERMISSIONS = {
     desc: "Sees the dashboard numbers of the whole project/workspace, not just their own",
     scopes: WORKSPACE_AND_PROJECT,
   },
+  // The default layout everyone sees until they arrange their own
+  // (`DashboardLayout` without a user, BARY-169). On a project role it's
+  // that project's dashboard; on a workspace role, the workspace's.
+  "dashboard.manage": {
+    desc: "Set the default dashboard layout for everyone",
+    scopes: WORKSPACE_AND_PROJECT,
+  },
 
   // ── Teams ───────────────────────────────────────────────────────────────────
   //

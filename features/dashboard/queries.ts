@@ -173,7 +173,7 @@ const resolveTarget = cache(
       if (!project) return null;
       const [canViewAll, canEditShared] = await Promise.all([
         hasPermission("dashboard.view.all", { projectId: id }),
-        hasPermission("project.update", { projectId: id }),
+        hasPermission("dashboard.manage", { projectId: id }),
       ]);
       return {
         workspaceId: project.workspaceId,
@@ -192,7 +192,7 @@ const resolveTarget = cache(
       const [visible, canViewAll, canEditShared] = await Promise.all([
         visibleProjectIds(id),
         hasPermission("dashboard.view.all", { workspaceId: id }),
-        hasPermission("workspace.update", { workspaceId: id }),
+        hasPermission("dashboard.manage", { workspaceId: id }),
       ]);
       return {
         workspaceId: id,
