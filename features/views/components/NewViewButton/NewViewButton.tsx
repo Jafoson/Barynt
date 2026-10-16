@@ -66,7 +66,7 @@ export function NewViewButton({
 
   return (
     <Button
-      variant="elevated"
+      variant="text"
       className={styles.button}
       icon={<Icon icon="lucide:plus" width={15} />}
       aria-label={label}
