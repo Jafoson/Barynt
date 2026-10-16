@@ -4,7 +4,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import type { CSSProperties } from "react";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import type { Slice, WidgetData } from "@/features/dashboard/types";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import styles from "../widget.module.scss";
 import { type BodyProps, Spark, TimeAxis } from "./shared";
 
@@ -68,6 +68,7 @@ function Distribution({
   labels,
 }: BodyProps & { data: Extract<Data, { type: "distribution" }> }) {
   const name = useSliceName();
+  const router = useRouter();
   const field = widget.config.groupBy;
   if (data.total === 0) return <Empty />;
 
@@ -75,22 +76,38 @@ function Distribution({
     const max = Math.max(1, ...data.slices.map((s) => s.count));
     return (
       <div className={styles.bars}>
-        {data.slices.map((slice) => (
-          <div key={slice.key} className={styles.bar}>
-            {labels.axes && (
-              <span className={styles.name}>{name(slice, field)}</span>
-            )}
-            <span className={styles.track}>
-              <i
-                style={{
-                  width: `${(slice.count / max) * 100}%`,
-                  background: slice.color,
-                }}
-              />
-            </span>
-            {labels.values && <span>{slice.count}</span>}
-          </div>
-        ))}
+        {data.slices.map((slice) => {
+          const inner = (
+            <>
+              {labels.axes && (
+                <span className={styles.name}>{name(slice, field)}</span>
+              )}
+              <span className={styles.track}>
+                <i
+                  style={{
+                    width: `${(slice.count / max) * 100}%`,
+                    background: slice.color,
+                  }}
+                />
+              </span>
+              {labels.values && <span>{slice.count}</span>}
+            </>
+          );
+          return slice.href ? (
+            <Link
+              key={slice.key}
+              href={slice.href}
+              className={`${styles.bar} ${styles.sliceLink}`}
+              title={`${name(slice, field)}: ${slice.count}`}
+            >
+              {inner}
+            </Link>
+          ) : (
+            <div key={slice.key} className={styles.bar}>
+              {inner}
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -106,6 +123,7 @@ function Distribution({
           {data.slices.map((slice) => {
             const part = (slice.count / data.total) * circumference;
             const el = (
+              // biome-ignore lint/a11y/noStaticElementInteractions: a pointer shortcut — the legend beside it holds the same links for keyboard and screen readers
               <circle
                 key={slice.key}
                 cx={21}
@@ -114,6 +132,10 @@ function Distribution({
                 stroke={slice.color}
                 strokeDasharray={`${part} ${circumference - part}`}
                 strokeDashoffset={-offset}
+                className={slice.href ? styles.segment : undefined}
+                onClick={
+                  slice.href ? () => router.push(slice.href ?? "") : undefined
+                }
               >
                 <title>{`${name(slice, field)}: ${slice.count}`}</title>
               </circle>
@@ -135,13 +157,28 @@ function Distribution({
       </svg>
       {labels.legend && (
         <div className={`${styles.list} ${styles.noS}`}>
-          {data.slices.map((slice) => (
-            <div key={slice.key} className={styles.listRow}>
-              <i style={{ background: slice.color }} />
-              <span className={styles.name}>{name(slice, field)}</span>
-              {labels.values ? <span>{slice.count}</span> : <span />}
-            </div>
-          ))}
+          {data.slices.map((slice) => {
+            const inner = (
+              <>
+                <i style={{ background: slice.color }} />
+                <span className={styles.name}>{name(slice, field)}</span>
+                {labels.values ? <span>{slice.count}</span> : <span />}
+              </>
+            );
+            return slice.href ? (
+              <Link
+                key={slice.key}
+                href={slice.href}
+                className={`${styles.listRow} ${styles.sliceLink}`}
+              >
+                {inner}
+              </Link>
+            ) : (
+              <div key={slice.key} className={styles.listRow}>
+                {inner}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

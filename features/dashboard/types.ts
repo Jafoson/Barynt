@@ -44,6 +44,8 @@ export interface Slice {
   count: number;
   /** For the assignee axis. */
   user?: User | null;
+  /** The board filtered to this value (distributions). */
+  href?: string | null;
 }
 
 export interface FlowPoint {

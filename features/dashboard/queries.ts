@@ -834,11 +834,51 @@ async function countsBy(
 /** Ladder fields keep their order; people, projects and labels go by size. */
 const LADDER = new Set<GroupField>(["status", "priority", "type"]);
 
+/** Board params for one value of a field — `null` for "everything else". */
+async function sliceParams(
+  ctx: Ctx,
+  field: GroupField,
+  key: string,
+): Promise<[string, string][] | null> {
+  if (key === "_other") return null;
+  if (key === "_none") {
+    return field === "assignee"
+      ? [["assignee.empty", "1"]]
+      : field === "label"
+        ? [["label.empty", "1"]]
+        : null;
+  }
+  const lookups = await ctx.slugs();
+  switch (field) {
+    case "status":
+      return [["status", key]];
+    case "type":
+      return [["type", key]];
+    case "priority": {
+      const p = lookups.priorities.find((x) => String(x.id) === key);
+      return p ? [["priority", p.key]] : null;
+    }
+    case "assignee": {
+      const m = lookups.members.find((x) => x.id === key);
+      return m ? [["assignee", m.handle]] : null;
+    }
+    case "label": {
+      const l = lookups.labels.find((x) => x.id === key);
+      return l ? [["label", l.slug]] : null;
+    }
+    case "project": {
+      const p = lookups.projects?.find((x) => x.id === key);
+      return p ? [["project", p.slug]] : null;
+    }
+  }
+}
+
 async function distribution(
   ctx: Ctx,
   where: Where,
   field: GroupField,
   openOnly: boolean,
+  own: IssueFilter | undefined,
 ): Promise<WidgetData> {
   const scoped = openOnly
     ? { AND: [where, { status: { notIn: ctx.closed } }] }
@@ -862,7 +902,22 @@ async function distribution(
       },
     ];
   }
-  return { type: "distribution", slices, total };
+  // Each part opens the board filtered to its value.
+  const withHrefs = await Promise.all(
+    slices.map(async (slice) => {
+      const params = await sliceParams(ctx, field, slice.key);
+      return {
+        ...slice,
+        href: params
+          ? await boardHref(ctx, own, [
+              ...(openOnly ? [OPEN_PARAM] : []),
+              ...params,
+            ])
+          : null,
+      };
+    }),
+  );
+  return { type: "distribution", slices: withHrefs, total };
 }
 
 async function attention(ctx: Ctx, where: Where): Promise<WidgetData> {
@@ -1744,6 +1799,7 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
         where,
         config.groupBy ?? "status",
         config.openOnly ?? false,
+        config.filter,
       );
     case "attention":
       return attention(ctx, where);
