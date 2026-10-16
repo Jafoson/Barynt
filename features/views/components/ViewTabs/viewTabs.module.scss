@@ -3,10 +3,14 @@
 /* The views sit in the tab row after Board · List · Dashboard, up to the
    header's top border like those (BARY-177). Takes what room is left and
    scrolls beyond it. */
-.wrap {
+/* As tall as the tab row, like the other tab groups — so the active bar
+   sits on the header's top edge. Doubled class: the row centers every
+   child that isn't a `nav`. */
+.wrap.wrap {
   position: relative;
   display: flex;
   align-items: stretch;
+  align-self: stretch;
   flex: 0 1 auto;
   min-width: 0;
 }
