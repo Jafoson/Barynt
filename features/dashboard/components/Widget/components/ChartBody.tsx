@@ -367,6 +367,29 @@ function Cycle({
             )}
           </span>
         ))}
+        {/* The dots joined in time order — the trend reads at a glance. */}
+        <svg
+          className={styles.scatterLine}
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <polyline
+            points={[...data.points]
+              .sort((a, b) => a.closed - b.closed)
+              .map(
+                (p) =>
+                  `${((p.closed - from) / span) * 100},${100 - Math.min(100, (p.days / top) * 100)}`,
+              )
+              .join(" ")}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth={1.75}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
         {data.points.map((p) => (
           <Link
             key={p.id}

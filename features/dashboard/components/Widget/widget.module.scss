@@ -732,8 +732,19 @@
   }
 }
 
+.scatterLine {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 .dotPoint {
   position: absolute;
+  z-index: 1;
   width: 0.5rem;
   height: 0.5rem;
   translate: -50% 50%;
