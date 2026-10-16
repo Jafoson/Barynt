@@ -2,16 +2,16 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import type { NotePage, Widget } from "@/features/dashboard/widgets";
 import { randomId } from "@/lib/utils/id";
 import { useNoteContext } from "../../NoteContext/NoteContext";
 import styles from "../widget.module.scss";
+import { NoteMarkdown, plainTitle, toggleTask } from "./NoteMarkdown";
 
-/** A tab's name: the page's first line, short. */
-const titleOf = (page: NotePage) =>
-  page.text.split("\n")[0]?.trim().slice(0, 24) ?? "";
+/** A tab's name: the page's first line, short, without its Markdown. */
+const titleOf = (page: NotePage) => plainTitle(page.text);
 
 /**
  * A note you write straight into (BARY-169): tabs for its pages, "+" for a
@@ -36,6 +36,18 @@ export function NoteBody({
     initial.length ? initial : [{ id: "p1", text: "" }],
   );
   const [activeId, setActiveId] = useState(pages[0].id);
+  /** Writing: the raw text in a field. Otherwise the Markdown, rendered. */
+  const [writing, setWriting] = useState(false);
+  const field = useRef<HTMLTextAreaElement>(null);
+
+  // Opened by a click on the rendered note: straight into typing, the
+  // caret at the end.
+  useEffect(() => {
+    const el = field.current;
+    if (!writing || !el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [writing]);
   const active = pages.find((p) => p.id === activeId) ?? pages[0];
 
   const commit = (next: NotePage[]) => {
@@ -89,7 +101,10 @@ export function NoteBody({
               role="tab"
               aria-selected={page.id === active.id}
               className={styles.noteTab}
-              onClick={() => setActiveId(page.id)}
+              onClick={() => {
+                setActiveId(page.id);
+                setWriting(false);
+              }}
             >
               {titleOf(page) || t("notePageN", { n: i + 1 })}
             </button>
@@ -120,7 +135,7 @@ export function NoteBody({
           )}
         </div>
       )}
-      {canWrite ? (
+      {canWrite && (writing || !active.text.trim()) ? (
         <textarea
           key={active.id}
           className={styles.noteText}
@@ -128,10 +143,40 @@ export function NoteBody({
           placeholder={t("notePlaceholder")}
           aria-label={t("type_note")}
           maxLength={5000}
+          ref={field}
           onChange={(e) => write(e.target.value)}
+          onBlur={() => setWriting(false)}
         />
+      ) : canWrite ? (
+        // biome-ignore lint/a11y/useSemanticElements: the rendered note holds links and checkboxes, which a <button> or <textarea> can't contain
+        <div
+          className={styles.noteView}
+          role="textbox"
+          tabIndex={0}
+          aria-label={t("noteEdit")}
+          title={t("noteEdit")}
+          onClick={(e) => {
+            if ((e.target as HTMLElement).closest("a, input")) return;
+            setWriting(true);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              setWriting(true);
+            }
+          }}
+        >
+          <NoteMarkdown
+            source={active.text}
+            onToggle={(line) => write(toggleTask(active.text, line))}
+          />
+        </div>
+      ) : active.text.trim() ? (
+        <div className={styles.noteView}>
+          <NoteMarkdown source={active.text} />
+        </div>
       ) : (
-        <p className={styles.note}>{active.text.trim() || t("noteEmpty")}</p>
+        <p className={styles.note}>{t("noteEmpty")}</p>
       )}
     </div>
   );
