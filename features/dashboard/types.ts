@@ -94,8 +94,6 @@ export interface AboutData {
 
 export interface MemberRow {
   user: User;
-  /** Open issues assigned to them, within the dashboard's scope. */
-  open: number;
   /** Their open issues as a list. */
   href: string;
 }

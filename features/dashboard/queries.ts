@@ -1143,29 +1143,21 @@ async function members(ctx: Ctx): Promise<WidgetData> {
     user: { select: USER_SELECT },
     role: { select: { key: true, name: true, rank: true } },
   } as const;
-  const [rows, open] = await Promise.all([
-    projectId
-      ? db.projectMember.findMany({
-          // Locked out of the project isn't "a member" to show off.
-          where: {
-            projectId,
-            role: { key: { not: PROJECT_BLOCKED_ROLE_KEY } },
-          },
-          select,
-          orderBy: { user: { firstName: "asc" } },
-        })
-      : db.workspaceMember.findMany({
-          where: { workspaceId },
-          select,
-          orderBy: { user: { firstName: "asc" } },
-        }),
-    db.issue.groupBy({
-      by: ["assigneeId"],
-      where: { AND: [ctx.base, { status: { notIn: ctx.closed } }] },
-      _count: { _all: true },
-    }),
-  ]);
-  const openBy = new Map(open.map((row) => [row.assigneeId, row._count._all]));
+  const rows = await (projectId
+    ? db.projectMember.findMany({
+        // Locked out of the project isn't "a member" to show off.
+        where: {
+          projectId,
+          role: { key: { not: PROJECT_BLOCKED_ROLE_KEY } },
+        },
+        select,
+        orderBy: { user: { firstName: "asc" } },
+      })
+    : db.workspaceMember.findMany({
+        where: { workspaceId },
+        select,
+        orderBy: { user: { firstName: "asc" } },
+      }));
   const seeAll = projectId ? true : place.workspace.has("member.view");
   const groups = new Map<string, RoleGroup>();
   for (const row of rows) {
@@ -1178,7 +1170,6 @@ async function members(ctx: Ctx): Promise<WidgetData> {
     };
     group.members.push({
       user: await mapUser(row.user),
-      open: openBy.get(row.user.id) ?? 0,
       href: openListHref(workspaceId, place.slug, {
         assignee: row.user.handle,
       }),

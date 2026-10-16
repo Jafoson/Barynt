@@ -245,7 +245,7 @@ export function sampleData(widget: Widget, words: SampleWords): WidgetData {
         })),
       };
     case "members": {
-      const row = (user: User, open: number) => ({ user, open, href: "#" });
+      const row = (user: User) => ({ user, href: "#" });
       return {
         type: "members",
         groups: [
@@ -253,19 +253,19 @@ export function sampleData(widget: Widget, words: SampleWords): WidgetData {
             key: "lead",
             name: words.role("lead"),
             rank: 4,
-            members: [row(MARA, 8)],
+            members: [row(MARA)],
           },
           {
             key: "member",
             name: words.role("member"),
             rank: 3,
-            members: [row(HIRO, 3), row(JASON, 5), row(LEA, 2)],
+            members: [row(HIRO), row(JASON), row(LEA)],
           },
           {
             key: "viewer",
             name: words.role("viewer"),
             rank: 2,
-            members: [row(NOAH, 0)],
+            members: [row(NOAH)],
           },
         ],
         total: 5,

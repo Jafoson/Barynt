@@ -137,12 +137,6 @@ function Members({ data }: { data: Extract<Data, { type: "members" }> }) {
                 lead={<Avatar avatar={m.user} size={28} />}
                 name={fullName(m.user)}
                 sub={m.user.handle ? `@${m.user.handle}` : undefined}
-                end={
-                  <Count
-                    value={m.open}
-                    label={t("openCount", { count: m.open })}
-                  />
-                }
               />
             ))}
           </section>
