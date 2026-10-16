@@ -36,6 +36,10 @@ interface PopoverProps {
  * filter sheet. `align`, `side`, `width` and `offset` only apply to the
  * floating version; the content is the same everywhere.
  */
+/** Open popovers, oldest first — a menu opened from inside another one
+ *  comes after it. */
+const openOrder: HTMLElement[] = [];
+
 export function Popover({
   anchorRef,
   open,
@@ -87,22 +91,40 @@ export function Popover({
     };
   }, [open, align, side, width, offset, anchorRef]);
 
+  // Its place in the order is taken once, when it opens — not again on
+  // every render (`onClose` is often a fresh function).
   useEffect(() => {
     if (!open) return;
+    const self = ref.current;
+    if (!self) return;
+    openOrder.push(self);
+    return () => {
+      const at = openOrder.indexOf(self);
+      if (at !== -1) openOrder.splice(at, 1);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const self = ref.current;
     const onDown = (e: MouseEvent) => {
       const target = e.target as Node;
-      if (ref.current?.contains(target) || anchorRef.current?.contains(target))
-        return;
-      // A popover opened from inside this one (a menu in the filter editor)
-      // is portaled elsewhere, but a click there is still "inside".
+      if (self?.contains(target) || anchorRef.current?.contains(target)) return;
+      // A popover opened after this one — a menu in the filter editor — is
+      // portaled elsewhere, but a click there is still "inside" this one. A
+      // click in one opened before (the editor behind a menu) is outside.
       const other =
         target instanceof Element
-          ? target.closest("[data-popover-content]")
+          ? target.closest<HTMLElement>("[data-popover-content]")
           : null;
-      if (other && other !== ref.current) return;
+      if (other && self && openOrder.indexOf(other) > openOrder.indexOf(self))
+        return;
       onClose();
     };
     const onKey = (e: KeyboardEvent) => {
+      // Only the newest popover answers Escape: the menu, not the editor
+      // behind it.
+      if (self && openOrder[openOrder.length - 1] !== self) return;
       if (e.key === "Escape") {
         e.stopPropagation();
         onClose();
