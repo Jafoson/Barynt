@@ -1823,12 +1823,11 @@
     "issuesTitle_dueDate": "Als Nächstes fällig",
     "issuesTitle_priority": "Nach Dringlichkeit",
     "openBoard": "{name} im Board öffnen",
-    "notePlaceholder": "Notiz schreiben … # Überschrift, **fett**, - Liste, - [ ] Aufgabe",
+    "notePlaceholder": "Notiz schreiben … # Überschrift, - Liste, [ ] Aufgabe",
     "notePageAdd": "Neue Seite",
     "notePageDelete": "Seite löschen",
     "notePageDeleteHint": "„{name}“ wird mit ihrem Text gelöscht.",
     "notePageNew": "Neue Seite",
-    "notePageN": "Seite {n}",
-    "noteEdit": "Zum Schreiben klicken"
+    "notePageN": "Seite {n}"
   }
 }

@@ -204,7 +204,10 @@ export interface WidgetConfig {
  *  (`DashboardNote`), never part of the layout. */
 export interface NotePage {
   id: string;
-  text: string;
+  /** The page as a ProseMirror document — formatted as it's typed. */
+  doc?: unknown;
+  /** Older plain/Markdown text, read once into `doc`. */
+  text?: string;
 }
 
 export interface Widget {
@@ -640,11 +643,19 @@ const configSchema = z
 export const notePagesSchema = z
   .array(
     z
-      .object({ id: z.string().min(1).max(40), text: z.string().max(5000) })
+      .object({
+        id: z.string().min(1).max(40),
+        doc: z.record(z.string(), z.unknown()).optional(),
+        text: z.string().max(5000).optional(),
+      })
       .strict(),
   )
   .min(1)
-  .max(12);
+  .max(12)
+  // A note, not a document store.
+  .refine((pages) => JSON.stringify(pages).length <= 100_000, {
+    message: "Note too large",
+  });
 
 const widgetSchema = z
   .object({

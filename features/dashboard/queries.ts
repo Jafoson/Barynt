@@ -1799,7 +1799,7 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
       const pages = notePagesSchema.safeParse(row?.pages);
       return {
         type: "note",
-        pages: pages.success ? pages.data : [{ id: "p1", text: "" }],
+        pages: pages.success ? pages.data : [{ id: "p1" }],
       };
     }
   }

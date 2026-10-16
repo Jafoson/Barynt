@@ -1823,12 +1823,11 @@
     "issuesTitle_dueDate": "Due next",
     "issuesTitle_priority": "By urgency",
     "openBoard": "Open {name} on the board",
-    "notePlaceholder": "Write a note … # heading, **bold**, - list, - [ ] task",
+    "notePlaceholder": "Write a note … # heading, - list, [ ] task",
     "notePageAdd": "New page",
     "notePageDelete": "Delete page",
     "notePageDeleteHint": "“{name}” and its text will be deleted.",
     "notePageNew": "New page",
-    "notePageN": "Page {n}",
-    "noteEdit": "Click to write"
+    "notePageN": "Page {n}"
   }
 }

@@ -6,6 +6,7 @@ import {
   moveWidgetTo,
   newWidget,
   normalizeWidget,
+  notePagesSchema,
   parseWidgets,
   pickShortcuts,
   SIZE_SPAN,
@@ -161,5 +162,14 @@ describe("Notes", () => {
     };
     const [read] = parseWidgets([widget]) ?? [];
     expect(read.config).toEqual({});
+  });
+
+  it("store pages as documents, older ones as text", () => {
+    const doc = { type: "doc", content: [{ type: "paragraph" }] };
+    expect(notePagesSchema.safeParse([{ id: "a", doc }]).success).toBe(true);
+    expect(notePagesSchema.safeParse([{ id: "a", text: "alt" }]).success).toBe(
+      true,
+    );
+    expect(notePagesSchema.safeParse([]).success).toBe(false);
   });
 });

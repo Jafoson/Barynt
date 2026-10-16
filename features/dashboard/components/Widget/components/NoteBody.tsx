@@ -1,24 +1,41 @@
 "use client";
 
 import { Icon } from "@iconify/react";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import type { NotePage, Widget } from "@/features/dashboard/widgets";
+import { fromMarkdown, isEmptyDoc, toDoc, toPlainText } from "@/lib/richtext";
+import type { PMDoc } from "@/lib/richtext/types";
 import { randomId } from "@/lib/utils/id";
 import { useNoteContext } from "../../NoteContext/NoteContext";
 import styles from "../widget.module.scss";
-import { NoteMarkdown, plainTitle, toggleTask } from "./NoteMarkdown";
 
-/** A tab's name: the page's first line, short, without its Markdown. */
-const titleOf = (page: NotePage) => plainTitle(page.text);
+// The editor stays off the read path's bundle and the server (conventions:
+// editors only via `next/dynamic`, `ssr: false`).
+const MiniEditor = dynamic(
+  () =>
+    import("@/components/ui/layout/MiniEditor/MiniEditor").then(
+      (m) => m.MiniEditor,
+    ),
+  { ssr: false, loading: () => <div className={styles.noteLoading} /> },
+);
+
+/** A page's document — stored, or made from an older text. */
+const docOf = (page: NotePage): PMDoc =>
+  page.doc ? toDoc(page.doc) : fromMarkdown(page.text ?? "");
+
+/** A tab's name: the page's first line of text, short. */
+const titleOf = (page: NotePage) =>
+  toPlainText(docOf(page)).split("\n")[0]?.trim().slice(0, 24) ?? "";
 
 /**
- * A note you write straight into (BARY-169): tabs for its pages, "+" for a
- * new one, × to delete the open one; the text saves itself. The first line
- * names the tab, like a note on a phone. Private: what someone writes here
- * only they see, even in a shared dashboard. Read-only in the gallery's
- * preview.
+ * A note you write straight into (BARY-169), formatted as you type — `# `
+ * becomes a heading, `- ` a list, `[ ] ` a task and so on. Tabs for its
+ * pages, "+" for a new one, the bin for the open one. Private: what
+ * someone writes here only they see, even in a shared dashboard.
+ * Read-only in the gallery's preview.
  */
 export function NoteBody({
   widget,
@@ -33,21 +50,12 @@ export function NoteBody({
   const note = useNoteContext();
   const canWrite = !!note?.canWrite;
   const [pages, setPages] = useState<NotePage[]>(() =>
-    initial.length ? initial : [{ id: "p1", text: "" }],
+    (initial.length ? initial : [{ id: "p1" }]).map((p) => ({
+      id: p.id,
+      doc: docOf(p),
+    })),
   );
   const [activeId, setActiveId] = useState(pages[0].id);
-  /** Writing: the raw text in a field. Otherwise the Markdown, rendered. */
-  const [writing, setWriting] = useState(false);
-  const field = useRef<HTMLTextAreaElement>(null);
-
-  // Opened by a click on the rendered note: straight into typing, the
-  // caret at the end.
-  useEffect(() => {
-    const el = field.current;
-    if (!writing || !el) return;
-    el.focus();
-    el.setSelectionRange(el.value.length, el.value.length);
-  }, [writing]);
   const active = pages.find((p) => p.id === activeId) ?? pages[0];
 
   const commit = (next: NotePage[]) => {
@@ -55,19 +63,20 @@ export function NoteBody({
     note?.save(widget.id, next);
   };
 
-  const write = (text: string) =>
-    commit(pages.map((p) => (p.id === active.id ? { ...p, text } : p)));
+  const write = (doc: PMDoc) =>
+    commit(pages.map((p) => (p.id === active.id ? { ...p, doc } : p)));
 
   const addPage = () => {
     if (pages.length >= 12) return;
-    const page = { id: randomId().slice(0, 12), text: "" };
+    const page = { id: randomId().slice(0, 12), doc: fromMarkdown("") };
     commit([...pages, page]);
     setActiveId(page.id);
   };
 
   const removePage = async () => {
+    const empty = isEmptyDoc(docOf(active));
     if (
-      active.text.trim() &&
+      !empty &&
       !(await confirm({
         title: t("notePageDelete"),
         description: t("notePageDeleteHint", {
@@ -81,7 +90,9 @@ export function NoteBody({
       return;
     // The last page isn't removed, only emptied — a note has at least one.
     if (pages.length === 1) {
-      commit([{ ...active, text: "" }]);
+      const fresh = { id: randomId().slice(0, 12), doc: fromMarkdown("") };
+      commit([fresh]);
+      setActiveId(fresh.id);
       return;
     }
     const index = pages.findIndex((p) => p.id === active.id);
@@ -101,10 +112,7 @@ export function NoteBody({
               role="tab"
               aria-selected={page.id === active.id}
               className={styles.noteTab}
-              onClick={() => {
-                setActiveId(page.id);
-                setWriting(false);
-              }}
+              onClick={() => setActiveId(page.id)}
             >
               {titleOf(page) || t("notePageN", { n: i + 1 })}
             </button>
@@ -135,49 +143,16 @@ export function NoteBody({
           )}
         </div>
       )}
-      {canWrite && (writing || !active.text.trim()) ? (
-        <textarea
-          key={active.id}
-          className={styles.noteText}
-          value={active.text}
-          placeholder={t("notePlaceholder")}
-          aria-label={t("type_note")}
-          maxLength={5000}
-          ref={field}
-          onChange={(e) => write(e.target.value)}
-          onBlur={() => setWriting(false)}
-        />
-      ) : canWrite ? (
-        // biome-ignore lint/a11y/useSemanticElements: the rendered note holds links and checkboxes, which a <button> or <textarea> can't contain
-        <div
-          className={styles.noteView}
-          role="textbox"
-          tabIndex={0}
-          aria-label={t("noteEdit")}
-          title={t("noteEdit")}
-          onClick={(e) => {
-            if ((e.target as HTMLElement).closest("a, input")) return;
-            setWriting(true);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              setWriting(true);
-            }
-          }}
-        >
-          <NoteMarkdown
-            source={active.text}
-            onToggle={(line) => write(toggleTask(active.text, line))}
-          />
-        </div>
-      ) : active.text.trim() ? (
-        <div className={styles.noteView}>
-          <NoteMarkdown source={active.text} />
-        </div>
-      ) : (
-        <p className={styles.note}>{t("noteEmpty")}</p>
-      )}
+      <MiniEditor
+        // A fresh editor per page — its content is its own state.
+        key={active.id}
+        value={active.doc}
+        onChange={write}
+        editable={canWrite}
+        label={t("type_note")}
+        placeholder={t("notePlaceholder")}
+        className={styles.noteEditor}
+      />
     </div>
   );
 }

@@ -1,5 +1,9 @@
 import type { DashboardScope } from "@/features/dashboard/scope";
-import type { ShortcutKey, Widget } from "@/features/dashboard/widgets";
+import type {
+  NotePage,
+  ShortcutKey,
+  Widget,
+} from "@/features/dashboard/widgets";
 import type { AuditEntry } from "@/lib/audit/actions";
 import type { BucketUnit, RangeKey } from "@/lib/buckets";
 import type { User } from "@/types";
@@ -234,7 +238,7 @@ export type WidgetData =
   | {
       type: "note";
       /** This person's own pages — nobody else's. */
-      pages: { id: string; text: string }[];
+      pages: NotePage[];
     };
 
 /** Widget id → its data. */
