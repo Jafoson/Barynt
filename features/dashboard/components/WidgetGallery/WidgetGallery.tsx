@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
+import { Input } from "@/components/ui/atoms/Input/Input";
 import { ModalFooter } from "@/components/ui/layout/Modal/components/ModalFooter";
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
 import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
@@ -119,14 +120,15 @@ export function WidgetGallery({
 
       <ModalBody ref={bodyRef} className={styles.body}>
         <nav className={styles.side} aria-label={t("kinds")}>
-          <input
-            className={styles.search}
-            type="search"
-            value={query}
-            placeholder={t("searchWidgets")}
-            aria-label={t("searchWidgets")}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+          <div className={styles.search}>
+            <Input
+              variant="search"
+              value={query}
+              placeholder={t("searchWidgets")}
+              aria-label={t("searchWidgets")}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
           {GROUPS.map((group) => {
             const inGroup = shown.filter((x) => WIDGETS[x].group === group);
             if (inGroup.length === 0) return null;

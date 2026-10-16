@@ -37,19 +37,6 @@
 
 .search {
   margin-bottom: 0.5rem;
-  height: var(--control-h, 2.25rem);
-  padding: 0 0.75rem;
-  border: 1px solid var(--outline-variant);
-  border-radius: var(--radius-sm);
-  background: var(--surface-container-low);
-  color: var(--on-surface);
-  font: inherit;
-  font-size: var(--text-sm);
-
-  &:focus-visible {
-    outline: 2px solid var(--tertiary);
-    outline-offset: 1px;
-  }
 
   @include bp.phone {
     display: none;

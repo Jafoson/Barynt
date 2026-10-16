@@ -3,6 +3,7 @@
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { useRef, useState, useTransition } from "react";
+import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { RangePicker } from "@/components/ui/charts/RangePicker/RangePicker";
@@ -291,7 +292,9 @@ export function Dashboard({
             )}
             <span className={styles.spacer} />
             {layout.personal && (
-              <span className={styles.badge}>{t("personalBadge")}</span>
+              <Badge size="sm" mono={false}>
+                {t("personalBadge")}
+              </Badge>
             )}
             {layout.canEdit && (
               <Button
@@ -348,27 +351,31 @@ export function Dashboard({
                     aria-label={t("settingsFor", { name: titleOf(widget) })}
                     onClick={() => openSettings(widget)}
                   />
-                  <button
-                    type="button"
+                  <Button
+                    variant="elevated"
+                    size="sm"
                     className={styles.remove}
+                    icon={<Icon icon="lucide:x" width={14} />}
                     aria-label={t("removeNamed", { name: titleOf(widget) })}
+                    title={t("remove")}
                     onClick={() => remove(widget.id)}
-                  >
-                    <Icon icon="lucide:minus" width={14} />
-                  </button>
+                  />
                   {WIDGETS[widget.type].sizes.length > 1 && (
                     <fieldset className={styles.sizes} aria-label={t("size")}>
-                      {WIDGETS[widget.type].sizes.map((size) => (
-                        <button
-                          key={size}
-                          type="button"
-                          aria-pressed={widget.size === size}
-                          title={t(`size_${size}`)}
-                          onClick={() => update({ ...widget, size })}
-                        >
-                          {t(`sizeShort_${size}`)}
-                        </button>
-                      ))}
+                      <SegmentedControl
+                        variant="surface"
+                        value={widget.size}
+                        onChange={(size) =>
+                          update({
+                            ...widget,
+                            size: size as typeof widget.size,
+                          })
+                        }
+                        items={WIDGETS[widget.type].sizes.map((size) => ({
+                          value: size,
+                          label: t(`sizeShort_${size}`),
+                        }))}
+                      />
                     </fieldset>
                   )}
                 </>

@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import type { CSSProperties, ReactNode } from "react";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
+import { Button } from "@/components/ui/atoms/Button/Button";
 import type { WidgetData } from "@/features/dashboard/types";
 import { useOpenLabelModal } from "@/features/issues/useOpenLabelModal";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -255,9 +256,10 @@ function Labels({ data }: { data: Extract<Data, { type: "labels" }> }) {
       )}
       <div className={styles.footRow}>
         {data.canCreate && (
-          <button
-            type="button"
-            className={styles.footButton}
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Icon icon="lucide:plus" width={14} />}
             onClick={() =>
               openLabel({
                 workspaceId: data.workspaceId,
@@ -266,9 +268,8 @@ function Labels({ data }: { data: Extract<Data, { type: "labels" }> }) {
               })
             }
           >
-            <Icon icon="lucide:plus" width={13} />
             {t("newLabel")}
-          </button>
+          </Button>
         )}
         <More href={data.href} label={t("manage")} />
       </div>

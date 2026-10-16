@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
+import { Input } from "@/components/ui/atoms/Input/Input";
 import { NativeSelect } from "@/components/ui/atoms/NativeSelect/NativeSelect";
 import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
@@ -134,16 +135,13 @@ export function WidgetSettings({
       )}
 
       <ModalBody ref={bodyRef} className={styles.body}>
-        <label className={styles.field}>
-          <span className={styles.label}>{t("title")}</span>
-          <input
-            className={styles.input}
-            value={config.title ?? ""}
-            placeholder={title}
-            maxLength={80}
-            onChange={(e) => set({ title: e.target.value || undefined })}
-          />
-        </label>
+        <Input
+          label={t("title")}
+          value={config.title ?? ""}
+          placeholder={title}
+          maxLength={80}
+          onChange={(e) => set({ title: e.target.value || undefined })}
+        />
 
         {def.sizes.length > 1 && (
           <div className={styles.field}>

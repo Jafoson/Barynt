@@ -46,14 +46,6 @@
   }
 }
 
-.badge {
-  padding: 0.125rem 0.5rem;
-  border-radius: var(--radius-pill);
-  background: var(--surface-container-high);
-  color: var(--on-surface-variant);
-  font-size: var(--text-xs);
-}
-
 .level {
   display: contents;
 }
@@ -206,80 +198,35 @@
   }
 }
 
+/* Remove: the app's small elevated icon button, on the corner. */
 .remove {
   position: absolute;
-  top: -0.4375rem;
-  left: -0.4375rem;
+  top: -0.5rem;
+  left: -0.5rem;
   z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--surface-container-highest);
-  color: var(--on-surface);
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
-  cursor: pointer;
 
   &:hover {
-    background: var(--red);
-    color: white;
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--tertiary);
-    outline-offset: 1px;
-  }
-
-  @include bp.coarse {
-    width: 1.875rem;
-    height: 1.875rem;
+    color: var(--red);
   }
 }
 
-/* S · M · L · H · XL — floating at the bottom like a control on glass. */
+/* The size switch — the app's segmented control, floating at the bottom. */
 .sizes {
   position: absolute;
   left: 50%;
   bottom: 0.5rem;
   z-index: 2;
-  display: flex;
-  gap: 2px;
   margin: 0;
-  padding: 3px;
+  padding: 0;
   border: 0;
-  border-radius: var(--radius-pill);
   translate: -50% 0;
-  background: color-mix(in srgb, var(--surface-container-lowest) 86%, transparent);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 14px rgb(0 0 0 / 0.35);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.3);
 
-  & > button {
-    min-width: 1.625rem;
-    padding: 0.25rem 0.4375rem;
-    border: 0;
-    border-radius: var(--radius-pill);
-    background: transparent;
-    color: var(--on-surface-variant);
-    font: inherit;
-    font-size: 0.6875rem;
-    font-weight: 700;
-    cursor: pointer;
+  & > * {
+    --control-h: 1.875rem;
 
-    &:hover {
-      color: var(--on-surface);
-    }
-
-    &[aria-pressed="true"] {
-      background: var(--primary);
-      color: var(--on-primary);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--tertiary);
-    }
+    background: var(--surface-container);
   }
 }
 
@@ -295,7 +242,7 @@
   place-content: center;
   justify-items: center;
   gap: 0.25rem;
-  border: 2px dashed var(--outline-variant);
+  border: 1px dashed var(--outline);
   border-radius: 1.375rem;
   background: transparent;
   color: var(--on-surface-variant);
