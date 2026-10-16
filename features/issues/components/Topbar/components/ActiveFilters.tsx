@@ -123,6 +123,17 @@ function GroupParts({
                 onRemove={onRemove}
                 path={[...path, i]}
               />
+              <button
+                type="button"
+                className={styles.groupRemove}
+                aria-label={t("filters.removeRule", {
+                  rule: labelsOf.node(child),
+                })}
+                title={t("filters.removeRule", { rule: labelsOf.node(child) })}
+                onClick={() => onRemove([...path, i])}
+              >
+                <Icon icon="lucide:x" width={13} />
+              </button>
             </span>
           ) : (
             <GroupParts

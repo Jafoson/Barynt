@@ -172,21 +172,6 @@
 .activeGroup.activeGroup {
   gap: 0.375rem;
   padding-right: 0.125rem;
-
-  /* Like a chip's ×: there on hover (or focus), always without a hover. */
-  & > .groupRemove {
-    display: none;
-    width: 1.5rem;
-    height: 1.5rem;
-
-    @include bp.no-hover {
-      display: grid;
-    }
-  }
-
-  &:is(:hover, :focus-within) > .groupRemove {
-    display: grid;
-  }
 }
 
 /* One condition of a group, outlined in its field's color (`--filter-accent`
@@ -281,6 +266,23 @@
 
   &[data-op="or"] {
     --box-accent: var(--amber);
+  }
+
+  /* Its ×, like a chip's: there on hover or focus of this box — not of a
+     box inside it — and always without a hover. */
+  & > .groupRemove {
+    display: none;
+    width: 1.5rem;
+    height: 1.5rem;
+
+    @include bp.no-hover {
+      display: grid;
+    }
+  }
+
+  &:hover:not(:has(.groupBox:hover)) > .groupRemove,
+  &:focus-within:not(:has(.groupBox:focus-within)) > .groupRemove {
+    display: grid;
   }
 }
 
