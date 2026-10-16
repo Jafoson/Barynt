@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import {
   setIssueViewFieldVisibility,
@@ -169,6 +170,14 @@ async function loadTopbarViews({
     currentUserId(),
   ]);
 
+  // Across projects there are two areas (V8): "My issues" — the system
+  // views, one tab each — and the workspace with everything shared.
+  const personal = !projectId && Boolean(activeView?.systemKey);
+  const t = personal ? await getTranslations() : null;
+  const shown = projectId
+    ? views
+    : views.filter((v) => Boolean(v.systemKey) === personal);
+
   const hrefOf = (v: SavedView) =>
     `${viewPath(workspaceId, projectSlug, v.slug)}?${viewParams(v, lookups).toString()}`;
   // Only for someone else's shared view — your own needs no attribution.
@@ -178,9 +187,10 @@ async function loadTopbarViews({
     return owner ? fullName(owner) : null;
   };
 
-  const tabs: ViewTab[] = views.map((v) => ({
+  const tabs: ViewTab[] = shown.map((v) => ({
     id: v.id,
-    name: v.name,
+    // In "My issues" the tabs say what sets them apart ("Assigned").
+    name: t && v.systemKey ? t(`views.systemTab.${v.systemKey}`) : v.name,
     slug: v.slug,
     icon: v.icon,
     color: v.color,
@@ -198,6 +208,7 @@ async function loadTopbarViews({
     projectId,
     projectSlug,
     canShare,
+    personal,
     tabs,
     active: activeView
       ? {

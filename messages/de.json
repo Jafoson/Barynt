@@ -827,7 +827,12 @@
     },
     "systemBadge": "System",
     "visibilityWorkspace": "Alle im Workspace",
-    "visibilityWorkspaceHint": "Alle Mitglieder des Workspace. Ändern können sie du und Admins."
+    "visibilityWorkspaceHint": "Alle Mitglieder des Workspace. Ändern können sie du und Admins.",
+    "systemTab": {
+      "my-issues": "Zugewiesen",
+      "created-by-me": "Von mir erstellt"
+    },
+    "moreViews": "Mehr"
   },
   "realtime": {
     "staleGlobal": "Es gibt Änderungen.",

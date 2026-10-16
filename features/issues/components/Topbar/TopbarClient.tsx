@@ -74,6 +74,9 @@ export interface TopbarViews {
   projectSlug: string | null;
   /** `view.share` in the project. */
   canShare: boolean;
+  /** "My issues" (V8): the system views as tabs, no Board · List ·
+   *  Dashboard — those belong to the workspace. */
+  personal?: boolean;
   tabs: ViewTab[];
   /** The open view on its own page; `null` on the plain board/list. */
   active:
@@ -209,20 +212,26 @@ export function TopbarClient({
         // board/list switch.
         <div className={styles.tabRow}>
           <h1 className={styles.srOnly}>{title}</h1>
-          <AreaTabs
-            workspaceId={workspaceId}
-            projectSlug={views.projectSlug}
-            active={
-              mode === "dashboard" ? "dashboard" : activeView ? null : view
-            }
-            count={count}
-            carry={
-              mode === "dashboard" || activeView ? "" : searchParams.toString()
-            }
-          />
+          {!views.personal && (
+            <>
+              <AreaTabs
+                workspaceId={workspaceId}
+                projectSlug={views.projectSlug}
+                active={
+                  mode === "dashboard" ? "dashboard" : activeView ? null : view
+                }
+                count={count}
+                carry={
+                  mode === "dashboard" || activeView
+                    ? ""
+                    : searchParams.toString()
+                }
+              />
+            </>
+          )}
           {views.tabs.length > 0 && (
             <>
-              <span className={styles.divider} />
+              {!views.personal && <span className={styles.divider} />}
               <ViewTabs
                 workspaceId={workspaceId}
                 projectId={views.projectId}
