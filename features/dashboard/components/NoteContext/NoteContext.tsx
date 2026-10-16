@@ -10,7 +10,8 @@ import type { NotePage } from "@/features/dashboard/widgets";
  */
 export interface NoteContextValue {
   canWrite: boolean;
-  save: (widgetId: string, pages: NotePage[]) => void;
+  /** Stores the pages; resolves `true` once they're saved. */
+  save: (widgetId: string, pages: NotePage[]) => Promise<boolean>;
 }
 
 export const NoteContext = createContext<NoteContextValue | null>(null);

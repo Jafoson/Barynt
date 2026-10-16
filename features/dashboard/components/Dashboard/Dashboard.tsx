@@ -277,20 +277,13 @@ export function Dashboard({
     return () => clearTimeout(timer);
   }, [justAdded]);
 
-  // Notes are written in place, outside edit mode, and are private — saved
-  // a moment after the last keystroke, per widget.
-  const noteTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  // Notes are written in place, outside edit mode, and are private — kept
+  // when the person presses the note's own "Save".
   const noteContext = {
     canWrite: true,
-    save: (widgetId: string, pages: NotePage[]) => {
-      const timer = noteTimers.current.get(widgetId);
-      if (timer) clearTimeout(timer);
-      noteTimers.current.set(
-        widgetId,
-        setTimeout(() => {
-          void saveDashboardNote(target, widgetId, pages);
-        }, 700),
-      );
+    save: async (widgetId: string, pages: NotePage[]) => {
+      const result = await saveDashboardNote(target, widgetId, pages);
+      return "ok" in result;
     },
   };
 

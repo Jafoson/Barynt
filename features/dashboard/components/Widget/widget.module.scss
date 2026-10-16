@@ -1748,6 +1748,15 @@
 }
 
 
+/* "Save" — bottom right, only while there's something to keep. */
+.noteSave {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.25));
+}
+
 /* The note's editor fills what's left; loading keeps the space. */
 .noteEditor,
 .noteLoading {

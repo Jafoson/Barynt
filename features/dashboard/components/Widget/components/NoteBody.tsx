@@ -3,7 +3,8 @@
 import { Icon } from "@iconify/react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/atoms/Button/Button";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import type { NotePage, Widget } from "@/features/dashboard/widgets";
 import { fromMarkdown, isEmptyDoc, toDoc, toPlainText } from "@/lib/richtext";
@@ -33,7 +34,8 @@ const titleOf = (page: NotePage) =>
 /**
  * A note you write straight into (BARY-169), formatted as you type — `# `
  * becomes a heading, `- ` a list, `[ ] ` a task and so on. Tabs for its
- * pages, "+" for a new one, the bin for the open one. Private: what
+ * pages, "+" for a new one, the bin for the open one; "Save" at the
+ * bottom right keeps the changes (also ⌘/Ctrl+S). Private: what
  * someone writes here only they see, even in a shared dashboard.
  * Read-only in the gallery's preview.
  */
@@ -56,12 +58,18 @@ export function NoteBody({
     })),
   );
   const [activeId, setActiveId] = useState(pages[0].id);
+  // What's stored — "Save" appears once the pages differ from it.
+  const [stored, setStored] = useState(pages);
+  const [saving, startSaving] = useTransition();
+  const dirty = JSON.stringify(pages) !== JSON.stringify(stored);
+
+  const save = () =>
+    startSaving(async () => {
+      if (note && (await note.save(widget.id, pages))) setStored(pages);
+    });
   const active = pages.find((p) => p.id === activeId) ?? pages[0];
 
-  const commit = (next: NotePage[]) => {
-    setPages(next);
-    note?.save(widget.id, next);
-  };
+  const commit = (next: NotePage[]) => setPages(next);
 
   const write = (doc: PMDoc) =>
     commit(pages.map((p) => (p.id === active.id ? { ...p, doc } : p)));
@@ -148,11 +156,27 @@ export function NoteBody({
         key={active.id}
         value={active.doc}
         onChange={write}
+        onSave={() => {
+          if (dirty) save();
+        }}
         editable={canWrite}
         label={t("type_note")}
         placeholder={t("notePlaceholder")}
         className={styles.noteEditor}
       />
+      {canWrite && dirty && (
+        <div className={styles.noteSave}>
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Icon icon="lucide:check" width={14} />}
+            onClick={save}
+            disabled={saving}
+          >
+            {t("save")}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
