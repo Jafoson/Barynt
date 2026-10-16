@@ -76,7 +76,10 @@ export function MiniEditor({
         "aria-label": label,
       },
     },
-    onUpdate: ({ editor }) => onChange(editor.getJSON() as PMDoc),
+    // Round-tripped through JSON: ProseMirror builds attrs as objects
+    // without a prototype, which a server function can't receive.
+    onUpdate: ({ editor }) =>
+      onChange(JSON.parse(JSON.stringify(editor.getJSON())) as PMDoc),
   });
 
   return (

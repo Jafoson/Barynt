@@ -282,7 +282,9 @@ export function Dashboard({
   const noteContext = {
     canWrite: true,
     save: async (widgetId: string, pages: NotePage[]) => {
-      const result = await saveDashboardNote(target, widgetId, pages);
+      // Plain JSON only — whatever an editor handed over.
+      const plain = JSON.parse(JSON.stringify(pages)) as NotePage[];
+      const result = await saveDashboardNote(target, widgetId, plain);
       return "ok" in result;
     },
   };
