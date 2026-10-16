@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { Chip } from "@/components/ui/atoms/Chip/Chip";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
+import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
@@ -135,6 +136,9 @@ interface ViewSettingsProps {
   onGroupsChange: (
     patch: ViewGroupsPatch,
   ) => Promise<{ ok: true } | { error: string }>;
+  /** On a saved view: board or list, chosen at the panel's top (V8). The
+   *  plain board and list have tabs of their own instead. */
+  onLayoutChange?: (view: GroupView) => void;
 }
 
 /**
@@ -160,6 +164,7 @@ export function ViewSettings({
   showSubIssues,
   groupOrder,
   onGroupsChange,
+  onLayoutChange,
 }: ViewSettingsProps) {
   const t = useTranslations();
   const router = useRouter();
@@ -308,6 +313,7 @@ export function ViewSettings({
     setSort: onSortChange,
     toggleField,
     reset,
+    layout: onLayoutChange,
   };
 
   const trigger = (
@@ -369,6 +375,7 @@ export function ViewSettings({
             facet={facet}
             onFacetChange={setFacet}
             showBack
+            onLayout={onLayoutChange}
           />
         </div>
       )}
@@ -397,6 +404,7 @@ interface SheetSource {
   setSort: (key: SortKey) => void;
   toggleField: (key: CardFieldKey) => void;
   reset: () => void;
+  layout?: (view: GroupView) => void;
 }
 
 type DisplayFacet = "group" | "sort" | "groups";
@@ -536,6 +544,15 @@ function ViewSheet({
             showBack={false}
             hideReset
             alwaysSearch={false}
+            onLayout={
+              latest.current.layout
+                ? (next) => {
+                    latest.current.layout?.(next);
+                    // The page underneath changes — the sheet goes with it.
+                    close();
+                  }
+                : undefined
+            }
           />
         </div>
       </ModalBody>
@@ -563,6 +580,8 @@ interface DisplayPanelProps {
   /** No reset button below — the sheet has it in its bar. */
   hideReset?: boolean;
   alwaysSearch?: boolean;
+  /** Board | List at the top — only on a saved view (V8). */
+  onLayout?: (view: GroupView) => void;
 }
 
 /**
@@ -587,6 +606,7 @@ export function DisplayPanel({
   showBack,
   hideReset = false,
   alwaysSearch = false,
+  onLayout,
 }: DisplayPanelProps) {
   const t = useTranslations();
   const { sortKeys, groupKeys } = availableKeys(
@@ -683,6 +703,28 @@ export function DisplayPanel({
 
   return (
     <>
+      {/* Board or list first: everything below depends on it (V8). */}
+      {onLayout && (
+        <div className={styles.layoutSwitch}>
+          <SegmentedControl
+            variant="surface"
+            value={state.view}
+            onChange={(v) => onLayout(v as GroupView)}
+            items={[
+              {
+                value: "board",
+                label: t("nav.board"),
+                icon: <Icon icon="lucide:layout-dashboard" width={15} />,
+              },
+              {
+                value: "list",
+                label: t("views.layoutList"),
+                icon: <Icon icon="lucide:list" width={15} />,
+              },
+            ]}
+          />
+        </div>
+      )}
       <ChoiceRow
         title={t("display.grouping")}
         value={t(GROUP_LABEL_KEY[state.groupKey])}

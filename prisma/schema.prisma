@@ -692,6 +692,10 @@ model SavedViewUserState {
   /// Projektnamen öffnet sie, wenn `projectLanding = "view"`. Höchstens eine
   /// je Projekt und Person (`setViewUserState` räumt die anderen ab).
   startView        Boolean  @default(false)
+  /// Eigene Wahl Board/Liste bei System-Views (V8): "board" | "list".
+  /// `null` = das Layout der View. Bei anderen Views gehört das Layout zur
+  /// View selbst.
+  layout           String?
   /// Einträge "<groupKey>:<groupId>" wie `IssueViewPreference.hiddenGroups`.
   collapsedGroups  String[] @default([])
 

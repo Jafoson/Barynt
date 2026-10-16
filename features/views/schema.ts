@@ -98,6 +98,8 @@ export const viewUserStateSchema = z
     favoritePosition: z.number().finite().nullable().optional(),
     /** This project's start view for the caller (V7). */
     startView: z.boolean().optional(),
+    /** The caller's own board/list on a system view (V8). */
+    layout: z.enum(["board", "list"]).nullable().optional(),
     collapsedGroups: z.array(z.string().max(200)).max(500).optional(),
   })
   .strict();

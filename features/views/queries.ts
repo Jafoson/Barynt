@@ -69,9 +69,13 @@ export function mapView(row: ViewRow, facts: ViewAccessFacts): SavedView {
     icon: row.icon,
     color: row.color,
     position: row.position,
-    layout: (VIEW_LAYOUTS as readonly string[]).includes(row.layout)
-      ? (row.layout as ViewLayout)
-      : "list",
+    // A system view opens the way the person last left it (V8).
+    layout:
+      row.systemKey && (state?.layout === "board" || state?.layout === "list")
+        ? state.layout
+        : (VIEW_LAYOUTS as readonly string[]).includes(row.layout)
+          ? (row.layout as ViewLayout)
+          : "list",
     filter: parseIssueFilter(row.filter) ?? EMPTY_FILTER,
     groupBy: row.groupBy && isGroupKey(row.groupBy) ? row.groupBy : null,
     subGroupBy:

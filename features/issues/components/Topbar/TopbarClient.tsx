@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import type { ViewGroupsPatch } from "@/features/issues/actions";
+import { setViewUserState } from "@/features/views/actions";
 import { NewViewButton } from "@/features/views/components/NewViewButton/NewViewButton";
 import {
   type ActiveViewInfo,
@@ -213,6 +214,21 @@ export function TopbarClient({
       }
     : onGroupsChange;
 
+  // Board or list on a saved view (V8) — in "Display", since the plain
+  // board and list have tabs of their own. A system view remembers the
+  // choice for this person (stored first, so the page doesn't flash
+  // "unsaved"); any other view carries it in its address like the rest.
+  const changeLayout = activeView
+    ? (next: "board" | "list") => {
+        const active = views?.active;
+        if (active?.systemKey)
+          void setViewUserState(active.id, { layout: next }).then(() =>
+            setView(next),
+          );
+        else setView(next);
+      }
+    : undefined;
+
   return (
     <header
       className={`${styles.header}${isPending ? ` ${styles.pending}` : ""}`}
@@ -363,6 +379,7 @@ export function TopbarClient({
               showSubIssues={display.showSubIssues}
               groupOrder={display.groupOrder}
               onGroupsChange={saveGroups}
+              onLayoutChange={changeLayout}
             />
           </div>
         </div>
