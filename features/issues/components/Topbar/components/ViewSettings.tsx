@@ -136,8 +136,8 @@ interface ViewSettingsProps {
   onGroupsChange: (
     patch: ViewGroupsPatch,
   ) => Promise<{ ok: true } | { error: string }>;
-  /** On a saved view: board or list, chosen at the panel's top (V8). The
-   *  plain board and list have tabs of their own instead. */
+  /** Board or list, chosen at the panel's top (V8) — on every board and
+   *  list, the same place everywhere. */
   onLayoutChange?: (view: GroupView) => void;
 }
 
@@ -580,7 +580,7 @@ interface DisplayPanelProps {
   /** No reset button below — the sheet has it in its bar. */
   hideReset?: boolean;
   alwaysSearch?: boolean;
-  /** Board | List at the top — only on a saved view (V8). */
+  /** Board | List at the top (V8). */
   onLayout?: (view: GroupView) => void;
 }
 
