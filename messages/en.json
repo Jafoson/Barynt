@@ -1853,6 +1853,20 @@
     "seriesChart_bars": "Bars",
     "seriesChart_stacked": "Stacked",
     "seriesChart_line": "Line",
-    "byField": "by {field}"
+    "byField": "by {field}",
+    "group_custom": "Custom widgets",
+    "customNew": "New widget",
+    "customName": "Name",
+    "customNamePlaceholder": "e.g. Story points done by priority",
+    "customKind": "Kind",
+    "customShare": "Share in the workspace",
+    "customShareHint": "Everyone in the workspace finds it in their gallery. Only you can change it.",
+    "customLive": "Live preview with this dashboard's numbers.",
+    "customSaveAdd": "Save & add",
+    "customEdit": "Edit",
+    "customDelete": "Delete custom widget?",
+    "customDeleteHint": "“{name}” disappears from the gallery. Widgets already placed stay.",
+    "customShared": "Shared",
+    "customFromOthers": "{kind} · shared in the workspace"
   }
 }

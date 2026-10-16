@@ -1853,6 +1853,20 @@
     "seriesChart_bars": "Balken",
     "seriesChart_stacked": "Gestapelt",
     "seriesChart_line": "Linie",
-    "byField": "nach {field}"
+    "byField": "nach {field}",
+    "group_custom": "Eigene Widgets",
+    "customNew": "Neues Widget",
+    "customName": "Name",
+    "customNamePlaceholder": "z. B. Story Points erledigt je Priorität",
+    "customKind": "Art",
+    "customShare": "Im Workspace teilen",
+    "customShareHint": "Alle im Workspace finden es in ihrer Galerie. Ändern kannst nur du.",
+    "customLive": "Live-Vorschau mit den Zahlen dieses Dashboards.",
+    "customSaveAdd": "Speichern & hinzufügen",
+    "customEdit": "Bearbeiten",
+    "customDelete": "Eigenes Widget löschen?",
+    "customDeleteHint": "„{name}“ verschwindet aus der Galerie. Bereits platzierte Widgets bleiben.",
+    "customShared": "Geteilt",
+    "customFromOthers": "{kind} · geteilt im Workspace"
   }
 }

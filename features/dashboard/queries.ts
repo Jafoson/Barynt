@@ -23,6 +23,7 @@ import type {
   WorkloadRow,
 } from "@/features/dashboard/types";
 import {
+  type CustomWidgetEntry,
   defaultWidgets,
   type GroupField,
   type KpiMetric,
@@ -2195,8 +2196,10 @@ export async function getDashboard(
   const scope: DashboardScope = resolved.canViewAll ? wanted : "mine";
   const layout = await layoutFor(target, resolved, userId, scope);
 
-  const data =
-    (await computeWidgets(target, layout.widgets, range, scope)) ?? {};
+  const [data, customWidgets] = await Promise.all([
+    computeWidgets(target, layout.widgets, range, scope).then((d) => d ?? {}),
+    customWidgetsFor(resolved.workspaceId, userId),
+  ]);
 
   return {
     target,
@@ -2210,7 +2213,39 @@ export async function getDashboard(
       canEditShared: resolved.canEditShared,
     },
     data,
+    customWidgets,
   };
+}
+
+/** The viewer's own custom widgets and the ones others share in the
+ *  workspace — the gallery's last section. */
+async function customWidgetsFor(
+  workspaceId: string,
+  userId: string,
+): Promise<CustomWidgetEntry[]> {
+  const rows = await db.customWidget.findMany({
+    where: { workspaceId, OR: [{ userId }, { shared: true }] },
+    select: { id: true, name: true, widget: true, shared: true, userId: true },
+    orderBy: [{ name: "asc" }],
+  });
+  return rows.flatMap((row) => {
+    // Stored without an id (every placement gets its own) — the entry's
+    // own id stands in while it's in the gallery.
+    const widget = parseWidgets([
+      { ...(row.widget as Record<string, unknown>), id: row.id },
+    ])?.[0];
+    return widget
+      ? [
+          {
+            id: row.id,
+            name: row.name,
+            widget,
+            shared: row.shared,
+            mine: row.userId === userId,
+          },
+        ]
+      : [];
+  });
 }
 
 /** For the server actions: may the current user see, edit (own or view), or

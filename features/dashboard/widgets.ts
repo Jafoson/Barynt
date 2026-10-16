@@ -473,6 +473,26 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   },
 };
 
+/** The kinds the builder ("New widget") offers — the configurable ones. */
+export const BUILDER_TYPES = [
+  "kpi",
+  "progress",
+  "distribution",
+  "flow",
+  "matrix",
+  "issues",
+] as const satisfies readonly WidgetType[];
+
+/** A saved custom widget (BARY-170), as the gallery lists it. */
+export interface CustomWidgetEntry {
+  id: string;
+  name: string;
+  widget: Widget;
+  shared: boolean;
+  /** The viewer built it — may change or delete it. */
+  mine: boolean;
+}
+
 /** A fresh widget of a kind, with its defaults. */
 export function newWidget(type: WidgetType, id: string): Widget {
   const def = WIDGETS[type];

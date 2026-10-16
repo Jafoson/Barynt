@@ -12,6 +12,8 @@ import type {
   WidgetDataMap,
 } from "@/features/dashboard/types";
 import {
+  BUILDER_TYPES,
+  type CustomWidgetEntry,
   layoutKey,
   normalizeWidget,
   notePagesSchema,
@@ -21,8 +23,9 @@ import {
 import { RANGES, type RangeKey } from "@/lib/buckets";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
-import { hasPermission } from "@/lib/permissions";
+import { currentUserCanEnterWorkspace, hasPermission } from "@/lib/permissions";
 import { getSession } from "@/lib/session";
+import { randomId } from "@/lib/utils/id";
 
 // The dashboard's server functions (BARY-169). Writes go to the caller's
 // own row, to the shared default (admins) or into a dashboard view — every
@@ -183,6 +186,95 @@ export async function saveDashboardNote(
     update: { pages: data },
   });
   return { ok: true };
+}
+
+const customWidgetSchema = z.object({
+  id: z.string().min(1).max(40).optional(),
+  workspaceId: z.string().min(1).max(100),
+  name: z.string().trim().min(1).max(60),
+  widget: z.unknown(),
+  shared: z.boolean(),
+});
+
+/**
+ * Create or change a custom widget (BARY-170). Only its builder may change
+ * it; sharing makes it show in everyone's gallery in the workspace.
+ */
+export async function saveCustomWidget(
+  input: unknown,
+): Promise<{ ok: true; entry: CustomWidgetEntry } | { error: string }> {
+  const session = await getSession();
+  const parsed = customWidgetSchema.safeParse(input);
+  if (!session || !parsed.success) return { error: NOT_ALLOWED };
+  const { id, workspaceId, name, shared } = parsed.data;
+  if (!(await currentUserCanEnterWorkspace(workspaceId))) {
+    return { error: NOT_ALLOWED };
+  }
+  const widget = parseWidgetList([parsed.data.widget])?.[0];
+  if (!widget || !(BUILDER_TYPES as readonly string[]).includes(widget.type)) {
+    return { error: NOT_ALLOWED };
+  }
+  // Stored without the id a placement gets — every copy gets its own.
+  const stored = {
+    type: widget.type,
+    size: widget.size,
+    config: widget.config,
+  };
+
+  if (id) {
+    const row = await db.customWidget.findUnique({
+      where: { id },
+      select: { userId: true, workspaceId: true },
+    });
+    if (
+      !row ||
+      row.userId !== session.userId ||
+      row.workspaceId !== workspaceId
+    ) {
+      return { error: NOT_ALLOWED };
+    }
+    await db.customWidget.update({
+      where: { id },
+      data: {
+        name,
+        shared,
+        widget: stored as unknown as Prisma.InputJsonValue,
+      },
+    });
+  }
+  const savedId = id ?? randomId();
+  if (!id) {
+    await db.customWidget.create({
+      data: {
+        id: savedId,
+        workspaceId,
+        userId: session.userId,
+        name,
+        shared,
+        widget: stored as unknown as Prisma.InputJsonValue,
+      },
+    });
+  }
+  return {
+    ok: true,
+    entry: {
+      id: savedId,
+      name,
+      shared,
+      mine: true,
+      widget: { ...widget, id: savedId },
+    },
+  };
+}
+
+/** Delete one's own custom widget. Placed copies stay. */
+export async function deleteCustomWidget(id: string): Promise<Result> {
+  const session = await getSession();
+  if (!session || typeof id !== "string") return { error: NOT_ALLOWED };
+  const { count } = await db.customWidget.deleteMany({
+    where: { id, userId: session.userId },
+  });
+  return count ? { ok: true } : { error: NOT_ALLOWED };
 }
 
 /** Data for widgets that were just added or reconfigured in edit mode. */

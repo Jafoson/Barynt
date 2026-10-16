@@ -225,6 +225,11 @@ export function Dashboard({
           workspaceSlug={workspaceSlug}
           kind={target.kind}
           sheet={isPhone}
+          workspaceId={newView.workspaceId}
+          customWidgets={view.customWidgets}
+          load={(list) => loadWidgetData(target, list, view.range, view.scope)}
+          lookups={lookups}
+          area={area}
           onAdd={(widget) => {
             setDraft((list) => [...list, widget]);
             fetchData([widget]);

@@ -1,5 +1,6 @@
 import type { DashboardScope } from "@/features/dashboard/scope";
 import type {
+  CustomWidgetEntry,
   NotePage,
   ShortcutKey,
   TimeBy,
@@ -274,6 +275,8 @@ export interface DashboardLayoutInfo {
 }
 
 export interface DashboardView {
+  /** The viewer's custom widgets and the shared ones of others. */
+  customWidgets: CustomWidgetEntry[];
   target: DashboardTarget;
   range: RangeKey;
   unit: BucketUnit;
