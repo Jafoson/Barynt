@@ -576,7 +576,8 @@
     "viewsHere": "Dieses Projekt",
     "viewsElsewhere": "Andere Projekte",
     "views": "Views",
-    "noViews": "Noch keine View — lege eine in einem Projekt an."
+    "noViews": "Noch keine View — lege eine in einem Projekt an.",
+    "workspaceViews": "Workspace"
   },
   "login": {
     "subtitle": "Weiter zu Barynt Issue Tracker",
@@ -819,7 +820,14 @@
     "startViewOn": "Ist jetzt die Start-View des Projekts",
     "startViewOff": "Keine Start-View mehr",
     "sidebarHeading": "Views",
-    "favoritesHeading": "Favoriten"
+    "favoritesHeading": "Favoriten",
+    "system": {
+      "my-issues": "Meine Aufgaben",
+      "created-by-me": "Von mir erstellt"
+    },
+    "systemBadge": "System",
+    "visibilityWorkspace": "Alle im Workspace",
+    "visibilityWorkspaceHint": "Alle Mitglieder des Workspace. Ändern können sie du und Admins."
   },
   "realtime": {
     "staleGlobal": "Es gibt Änderungen.",

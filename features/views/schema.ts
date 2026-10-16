@@ -103,10 +103,21 @@ export const viewUserStateSchema = z
   .strict();
 export type ViewUserStateInput = z.input<typeof viewUserStateSchema>;
 
+// ─── System views (V8) ──────────────────────────────────────────────────────
+
+export const SYSTEM_VIEW_KEYS = ["my-issues", "created-by-me"] as const;
+export type SystemViewKey = (typeof SYSTEM_VIEW_KEYS)[number];
+
+export function isSystemViewKey(value: unknown): value is SystemViewKey {
+  return (SYSTEM_VIEW_KEYS as readonly unknown[]).includes(value);
+}
+
 /** A saved view as the app reads it — filter and display already parsed,
  *  plus the viewer's own state and whether they may change it. */
 export interface SavedView {
   id: string;
+  /** A workspace's system view (V8) — `SYSTEM_VIEWS`. */
+  systemKey: SystemViewKey | null;
   workspaceId: string;
   projectId: string | null;
   ownerId: string | null;

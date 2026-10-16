@@ -45,8 +45,9 @@ export interface ViewTab {
 
 interface ViewTabsProps {
   workspaceId: string;
-  projectId: string;
-  projectSlug: string;
+  /** `null` for a cross-project view (V8). */
+  projectId: string | null;
+  projectSlug: string | null;
   canShare: boolean;
   views: ViewTab[];
   /** The open view, `null` on the plain board/list. */
@@ -226,7 +227,11 @@ export function ViewTabs({
           if (!result.ok) return toast(errorText(result.error));
           toast(t("views.deleted"));
           if (view.id === activeId)
-            router.push(`/${workspaceId}/project/${projectSlug}`);
+            router.push(
+              projectSlug
+                ? `/${workspaceId}/project/${projectSlug}`
+                : `/${workspaceId}/issues`,
+            );
           else router.refresh();
         });
       })();

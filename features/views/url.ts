@@ -170,10 +170,13 @@ export function pickViewState(source: ParamSource): Record<string, string> {
 /** Path of a view inside its project. */
 export function viewPath(
   workspaceId: string,
-  projectSlug: string,
+  /** `null` for a cross-project view (V8). */
+  projectSlug: string | null,
   viewSlug: string,
 ): string {
-  return `/${workspaceId}/project/${projectSlug}/view/${viewSlug}`;
+  return projectSlug
+    ? `/${workspaceId}/project/${projectSlug}/view/${viewSlug}`
+    : `/${workspaceId}/view/${viewSlug}`;
 }
 
 /** The display settings an address spells out — what a view page draws

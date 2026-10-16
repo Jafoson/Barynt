@@ -58,6 +58,18 @@ describe("canEditView", () => {
     expect(canEditView(sharedMine, facts())).toBe(false);
   });
 
+  it("never lets anyone edit a system view (V8)", () => {
+    const system = {
+      visibility: "WORKSPACE" as const,
+      ownerId: null,
+      systemKey: "my-issues",
+    };
+    expect(
+      canEditView(system, facts({ canManage: true, canShare: true })),
+    ).toBe(false);
+    expect(canSeeView(system, facts())).toBe(true);
+  });
+
   it("needs view.manage for someone else's shared view", () => {
     expect(canEditView(sharedTheirs, facts({ canShare: true }))).toBe(false);
     expect(canEditView(sharedTheirs, facts({ canManage: true }))).toBe(true);

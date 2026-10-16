@@ -22,6 +22,8 @@ export interface ViewAccessFacts {
 interface ViewRef {
   visibility: ViewVisibility;
   ownerId: string | null;
+  /** Set on a workspace's system views (V8). */
+  systemKey?: string | null;
 }
 
 /**
@@ -53,6 +55,9 @@ export function canSeeView(view: ViewRef, facts: ViewAccessFacts): boolean {
  */
 export function canEditView(view: ViewRef, facts: ViewAccessFacts): boolean {
   if (!canSeeView(view, facts)) return false;
+  // A system view belongs to nobody and stays as it is (V8) — "save as new
+  // view" is the way to a changed copy.
+  if (view.systemKey) return false;
   if (view.visibility === "PRIVATE") return view.ownerId === facts.userId;
   if (facts.canManage) return true;
   return view.ownerId === facts.userId && facts.canShare;

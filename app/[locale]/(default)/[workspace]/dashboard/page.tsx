@@ -7,6 +7,7 @@ import {
   getWorkspaceDashboard,
 } from "@/features/dashboard/queries";
 import { toDashboardScope } from "@/features/dashboard/scope";
+import { Topbar } from "@/features/issues/components/Topbar/Topbar";
 import { toRange } from "@/lib/buckets";
 import { setCurrentWorkspaceId } from "@/lib/current-workspace";
 import { workspacePath, workspaceSettingsPath } from "@/lib/nav";
@@ -43,20 +44,25 @@ export default async function WorkspaceDashboardPage({
   );
 
   return (
-    <WorkspaceDashboard
-      {...data}
-      view="dashboard"
-      issueBase={`/${workspace}/issue`}
-      links={{
-        dashboard: workspacePath(workspace, "dashboard"),
-        overview: workspacePath(workspace, ""),
-        projects: workspacePath(workspace, "projects"),
-        members: workspacePath(workspace, "members"),
-        teams: workspacePath(workspace, "teams"),
-        settings: workspaceSettingsPath(workspace, ""),
-        activity: workspaceSettingsPath(workspace, "activity"),
-      }}
-      activity={activity}
-    />
+    <>
+      {/* The workspace's tabs (V8): Board · List · Dashboard and its views
+          — the way across from here. */}
+      <Topbar count={0} view="board" mode="dashboard" />
+      <WorkspaceDashboard
+        {...data}
+        view="dashboard"
+        issueBase={`/${workspace}/issue`}
+        links={{
+          dashboard: workspacePath(workspace, "dashboard"),
+          overview: workspacePath(workspace, ""),
+          projects: workspacePath(workspace, "projects"),
+          members: workspacePath(workspace, "members"),
+          teams: workspacePath(workspace, "teams"),
+          settings: workspaceSettingsPath(workspace, ""),
+          activity: workspaceSettingsPath(workspace, "activity"),
+        }}
+        activity={activity}
+      />
+    </>
   );
 }

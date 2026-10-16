@@ -18,9 +18,9 @@ import {
   canSeeView,
 } from "./access";
 import {
-  getVisibleProjectViews,
+  getVisibleViews,
   mapView,
-  type ProjectViewEntry,
+  type ViewEntry,
   viewAccessFacts,
 } from "./queries";
 import {
@@ -449,12 +449,13 @@ export async function reorderFavorites(
  * text isn't part of a view and is ignored (`pickViewState`).
  */
 async function stateFromParams(
-  projectId: string,
+  /** The view's project — or, across projects, its workspace (V8). */
+  scope: { projectId: string } | { workspaceId: string },
   params: Record<string, string>,
 ) {
   const state = pickViewState(params);
   return {
-    filter: await resolveUrlFilter(state, { projectId }),
+    filter: await resolveUrlFilter(state, scope),
     groupBy: state.group && isGroupKey(state.group) ? state.group : null,
     sortBy: state.sort && isSortKey(state.sort) ? state.sort : "manual",
     layout: layoutFromParam(state.layout),
@@ -471,10 +472,18 @@ export async function saveViewState(
   if (!userId) return fail("unauthenticated");
   const row = await db.savedView.findUnique({
     where: { id },
-    select: { projectId: true },
+    select: { projectId: true, workspaceId: true },
   });
-  if (!row?.projectId) return fail("notFound");
-  return updateView(id, await stateFromParams(row.projectId, params));
+  if (!row) return fail("notFound");
+  return updateView(
+    id,
+    await stateFromParams(
+      row.projectId
+        ? { projectId: row.projectId }
+        : { workspaceId: row.workspaceId },
+      params,
+    ),
+  );
 }
 
 /**
@@ -487,12 +496,17 @@ export async function createViewFromParams(
   input: Omit<
     CreateViewInput,
     "filter" | "groupBy" | "subGroupBy" | "sortBy" | "sortDir" | "display"
-  > & { projectId: string },
+  > & { projectId: string | null },
   params: Record<string, string>,
 ): Promise<ViewResult<SavedView>> {
   const userId = await currentUserId();
   if (!userId) return fail("unauthenticated");
-  const state = await stateFromParams(input.projectId, params);
+  const state = await stateFromParams(
+    input.projectId
+      ? { projectId: input.projectId }
+      : { workspaceId: input.workspaceId },
+    params,
+  );
   return createView({
     ...input,
     filter: state.filter,
@@ -502,11 +516,11 @@ export async function createViewFromParams(
   });
 }
 
-/** The views the switcher (key V) offers — every project view the caller
- *  sees in the workspace (V7). */
+/** The views the switcher (key V) and the main search offer — every view
+ *  the caller sees in the workspace (V7, V8). */
 export async function listSwitchableViews(
   workspaceId: string,
-): Promise<ProjectViewEntry[]> {
+): Promise<ViewEntry[]> {
   if (typeof workspaceId !== "string") return [];
-  return getVisibleProjectViews(workspaceId);
+  return getVisibleViews(workspaceId);
 }

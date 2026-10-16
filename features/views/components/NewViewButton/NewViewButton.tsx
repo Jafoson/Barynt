@@ -11,8 +11,9 @@ import styles from "./newViewButton.module.scss";
 
 interface NewViewButtonProps {
   workspaceId: string;
-  projectId: string;
-  projectSlug: string;
+  /** `null` for a cross-project view (V8). */
+  projectId: string | null;
+  projectSlug: string | null;
   canShare: boolean;
   layout: ViewLayout;
   /** The address's view state right now — taken over unless unticked. */

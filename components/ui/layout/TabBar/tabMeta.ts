@@ -117,6 +117,10 @@ export function tabTitle(
   // which one it is.
   if (section === "issue") return decodeURIComponent(path.split("/")[3] ?? "");
 
+  // Across projects (V8): the workspace's board/list, and its views.
+  if (section === "issues") return t("nav.issues");
+  if (section === "view") return t("views.sidebarHeading");
+
   const entry = findBySection(WORKSPACE_SECTIONS, section);
   return entry ? t(`nav.${entry.labelKey}`) : "Barynt";
 }
@@ -157,6 +161,9 @@ export function tabIcon(path: string): string {
   }
 
   if (section === "issue") return "lucide:circle-dot";
+  if (section === "issues")
+    return path.endsWith("/list") ? "lucide:list" : "lucide:layout-dashboard";
+  if (section === "view") return "lucide:layout-dashboard";
 
   // My Issues has two views like a project — the list carries its icon,
   // the board stays with the area's icon.

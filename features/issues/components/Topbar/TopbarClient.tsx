@@ -69,8 +69,9 @@ interface TopbarClientProps {
 
 /** What the topbar needs for a project's saved views. */
 export interface TopbarViews {
-  projectId: string;
-  projectSlug: string;
+  /** `null` for a cross-project view (V8). */
+  projectId: string | null;
+  projectSlug: string | null;
   /** `view.share` in the project. */
   canShare: boolean;
   tabs: ViewTab[];
@@ -202,9 +203,10 @@ export function TopbarClient({
     <header
       className={`${styles.header}${isPending ? ` ${styles.pending}` : ""}`}
     >
-      {views && project ? (
-        // A project: Board · List · Dashboard | views | New view … search
-        // (BARY-177). The tabs replace the title and the board/list switch.
+      {views ? (
+        // A project or the workspace (V8): Board · List · Dashboard | views
+        // | New view … search (BARY-177). The tabs replace the title and the
+        // board/list switch.
         <div className={styles.tabRow}>
           <h1 className={styles.srOnly}>{title}</h1>
           <AreaTabs
@@ -333,7 +335,14 @@ export function TopbarClient({
               onGroupChange={setGroup}
               hiddenFields={display.hiddenFields}
               onDisplayChange={saveDisplay}
-              groupLookups={{ statuses, priorities, issueTypes, members }}
+              groupLookups={{
+                statuses,
+                priorities,
+                issueTypes,
+                members,
+                // Across projects, grouping by project exists (V8).
+                ...(area === "my" ? { projects } : {}),
+              }}
               view={view}
               hiddenGroups={display.hiddenGroups}
               hideEmptyGroups={display.hideEmptyGroups}

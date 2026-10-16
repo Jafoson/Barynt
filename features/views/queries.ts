@@ -1,4 +1,5 @@
 import "server-only";
+import { getTranslations } from "next-intl/server";
 import { cache } from "react";
 import { EMPTY_FILTER, parseIssueFilter } from "@/features/issues/filter";
 import { isGroupKey } from "@/features/issues/group";
@@ -8,6 +9,7 @@ import type { Prisma } from "@/lib/generated/prisma/client";
 import { can, canEnterWorkspace, currentUserId } from "@/lib/permissions";
 import { canEditView, canSeeView, type ViewAccessFacts } from "./access";
 import {
+  isSystemViewKey,
   type SavedView,
   SORT_DIRS,
   type SortDir,
@@ -57,6 +59,7 @@ export function mapView(row: ViewRow, facts: ViewAccessFacts): SavedView {
   const state = row.userStates[0];
   return {
     id: row.id,
+    systemKey: isSystemViewKey(row.systemKey) ? row.systemKey : null,
     workspaceId: row.workspaceId,
     projectId: row.projectId,
     ownerId: row.ownerId,
@@ -93,6 +96,20 @@ const ORDER = [
   { position: "asc" },
   { createdAt: "asc" },
 ] satisfies Prisma.SavedViewOrderByWithRelationInput[];
+
+/** A system view's name in the reader's language (V8); any other view's
+ *  name as stored. */
+async function localized<T extends { name: string; systemKey?: unknown }>(
+  views: T[],
+): Promise<T[]> {
+  if (!views.some((v) => isSystemViewKey(v.systemKey))) return views;
+  const t = await getTranslations();
+  return views.map((v) =>
+    isSystemViewKey(v.systemKey)
+      ? { ...v, name: t(`views.system.${v.systemKey}`) }
+      : v,
+  );
+}
 
 /**
  * The views of a project the current user sees: the shared ones and their
@@ -147,7 +164,7 @@ export async function getWorkspaceViews(
     include: viewInclude(userId),
     orderBy: ORDER,
   });
-  return rows.map((row) => mapView(row, facts));
+  return localized(rows.map((row) => mapView(row, facts)));
 }
 
 /**
@@ -172,7 +189,9 @@ export async function getViewBySlug(
     workspaceId,
     projectId: row.projectId,
   });
-  return canSeeView(row, facts) ? mapView(row, facts) : null;
+  return canSeeView(row, facts)
+    ? (await localized([mapView(row, facts)]))[0]
+    : null;
 }
 
 /** One view by id, if the current user may see it — the check behind a
@@ -191,7 +210,9 @@ export async function getVisibleViewById(
     workspaceId: row.workspaceId,
     projectId: row.projectId,
   });
-  return canSeeView(row, facts) ? mapView(row, facts) : null;
+  return canSeeView(row, facts)
+    ? (await localized([mapView(row, facts)]))[0]
+    : null;
 }
 
 // ─── Navigation (V7) ────────────────────────────────────────────────────────
@@ -199,6 +220,7 @@ export async function getVisibleViewById(
 /** A view as the navigation needs it. */
 export interface NavView {
   id: string;
+  systemKey: string | null;
   name: string;
   slug: string;
   icon: string | null;
@@ -247,7 +269,7 @@ export const getNavViews = cache(async function getNavViews(
       canSeeView(s.view, await factsFor(s.view.projectId)) ? s : null,
     ),
   );
-  return visible
+  const list = visible
     .filter((s): s is (typeof states)[number] => s !== null)
     .sort(
       (a, b) =>
@@ -256,6 +278,7 @@ export const getNavViews = cache(async function getNavViews(
     )
     .map((s) => ({
       id: s.view.id,
+      systemKey: s.view.systemKey,
       name: s.view.name,
       slug: s.view.slug,
       icon: s.view.icon,
@@ -269,6 +292,7 @@ export const getNavViews = cache(async function getNavViews(
       favoritePosition: s.favoritePosition,
       startView: s.startView,
     }));
+  return localized(list);
 });
 
 /** The projects the current user starred, with their place in the list. */
@@ -283,11 +307,11 @@ export async function getFavoriteProjects(
   });
 }
 
-/** Where a start view lives — `null` once it's gone, out of sight, or (until
- *  V8 gives them pages) not in a project. */
+/** Where a start view lives — `null` once it's gone or out of sight. */
 export async function startViewTarget(id: string): Promise<string | null> {
   const view = await getVisibleViewById(id);
-  if (!view?.projectId) return null;
+  if (!view) return null;
+  if (!view.projectId) return viewPath(view.workspaceId, null, view.slug);
   const project = await db.project.findUnique({
     where: { id: view.projectId },
     select: { slug: true },
@@ -295,34 +319,34 @@ export async function startViewTarget(id: string): Promise<string | null> {
   return project ? viewPath(view.workspaceId, project.slug, view.slug) : null;
 }
 
-/** A project view as pickers list it — the view switcher (V) and the
- *  start page choice (V7). */
-export interface ProjectViewEntry {
+/** A view as pickers list it — the view switcher (V), the main search and
+ *  the start page choice (V7). Cross-project views (V8) have no project. */
+export interface ViewEntry {
   id: string;
+  systemKey: string | null;
   name: string;
   slug: string;
   icon: string | null;
   color: string | null;
   layout: ViewLayout;
   favorite: boolean;
-  projectId: string;
-  projectSlug: string;
-  projectName: string;
+  projectId: string | null;
+  projectSlug: string | null;
+  projectName: string | null;
 }
 
-/** Every project view the current user sees in a workspace, by project
- *  name, then in tab order. */
-export async function getVisibleProjectViews(
+/** Every view the current user sees in a workspace: the cross-project ones
+ *  first, then by project name, each in tab order. */
+export async function getVisibleViews(
   workspaceId: string,
-): Promise<ProjectViewEntry[]> {
+): Promise<ViewEntry[]> {
   const userId = await currentUserId();
   if (!userId) return [];
   const rows = await db.savedView.findMany({
     where: {
       workspaceId,
-      projectId: { not: null },
       OR: [
-        { visibility: "PROJECT" },
+        { visibility: { in: ["PROJECT", "WORKSPACE"] } },
         { visibility: "PRIVATE", ownerId: userId },
       ],
     },
@@ -330,25 +354,30 @@ export async function getVisibleProjectViews(
       project: { select: { slug: true, name: true } },
       userStates: { where: { userId }, select: { favorite: true } },
     },
-    orderBy: [{ project: { name: "asc" } }, ...ORDER],
+    orderBy: ORDER,
   });
+  // One access lookup per scope, the workspace's own one included.
   const seen = new Map<string, Promise<ViewAccessFacts>>();
   const visible = await Promise.all(
     rows.map(async (row) => {
-      const projectId = row.projectId as string;
-      let facts = seen.get(projectId);
+      const key = row.projectId ?? "";
+      let facts = seen.get(key);
       if (!facts) {
-        facts = viewAccessFacts(userId, { workspaceId, projectId });
-        seen.set(projectId, facts);
+        facts = viewAccessFacts(userId, {
+          workspaceId,
+          projectId: row.projectId,
+        });
+        seen.set(key, facts);
       }
       return canSeeView(row, await facts) ? row : null;
     }),
   );
-  return visible.flatMap((row) =>
-    row?.project
+  const entries: ViewEntry[] = visible.flatMap((row) =>
+    row && (row.projectId === null || row.project)
       ? [
           {
             id: row.id,
+            systemKey: row.systemKey,
             name: row.name,
             slug: row.slug,
             icon: row.icon,
@@ -357,22 +386,27 @@ export async function getVisibleProjectViews(
               ? (row.layout as ViewLayout)
               : "list",
             favorite: row.userStates[0]?.favorite ?? false,
-            projectId: row.projectId as string,
-            projectSlug: row.project.slug,
-            projectName: row.project.name,
+            projectId: row.projectId,
+            projectSlug: row.project?.slug ?? null,
+            projectName: row.project?.name ?? null,
           },
         ]
       : [],
   );
+  // Stable sort: tab order stays within each group.
+  entries.sort((a, b) =>
+    (a.projectName ?? "").localeCompare(b.projectName ?? ""),
+  );
+  return localized(entries);
 }
 
 /** The views a start page can be set to. */
 export async function getStartViewChoices(
   workspaceId: string,
 ): Promise<{ id: string; name: string; projectName: string }[]> {
-  return (await getVisibleProjectViews(workspaceId)).map((v) => ({
+  return (await getVisibleViews(workspaceId)).map((v) => ({
     id: v.id,
     name: v.name,
-    projectName: v.projectName,
+    projectName: v.projectName ?? "",
   }));
 }

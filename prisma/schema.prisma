@@ -641,6 +641,10 @@ model SavedView {
   name     String
   /// Eindeutig im Workspace, Teil der Adresse (`…/view/<slug>`).
   slug     String
+  /// System-View des Workspace (V8): "my-issues" | "created-by-me". Wird bei
+  /// Bedarf angelegt (`ensureSystemViews`), gehört niemandem, ist nicht
+  /// änderbar oder löschbar; der Name kommt aus den Übersetzungen.
+  systemKey String?
   icon     String?
   color    String?
   /// Reihenfolge der Tabs; Float, damit Umsortieren nur eine Zeile ändert.
@@ -668,6 +672,7 @@ model SavedView {
   userStates SavedViewUserState[]
 
   @@unique([workspaceId, slug])
+  @@unique([workspaceId, systemKey])
   @@index([projectId])
   @@index([ownerId])
 }

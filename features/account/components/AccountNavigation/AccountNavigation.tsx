@@ -163,7 +163,10 @@ export function AccountNavigation({ values, viewChoices }: Props) {
                 label={t("behavior.startViewPick")}
                 items={viewChoices.map((c) => ({
                   value: c.id,
-                  label: `${c.name} · ${c.projectName}`,
+                  // A cross-project view has no project to name (V8).
+                  label: c.projectName
+                    ? `${c.name} · ${c.projectName}`
+                    : c.name,
                 }))}
                 value={current.startViewId ?? ""}
                 onChange={(v) => set({ startViewId: v })}
@@ -247,7 +250,9 @@ export function AccountNavigation({ values, viewChoices }: Props) {
       control: (
         <NativeSelect
           label={t("behavior.defaultGrouping")}
-          items={GROUP_KEYS.map((value) => ({
+          // Not "project": a default for every board, and within a project
+          // there's only one.
+          items={GROUP_KEYS.filter((key) => key !== "project").map((value) => ({
             value,
             label: t(`fields.${value}`),
           }))}

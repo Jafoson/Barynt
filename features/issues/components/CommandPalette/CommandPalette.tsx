@@ -11,7 +11,7 @@ import { issuePath } from "@/features/issues/issue-links";
 import { getRecentIssueIdentifiers } from "@/features/issues/recent-issues";
 import { listSwitchableViews } from "@/features/views/actions";
 import { viewIconOf } from "@/features/views/icons";
-import type { ProjectViewEntry } from "@/features/views/queries";
+import type { ViewEntry } from "@/features/views/queries";
 import { viewPath } from "@/features/views/url";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import type { Translator } from "@/i18n/types";
@@ -97,7 +97,7 @@ export function CommandPalette({
   // not for real search.
   const [liveIssueHits, setLiveIssueHits] = useState<SearchableIssue[]>([]);
   // The project views the person sees — searchable here like projects (V7).
-  const [views, setViews] = useState<ProjectViewEntry[]>([]);
+  const [views, setViews] = useState<ViewEntry[]>([]);
   const searchSeq = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -209,7 +209,7 @@ export function CommandPalette({
         .filter(
           (v) =>
             v.name.toLowerCase().includes(lq) ||
-            v.projectName.toLowerCase().includes(lq),
+            (v.projectName ?? "").toLowerCase().includes(lq),
         )
         .slice(0, 6)
     : [];
@@ -239,7 +239,7 @@ export function CommandPalette({
       }
     | { kind: "nav"; href: string; label: string; icon: string }
     | { kind: "board"; href: string; project: Project }
-    | { kind: "view"; href: string; view: ProjectViewEntry }
+    | { kind: "view"; href: string; view: ViewEntry }
     | {
         kind: "issue";
         id: string;
@@ -486,7 +486,7 @@ export function CommandPalette({
                           className="faint"
                           style={{ marginLeft: "auto", fontSize: 12 }}
                         >
-                          {v.projectName}
+                          {v.projectName ?? t("palette.workspaceViews")}
                         </span>
                       </button>
                     );

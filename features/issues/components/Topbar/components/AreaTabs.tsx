@@ -10,7 +10,8 @@ export type AreaTab = "board" | "list" | "dashboard";
 
 interface AreaTabsProps {
   workspaceId: string;
-  projectSlug: string;
+  /** `null`: the workspace's own board, list and dashboard (V8). */
+  projectSlug: string | null;
   /** The open one — `null` while a saved view is open. */
   active: AreaTab | null;
   /** Issues on screen, shown on the active tab (not on the dashboard). */
@@ -21,7 +22,8 @@ interface AreaTabsProps {
 }
 
 /**
- * A project's built-in layouts as the first tabs of the topbar (BARY-177):
+ * A project's — or across projects the workspace's (V8) — built-in layouts
+ * as the first tabs of the topbar (BARY-177):
  * Board · List · Dashboard. They replace the page title and the board/list
  * switch; the active one carries the issue count.
  */
@@ -33,7 +35,12 @@ export function AreaTabs({
   carry,
 }: AreaTabsProps) {
   const t = useTranslations();
-  const base = `/${workspaceId}/project/${projectSlug}`;
+  const base = projectSlug
+    ? `/${workspaceId}/project/${projectSlug}`
+    : `/${workspaceId}/issues`;
+  const dashboard = projectSlug
+    ? `${base}/overview`
+    : `/${workspaceId}/dashboard`;
   const query = carry ? `?${carry}` : "";
 
   const tabs: { key: AreaTab; href: string; icon: string; label: string }[] = [
@@ -51,7 +58,7 @@ export function AreaTabs({
     },
     {
       key: "dashboard",
-      href: `${base}/overview`,
+      href: dashboard,
       icon: "lucide:gauge",
       label: t("nav.dashboard"),
     },

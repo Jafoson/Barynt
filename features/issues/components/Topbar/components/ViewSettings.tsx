@@ -76,6 +76,7 @@ const GROUP_LABEL_KEY = {
   type: "fields.type",
   assignee: "fields.assignee",
   storyPoints: "fields.storyPoints",
+  project: "fields.project",
 } as const satisfies Record<GroupKey, string>;
 
 /** Group keys that only make sense while the field they group by is shown. */
@@ -88,6 +89,8 @@ const GROUP_KEY_FIELD: Partial<Record<GroupKey, DetailFieldKey>> = {
 function availableKeys(
   projectHiddenFields: string[],
   hidden: Set<CardFieldKey>,
+  /** Across projects (V8) — only there can one group by project. */
+  crossProject: boolean,
 ) {
   const projectVisible = visibleDetailFields(projectHiddenFields);
   const sortKeys = SORT_KEYS.filter((key) => {
@@ -96,6 +99,7 @@ function availableKeys(
     return !(isCardFieldKey(field) && hidden.has(field));
   });
   const groupKeys = GROUP_KEYS.filter((key) => {
+    if (key === "project") return crossProject;
     const field = GROUP_KEY_FIELD[key];
     if (!field) return true;
     return (
@@ -165,7 +169,7 @@ export function ViewSettings({
   );
 
   const { sortKeys: availableSortKeys, groupKeys: availableGroupKeys } =
-    availableKeys(projectHiddenFields, hidden);
+    availableKeys(projectHiddenFields, hidden, Boolean(groupLookups.projects));
   const activeGroupKey = availableGroupKeys.includes(groupKey)
     ? groupKey
     : "status";
@@ -588,6 +592,7 @@ export function DisplayPanel({
   const { sortKeys, groupKeys } = availableKeys(
     state.projectHiddenFields,
     state.hidden,
+    Boolean(state.groupLookups.projects),
   );
 
   // The groups of the active grouping (BARY-47) — for statuses all of them,

@@ -40,8 +40,9 @@ export interface EditableView {
 
 export interface ViewModalProps {
   workspaceId: string;
-  projectId: string;
-  projectSlug: string;
+  /** `null` for a cross-project view (V8). */
+  projectId: string | null;
+  projectSlug: string | null;
   /** `view.share` in this project — without it "everyone" is offered but
    *  disabled, with the reason underneath. */
   canShare: boolean;
@@ -86,6 +87,9 @@ export function ViewModal({
   const [layout, setLayout] = useState<ViewLayout>(
     view?.layout ?? initialLayout,
   );
+  // Shared means the project — or, for a cross-project view, the
+  // workspace (V8).
+  const shared: ViewVisibility = projectId ? "PROJECT" : "WORKSPACE";
   const [visibility, setVisibility] = useState<ViewVisibility>(
     view?.visibility ?? "PRIVATE",
   );
@@ -278,16 +282,20 @@ export function ViewModal({
                   type="radio"
                   name="visibility"
                   disabled={!canShare}
-                  checked={visibility === "PROJECT"}
-                  onChange={() => setVisibility("PROJECT")}
+                  checked={visibility === shared}
+                  onChange={() => setVisibility(shared)}
                 />
                 <Icon icon="lucide:users" width={15} />
                 <span className={styles.choiceText}>
-                  {t("views.visibilityProject")}
+                  {projectId
+                    ? t("views.visibilityProject")
+                    : t("views.visibilityWorkspace")}
                   <small>
-                    {canShare
-                      ? t("views.visibilityProjectHint")
-                      : t("views.visibilityNotAllowed")}
+                    {!canShare
+                      ? t("views.visibilityNotAllowed")
+                      : projectId
+                        ? t("views.visibilityProjectHint")
+                        : t("views.visibilityWorkspaceHint")}
                   </small>
                 </span>
               </label>

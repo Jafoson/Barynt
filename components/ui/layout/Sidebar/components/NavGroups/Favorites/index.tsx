@@ -52,17 +52,17 @@ export default async function NavGroupFavorites() {
         },
       ];
     }),
-    // Views in a project — cross-project views get their pages in V8.
+    // Views in a project, and the workspace's own (V8).
     ...navViews.flatMap((v) => {
       const p = v.projectId ? bySlug.get(v.projectId) : undefined;
-      if (!v.favorite || !p) return [];
+      if (!v.favorite || (v.projectId && !p)) return [];
       return [
         {
           kind: "view" as const,
           id: v.id,
           label: v.name,
-          hint: p.name,
-          href: viewPath(workspace.id, p.slug, v.slug),
+          hint: p?.name,
+          href: viewPath(workspace.id, p?.slug ?? null, v.slug),
           icon: viewIconOf(v),
           color: v.color ?? undefined,
           position: v.favoritePosition ?? 0,

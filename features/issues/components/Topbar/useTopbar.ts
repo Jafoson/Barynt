@@ -118,12 +118,16 @@ export function useTopbar({
   const [, startQuietTransition] = useTransition();
   const base = `/${workspaceId}`;
 
-  // The area lives in the path — `/<ws>/project/<slug>[/list]` or
-  // `/<ws>/my[/list]`. Everywhere else there's no issue view and therefore
-  // no topbar either.
+  // The area lives in the path — `/<ws>/project/<slug>[/list]`, or across
+  // projects `/<ws>/issues[/list]` and `/<ws>/view/<slug>` (V8; `/my`
+  // before). Everywhere else there's no issue view and therefore no topbar
+  // either.
+  const inArea = (segment: string) =>
+    pathname === `${base}/${segment}` ||
+    pathname.startsWith(`${base}/${segment}/`);
   const area: IssueArea | null = pathname.startsWith(`${base}/project/`)
     ? "project"
-    : pathname === `${base}/my` || pathname.startsWith(`${base}/my/`)
+    : inArea("issues") || inArea("view") || inArea("my") || inArea("dashboard")
       ? "my"
       : null;
   const showFilters = area !== null;
@@ -318,8 +322,9 @@ export function useTopbar({
     const qs = p.toString();
     const suffix = qs ? `?${qs}` : "";
     // The switcher stays within its own area: a project's board leads to
-    // that project's list, "my issues" leads to my own list.
-    const areaBase = area === "my" ? `${base}/my` : `${base}/project/${slug}`;
+    // that project's list, the workspace's to the workspace's.
+    const areaBase =
+      area === "my" ? `${base}/issues` : `${base}/project/${slug}`;
     startTransition(() =>
       router.push(
         next === "list" ? `${areaBase}/list${suffix}` : `${areaBase}${suffix}`,
