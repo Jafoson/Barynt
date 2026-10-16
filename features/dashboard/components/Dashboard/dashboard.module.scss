@@ -36,6 +36,58 @@
   flex: 1;
 }
 
+/* ── Phone: range over the whole width, then scope · customized · edit
+   in one row; in edit mode the actions share a row of their own. ── */
+.range,
+.scope {
+  display: contents;
+}
+
+@include bp.phone {
+  .toolbar {
+    gap: 0.5rem;
+    padding-block: 0.625rem;
+  }
+
+  .range {
+    display: block;
+    flex: 1 1 100%;
+
+    & > * {
+      display: flex;
+      width: 100%;
+
+      & > * {
+        flex: 1 1 0;
+      }
+    }
+  }
+
+  .scope {
+    display: block;
+    flex: 0 1 auto;
+  }
+
+  .personalText {
+    display: none;
+  }
+
+  .personal {
+    width: 1.625rem;
+    justify-content: center;
+    padding: 0;
+  }
+
+  [data-editing] .hint {
+    display: none;
+  }
+
+  .saveBar {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
+}
+
 .hint {
   font-size: var(--text-xs);
   color: var(--on-surface-variant);

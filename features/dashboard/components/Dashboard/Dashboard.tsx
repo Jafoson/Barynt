@@ -314,27 +314,33 @@ export function Dashboard({
           </>
         ) : (
           <>
-            <RangePicker
-              value={view.range}
-              onChange={(range) => navigate({ range })}
-              label={td("range")}
-              labelFor={(range) => td(`range_${range}`)}
-            />
-            {view.canViewAll ? (
-              <ScopePicker
-                value={view.scope}
-                onChange={(scope) => navigate({ scope })}
-                label={td("scope")}
-                labelFor={(scope) => td(`scope_${scope}`)}
+            <span className={styles.range}>
+              <RangePicker
+                value={view.range}
+                onChange={(range) => navigate({ range })}
+                label={td("range")}
+                labelFor={(range) => td(`range_${range}`)}
               />
+            </span>
+            {view.canViewAll ? (
+              <span className={styles.scope}>
+                <ScopePicker
+                  value={view.scope}
+                  onChange={(scope) => navigate({ scope })}
+                  label={td("scope")}
+                  labelFor={(scope) => td(`scope_${scope}`)}
+                />
+              </span>
             ) : (
               <span className={styles.hint}>{td("scopeMineHint")}</span>
             )}
             <span className={styles.spacer} />
             {layout.personal && (
-              <span className={styles.personal}>
+              <span className={styles.personal} title={t("personalBadge")}>
                 <Icon icon="lucide:user-pen" width={13} />
-                {t("personalBadge")}
+                <span className={styles.personalText}>
+                  {t("personalBadge")}
+                </span>
               </span>
             )}
             <Button
