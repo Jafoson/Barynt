@@ -11,6 +11,7 @@ import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
 import type { WidgetData, WidgetDataMap } from "@/features/dashboard/types";
 import {
   newWidget,
+  offeredOn,
   WIDGET_TYPES,
   WIDGETS,
   type Widget as WidgetModel,
@@ -36,7 +37,7 @@ interface Props {
   close: () => void;
 }
 
-const GROUPS = ["numbers", "charts", "lists", "other"] as const;
+const GROUPS = ["numbers", "charts", "lists", "team", "other"] as const;
 
 /**
  * "Add widget", like the widget gallery on iPhone and Mac: the kinds on
@@ -63,8 +64,7 @@ export function WidgetGallery({
     Partial<Record<WidgetType, WidgetData>>
   >({});
 
-  // A view's dashboard has no project to describe.
-  const types = WIDGET_TYPES.filter((x) => kind !== "view" || x !== "about");
+  const types = WIDGET_TYPES.filter((x) => offeredOn(x, kind));
   const needle = query.trim().toLowerCase();
   const shown = types.filter(
     (x) =>

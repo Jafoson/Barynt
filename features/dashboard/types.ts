@@ -88,6 +88,59 @@ export interface AboutData {
   /** Projects in the workspace; `null` for a project. */
   projects: number | null;
   links: { id: string; label: string; url: string }[];
+  /** Settings — only for who may change name and description. */
+  editHref: string | null;
+}
+
+export interface RoleGroup {
+  key: string;
+  name: string;
+  rank: number;
+  members: User[];
+}
+
+export interface TeamRow {
+  id: string;
+  name: string;
+  key: string;
+  color: string;
+  members: number;
+  lead: User | null;
+}
+
+export interface LabelRow {
+  id: string;
+  name: string;
+  color: string;
+  /** Open issues carrying it, within the dashboard's projects. */
+  open: number;
+  /** Belongs to the project alone, not the whole workspace. */
+  own: boolean;
+}
+
+export interface ProjectRow {
+  id: string;
+  name: string;
+  prefix: string;
+  color: string;
+  avatarUrl: string | null;
+  open: number;
+  href: string;
+}
+
+export interface Shortcut {
+  key:
+    | "board"
+    | "list"
+    | "members"
+    | "settings"
+    | "activity"
+    | "issues"
+    | "projects"
+    | "views"
+    | "teams";
+  icon: string;
+  href: string;
 }
 
 export type WidgetData =
@@ -134,6 +187,30 @@ export type WidgetData =
     }
   | { type: "about"; about: AboutData | null }
   | { type: "activity"; entries: AuditEntry[] }
+  | {
+      type: "members";
+      groups: RoleGroup[];
+      total: number;
+      /** The member list — `null` without the permission to see it. */
+      href: string | null;
+    }
+  | { type: "teams"; teams: TeamRow[]; href: string | null }
+  | {
+      type: "labels";
+      labels: LabelRow[];
+      /** Where a new label goes: the project, or the workspace (`null`). */
+      projectId: string | null;
+      workspaceId: string;
+      canCreate: boolean;
+      href: string | null;
+    }
+  | { type: "projects"; projects: ProjectRow[]; href: string }
+  | {
+      type: "links";
+      links: { id: string; label: string; url: string }[];
+      href: string | null;
+    }
+  | { type: "shortcuts"; items: Shortcut[] }
   | { type: "note" };
 
 /** Widget id → its data. */

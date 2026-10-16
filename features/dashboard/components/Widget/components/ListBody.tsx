@@ -138,6 +138,16 @@ function About({ data }: { data: Extract<Data, { type: "about" }> }) {
   return (
     <div className={styles.about}>
       <div className={styles.aboutHead}>
+        {about.editHref && (
+          <Link
+            href={about.editHref}
+            className={styles.aboutEdit}
+            aria-label={t("editAbout")}
+            title={t("editAbout")}
+          >
+            <Icon icon="lucide:pencil" width={14} />
+          </Link>
+        )}
         <Avatar
           avatar={{
             name: about.name,

@@ -14,6 +14,7 @@ import { ChartBody } from "./components/ChartBody";
 import { ListBody } from "./components/ListBody";
 import { NumberBody } from "./components/NumberBody";
 import type { BodyProps } from "./components/shared";
+import { TeamBody } from "./components/TeamBody";
 import styles from "./widget.module.scss";
 
 interface Props {
@@ -112,6 +113,13 @@ export function Widget({
         </div>
       ) : data.type === "kpi" || data.type === "progress" ? (
         <NumberBody {...body} data={data} />
+      ) : data.type === "members" ||
+        data.type === "teams" ||
+        data.type === "labels" ||
+        data.type === "projects" ||
+        data.type === "links" ||
+        data.type === "shortcuts" ? (
+        <TeamBody data={data} />
       ) : data.type === "attention" ||
         data.type === "issues" ||
         data.type === "about" ||

@@ -14,6 +14,9 @@ import type {
   DashboardIssue,
   DashboardTarget,
   DashboardView,
+  LabelRow,
+  RoleGroup,
+  Shortcut,
   Slice,
   WidgetData,
   WidgetDataMap,
@@ -48,11 +51,26 @@ import {
 import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import {
+  PROJECT_SETTINGS_PERMISSIONS,
+  projectPath,
+  projectSettingsPath,
+  WORKSPACE_SETTINGS_PERMISSIONS,
+  workspacePath,
+  workspaceSettingsPath,
+} from "@/lib/nav";
+import {
+  accessFor,
   currentUserCanEnterWorkspace,
   currentUserId,
   hasPermission,
   visibleProjectIds,
 } from "@/lib/permissions";
+import {
+  DEFAULT_WORKSPACE_ROLE_KEY,
+  PROJECT_BLOCKED_ROLE_KEY,
+  WORKSPACE_GUEST_ROLE_KEY,
+  WORKSPACE_VIEWER_ROLE_KEY,
+} from "@/lib/rbac";
 import { resolveAvatarUrl } from "@/lib/storage";
 import type { IssueType, Priority, Status, User } from "@/types";
 
@@ -1010,6 +1028,15 @@ const aboutFor = cache(
         open,
         projects: null,
         links: [],
+        editHref: (await placeOf(workspaceId, projectId)).project.has(
+          "project.update",
+        )
+          ? projectSettingsPath(
+              workspaceId,
+              (await placeOf(workspaceId, projectId)).slug ?? "",
+              "",
+            )
+          : null,
       };
     }
 
@@ -1053,9 +1080,309 @@ const aboutFor = cache(
       open,
       projects: visible.size,
       links: workspace.links,
+      editHref: (await placeOf(workspaceId, null)).workspace.has(
+        "workspace.update",
+      )
+        ? workspaceSettingsPath(workspaceId, "")
+        : null,
     };
   },
 );
+
+// ── What the old overview showed ────────────────────────────────────────────
+
+/** The project's slug and the caller's permissions, in both contexts. */
+const placeOf = cache(async (workspaceId: string, projectId: string | null) => {
+  const userId = await currentUserId();
+  const [project, slug, workspace] = await Promise.all([
+    projectId
+      ? accessFor(userId, { projectId })
+      : Promise.resolve(new Set<string>()),
+    projectId
+      ? db.project
+          .findUnique({ where: { id: projectId }, select: { slug: true } })
+          .then((row) => row?.slug ?? null)
+      : Promise.resolve(null),
+    accessFor(userId, { workspaceId }),
+  ]);
+  return {
+    slug,
+    project: project as { has: (key: string) => boolean },
+    workspace: workspace as { has: (key: string) => boolean },
+  };
+});
+
+/** Workspace roles that mean "contributes" or "reads along" — without
+ *  `member.view` only the others (leadership) are listed. */
+const WS_ROSTER_ROLE_KEYS = new Set<string>([
+  DEFAULT_WORKSPACE_ROLE_KEY,
+  WORKSPACE_VIEWER_ROLE_KEY,
+  WORKSPACE_GUEST_ROLE_KEY,
+]);
+
+async function members(
+  workspaceId: string,
+  projectId: string | null,
+): Promise<WidgetData> {
+  const place = await placeOf(workspaceId, projectId);
+  const select = {
+    user: { select: USER_SELECT },
+    role: { select: { key: true, name: true, rank: true } },
+  } as const;
+  const rows = projectId
+    ? await db.projectMember.findMany({
+        // Locked out of the project isn't "a member" to show off.
+        where: { projectId, role: { key: { not: PROJECT_BLOCKED_ROLE_KEY } } },
+        select,
+        orderBy: { user: { firstName: "asc" } },
+      })
+    : await db.workspaceMember.findMany({
+        where: { workspaceId },
+        select,
+        orderBy: { user: { firstName: "asc" } },
+      });
+  const seeAll = projectId ? true : place.workspace.has("member.view");
+  const groups = new Map<string, RoleGroup>();
+  for (const row of rows) {
+    if (!seeAll && WS_ROSTER_ROLE_KEYS.has(row.role.key)) continue;
+    const group = groups.get(row.role.key) ?? {
+      key: row.role.key,
+      name: row.role.name,
+      rank: row.role.rank,
+      members: [],
+    };
+    group.members.push(await mapUser(row.user));
+    groups.set(row.role.key, group);
+  }
+  return {
+    type: "members",
+    groups: [...groups.values()].sort((a, b) => b.rank - a.rank),
+    total: seeAll
+      ? rows.length
+      : [...groups.values()].reduce((n, g) => n + g.members.length, 0),
+    href: projectId
+      ? projectPath(workspaceId, place.slug ?? "", "members")
+      : seeAll
+        ? workspacePath(workspaceId, "members")
+        : null,
+  };
+}
+
+async function teams(
+  workspaceId: string,
+  projectId: string | null,
+): Promise<WidgetData> {
+  const rows = await db.team.findMany({
+    where: projectId ? { projects: { some: { projectId } } } : { workspaceId },
+    select: {
+      id: true,
+      name: true,
+      key: true,
+      color: true,
+      lead: { select: USER_SELECT },
+      _count: { select: { members: true } },
+    },
+    orderBy: { name: "asc" },
+  });
+  return {
+    type: "teams",
+    teams: await Promise.all(
+      rows.map(async (row) => ({
+        id: row.id,
+        name: row.name,
+        key: row.key,
+        color: row.color,
+        members: row._count.members,
+        lead: row.lead ? await mapUser(row.lead) : null,
+      })),
+    ),
+    href: workspacePath(workspaceId, "teams"),
+  };
+}
+
+async function labels(ctx: Ctx): Promise<WidgetData> {
+  const { workspaceId, projectId } = ctx.resolved;
+  const place = await placeOf(workspaceId, projectId);
+  const [rows, issues] = await Promise.all([
+    db.label.findMany({
+      where: projectId
+        ? {
+            OR: [
+              { projectId },
+              {
+                projectId: null,
+                workspaceId,
+                hiddenIn: { none: { projectId } },
+              },
+            ],
+          }
+        : { workspaceId, projectId: null },
+      select: { id: true, name: true, color: true, projectId: true },
+      orderBy: { name: "asc" },
+    }),
+    db.issue.findMany({
+      where: { AND: [ctx.base, { status: { notIn: ctx.closed } }] },
+      select: { labels: true },
+    }),
+  ]);
+  const counts = new Map<string, number>();
+  for (const issue of issues)
+    for (const id of issue.labels) counts.set(id, (counts.get(id) ?? 0) + 1);
+  const list: LabelRow[] = rows
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      color: row.color,
+      open: counts.get(row.id) ?? 0,
+      own: row.projectId !== null,
+    }))
+    .sort((a, b) => b.open - a.open || a.name.localeCompare(b.name));
+  const canCreate = projectId
+    ? place.project.has("label.create")
+    : place.workspace.has("label.create");
+  return {
+    type: "labels",
+    labels: list,
+    projectId,
+    workspaceId,
+    canCreate,
+    href: canCreate
+      ? projectId
+        ? projectSettingsPath(workspaceId, place.slug ?? "", "labels")
+        : workspaceSettingsPath(workspaceId, "labels")
+      : null,
+  };
+}
+
+async function projects(ctx: Ctx): Promise<WidgetData> {
+  const { workspaceId, projectIds } = ctx.resolved;
+  const [rows, open] = await Promise.all([
+    db.project.findMany({
+      where: { id: { in: projectIds }, archivedAt: null },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        prefix: true,
+        color: true,
+        avatarKey: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    db.issue.groupBy({
+      by: ["projectId"],
+      where: { AND: [ctx.base, { status: { notIn: ctx.closed } }] },
+      _count: { _all: true },
+    }),
+  ]);
+  const openBy = new Map(open.map((row) => [row.projectId, row._count._all]));
+  return {
+    type: "projects",
+    projects: await Promise.all(
+      rows.map(async (row) => ({
+        id: row.id,
+        name: row.name,
+        prefix: row.prefix,
+        color: row.color,
+        avatarUrl: await resolveAvatarUrl(row.avatarKey),
+        open: openBy.get(row.id) ?? 0,
+        href: projectPath(workspaceId, row.slug, "overview"),
+      })),
+    ),
+    href: workspacePath(workspaceId, "projects"),
+  };
+}
+
+async function links(workspaceId: string): Promise<WidgetData> {
+  const place = await placeOf(workspaceId, null);
+  const rows = await db.workspaceLink.findMany({
+    where: { workspaceId },
+    select: { id: true, label: true, url: true },
+    orderBy: { position: "asc" },
+  });
+  return {
+    type: "links",
+    links: rows,
+    href: place.workspace.has("workspace.update")
+      ? workspaceSettingsPath(workspaceId, "")
+      : null,
+  };
+}
+
+async function shortcuts(
+  workspaceId: string,
+  projectId: string | null,
+): Promise<WidgetData> {
+  const place = await placeOf(workspaceId, projectId);
+  const items: Shortcut[] = [];
+  if (projectId && place.slug) {
+    const slug = place.slug;
+    items.push(
+      {
+        key: "board",
+        icon: "lucide:kanban",
+        href: projectPath(workspaceId, slug, ""),
+      },
+      {
+        key: "list",
+        icon: "lucide:list",
+        href: projectPath(workspaceId, slug, "list"),
+      },
+      {
+        key: "members",
+        icon: "lucide:users",
+        href: projectPath(workspaceId, slug, "members"),
+      },
+    );
+    if (PROJECT_SETTINGS_PERMISSIONS.some((key) => place.project.has(key)))
+      items.push({
+        key: "settings",
+        icon: "lucide:settings",
+        href: projectSettingsPath(workspaceId, slug, ""),
+      });
+    items.push({
+      key: "activity",
+      icon: "lucide:history",
+      href: projectSettingsPath(workspaceId, slug, "activity"),
+    });
+  } else {
+    items.push(
+      {
+        key: "issues",
+        icon: "lucide:kanban",
+        href: workspacePath(workspaceId, "issues"),
+      },
+      {
+        key: "projects",
+        icon: "lucide:folders",
+        href: workspacePath(workspaceId, "projects"),
+      },
+      {
+        key: "views",
+        icon: "lucide:layers",
+        href: workspacePath(workspaceId, "views"),
+      },
+      {
+        key: "teams",
+        icon: "lucide:users-round",
+        href: workspacePath(workspaceId, "teams"),
+      },
+    );
+    if (place.workspace.has("member.view"))
+      items.push({
+        key: "members",
+        icon: "lucide:users",
+        href: workspacePath(workspaceId, "members"),
+      });
+    if (WORKSPACE_SETTINGS_PERMISSIONS.some((key) => place.workspace.has(key)))
+      items.push({
+        key: "settings",
+        icon: "lucide:settings",
+        href: workspaceSettingsPath(workspaceId, ""),
+      });
+  }
+  return { type: "shortcuts", items };
+}
 
 async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
   const { config } = widget;
@@ -1108,6 +1435,18 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
         : await getWorkspaceActivity(resolved.workspaceId, 20);
       return { type: "activity", entries: view.entries };
     }
+    case "members":
+      return members(resolved.workspaceId, resolved.projectId);
+    case "teams":
+      return teams(resolved.workspaceId, resolved.projectId);
+    case "labels":
+      return labels(ctx);
+    case "projects":
+      return projects(ctx);
+    case "links":
+      return links(resolved.workspaceId);
+    case "shortcuts":
+      return shortcuts(resolved.workspaceId, resolved.projectId);
     case "note":
       return { type: "note" };
   }

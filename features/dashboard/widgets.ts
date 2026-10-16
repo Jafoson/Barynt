@@ -40,6 +40,12 @@ export const WIDGET_TYPES = [
   "matrix",
   "age",
   "about",
+  "members",
+  "teams",
+  "labels",
+  "projects",
+  "links",
+  "shortcuts",
   "activity",
   "note",
 ] as const;
@@ -184,7 +190,9 @@ export interface WidgetDef {
   /** Reads issues (and so takes a filter). */
   issues: boolean;
   /** The gallery's section. */
-  group: "numbers" | "charts" | "lists" | "other";
+  group: "numbers" | "charts" | "lists" | "team" | "other";
+  /** Only on these dashboards — a project has no projects or links. */
+  kinds?: ("project" | "workspace" | "view")[];
   config: WidgetConfig;
 }
 
@@ -327,6 +335,68 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
     group: "other",
     config: { background: "gradient" },
   },
+  members: {
+    type: "members",
+    icon: "lucide:users",
+    sizes: ["M", "L", "T"],
+    size: "L",
+    accent: "purple",
+    issues: false,
+    group: "team",
+    config: {},
+  },
+  teams: {
+    type: "teams",
+    icon: "lucide:users-round",
+    sizes: ["S", "M", "L", "T"],
+    size: "L",
+    accent: "teal",
+    issues: false,
+    group: "team",
+    config: {},
+  },
+  labels: {
+    type: "labels",
+    icon: "lucide:tag",
+    sizes: ["M", "L", "T"],
+    size: "L",
+    accent: "pink",
+    issues: false,
+    group: "team",
+    config: {},
+  },
+  projects: {
+    type: "projects",
+    icon: "lucide:folders",
+    sizes: ["M", "L", "T", "XL"],
+    size: "L",
+    accent: "blue",
+    issues: false,
+    group: "team",
+    kinds: ["workspace", "view"],
+    config: {},
+  },
+  links: {
+    type: "links",
+    icon: "lucide:link",
+    sizes: ["S", "M", "L"],
+    size: "M",
+    accent: "indigo",
+    issues: false,
+    group: "other",
+    kinds: ["workspace", "view"],
+    config: {},
+  },
+  shortcuts: {
+    type: "shortcuts",
+    icon: "lucide:layout-grid",
+    sizes: ["M", "L"],
+    size: "L",
+    accent: "gray",
+    issues: false,
+    group: "other",
+    config: { background: "tint" },
+  },
   note: {
     type: "note",
     icon: "lucide:sticky-note",
@@ -411,7 +481,29 @@ export function defaultWidgets(
           })
         : priority,
     w("activity", "activity", "L"),
+    // What the old overview showed: who, in which teams, with what.
+    ...(kind === "view"
+      ? []
+      : [
+          w("members", "members", "L"),
+          w("teams", "teams", "L"),
+          kind === "workspace"
+            ? w("projectList", "projects", "L")
+            : w("labels", "labels", "L"),
+          w("shortcuts", "shortcuts", "L", { background: "tint" }),
+        ]),
   ];
+}
+
+/** Whether a kind belongs on this dashboard. */
+export function offeredOn(
+  type: WidgetType,
+  kind: "project" | "workspace" | "view",
+): boolean {
+  const kinds = WIDGETS[type].kinds;
+  return (
+    (!kinds || kinds.includes(kind)) && !(kind === "view" && type === "about")
+  );
 }
 
 // ─── Validation ──────────────────────────────────────────────────────────────
