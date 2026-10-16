@@ -11,6 +11,7 @@ import { viewIconOf } from "@/features/views/icons";
 import type { ViewLayout, ViewVisibility } from "@/features/views/schema";
 import { type MenuView, useViewMenu } from "@/features/views/useViewMenu";
 import { useRouter } from "@/i18n/navigation";
+import { COMPACT_QUERY } from "@/lib/utils/useMediaQuery";
 import styles from "./viewTabs.module.scss";
 
 /** Never fewer view tabs than this, room or not — "More" holds the rest. */
@@ -91,6 +92,11 @@ export function ViewTabs({
     const measure = measureRef.current;
     if (!wrap || !row || !measure) return;
     const fit = () => {
+      // Phone and tablet: every tab, the row scrolls sideways instead.
+      if (window.matchMedia(COMPACT_QUERY).matches) {
+        setVisibleIds(null);
+        return;
+      }
       const widths = [...measure.children].map(
         (el) => (el as HTMLElement).offsetWidth,
       );

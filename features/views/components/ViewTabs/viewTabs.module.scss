@@ -13,6 +13,15 @@
   align-self: stretch;
   flex: 0 1 auto;
   min-width: 0;
+
+  /* Phone and tablet: as wide as all its tabs — the row scrolls. */
+  @include bp.tablet-down {
+    flex: none;
+
+    .row {
+      flex: none;
+    }
+  }
 }
 
 .row {

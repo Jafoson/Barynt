@@ -400,24 +400,28 @@ export function WorkspaceDashboard({
           ) : undefined
         }
         title={isDashboard ? workspace.name : ""}
+        // Not on a phone or tablet: there the dashboard is reached from the
+        // workspace's tab row and the bottom bar (V8).
         actions={
-          <SegmentedControl
-            variant="surface"
-            value={view}
-            onChange={pickView}
-            items={[
-              {
-                value: "profile",
-                label: t("dashboard.viewProfile"),
-                icon: <Icon icon="lucide:info" width={15} />,
-              },
-              {
-                value: "dashboard",
-                label: t("dashboard.viewDashboard"),
-                icon: <Icon icon="lucide:layout-dashboard" width={15} />,
-              },
-            ]}
-          />
+          <span className={styles.viewSwitch}>
+            <SegmentedControl
+              variant="surface"
+              value={view}
+              onChange={pickView}
+              items={[
+                {
+                  value: "profile",
+                  label: t("dashboard.viewProfile"),
+                  icon: <Icon icon="lucide:info" width={15} />,
+                },
+                {
+                  value: "dashboard",
+                  label: t("dashboard.viewDashboard"),
+                  icon: <Icon icon="lucide:layout-dashboard" width={15} />,
+                },
+              ]}
+            />
+          </span>
         }
       />
 
