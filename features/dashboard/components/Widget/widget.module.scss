@@ -706,13 +706,138 @@
   }
 }
 
-/* Cycle time: every closed issue a dot, percentile lines across. */
+/* Cycle time, large: the average on top, the dots below with a day axis. */
+.cycleLarge {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.cycleStats {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  flex: none;
+}
+
+.cycleBig {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-size: 2rem;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+
+  & > small {
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--muted);
+  }
+
+  & > .trend {
+    margin-left: 0.375rem;
+    align-self: center;
+  }
+}
+
+.trend {
+  display: inline-block;
+  padding: 0.0625rem 0.4375rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.cycleLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+
+  & > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: var(--radius-pill);
+    background: var(--track);
+    font-size: 0.6875rem;
+    color: var(--muted);
+  }
+
+  & i {
+    width: 0.75rem;
+    border-top: 2px dashed var(--c);
+  }
+
+  & b {
+    color: var(--on-surface);
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.cyclePlot {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.yAxis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: none;
+  padding-block: 0 0.25rem;
+  font-size: 0.625rem;
+  color: var(--muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+
+  & > span {
+    translate: 0 -50%;
+  }
+
+  & > span:last-child {
+    translate: 0 0;
+  }
+}
+
+.xAxis {
+  padding-left: 2rem;
+}
+
 .scatter {
   position: relative;
   flex: 1;
+  min-width: 0;
   min-height: 0;
-  margin: 0.5rem 0.25rem 0.25rem;
+  margin: 0.375rem 0.25rem 0.25rem;
   border-bottom: 1px solid var(--rule);
+}
+
+.grid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--rule);
+}
+
+/* Median to P75 — where most issues land. */
+.band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: color-mix(in srgb, var(--teal) 10%, transparent);
 }
 
 .mark {
@@ -745,12 +870,20 @@
 .dotPoint {
   position: absolute;
   z-index: 1;
-  width: 0.5rem;
-  height: 0.5rem;
+  box-shadow: 0 0 0 2px var(--surface-container-low);
+  width: 0.625rem;
+  height: 0.625rem;
   translate: -50% 50%;
   border-radius: 50%;
   background: var(--accent);
-  opacity: 0.8;
+
+  &[data-tone="amber"] {
+    background: var(--amber);
+  }
+
+  &[data-tone="red"] {
+    background: var(--red);
+  }
 
   &:hover,
   &:focus-visible {

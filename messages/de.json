@@ -1787,6 +1787,8 @@
     "sampleRole_viewer": "Lesend",
     "sampleNote": "Fokus Q4: Stabilität vor Features.\n• Crash-Rate unter 0,5 %\n• Passkeys überall",
     "openIssuesOf": "Offene Aufgaben: {name}",
-    "teamSub": "{count, plural, one {# Mitglied} other {# Mitglieder}} · Lead {lead}"
+    "teamSub": "{count, plural, one {# Mitglied} other {# Mitglieder}} · Lead {lead}",
+    "medianShort": "Median",
+    "cycleSub": "Ø von {count, plural, one {# geschlossenen Aufgabe} other {# geschlossenen Aufgaben}}"
   }
 }

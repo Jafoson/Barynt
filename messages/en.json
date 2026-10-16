@@ -1787,6 +1787,8 @@
     "sampleRole_viewer": "Readers",
     "sampleNote": "Q4 focus: stability over features.\n• Crash rate below 0.5%\n• Passkeys everywhere",
     "openIssuesOf": "Open issues: {name}",
-    "teamSub": "{count, plural, one {# member} other {# members}} · lead {lead}"
+    "teamSub": "{count, plural, one {# member} other {# members}} · lead {lead}",
+    "medianShort": "Median",
+    "cycleSub": "avg. of {count, plural, one {# closed issue} other {# closed issues}}"
   }
 }

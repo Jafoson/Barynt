@@ -312,16 +312,47 @@ function Cycle({
     data.avg !== null && data.previous !== null
       ? Math.round((data.avg - data.previous) * 10) / 10
       : null;
-  const top = Math.max(1, (data.p95 ?? 1) * 1.25);
+  // A round top for the day axis, with room above P95; dots beyond it sit
+  // on the top edge.
+  const raw = Math.max(1, (data.p95 ?? 1) * 1.2);
+  const step =
+    raw <= 5 ? 1 : raw <= 15 ? 5 : raw <= 40 ? 10 : raw <= 90 ? 30 : 60;
+  const top = Math.ceil(raw / step) * step;
+  const y = (days: number) => Math.min(100, (days / top) * 100);
   const times = data.points.map((p) => p.closed);
   const from = Math.min(...times);
-  const span = Math.max(1, Math.max(...times) - from);
+  const to = Math.max(...times);
+  const span = Math.max(1, to - from);
+  const x = (ms: number) => ((ms - from) / span) * 100;
+  const tone = (days: number) =>
+    data.p95 !== null && days > data.p95
+      ? "red"
+      : data.p75 !== null && days > data.p75
+        ? "amber"
+        : undefined;
+  const day = (ms: number) =>
+    format.dateTime(new Date(ms), {
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC",
+    });
   const marks = [
-    { key: "p50", value: data.p50, color: "var(--teal)" },
-    { key: "p75", value: data.p75, color: "var(--amber)" },
-    { key: "p95", value: data.p95, color: "var(--red)" },
+    {
+      key: "p50",
+      label: t("medianShort"),
+      value: data.p50,
+      color: "var(--teal)",
+    },
+    { key: "p75", label: "P75", value: data.p75, color: "var(--amber)" },
+    { key: "p95", label: "P95", value: data.p95, color: "var(--red)" },
   ].filter(
-    (m): m is { key: string; value: number; color: string } => m.value !== null,
+    (m): m is { key: string; label: string; value: number; color: string } =>
+      m.value !== null,
+  );
+  const trend = delta !== null && delta !== 0 && (
+    <span className={`${styles.trend} ${delta < 0 ? styles.good : styles.bad}`}>
+      {delta > 0 ? "▲" : "▼"} {num(Math.abs(delta))}
+    </span>
   );
 
   return (
@@ -334,12 +365,7 @@ function Cycle({
             <small>{t("daysUnit")}</small>
           </div>
           <div className={styles.sub}>
-            {delta !== null && delta !== 0 && (
-              <span className={delta < 0 ? styles.good : styles.bad}>
-                {delta > 0 ? "▲" : "▼"} {num(Math.abs(delta))}{" "}
-              </span>
-            )}
-            {data.p50 !== null && t("median", { days: num(data.p50) })}
+            {trend} {data.p50 !== null && t("median", { days: num(data.p50) })}
           </div>
         </div>
         <span className={`${styles.grow} ${styles.noS}`}>
@@ -347,61 +373,105 @@ function Cycle({
         </span>
       </div>
 
-      {/* Large: every closed issue as a dot, with percentile lines. */}
-      <div className={`${styles.scatter} ${styles.noShort}`}>
-        {marks.map((m) => (
-          <span
-            key={m.key}
-            className={styles.mark}
-            style={
-              {
-                bottom: `${Math.min(100, (m.value / top) * 100)}%`,
-                "--c": m.color,
-              } as CSSProperties
-            }
-          >
-            {labels.values && (
-              <em>
-                {m.key.toUpperCase()} {t("days", { days: num(m.value) })}
-              </em>
+      {/* Large: the average up top, then every closed issue as a dot over
+          time — the band is the usual range (median to P75), red and amber
+          dots took longer than 95 % and 75 % of the rest. */}
+      <div className={`${styles.cycleLarge} ${styles.noShort}`}>
+        <div className={styles.cycleStats}>
+          <div>
+            <div className={styles.cycleBig}>
+              {data.avg === null ? "–" : num(data.avg)}
+              <small>{t("daysUnit")}</small>
+              {trend}
+            </div>
+            <div className={styles.sub}>
+              {t("cycleSub", { count: data.points.length })}
+            </div>
+          </div>
+          {labels.legend && (
+            <div className={styles.cycleLegend}>
+              {marks.map((m) => (
+                <span key={m.key} style={{ "--c": m.color } as CSSProperties}>
+                  <i />
+                  {m.label} <b>{t("days", { days: num(m.value) })}</b>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className={styles.cyclePlot}>
+          {labels.axes && (
+            <div className={styles.yAxis}>
+              {[top, top / 2, 0].map((v) => (
+                <span key={v}>{t("days", { days: num(v) })}</span>
+              ))}
+            </div>
+          )}
+          <div className={styles.scatter}>
+            <span className={styles.grid} style={{ bottom: "50%" }} />
+            {data.p50 !== null && data.p75 !== null && (
+              <span
+                className={styles.band}
+                style={{
+                  bottom: `${y(data.p50)}%`,
+                  height: `${y(data.p75) - y(data.p50)}%`,
+                }}
+              />
             )}
-          </span>
-        ))}
-        {/* The dots joined in time order — the trend reads at a glance. */}
-        <svg
-          className={styles.scatterLine}
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          <polyline
-            points={[...data.points]
-              .sort((a, b) => a.closed - b.closed)
-              .map(
-                (p) =>
-                  `${((p.closed - from) / span) * 100},${100 - Math.min(100, (p.days / top) * 100)}`,
-              )
-              .join(" ")}
-            fill="none"
-            stroke="var(--accent)"
-            strokeWidth={1.75}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
-        {data.points.map((p) => (
-          <Link
-            key={p.id}
-            href={issueHref(p.ref)}
-            className={styles.dotPoint}
-            style={{
-              left: `${((p.closed - from) / span) * 100}%`,
-              bottom: `${Math.min(100, (p.days / top) * 100)}%`,
-            }}
-            title={`${p.ref} · ${p.title} · ${t("days", { days: num(p.days) })}`}
-          />
-        ))}
+            {marks.map((m) => (
+              <span
+                key={m.key}
+                className={styles.mark}
+                style={
+                  { bottom: `${y(m.value)}%`, "--c": m.color } as CSSProperties
+                }
+              >
+                {labels.values && !labels.legend && (
+                  <em>
+                    {m.label} {t("days", { days: num(m.value) })}
+                  </em>
+                )}
+              </span>
+            ))}
+            {/* The dots joined in time order — the trend reads at a glance. */}
+            <svg
+              className={styles.scatterLine}
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <polyline
+                points={[...data.points]
+                  .sort((a, b) => a.closed - b.closed)
+                  .map((p) => `${x(p.closed)},${100 - y(p.days)}`)
+                  .join(" ")}
+                fill="none"
+                stroke="var(--accent)"
+                strokeWidth={1.5}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+            {data.points.map((p) => (
+              <Link
+                key={p.id}
+                href={issueHref(p.ref)}
+                className={styles.dotPoint}
+                data-tone={tone(p.days)}
+                style={{ left: `${x(p.closed)}%`, bottom: `${y(p.days)}%` }}
+                title={`${p.ref} · ${p.title} · ${t("days", { days: num(p.days) })} · ${day(p.closed)}`}
+              />
+            ))}
+          </div>
+        </div>
+        {labels.axes && (
+          <div className={`${styles.axis} ${styles.xAxis}`}>
+            <span>{day(from)}</span>
+            <span>{day(to)}</span>
+          </div>
+        )}
       </div>
     </>
   );
