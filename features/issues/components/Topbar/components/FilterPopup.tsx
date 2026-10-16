@@ -580,6 +580,7 @@ function FilterPanel(props: FilterPanelProps) {
         // A primary text button, so it doesn't pass for one more field.
         <Button
           variant="text"
+          full
           className={styles.advancedLink}
           icon={<Icon icon="lucide:list-filter" width={14} />}
           iconRight={extras > 0 ? <Badge size="sm">{extras}</Badge> : undefined}

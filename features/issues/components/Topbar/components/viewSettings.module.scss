@@ -496,9 +496,11 @@
 }
 
 /* The popup's way into the advanced editor (BARY-166): a primary text
-   button. Doubled class to outrank the button's own color. */
+   button, centered and as wide as "reset" below it. Doubled class to
+   outrank the button's own color. */
 .advancedLink.advancedLink {
-  align-self: flex-start;
+  align-self: stretch;
+  justify-content: center;
   color: var(--primary);
   font-weight: 600;
 }
