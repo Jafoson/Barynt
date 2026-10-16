@@ -44,6 +44,14 @@
   display: contents;
 }
 
+.short {
+  display: none;
+
+  @include bp.phone {
+    display: inline;
+  }
+}
+
 .onlyPhone {
   display: none;
 
@@ -82,13 +90,33 @@
     display: none;
   }
 
-  [data-editing] .hint {
+  [data-editing] .hint,
+  [data-editing] .spacer,
+  .unsaved {
+    display: none;
+  }
+
+  /* Edit mode: "add widget" over the width with reset beside it, then the
+     actions as one row of equal buttons with short words. */
+  [data-editing] .toolbar > button:first-child {
+    flex: 1;
+  }
+
+  .long {
     display: none;
   }
 
   .saveBar {
+    display: grid;
     flex: 1 1 100%;
-    justify-content: flex-end;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 0.375rem;
+
+    & > button {
+      width: 100%;
+      min-width: 0;
+    }
   }
 }
 
@@ -315,11 +343,20 @@
 }
 
 /* Remove: the app's small elevated icon button, on the corner. */
-.remove {
+.cell .remove {
   position: absolute;
   top: -0.5rem;
   left: -0.5rem;
   z-index: 2;
+
+  /* The button's touch minimum (44px) would make a big square on every
+     widget; a slightly larger round-cornered target is enough here. */
+  @include bp.coarse {
+    width: 2rem;
+    min-width: 2rem;
+    height: 2rem;
+    min-height: 2rem;
+  }
 
   &:hover {
     color: var(--red);

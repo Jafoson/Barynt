@@ -248,7 +248,8 @@ export function Dashboard({
         onClick={saveAsView}
         disabled={pending}
       >
-        {t("saveAsView")}
+        <span className={styles.long}>{t("saveAsView")}</span>
+        <span className={styles.short}>{t("saveAsViewShort")}</span>
       </Button>
       {layout.canEditShared && target.kind !== "view" && (
         <Button
@@ -259,7 +260,8 @@ export function Dashboard({
           disabled={pending}
           title={t("hintShared")}
         >
-          {t("saveShared")}
+          <span className={styles.long}>{t("saveShared")}</span>
+          <span className={styles.short}>{t("saveSharedShort")}</span>
         </Button>
       )}
       {canSave && (
@@ -272,7 +274,10 @@ export function Dashboard({
           disabled={pending}
           title={target.kind === "view" ? t("hintView") : t("hintPersonal")}
         >
-          {target.kind === "view" ? t("save") : t("savePersonal")}
+          <span className={styles.long}>
+            {target.kind === "view" ? t("save") : t("savePersonal")}
+          </span>
+          <span className={styles.short}>{t("save")}</span>
         </Button>
       )}
     </span>
@@ -307,7 +312,7 @@ export function Dashboard({
                   resetLevel === "shared" ? "resetShared" : "resetPersonal",
                 )}
               >
-                {t("reset")}
+                <span className={styles.long}>{t("reset")}</span>
               </Button>
             )}
             {editActions}

@@ -1812,6 +1812,8 @@
     "savePersonal": "Save for me",
     "save": "Save",
     "hintEdit": "Changes apply once you save them.",
-    "reset": "Reset"
+    "reset": "Reset",
+    "saveAsViewShort": "View",
+    "saveSharedShort": "Everyone"
   }
 }
