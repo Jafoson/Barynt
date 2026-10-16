@@ -56,7 +56,8 @@ function RuleText({
 }
 
 /** From this depth on (the row's own items being 1), a group shows folded
- *  as "⋯ n ▸" until opened — every box inside a group. */
+ *  as "⋯ n ▸" until opened — every box inside a group. Opened, it shows
+ *  everything inside, however deep. */
 const FOLD_FROM = 2;
 
 /** Which folded groups are open, by top-level index and path. */
@@ -75,6 +76,7 @@ function GroupParts({
   onRemove,
   path = [],
   scope = "",
+  unfolded = false,
 }: {
   node: FilterNode;
   labelsOf: ReturnType<typeof useFilterLabels>;
@@ -84,6 +86,8 @@ function GroupParts({
   path?: number[];
   /** The top-level node's index — names this group's folds. */
   scope?: string;
+  /** Inside an opened fold: everything shows, nothing folds again. */
+  unfolded?: boolean;
 }) {
   const t = useTranslations();
   const fold = useContext(FoldContext);
@@ -131,6 +135,7 @@ function GroupParts({
           )}
           {isGroup(child) &&
           // The top-level group is depth 1, its boxes 2, theirs 3, …
+          !unfolded &&
           path.length + 2 >= FOLD_FROM &&
           !fold.isOpen(`${scope}:${[...path, i].join(".")}`) ? (
             <button
@@ -154,8 +159,10 @@ function GroupParts({
                 onRemove={onRemove}
                 path={[...path, i]}
                 scope={scope}
+                // Opened here (or above): show all of it.
+                unfolded={unfolded || path.length + 2 >= FOLD_FROM}
               />
-              {path.length + 2 >= FOLD_FROM && (
+              {!unfolded && path.length + 2 >= FOLD_FROM && (
                 <button
                   type="button"
                   className={styles.foldChip}
@@ -193,6 +200,7 @@ function GroupParts({
               onRemove={onRemove}
               path={[...path, i]}
               scope={scope}
+              unfolded={unfolded}
             />
           )}
         </Fragment>
