@@ -34,12 +34,26 @@ export function useWidgetTitle() {
   return (widget: WidgetModel) => {
     const own = widget.config.title?.trim();
     if (own) return own;
+    // What it adds up, when it isn't simply issues: "Offen · Story Points".
+    const measure =
+      widget.config.measure && widget.config.measure !== "count"
+        ? ` · ${t(`measure_${widget.config.measure}`)}`
+        : "";
     if (widget.type === "kpi")
-      return t(`metric_${widget.config.metric ?? "open"}`);
+      return t(`metric_${widget.config.metric ?? "open"}`) + measure;
+    if (widget.type === "flow") {
+      const by = widget.config.timeBy ?? "createdClosed";
+      if (by === "createdClosed") return t("type_flow") + measure;
+      const split = widget.config.splitBy
+        ? ` ${t("byField", { field: t(`group_${widget.config.splitBy}`) })}`
+        : "";
+      return t(`timeBy_${by}`) + split + measure;
+    }
+    if (widget.type === "progress") return t("type_progress") + measure;
     if (widget.type === "issues")
       return t(`issuesTitle_${widget.config.sort ?? "updated"}`);
     if (widget.type === "distribution")
-      return t(`group_${widget.config.groupBy ?? "status"}`);
+      return t(`group_${widget.config.groupBy ?? "status"}`) + measure;
     if (widget.type === "matrix")
       return t("matrixTitle", {
         rows: t(`group_${widget.config.groupBy ?? "assignee"}`),

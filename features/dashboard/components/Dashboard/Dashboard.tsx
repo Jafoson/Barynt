@@ -63,6 +63,9 @@ const DATA_KEYS = [
   "openOnly",
   "sort",
   "filter",
+  "measure",
+  "timeBy",
+  "splitBy",
 ] as const;
 
 const needsData = (a: WidgetModel, b: WidgetModel) =>

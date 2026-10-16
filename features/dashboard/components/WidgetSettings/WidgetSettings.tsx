@@ -25,8 +25,14 @@ import {
   KPI_METRICS,
   labelsOf,
   MATRIX_FIELDS,
+  MEASURES,
+  type Measure,
   pickShortcuts,
+  SERIES_CHARTS,
+  type SeriesChart,
   type ShortcutKey,
+  TIME_BY,
+  type TimeBy,
   WIDGETS,
   type Widget,
   type WidgetConfig,
@@ -169,6 +175,83 @@ export function WidgetSettings({
         )}
 
         {/* ── What it shows ── */}
+        {/* What is added up — issues, story points or hours (BARY-170). */}
+        {(widget.type === "kpi"
+          ? config.metric !== "cycleTime"
+          : ["progress", "distribution", "matrix", "flow"].includes(
+              widget.type,
+            )) && (
+          <NativeSelect
+            label={t("measure")}
+            value={config.measure ?? "count"}
+            onChange={(v) =>
+              set({ measure: v === "count" ? undefined : (v as Measure) })
+            }
+            items={MEASURES.map((m) => ({
+              value: m,
+              label: t(`measure_${m}`),
+            }))}
+          />
+        )}
+
+        {widget.type === "flow" && (
+          <>
+            <NativeSelect
+              label={t("timeAxis")}
+              value={config.timeBy ?? "createdClosed"}
+              onChange={(v) =>
+                set({
+                  timeBy: v === "createdClosed" ? undefined : (v as TimeBy),
+                  ...(v === "createdClosed" && { splitBy: undefined }),
+                })
+              }
+              items={TIME_BY.map((x) => ({
+                value: x,
+                label: t(`timeBy_${x}`),
+              }))}
+            />
+            {(config.timeBy ?? "createdClosed") !== "createdClosed" && (
+              <NativeSelect
+                label={t("splitBy")}
+                value={config.splitBy ?? ""}
+                onChange={(v) =>
+                  set({
+                    splitBy: v ? (v as WidgetConfig["splitBy"]) : undefined,
+                  })
+                }
+                items={[
+                  { value: "", label: t("splitNone") },
+                  ...GROUP_FIELDS.map((f) => ({
+                    value: f,
+                    label: t(`group_${f}`),
+                  })),
+                ]}
+              />
+            )}
+            <div className={styles.field}>
+              <span className={styles.label}>{t("chart")}</span>
+              <span className={styles.full}>
+                <SegmentedControl
+                  variant="surface"
+                  value={config.seriesChart ?? "bars"}
+                  onChange={(v) =>
+                    set({
+                      seriesChart:
+                        v === "bars" ? undefined : (v as SeriesChart),
+                    })
+                  }
+                  items={SERIES_CHARTS.filter(
+                    (c) =>
+                      c !== "stacked" ||
+                      (config.timeBy ?? "createdClosed") === "createdClosed" ||
+                      !!config.splitBy,
+                  ).map((c) => ({ value: c, label: t(`seriesChart_${c}`) }))}
+                />
+              </span>
+            </div>
+          </>
+        )}
+
         {widget.type === "kpi" && (
           <NativeSelect
             label={t("metric")}

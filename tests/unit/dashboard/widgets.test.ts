@@ -173,3 +173,28 @@ describe("Notes", () => {
     expect(notePagesSchema.safeParse([]).success).toBe(false);
   });
 });
+
+describe("Measures and time series (BARY-170)", () => {
+  it("accepts a measure, a time axis and a split", () => {
+    const widget = {
+      id: "f",
+      type: "flow",
+      size: "XL",
+      config: {
+        measure: "storyPoints",
+        timeBy: "closed",
+        splitBy: "priority",
+        seriesChart: "stacked",
+      },
+    };
+    expect(parseWidgets([widget])).toEqual([widget as Widget]);
+  });
+
+  it("rejects an unknown measure", () => {
+    expect(
+      parseWidgets([
+        { id: "k", type: "kpi", size: "S", config: { measure: "money" } },
+      ]),
+    ).toBeNull();
+  });
+});

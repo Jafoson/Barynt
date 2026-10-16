@@ -4,6 +4,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import type { CSSProperties } from "react";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import type { Slice, WidgetData } from "@/features/dashboard/types";
+import type { Widget } from "@/features/dashboard/widgets";
 import { Link, useRouter } from "@/i18n/navigation";
 import styles from "../widget.module.scss";
 import { type BodyProps, Spark, TimeAxis } from "./shared";
@@ -53,13 +54,27 @@ function Empty() {
 function useSliceName() {
   const t = useTranslations("widgets");
   return (slice: Slice, field?: string) =>
-    slice.key === "_other"
-      ? t("other")
-      : slice.key === "_none"
-        ? field === "label"
-          ? t("noneLabel")
-          : t("noneAssignee")
-        : slice.label;
+    field === "statusCategory" && !slice.label && slice.key !== "_other"
+      ? t(`category_${slice.key as "backlog"}`)
+      : slice.key === "_other"
+        ? t("other")
+        : slice.key === "_none"
+          ? field === "label"
+            ? t("noneLabel")
+            : t("noneAssignee")
+          : slice.label;
+}
+
+/** A value in the widget's measure — "12", "34 SP", "6,5 h". */
+function useMeasureFormat(measure: Widget["config"]["measure"]) {
+  const t = useTranslations("widgets");
+  const format = useFormatter();
+  return (n: number, unit = true) => {
+    const v = format.number(n, { maximumFractionDigits: 1 });
+    return unit && measure && measure !== "count"
+      ? `${v} ${t(`unit_${measure}`)}`
+      : v;
+  };
 }
 
 function Distribution({
@@ -69,8 +84,42 @@ function Distribution({
 }: BodyProps & { data: Extract<Data, { type: "distribution" }> }) {
   const name = useSliceName();
   const router = useRouter();
+  const t = useTranslations("widgets");
+  const fmt = useMeasureFormat(widget.config.measure);
   const field = widget.config.groupBy;
   if (data.total === 0) return <Empty />;
+
+  if (widget.config.chart === "table") {
+    return (
+      <div className={styles.tableWrap}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>{t(`group_${field ?? "status"}`)}</th>
+              <th>{t(`measure_${widget.config.measure ?? "count"}`)}</th>
+              <th>{t("share")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.slices.map((slice) => (
+              <tr key={slice.key}>
+                <td>
+                  <i style={{ background: slice.color }} />
+                  {slice.href ? (
+                    <Link href={slice.href}>{name(slice, field)}</Link>
+                  ) : (
+                    name(slice, field)
+                  )}
+                </td>
+                <td>{fmt(slice.count, false)}</td>
+                <td>{Math.round((slice.count / data.total) * 100)} %</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
   if (widget.config.chart === "bars") {
     const max = Math.max(1, ...data.slices.map((s) => s.count));
@@ -90,7 +139,7 @@ function Distribution({
                   }}
                 />
               </span>
-              {labels.values && <span>{slice.count}</span>}
+              {labels.values && <span>{fmt(slice.count, false)}</span>}
             </>
           );
           return slice.href ? (
@@ -152,7 +201,7 @@ function Distribution({
           fontSize={8}
           fontWeight={750}
         >
-          {data.total}
+          {fmt(data.total, false)}
         </text>
       </svg>
       {labels.legend && (
@@ -162,7 +211,11 @@ function Distribution({
               <>
                 <i style={{ background: slice.color }} />
                 <span className={styles.name}>{name(slice, field)}</span>
-                {labels.values ? <span>{slice.count}</span> : <span />}
+                {labels.values ? (
+                  <span>{fmt(slice.count, false)}</span>
+                ) : (
+                  <span />
+                )}
               </>
             );
             return slice.href ? (
@@ -186,63 +239,139 @@ function Distribution({
 }
 
 function Flow({
+  widget,
   data,
   labels,
   bucketLabel,
 }: BodyProps & { data: Extract<Data, { type: "flow" }> }) {
   const t = useTranslations("widgets");
-  const max = Math.max(1, ...data.points.flatMap((p) => [p.created, p.closed]));
-  const net = data.created - data.closed;
-  const showValues = labels.values && data.points.length <= 14;
+  const fmt = useMeasureFormat(widget.config.measure);
+  const sliceName = useSliceName();
+  const pair = data.timeBy === "createdClosed";
+  const chart =
+    widget.config.seriesChart === "stacked" && data.series.length < 2
+      ? "bars"
+      : (widget.config.seriesChart ?? "bars");
+  const nameOf = (s: (typeof data.series)[number]) =>
+    s.key === "created"
+      ? t("created")
+      : s.key === "closed"
+        ? t("closed")
+        : s.key === "all"
+          ? t(`timeBy_${data.timeBy}`)
+          : sliceName(
+              { key: s.key, label: s.label, color: s.color, count: 0 },
+              widget.config.splitBy,
+            );
+  const n = data.dates.length;
+  const sums = data.dates.map((_, i) =>
+    data.series.reduce((a, s) => a + s.values[i], 0),
+  );
+  const max = Math.max(
+    1,
+    ...(chart === "stacked" ? sums : data.series.flatMap((s) => s.values)),
+  );
+  const showValues = labels.values && chart === "bars" && n <= 14;
+  const all = data.series.every((s) => s.total === 0);
+  const net = pair ? data.series[0].total - data.series[1].total : 0;
+
   return (
     <>
       {labels.legend && (
         <div className={`${styles.legend} ${styles.noShort}`}>
-          <span>
-            <i style={{ background: "var(--chart-1)" }} />
-            {t("created")} <b>{data.created}</b>
-          </span>
-          <span>
-            <i style={{ background: "var(--chart-3)" }} />
-            {t("closed")} <b>{data.closed}</b>
-          </span>
-          <span>
-            {t("net")}{" "}
-            <b className={net > 0 ? styles.bad : net < 0 ? styles.good : ""}>
-              {net > 0 ? `+${net}` : net}
-            </b>
-          </span>
+          {data.series.map((s) => (
+            <span key={s.key}>
+              <i style={{ background: s.color }} />
+              {nameOf(s)} <b>{fmt(s.total)}</b>
+            </span>
+          ))}
+          {pair && (
+            <span>
+              {t("net")}{" "}
+              <b className={net > 0 ? styles.bad : net < 0 ? styles.good : ""}>
+                {net > 0 ? `+${fmt(net)}` : fmt(net)}
+              </b>
+            </span>
+          )}
         </div>
       )}
-      <div className={styles.cols}>
-        {data.points.map((p) => (
-          <div
-            key={p.date}
-            className={styles.col}
-            title={`${bucketLabel(p.date)} · ${t("created")} ${p.created} · ${t("closed")} ${p.closed}`}
-          >
-            <Bar
-              value={p.created}
-              max={max}
-              color="var(--chart-1)"
-              href={p.createdHref}
-              label={`${bucketLabel(p.date)} · ${t("created")} ${p.created}`}
-              showValue={showValues}
+      {all ? (
+        <Empty />
+      ) : chart === "line" ? (
+        <svg
+          className={styles.chart}
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          role="img"
+          aria-label={data.series
+            .map((s) => `${nameOf(s)} ${s.total}`)
+            .join(", ")}
+        >
+          {data.series.map((s) => (
+            <polyline
+              key={s.key}
+              points={s.values
+                .map(
+                  (v, i) =>
+                    `${n === 1 ? 50 : (i / (n - 1)) * 100},${100 - (v / max) * 94}`,
+                )
+                .join(" ")}
+              fill="none"
+              stroke={s.color}
+              strokeWidth={2}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
             />
-            <Bar
-              value={p.closed}
-              max={max}
-              color="var(--chart-3)"
-              href={p.closedHref}
-              label={`${bucketLabel(p.date)} · ${t("closed")} ${p.closed}`}
-              showValue={showValues}
-            />
-          </div>
-        ))}
-      </div>
-      {labels.axes && (
-        <TimeAxis keys={data.points.map((p) => p.date)} label={bucketLabel} />
+          ))}
+        </svg>
+      ) : (
+        <div className={styles.cols}>
+          {data.dates.map((date, i) =>
+            chart === "stacked" ? (
+              <div
+                key={date}
+                className={styles.col}
+                title={`${bucketLabel(date)} · ${fmt(sums[i])}`}
+              >
+                <div
+                  className={styles.stackCol}
+                  style={{ height: `${(sums[i] / max) * 100}%` }}
+                >
+                  {data.series.map((s) =>
+                    s.values[i] ? (
+                      <Bar
+                        key={s.key}
+                        value={s.values[i]}
+                        max={sums[i] || 1}
+                        color={s.color}
+                        href={s.hrefs[i]}
+                        label={`${bucketLabel(date)} · ${nameOf(s)} ${fmt(s.values[i])}`}
+                        showValue={false}
+                      />
+                    ) : null,
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div key={date} className={styles.col}>
+                {data.series.map((s) => (
+                  <Bar
+                    key={s.key}
+                    value={s.values[i]}
+                    max={max}
+                    color={s.color}
+                    href={s.hrefs[i]}
+                    label={`${bucketLabel(date)} · ${nameOf(s)} ${fmt(s.values[i])}`}
+                    showValue={showValues}
+                  />
+                ))}
+              </div>
+            ),
+          )}
+        </div>
       )}
+      {labels.axes && <TimeAxis keys={data.dates} label={bucketLabel} />}
     </>
   );
 }
@@ -584,6 +713,7 @@ function Matrix({
   labels,
 }: BodyProps & { data: Extract<Data, { type: "matrix" }> }) {
   const name = useSliceName();
+  const fmt = useMeasureFormat(widget.config.measure);
   if (data.rows.length === 0) return <Empty />;
   return (
     <div
@@ -612,7 +742,7 @@ function Matrix({
             }
             title={`${name(row)} × ${name(col)}: ${data.cells[i][j]}`}
           >
-            {labels.values ? data.cells[i][j] : ""}
+            {labels.values ? fmt(data.cells[i][j], false) : ""}
           </span>
         )),
       ])}

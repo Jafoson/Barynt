@@ -28,7 +28,10 @@ export function NumberBody({ widget, data }: BodyProps & { data: Data }) {
           <i style={{ width: `${working}%` }} />
         </div>
         <div className={styles.sub}>
-          {t("progressOf", { done: data.done, total: data.total })}
+          {t("progressOf", {
+            done: num(data.done),
+            total: num(data.total),
+          })}
           <span className={styles.noS}>
             {" · "}
             {t("progressWorking", { count: data.inProgress })}
@@ -55,6 +58,11 @@ export function NumberBody({ widget, data }: BodyProps & { data: Data }) {
         <div className={styles.big}>
           {data.value === null ? "–" : num(data.value)}
           {isDays && data.value !== null && <small>{t("daysUnit")}</small>}
+          {!isDays &&
+            widget.config.measure &&
+            widget.config.measure !== "count" && (
+              <small>{t(`unit_${widget.config.measure}`)}</small>
+            )}
         </div>
         <div className={styles.sub}>
           {delta !== null && delta !== 0 ? (

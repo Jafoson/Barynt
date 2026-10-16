@@ -90,6 +90,7 @@ export const METRIC_MORE_IS_GOOD: Record<KpiMetric, boolean> = {
  *  matrix cell. */
 export const GROUP_FIELDS = [
   "status",
+  "statusCategory",
   "priority",
   "type",
   "assignee",
@@ -138,8 +139,22 @@ export const ISSUE_SORTS = [
 ] as const;
 export type IssueSort = (typeof ISSUE_SORTS)[number];
 
-/** How a distribution draws: a ring with a legend, or bars. */
-export const DISTRIBUTION_CHARTS = ["ring", "bars"] as const;
+/** What a widget adds up (BARY-170): issues, or their story points or
+ *  estimated hours. Custom number fields join here later (BARY-129). */
+export const MEASURES = ["count", "storyPoints", "estimate"] as const;
+export type Measure = (typeof MEASURES)[number];
+
+/** The time axis of a time series: created and closed side by side (the
+ *  classic), or one date alone — created, closed or due. */
+export const TIME_BY = ["createdClosed", "created", "closed", "due"] as const;
+export type TimeBy = (typeof TIME_BY)[number];
+
+/** How a time series draws. */
+export const SERIES_CHARTS = ["bars", "stacked", "line"] as const;
+export type SeriesChart = (typeof SERIES_CHARTS)[number];
+
+/** How a distribution draws: a ring with a legend, bars, or a table. */
+export const DISTRIBUTION_CHARTS = ["ring", "bars", "table"] as const;
 export type DistributionChart = (typeof DISTRIBUTION_CHARTS)[number];
 
 /** The four backgrounds, each in the widget's accent. `fill` only where the
@@ -188,6 +203,12 @@ export interface WidgetConfig {
   /** The matrix's second axis (columns). */
   groupBy2?: GroupField;
   chart?: DistributionChart;
+  /** What is added up — issues by default. */
+  measure?: Measure;
+  /** Time series: which date, and split by what. */
+  timeBy?: TimeBy;
+  splitBy?: GroupField;
+  seriesChart?: SeriesChart;
   /** Only issues that are still open. */
   openOnly?: boolean;
   sort?: IssueSort;
@@ -627,6 +648,10 @@ const configSchema = z
     groupBy: z.enum(GROUP_FIELDS).optional(),
     groupBy2: z.enum(GROUP_FIELDS).optional(),
     chart: z.enum(DISTRIBUTION_CHARTS).optional(),
+    measure: z.enum(MEASURES).optional(),
+    timeBy: z.enum(TIME_BY).optional(),
+    splitBy: z.enum(GROUP_FIELDS).optional(),
+    seriesChart: z.enum(SERIES_CHARTS).optional(),
     openOnly: z.boolean().optional(),
     sort: z.enum(ISSUE_SORTS).optional(),
     labels: labelsSchema.optional(),
