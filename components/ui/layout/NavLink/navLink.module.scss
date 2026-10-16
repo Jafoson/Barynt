@@ -19,7 +19,10 @@
        icon, up to two centered lines. */
     :global([data-nav-pinned]) & {
       white-space: normal;
-      overflow-wrap: anywhere;
+      /* Whole words; a long one is hyphenated rather than cut anywhere
+         ("Dashboar|d"). */
+      overflow-wrap: normal;
+      hyphens: auto;
       text-align: center;
       line-height: 1.2;
       font-size: 0.6875rem;
