@@ -1,7 +1,11 @@
 import "server-only";
 import { getTranslations } from "next-intl/server";
 import { cache } from "react";
-import { EMPTY_FILTER, parseIssueFilter } from "@/features/issues/filter";
+import {
+  EMPTY_FILTER,
+  type IssueFilter,
+  parseIssueFilter,
+} from "@/features/issues/filter";
 import { isGroupKey } from "@/features/issues/group";
 import { isSortKey } from "@/features/issues/sort";
 import { db } from "@/lib/db";
@@ -336,8 +340,13 @@ export interface ViewEntry {
   layout: ViewLayout;
   favorite: boolean;
   pinned: boolean;
+  startView: boolean;
   visibility: ViewVisibility;
   ownerId: string | null;
+  /** May the viewer edit or delete it (`canEditView`). */
+  canEdit: boolean;
+  filter: IssueFilter;
+  updatedAt: Date;
   projectId: string | null;
   projectSlug: string | null;
   projectName: string | null;
@@ -362,7 +371,7 @@ export async function getVisibleViews(
       project: { select: { slug: true, name: true } },
       userStates: {
         where: { userId },
-        select: { favorite: true, pinned: true },
+        select: { favorite: true, pinned: true, startView: true },
       },
     },
     orderBy: ORDER,
@@ -380,7 +389,10 @@ export async function getVisibleViews(
         });
         seen.set(key, facts);
       }
-      return canSeeView(row, await facts) ? row : null;
+      const f = await facts;
+      return canSeeView(row, f)
+        ? { ...row, canEdit: canEditView(row, f) }
+        : null;
     }),
   );
   const entries: ViewEntry[] = visible.flatMap((row) =>
@@ -398,8 +410,12 @@ export async function getVisibleViews(
               : "list",
             favorite: row.userStates[0]?.favorite ?? false,
             pinned: row.userStates[0]?.pinned ?? false,
+            startView: row.userStates[0]?.startView ?? false,
             visibility: row.visibility,
             ownerId: row.ownerId,
+            canEdit: row.canEdit,
+            filter: parseIssueFilter(row.filter) ?? EMPTY_FILTER,
+            updatedAt: row.updatedAt,
             projectId: row.projectId,
             projectSlug: row.project?.slug ?? null,
             projectName: row.project?.name ?? null,

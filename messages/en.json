@@ -835,7 +835,13 @@
     },
     "moreViews": "More",
     "tabTitle": "View",
-    "allViews": "Show all views"
+    "allViews": "Show all views",
+    "open": "Open",
+    "where": "Where does it live?",
+    "whereWorkspace": "Workspace",
+    "whereWorkspaceHint": "Issues from every project",
+    "whereProject": "Project",
+    "whereProjectHint": "One project only"
   },
   "realtime": {
     "staleGlobal": "There are changes.",
@@ -1536,12 +1542,8 @@
   "viewsPage": {
     "subtitle": "Every view you can see. The sidebar holds only the starred and pinned ones.",
     "workspace": "Workspace",
-    "name": "Name",
-    "layout": "Layout",
-    "visibility": "Visible to",
-    "owner": "Created by",
     "you": "You",
-    "visibilitySystem": "Everyone (system)",
+    "visibilitySystem": "Personal",
     "visibilityPrivate": "Only me",
     "showAll": "All",
     "showMine": "Mine",
@@ -1550,6 +1552,14 @@
     "search": "Search views…",
     "emptyTitle": "No views yet",
     "emptyDesc": "Create a view — it remembers filters, grouping and layout.",
-    "noMatchTitle": "No view matches"
+    "noMatchTitle": "No view matches",
+    "noFilter": "No filters",
+    "placeAll": "All places",
+    "sortUpdated": "Last changed",
+    "sortName": "Name",
+    "addIn": "View in {place}",
+    "addInWorkspace": "View in the workspace",
+    "placeEmpty": "No view here yet.",
+    "formerMember": "Former member"
   }
 }

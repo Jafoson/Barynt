@@ -1,33 +1,16 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { useLocale, useTranslations } from "next-intl";
-import {
-  Fragment,
-  useLayoutEffect,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useTranslations } from "next-intl";
+import { Fragment, useLayoutEffect, useRef, useState } from "react";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import { SelectAction } from "@/components/ui/atoms/SelectMenu/atoms/SelectAction";
-import {
-  type ISelectItem,
-  SelectMenu,
-} from "@/components/ui/atoms/SelectMenu/SelectMenu";
-import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
+import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { Tab, Tabs } from "@/components/ui/layout/Tabs/Tabs";
-import {
-  deleteView,
-  duplicateView,
-  setViewUserState,
-} from "@/features/views/actions";
 import { viewIconOf } from "@/features/views/icons";
 import type { ViewLayout, ViewVisibility } from "@/features/views/schema";
-import { viewPath } from "@/features/views/url";
-import { useOpenViewModal } from "@/features/views/useOpenViewModal";
-import { getPathname, useRouter } from "@/i18n/navigation";
-import { useUI } from "@/lib/ui-store";
+import { type MenuView, useViewMenu } from "@/features/views/useViewMenu";
+import { useRouter } from "@/i18n/navigation";
 import styles from "./viewTabs.module.scss";
 
 /** Never fewer view tabs than this, room or not — "More" holds the rest. */
@@ -87,12 +70,12 @@ export function ViewTabs({
   dirty,
 }: ViewTabsProps) {
   const t = useTranslations();
-  const locale = useLocale();
   const router = useRouter();
-  const confirm = useConfirm();
-  const openViewModal = useOpenViewModal();
-  const { toast } = useUI();
-  const [, startTransition] = useTransition();
+  const menu = useViewMenu({
+    workspaceId,
+    canShare: () => canShare,
+    activeId,
+  });
   const [menuFor, setMenuFor] = useState<string | null>(null);
   // The tabs that fit; `null` until measured (and on the server): all.
   const [visibleIds, setVisibleIds] = useState<string[] | null>(null);
@@ -153,160 +136,14 @@ export function ViewTabs({
 
   if (views.length === 0) return null;
 
-  const errorText = (error: string) =>
-    error === "forbidden"
-      ? t("views.errorForbidden")
-      : error === "notFound"
-        ? t("views.errorNotFound")
-        : t("views.errorGeneric");
-
-  const itemsFor = (view: ViewTab): ISelectItem[] => [
-    // The viewer's own switches (V7), each saying what a click does now.
-    {
-      value: "pin",
-      label: view.pinned ? t("views.unpin") : t("views.pin"),
-      icon: (
-        <Icon icon={view.pinned ? "lucide:pin-off" : "lucide:pin"} width={15} />
-      ),
-    },
-    {
-      value: "favorite",
-      label: view.favorite ? t("views.unfavorite") : t("views.favorite"),
-      icon: (
-        <Icon
-          icon={view.favorite ? "lucide:star-off" : "lucide:star"}
-          width={15}
-        />
-      ),
-    },
-    {
-      value: "startView",
-      label: view.startView ? t("views.unsetStartView") : t("views.startView"),
-      icon: <Icon icon="lucide:house" width={15} />,
-    },
-    ...(view.canEdit
-      ? [
-          {
-            value: "edit",
-            label: t("views.edit"),
-            icon: <Icon icon="lucide:pencil" width={15} />,
-          },
-        ]
-      : []),
-    {
-      value: "duplicate",
-      label: t("views.duplicate"),
-      icon: <Icon icon="lucide:copy" width={15} />,
-    },
-    {
-      value: "copyLink",
-      label: t("views.copyLink"),
-      icon: <Icon icon="lucide:link" width={15} />,
-    },
-    ...(view.canEdit
-      ? [
-          {
-            value: "delete",
-            label: t("views.delete"),
-            icon: <Icon icon="lucide:trash-2" width={15} />,
-          },
-        ]
-      : []),
-  ];
-
-  const setState = (
-    view: ViewTab,
-    patch: { pinned?: boolean; favorite?: boolean; startView?: boolean },
-    done: string,
-  ) =>
-    startTransition(async () => {
-      const result = await setViewUserState(view.id, patch);
-      if (!result.ok) return toast(errorText(result.error));
-      toast(done);
-      router.refresh();
-    });
-
-  const run = (view: ViewTab, action: string | number | null) => {
-    if (action === "pin") {
-      setState(
-        view,
-        { pinned: !view.pinned },
-        view.pinned ? t("views.unpinned") : t("views.pinned"),
-      );
-    } else if (action === "favorite") {
-      setState(
-        view,
-        { favorite: !view.favorite },
-        view.favorite ? t("views.unfavorited") : t("views.favorited"),
-      );
-    } else if (action === "startView") {
-      setState(
-        view,
-        { startView: !view.startView },
-        view.startView ? t("views.startViewOff") : t("views.startViewOn"),
-      );
-    } else if (action === "edit") {
-      openViewModal({
-        workspaceId,
-        projectId,
-        projectSlug,
-        canShare,
-        view: {
-          id: view.id,
-          name: view.name,
-          icon: view.icon,
-          color: view.color,
-          visibility: view.visibility,
-          layout: view.layout,
-        },
-      });
-    } else if (action === "duplicate") {
-      startTransition(async () => {
-        const result = await duplicateView(
-          view.id,
-          t("views.copyName", { name: view.name }),
-        );
-        if (!result.ok) return toast(errorText(result.error));
-        toast(t("views.created"));
-        router.push(viewPath(workspaceId, projectSlug, result.data.slug));
-      });
-    } else if (action === "copyLink") {
-      const path = getPathname({ href: view.href, locale });
-      navigator.clipboard
-        .writeText(`${window.location.origin}${path}`)
-        .then(() => toast(t("views.linkCopied")))
-        .catch(() => toast(t("views.errorGeneric")));
-    } else if (action === "delete") {
-      // Ask first, outside the transition: React holds back every update of
-      // a running async transition until it finishes — the confirm dialog
-      // opening is one of them, so asking inside it would wait forever.
-      void (async () => {
-        const ok = await confirm({
-          title: t("views.deleteTitle", { name: view.name }),
-          description:
-            view.visibility === "PRIVATE"
-              ? t("views.deletePrivateBody")
-              : t("views.deleteSharedBody"),
-          confirmLabel: t("views.delete"),
-          cancelLabel: t("actions.cancel"),
-          danger: true,
-        });
-        if (!ok) return;
-        startTransition(async () => {
-          const result = await deleteView(view.id);
-          if (!result.ok) return toast(errorText(result.error));
-          toast(t("views.deleted"));
-          if (view.id === activeId)
-            router.push(
-              projectSlug
-                ? `/${workspaceId}/project/${projectSlug}`
-                : `/${workspaceId}/issues`,
-            );
-          else router.refresh();
-        });
-      })();
-    }
-  };
+  const asMenuView = (view: ViewTab): MenuView => ({
+    ...view,
+    projectId,
+    projectSlug,
+  });
+  const itemsFor = (view: ViewTab) => menu.itemsFor(asMenuView(view));
+  const run = (view: ViewTab, action: string | number | null) =>
+    menu.run(asMenuView(view), action);
 
   const tabOf = (view: ViewTab, measuring = false) => {
     const active = view.id === activeId;
