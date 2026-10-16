@@ -2,7 +2,13 @@
 
 import { Icon } from "@iconify/react";
 import { useLocale, useTranslations } from "next-intl";
-import { useLayoutEffect, useRef, useState, useTransition } from "react";
+import {
+  Fragment,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import {
   type ISelectItem,
@@ -390,7 +396,15 @@ export function ViewTabs({
   return (
     <div className={styles.wrap} ref={wrapRef}>
       <Tabs indicator="top" label={t("views.tabsLabel")} className={styles.row}>
-        {shown.map((view) => tabOf(view))}
+        {shown.map((view, i) => (
+          <Fragment key={view.id}>
+            {/* System views, then the workspace's own (V8). */}
+            {i > 0 && shown[i - 1].system && !view.system && (
+              <span className={styles.groupDivider} />
+            )}
+            {tabOf(view)}
+          </Fragment>
+        ))}
       </Tabs>
       {overflow.length > 0 && (
         <InlinePicker

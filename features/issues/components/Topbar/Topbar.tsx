@@ -170,13 +170,13 @@ async function loadTopbarViews({
     currentUserId(),
   ]);
 
-  // Across projects there are two areas (V8): "My issues" — the system
-  // views, one tab each — and the workspace with everything shared.
-  const personal = !projectId && Boolean(activeView?.systemKey);
-  const t = personal ? await getTranslations() : null;
-  const shown = projectId
-    ? views
-    : views.filter((v) => Boolean(v.systemKey) === personal);
+  // Across projects (V8) the system views come first and say what sets
+  // them apart ("Assigned", "Created by me"); the workspace's own follow.
+  const t = projectId ? null : await getTranslations();
+  const shown = [
+    ...views.filter((v) => v.systemKey),
+    ...views.filter((v) => !v.systemKey),
+  ];
 
   const hrefOf = (v: SavedView) =>
     `${viewPath(workspaceId, projectSlug, v.slug)}?${viewParams(v, lookups).toString()}`;
@@ -209,7 +209,6 @@ async function loadTopbarViews({
     projectId,
     projectSlug,
     canShare,
-    personal,
     tabs,
     active: activeView
       ? {
