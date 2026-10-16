@@ -8,6 +8,9 @@
   --track: color-mix(in srgb, var(--on-surface) 9%, transparent);
   --rule: color-mix(in srgb, var(--on-surface) 7%, transparent);
   --muted: var(--on-surface-variant);
+  /* The trend line — the accent, or ink on a full-color widget where the
+     accent is the background itself. */
+  --spark: var(--accent);
 
   position: relative;
   display: flex;
@@ -40,6 +43,7 @@
   /* Full color: text turns dark, quiet parts become translucent ink. */
   &[data-bg="fill"] {
     --muted: rgb(0 0 0 / 0.62);
+    --spark: rgb(0 0 0 / 0.55);
     --track: rgb(0 0 0 / 0.16);
     --rule: rgb(0 0 0 / 0.12);
 

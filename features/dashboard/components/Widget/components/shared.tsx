@@ -16,7 +16,7 @@ export interface BodyProps {
 /** A small line chart; `null` values are skipped. */
 export function Spark({
   values,
-  color = "var(--accent)",
+  color = "var(--spark)",
   area = false,
 }: {
   values: (number | null)[];
