@@ -1597,3 +1597,27 @@
     font-size: 0.875rem;
   }
 }
+
+/* A narrow about (a large one on a tight grid): the count beside the faces
+   and the tile labels give way first. */
+@container w (max-width: 22rem) {
+  .aboutPeopleText {
+    display: none;
+  }
+
+  .aboutFacts {
+    gap: 0.375rem;
+
+    & > div {
+      padding: 0.5rem;
+    }
+
+    & b {
+      font-size: 1.25rem;
+    }
+  }
+
+  .aboutTitle > b {
+    font-size: 1.25rem;
+  }
+}

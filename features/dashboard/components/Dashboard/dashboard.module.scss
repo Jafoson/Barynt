@@ -74,22 +74,25 @@
   gap: var(--gap);
 }
 
-/* A wide screen (2K and up) gets more columns rather than bigger tiles —
-   the default layout packs into twelve without a gap. */
-@container dash (min-width: 100rem) {
-  .grid {
+/* Columns by the dashboard's own width (not the window — the sidebar
+   counts). The breakpoints keep a column at roughly 9–13rem everywhere, so
+   no widget gets cramped:
+
+     ≥ 120rem (1920px, 2K and up)  12
+     ≥  74rem (Full HD, laptop)     8
+     ≥  54rem (small laptop)        6
+     ≥  37.5rem (tablet)            4
+     below (phone)                  2                                     */
+.grid {
+  @container dash (min-width: 120rem) {
     --cols: 12;
   }
-}
 
-@container dash (max-width: 73.75rem) {
-  .grid {
+  @container dash (max-width: 73.99rem) {
     --cols: 6;
   }
-}
 
-@container dash (max-width: 53.75rem) {
-  .grid {
+  @container dash (max-width: 53.99rem) {
     --cols: 4;
   }
 }
