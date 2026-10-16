@@ -47,6 +47,18 @@
 }
 
 /* Unsaved changes: badge, discard, new view, save — like a changed view. */
+/* "Unsaved" — the same badge as a changed board or list view
+   (`ViewSaveBar`). */
+.unsaved {
+  padding: 0.125rem 0.5625rem;
+  border-radius: var(--radius-pill);
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .saveBar {
   display: inline-flex;
   align-items: center;

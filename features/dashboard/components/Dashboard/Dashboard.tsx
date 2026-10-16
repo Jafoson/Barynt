@@ -229,11 +229,7 @@ export function Dashboard({
   // `dashboard.manage` as the default for everyone.
   const editActions = (
     <span className={styles.saveBar}>
-      {dirty && (
-        <Badge size="sm" mono={false}>
-          {t("unsaved")}
-        </Badge>
-      )}
+      {dirty && <span className={styles.unsaved}>{t("unsaved")}</span>}
       <Button variant="ghost" size="sm" onClick={discard} disabled={pending}>
         {t("cancel")}
       </Button>
