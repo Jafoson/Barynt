@@ -1010,9 +1010,10 @@ const aboutFor = cache(
         },
       });
       if (!project) return null;
-      const open = await db.issue.count({
-        where: { projectId, status: notClosed },
-      });
+      const [open, teams] = await Promise.all([
+        db.issue.count({ where: { projectId, status: notClosed } }),
+        db.teamProject.count({ where: { projectId } }),
+      ]);
       return {
         kind: "project",
         name: project.name,
@@ -1027,6 +1028,7 @@ const aboutFor = cache(
         memberCount: project.members.length,
         open,
         projects: null,
+        teams,
         links: [],
         editHref: (await placeOf(workspaceId, projectId)).project.has(
           "project.update",
@@ -1062,9 +1064,12 @@ const aboutFor = cache(
       visibleProjectIds(workspaceId),
     ]);
     if (!workspace) return null;
-    const open = await db.issue.count({
-      where: { projectId: { in: [...visible] }, status: notClosed },
-    });
+    const [open, teams] = await Promise.all([
+      db.issue.count({
+        where: { projectId: { in: [...visible] }, status: notClosed },
+      }),
+      db.team.count({ where: { workspaceId } }),
+    ]);
     return {
       kind: "workspace",
       name: workspace.name,
@@ -1079,6 +1084,7 @@ const aboutFor = cache(
       memberCount: workspace.members.length,
       open,
       projects: visible.size,
+      teams,
       links: workspace.links,
       editHref: (await placeOf(workspaceId, null)).workspace.has(
         "workspace.update",

@@ -87,6 +87,8 @@ export interface AboutData {
   open: number;
   /** Projects in the workspace; `null` for a project. */
   projects: number | null;
+  /** Teams working on it. */
+  teams: number;
   links: { id: string; label: string; url: string }[];
   /** Settings — only for who may change name and description. */
   editHref: string | null;

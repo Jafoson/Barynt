@@ -328,7 +328,7 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   about: {
     type: "about",
     icon: "lucide:info",
-    sizes: ["M", "L", "T"],
+    sizes: ["M", "L", "XL"],
     size: "L",
     accent: "green",
     issues: false,

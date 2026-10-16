@@ -135,9 +135,50 @@ function About({ data }: { data: Extract<Data, { type: "about" }> }) {
   const format = useFormatter();
   const about = data.about;
   if (!about) return null;
+
+  const since = t("since", {
+    date: format.dateTime(new Date(about.createdAt), {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    }),
+  });
+  const facts: {
+    key: "members" | "openIssues" | "teams" | "projects";
+    value: number;
+    icon: string;
+  }[] = [
+    { key: "members", value: about.memberCount, icon: "lucide:users" },
+    { key: "openIssues", value: about.open, icon: "lucide:circle-dot" },
+    about.projects === null
+      ? { key: "teams", value: about.teams, icon: "lucide:users-round" }
+      : { key: "projects", value: about.projects, icon: "lucide:folders" },
+  ];
+  const shown = about.members.slice(0, 6);
+  const rest = about.memberCount - shown.length;
+
   return (
-    <div className={styles.about}>
-      <div className={styles.aboutHead}>
+    <div className={styles.aboutBox}>
+      {/* Who: avatar, name, what it is. */}
+      <div className={styles.aboutHero}>
+        <Avatar
+          avatar={{
+            name: about.name,
+            color: about.color,
+            ...(about.avatarUrl ? { image: about.avatarUrl } : {}),
+          }}
+          size={44}
+          shape="square"
+        />
+        <div className={styles.aboutTitle}>
+          <b>{about.name}</b>
+          <span>
+            {about.prefix && (
+              <span className={styles.prefix}>{about.prefix}</span>
+            )}
+            {since}
+          </span>
+        </div>
         {about.editHref && (
           <Link
             href={about.editHref}
@@ -148,60 +189,53 @@ function About({ data }: { data: Extract<Data, { type: "about" }> }) {
             <Icon icon="lucide:pencil" width={14} />
           </Link>
         )}
-        <Avatar
-          avatar={{
-            name: about.name,
-            color: about.color,
-            ...(about.avatarUrl ? { image: about.avatarUrl } : {}),
-          }}
-          size={40}
-          shape="square"
-        />
-        <div>
-          <b>{about.name}</b>
-          <small>
-            {about.prefix ? `${about.prefix} · ` : ""}
-            {t("since", {
-              date: format.dateTime(new Date(about.createdAt), {
-                month: "long",
-                year: "numeric",
-                timeZone: "UTC",
-              }),
-            })}
-          </small>
-        </div>
       </div>
-      <p className={`${styles.desc} ${styles.noShort}`}>
-        {about.desc.trim() || t("noDesc")}
-      </p>
-      <div className={`${styles.facts} ${styles.noShort}`}>
-        <div>
-          <small>{t("members")}</small>
-          <b>{about.memberCount}</b>
-        </div>
-        <div>
-          <small>{t("openIssues")}</small>
-          <b>{about.open}</b>
-        </div>
-        <div>
-          <small>{about.projects === null ? t("prefix") : t("projects")}</small>
-          <b>{about.projects ?? about.prefix}</b>
-        </div>
+
+      {/* What it's for — or, for whoever may edit, the way to say so. */}
+      <div className={styles.aboutText}>
+        {about.desc.trim() ? (
+          <p className={styles.aboutDesc}>{about.desc}</p>
+        ) : about.editHref ? (
+          <Link href={about.editHref} className={styles.aboutAdd}>
+            <Icon icon="lucide:plus" width={13} />
+            {t("addDesc")}
+          </Link>
+        ) : (
+          <p className={styles.aboutDesc} data-empty>
+            {t("noDesc")}
+          </p>
+        )}
+        {about.links.length > 0 && (
+          <div className={styles.aboutLinks}>
+            {about.links.map((link) => (
+              <a key={link.id} href={link.url} target="_blank" rel="noreferrer">
+                <Icon icon="lucide:external-link" width={11} />
+                {link.label}
+              </a>
+            ))}
+          </div>
+        )}
       </div>
-      {about.links.length > 0 && (
-        <div className={`${styles.links} ${styles.onlyTall}`}>
-          {about.links.map((link) => (
-            <a key={link.id} href={link.url} target="_blank" rel="noreferrer">
-              <Icon icon="lucide:external-link" width={11} />
-              {link.label}
-            </a>
-          ))}
-        </div>
-      )}
-      <div className={styles.stack}>
-        {about.members.map((user) => (
-          <Avatar key={user.id} avatar={user} size={26} />
+
+      {/* How big: three numbers. */}
+      <div className={styles.aboutFacts}>
+        {facts.map((fact) => (
+          <div key={fact.key}>
+            <Icon icon={fact.icon} width={14} />
+            <b>{fact.value}</b>
+            <small>{t(fact.key)}</small>
+          </div>
         ))}
+      </div>
+
+      {/* Who's in. */}
+      <div className={styles.aboutPeople}>
+        <span className={styles.aboutStack}>
+          {shown.map((user) => (
+            <Avatar key={user.id} avatar={user} size={26} />
+          ))}
+          {rest > 0 && <span className={styles.more2}>+{rest}</span>}
+        </span>
       </div>
     </div>
   );

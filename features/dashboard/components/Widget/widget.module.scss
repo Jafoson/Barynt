@@ -579,71 +579,6 @@
   }
 }
 
-/* About. */
-.about {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
-  font-size: 0.78125rem;
-  line-height: 1.5;
-  color: var(--muted);
-  overflow: hidden;
-}
-
-.aboutHead {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  min-width: 0;
-  color: var(--on-surface);
-
-  & b {
-    display: block;
-    font-size: 0.9375rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  & small {
-    color: var(--muted);
-    font-size: 0.71875rem;
-  }
-}
-
-.desc {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-  overflow: hidden;
-  margin: 0;
-}
-
-.facts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.375rem;
-
-  & > div {
-    padding: 0.375rem 0.5rem;
-    border-radius: 0.625rem;
-    background: var(--track);
-  }
-
-  & small {
-    display: block;
-    font-size: 0.65625rem;
-  }
-
-  & b {
-    color: var(--on-surface);
-    font-size: 0.8125rem;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
 .stack {
   display: flex;
   margin-top: auto;
@@ -652,28 +587,6 @@
     margin-right: -0.4375rem;
     box-shadow: 0 0 0 2px var(--surface-container-low);
     border-radius: 50%;
-  }
-}
-
-.links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
-
-  & > a {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.125rem 0.5rem;
-    border-radius: var(--radius-pill);
-    background: var(--track);
-    color: var(--on-surface);
-    font-size: 0.71875rem;
-    text-decoration: none;
-
-    &:hover {
-      background: color-mix(in srgb, var(--accent) 20%, transparent);
-    }
   }
 }
 
@@ -1150,26 +1063,6 @@
   }
 }
 
-.aboutEdit {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  display: grid;
-  place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 50%;
-  background: var(--track);
-  color: var(--on-surface);
-
-  &:hover {
-    background: color-mix(in srgb, var(--accent) 25%, transparent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--tertiary);
-  }
-}
 
 /* A short (medium) widget: no "all …" link, only rows that fit whole. */
 @container w (max-height: 13.75rem) {
@@ -1349,5 +1242,268 @@
 @container w (max-width: 20rem) {
   .rowFaces {
     display: none;
+  }
+}
+
+/* ── About ────────────────────────────────────────────────────────────────
+   Large: name, description, three numbers, faces — stacked. Medium: one
+   row, name and numbers. Extra large: description left, numbers and faces
+   right. */
+.aboutBox {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "hero" "text" "facts" "people";
+  gap: 0.75rem;
+}
+
+.aboutHero {
+  grid-area: hero;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.aboutTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  flex: 1;
+  min-width: 0;
+
+  & > b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1.125rem;
+    font-weight: 750;
+    letter-spacing: -0.01em;
+  }
+
+  & > span {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+}
+
+.prefix {
+  padding: 0 0.375rem;
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.65625rem;
+  font-weight: 700;
+}
+
+.aboutEdit {
+  display: grid;
+  place-items: center;
+  flex: none;
+  align-self: flex-start;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--track);
+  color: var(--on-surface);
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+  }
+}
+
+.aboutText {
+  grid-area: text;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.aboutDesc {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+
+  &[data-empty] {
+    color: var(--muted);
+    font-style: italic;
+  }
+}
+
+.aboutAdd {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  align-self: flex-start;
+  padding: 0.375rem 0.75rem;
+  border: 1px dashed color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: var(--radius-pill);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+}
+
+.aboutLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+
+  & > a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.1875rem 0.5625rem;
+    border-radius: var(--radius-pill);
+    background: var(--track);
+    color: var(--on-surface);
+    font-size: 0.71875rem;
+    text-decoration: none;
+
+    &:hover {
+      background: color-mix(in srgb, var(--accent) 22%, transparent);
+    }
+  }
+}
+
+.aboutFacts {
+  grid-area: facts;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+
+  & > div {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "icon value" "label label";
+    align-items: center;
+    column-gap: 0.375rem;
+    padding: 0.5rem 0.625rem;
+    border-radius: 0.875rem;
+    background: var(--track);
+  }
+
+  & svg {
+    grid-area: icon;
+    color: var(--accent);
+  }
+
+  & b {
+    grid-area: value;
+    font-size: 1.125rem;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+  }
+
+  & small {
+    grid-area: label;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.6875rem;
+    color: var(--muted);
+  }
+}
+
+.aboutPeople {
+  grid-area: people;
+  display: flex;
+  align-items: center;
+}
+
+/* Faces overlap a little, each ringed in the widget's own background. */
+.aboutStack {
+  display: flex;
+  align-items: center;
+
+  & > * {
+    margin-right: -0.375rem;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--surface-container-low);
+  }
+}
+
+.more2 {
+  display: grid;
+  place-items: center;
+  height: 1.625rem;
+  min-width: 1.625rem;
+  padding: 0 0.375rem;
+  border-radius: var(--radius-pill) !important;
+  background: var(--surface-container-highest);
+  color: var(--on-surface);
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+/* Medium: one row — who on the left, the numbers on the right. */
+@container w (max-height: 13.75rem) {
+  .aboutBox {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: 1fr;
+    grid-template-areas: "hero facts";
+    align-items: center;
+  }
+
+  .aboutText,
+  .aboutPeople {
+    display: none;
+  }
+
+  .aboutFacts {
+    grid-template-columns: repeat(3, auto);
+
+    & > div {
+      padding: 0.375rem 0.5rem;
+    }
+  }
+}
+
+@container w (max-height: 13.75rem) and (max-width: 26rem) {
+  .aboutFacts > div:nth-child(n + 2) {
+    display: none;
+  }
+}
+
+/* Extra large: two columns. */
+@container w (min-width: 30rem) and (min-height: 13.75rem) {
+  .aboutBox {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "hero hero"
+      "text facts"
+      "text people";
+    column-gap: 1.25rem;
+  }
+
+  .aboutFacts {
+    align-self: start;
+  }
+
+  .aboutPeople {
+    justify-content: flex-end;
   }
 }

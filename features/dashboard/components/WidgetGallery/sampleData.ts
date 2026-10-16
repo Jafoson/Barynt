@@ -212,7 +212,11 @@ export function sampleData(widget: Widget, words: SampleWords): WidgetData {
           memberCount: 6,
           open: 20,
           projects: null,
-          links: [],
+          teams: 2,
+          links: [
+            { id: "s-k1", label: "Docs", url: "#" },
+            { id: "s-k2", label: "GitHub", url: "#" },
+          ],
           editHref: null,
         },
       };

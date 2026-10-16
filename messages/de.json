@@ -1789,6 +1789,8 @@
     "openIssuesOf": "Offene Aufgaben: {name}",
     "teamSub": "{count, plural, one {# Mitglied} other {# Mitglieder}} · Lead {lead}",
     "medianShort": "Median",
-    "cycleSub": "Ø von {count, plural, one {# geschlossenen Aufgabe} other {# geschlossenen Aufgaben}}"
+    "cycleSub": "Ø von {count, plural, one {# geschlossenen Aufgabe} other {# geschlossenen Aufgaben}}",
+    "teams": "Teams",
+    "addDesc": "Beschreibung hinzufügen"
   }
 }

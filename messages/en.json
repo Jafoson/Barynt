@@ -1789,6 +1789,8 @@
     "openIssuesOf": "Open issues: {name}",
     "teamSub": "{count, plural, one {# member} other {# members}} · lead {lead}",
     "medianShort": "Median",
-    "cycleSub": "avg. of {count, plural, one {# closed issue} other {# closed issues}}"
+    "cycleSub": "avg. of {count, plural, one {# closed issue} other {# closed issues}}",
+    "teams": "Teams",
+    "addDesc": "Add a description"
   }
 }
