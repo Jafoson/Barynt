@@ -234,7 +234,9 @@ export function TopbarClient({
           )}
           {/* With "New view" — both not on a tablet or phone, where the
               floating plus offers it (CSS). */}
-          <span className={`${styles.divider} ${styles.desktopOnly}`} />
+          <span
+            className={`${styles.divider} ${styles.beforeIcon} ${styles.desktopOnly}`}
+          />
           <NewViewButton
             workspaceId={workspaceId}
             projectId={views.projectId}

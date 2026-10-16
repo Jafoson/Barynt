@@ -33,6 +33,12 @@
   background: var(--outline-variant);
 }
 
+/* Before the "New view" plus: an icon button carries its own inset, so the
+   divider's right margin would leave a gap. */
+.beforeIcon {
+  margin-right: 0;
+}
+
 /* Goes together with "New view", which a tablet or phone offers in the
    floating plus instead. */
 .desktopOnly {
