@@ -167,11 +167,16 @@
   }
 }
 
-/* A group in that row: its parts, its own × at the end. */
-.activeGroup {
-  display: inline-flex;
-  align-items: center;
+/* A group in that row: framed (`.groupBox`), its own × inside at the end.
+   Doubled class: `.groupBox` comes later in this file. */
+.activeGroup.activeGroup {
   gap: 0.375rem;
+  padding-right: 0.125rem;
+
+  .groupRemove {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
 }
 
 /* One condition of a group, outlined in its field's color (`--filter-accent`

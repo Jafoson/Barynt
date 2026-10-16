@@ -166,9 +166,12 @@ export function ActiveFilters({
     <div className={styles.activeRow}>
       {nodes.map(({ node, index }) =>
         isGroup(node) ? (
+          // The whole group in one frame of its kind's color — ODER amber —
+          // so what belongs together reads as one.
           <span
             key={`${index}:${labelsOf.node(node)}`}
-            className={styles.activeGroup}
+            className={`${styles.groupBox} ${styles.activeGroup}`}
+            data-op={node.op}
           >
             <GroupParts
               node={node}
