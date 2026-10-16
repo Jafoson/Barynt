@@ -733,7 +733,8 @@
     "boxAll": "AND",
     "boxAny": "OR",
     "removeBox": "Remove box",
-    "addBox": "Box"
+    "addBox": "Box",
+    "fold": "Collapse"
   },
   "toast": {
     "issueCreated": "Issue created",

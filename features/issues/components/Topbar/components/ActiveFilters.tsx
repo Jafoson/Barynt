@@ -2,12 +2,13 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
-import { Fragment } from "react";
+import { createContext, Fragment, useContext, useState } from "react";
 import {
   type FilterNode,
   type FilterRule,
   type IssueFilter,
   isGroup,
+  rulesIn,
 } from "@/features/issues/filter";
 import { FILTER_ACCENT } from "../filterAccent";
 import { type FilterLabelLookups, useFilterLabels } from "../filterLabels";
@@ -54,6 +55,16 @@ function RuleText({
   return <span>{labelsOf.rule(rule)}</span>;
 }
 
+/** From this depth on (the row's own items being 1), a group shows folded
+ *  as "⋯ n ▸" until opened. */
+const FOLD_FROM = 3;
+
+/** Which folded groups are open, by top-level index and path. */
+const FoldContext = createContext<{
+  isOpen: (key: string) => boolean;
+  toggle: (key: string) => void;
+}>({ isOpen: () => false, toggle: () => {} });
+
 /** A group's parts in the group row: conditions as chips (a × on hover
  *  takes one out), a nested group in a frame of its kind's color, UND/ODER
  *  plaques between. */
@@ -63,6 +74,7 @@ function GroupParts({
   onOpen,
   onRemove,
   path = [],
+  scope = "",
 }: {
   node: FilterNode;
   labelsOf: ReturnType<typeof useFilterLabels>;
@@ -70,8 +82,11 @@ function GroupParts({
   onOpen?: () => void;
   onRemove: (path: number[]) => void;
   path?: number[];
+  /** The top-level node's index — names this group's folds. */
+  scope?: string;
 }) {
   const t = useTranslations();
+  const fold = useContext(FoldContext);
   if (!isGroup(node))
     return (
       <span
@@ -114,7 +129,23 @@ function GroupParts({
               {node.op === "or" ? t("filters.or") : t("filters.and")}
             </span>
           )}
-          {isGroup(child) ? (
+          {isGroup(child) &&
+          // The top-level group is depth 1, its boxes 2, theirs 3, …
+          path.length + 2 >= FOLD_FROM &&
+          !fold.isOpen(`${scope}:${[...path, i].join(".")}`) ? (
+            <button
+              type="button"
+              className={styles.foldChip}
+              data-op={child.op}
+              title={labelsOf.node(child)}
+              aria-expanded={false}
+              onClick={() => fold.toggle(`${scope}:${[...path, i].join(".")}`)}
+            >
+              <Icon icon="lucide:ellipsis" width={14} aria-hidden="true" />
+              {rulesIn(child).length}
+              <Icon icon="lucide:chevron-right" width={13} aria-hidden="true" />
+            </button>
+          ) : isGroup(child) ? (
             <span className={styles.groupBox} data-op={child.op}>
               <GroupParts
                 node={child}
@@ -122,7 +153,26 @@ function GroupParts({
                 onOpen={onOpen}
                 onRemove={onRemove}
                 path={[...path, i]}
+                scope={scope}
               />
+              {path.length + 2 >= FOLD_FROM && (
+                <button
+                  type="button"
+                  className={styles.foldChip}
+                  aria-expanded
+                  aria-label={t("filters.fold")}
+                  title={t("filters.fold")}
+                  onClick={() =>
+                    fold.toggle(`${scope}:${[...path, i].join(".")}`)
+                  }
+                >
+                  <Icon
+                    icon="lucide:chevron-left"
+                    width={13}
+                    aria-hidden="true"
+                  />
+                </button>
+              )}
               <button
                 type="button"
                 className={styles.groupRemove}
@@ -142,6 +192,7 @@ function GroupParts({
               onOpen={onOpen}
               onRemove={onRemove}
               path={[...path, i]}
+              scope={scope}
             />
           )}
         </Fragment>
@@ -168,47 +219,62 @@ export function ActiveFilters({
 }) {
   const t = useTranslations();
   const labelsOf = useFilterLabels(lookups);
+  // Folds opened in this row; a changed filter may shift the paths, so a
+  // fold can fall shut again — harmless.
+  const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
+  const fold = {
+    isOpen: (key: string) => open.has(key),
+    toggle: (key: string) =>
+      setOpen((cur) => {
+        const next = new Set(cur);
+        if (!next.delete(key)) next.add(key);
+        return next;
+      }),
+  };
   const nodes = tree.rules
     .map((node, index) => ({ node, index }))
     .filter(({ node }) => isGroup(node) || node.field !== "text");
   if (!nodes.length) return null;
 
   return (
-    <div className={styles.activeRow}>
-      {nodes.map(({ node, index }) =>
-        isGroup(node) ? (
-          // The whole group in one frame of its kind's color — ODER amber —
-          // so what belongs together reads as one.
-          <span
-            key={`${index}:${labelsOf.node(node)}`}
-            className={`${styles.groupBox} ${styles.activeGroup}`}
-            data-op={node.op}
-          >
+    <FoldContext.Provider value={fold}>
+      <div className={styles.activeRow}>
+        {nodes.map(({ node, index }) =>
+          isGroup(node) ? (
+            // The whole group in one frame of its kind's color — ODER amber —
+            // so what belongs together reads as one.
+            <span
+              key={`${index}:${labelsOf.node(node)}`}
+              className={`${styles.groupBox} ${styles.activeGroup}`}
+              data-op={node.op}
+            >
+              <GroupParts
+                node={node}
+                labelsOf={labelsOf}
+                onRemove={(path) => onRemove(index, path)}
+                scope={String(index)}
+              />
+              <button
+                type="button"
+                className={styles.groupRemove}
+                aria-label={t("filters.removeRule", {
+                  rule: labelsOf.node(node),
+                })}
+                onClick={() => onRemove(index)}
+              >
+                <Icon icon="lucide:x" width={13} />
+              </button>
+            </span>
+          ) : (
             <GroupParts
+              key={`${index}:${labelsOf.node(node)}`}
               node={node}
               labelsOf={labelsOf}
-              onRemove={(path) => onRemove(index, path)}
+              onRemove={() => onRemove(index)}
             />
-            <button
-              type="button"
-              className={styles.groupRemove}
-              aria-label={t("filters.removeRule", {
-                rule: labelsOf.node(node),
-              })}
-              onClick={() => onRemove(index)}
-            >
-              <Icon icon="lucide:x" width={13} />
-            </button>
-          </span>
-        ) : (
-          <GroupParts
-            key={`${index}:${labelsOf.node(node)}`}
-            node={node}
-            labelsOf={labelsOf}
-            onRemove={() => onRemove(index)}
-          />
-        ),
-      )}
-    </div>
+          ),
+        )}
+      </div>
+    </FoldContext.Provider>
   );
 }

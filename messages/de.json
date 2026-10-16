@@ -733,7 +733,8 @@
     "boxAll": "UND",
     "boxAny": "ODER",
     "removeBox": "Box entfernen",
-    "addBox": "Box"
+    "addBox": "Box",
+    "fold": "Einklappen"
   },
   "toast": {
     "issueCreated": "Aufgabe erstellt",

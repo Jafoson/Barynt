@@ -287,6 +287,46 @@
   }
 }
 
+/* A group folded from depth 3 on — "⋯ 3 ▸" in its kind's color, dashed;
+   open, the same button with "◂" closes it again. */
+.foldChip {
+  --fold: var(--primary);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: none;
+  height: 1.75rem;
+  padding: 0 0.4375rem;
+  border: 1px dashed color-mix(in srgb, var(--fold) 70%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--fold) 10%, transparent);
+  color: var(--on-surface);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+
+  &[data-op="or"] {
+    --fold: var(--amber);
+  }
+
+  /* Inside an open box: just the "◂", in the box's color. */
+  &[aria-expanded="true"] {
+    --fold: var(--box-accent);
+
+    padding: 0 0.25rem;
+  }
+
+  &:hover {
+    background: color-mix(in srgb, var(--fold) 20%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 1px;
+  }
+}
+
 .groupRemove {
   display: grid;
   place-items: center;
