@@ -286,7 +286,7 @@
   align-items: flex-end;
   gap: clamp(0px, 8%, 2px);
 
-  & > i {
+  & > :is(i, a) {
     position: relative;
     flex: 1;
     min-width: 1px;
@@ -1644,5 +1644,20 @@
   &:focus-visible {
     outline: 2px solid var(--tertiary);
     outline-offset: -2px;
+  }
+}
+
+/* A bar that opens its issues. */
+.barLink {
+  display: block;
+  transition: filter 0.12s;
+
+  &:hover {
+    filter: brightness(1.2);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 1px;
   }
 }

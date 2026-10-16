@@ -184,30 +184,22 @@ function Flow({
             className={styles.col}
             title={`${bucketLabel(p.date)} · ${t("created")} ${p.created} · ${t("closed")} ${p.closed}`}
           >
-            <i
-              style={{
-                height: `${(p.created / max) * 100}%`,
-                background: "var(--chart-1)",
-              }}
-            >
-              {showValues && p.created > 0 && (
-                <em className={`${styles.value} ${styles.noShort}`}>
-                  {p.created}
-                </em>
-              )}
-            </i>
-            <i
-              style={{
-                height: `${(p.closed / max) * 100}%`,
-                background: "var(--chart-3)",
-              }}
-            >
-              {showValues && p.closed > 0 && (
-                <em className={`${styles.value} ${styles.noShort}`}>
-                  {p.closed}
-                </em>
-              )}
-            </i>
+            <Bar
+              value={p.created}
+              max={max}
+              color="var(--chart-1)"
+              href={p.createdHref}
+              label={`${bucketLabel(p.date)} · ${t("created")} ${p.created}`}
+              showValue={showValues}
+            />
+            <Bar
+              value={p.closed}
+              max={max}
+              color="var(--chart-3)"
+              href={p.closedHref}
+              label={`${bucketLabel(p.date)} · ${t("closed")} ${p.closed}`}
+              showValue={showValues}
+            />
           </div>
         ))}
       </div>
@@ -215,6 +207,41 @@ function Flow({
         <TimeAxis keys={data.points.map((p) => p.date)} label={bucketLabel} />
       )}
     </>
+  );
+}
+
+/** One column of a bar pair — a link to its issues when it has any. */
+function Bar({
+  value,
+  max,
+  color,
+  href,
+  label,
+  showValue,
+}: {
+  value: number;
+  max: number;
+  color: string;
+  href: string | null | undefined;
+  label: string;
+  showValue: boolean;
+}) {
+  const style = { height: `${(value / max) * 100}%`, background: color };
+  const number = showValue && value > 0 && (
+    <em className={`${styles.value} ${styles.noShort}`}>{value}</em>
+  );
+  return href ? (
+    <Link
+      href={href}
+      className={styles.barLink}
+      style={style}
+      title={label}
+      aria-label={label}
+    >
+      {number}
+    </Link>
+  ) : (
+    <i style={style}>{number}</i>
   );
 }
 

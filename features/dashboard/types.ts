@@ -47,6 +47,9 @@ export interface FlowPoint {
   date: string;
   created: number;
   closed: number;
+  /** The board filtered to each bar; `null` for an empty one. */
+  createdHref?: string | null;
+  closedHref?: string | null;
 }
 
 export interface BurnupPoint {

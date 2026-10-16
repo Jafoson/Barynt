@@ -459,8 +459,23 @@ const OPEN_PARAM: [string, string] = [
 ];
 
 /** What a number counts, as board filter parameters. */
+/** Board params for a date column within `[from, to)`. The board's
+ *  "after" starts the day after, its "before" ends the day before — so
+ *  the day before `from`, and `to` itself. */
+function between(
+  field: "created" | "updated",
+  from: Date,
+  to?: Date,
+): [string, string][] {
+  const before = new Date(from);
+  before.setDate(before.getDate() - 1);
+  return [
+    [`${field}.after`, bucketKey(before)],
+    ...(to ? ([[`${field}.before`, bucketKey(to)]] as [string, string][]) : []),
+  ];
+}
+
 function metricParams(ctx: Ctx, metric: KpiMetric): [string, string][] {
-  const day = (date: Date) => bucketKey(date);
   switch (metric) {
     case "open":
       return [OPEN_PARAM];
@@ -469,12 +484,12 @@ function metricParams(ctx: Ctx, metric: KpiMetric): [string, string][] {
     case "inReview":
       return [["status", "in_review"]];
     case "created":
-      return [["created.after", day(ctx.window.from)]];
+      return between("created", ctx.window.from);
     case "closed":
     case "cycleTime":
       return [
         ["statusCategory", "completed"],
-        ["updated.after", day(ctx.window.from)],
+        ...between("updated", ctx.window.from),
       ];
     case "overdue":
       return [OPEN_PARAM, ["dueDate.within", "overdue"]];
@@ -933,7 +948,11 @@ async function issues(
   };
 }
 
-async function flow(ctx: Ctx, where: Where): Promise<WidgetData> {
+async function flow(
+  ctx: Ctx,
+  where: Where,
+  own: IssueFilter | undefined,
+): Promise<WidgetData> {
   const { window } = ctx;
   const [created, closed] = await Promise.all([
     datesIn(where, "created", window.from, window.to),
@@ -941,13 +960,32 @@ async function flow(ctx: Ctx, where: Where): Promise<WidgetData> {
   ]);
   const c = bucketCounts(created, window);
   const d = bucketCounts(closed, window);
-  return {
-    type: "flow",
-    points: window.keys.map((date, i) => ({
+  // Each bar opens the board with what it counts: created in its bucket,
+  // or done and last changed in it (the board has no "closed on").
+  const starts = window.keys.map((key) => {
+    const [y, m, dd] = key.split("-").map(Number);
+    return new Date(y, m - 1, dd);
+  });
+  const end = (i: number) => starts[i + 1] ?? window.to;
+  const points = await Promise.all(
+    window.keys.map(async (date, i) => ({
       date,
       created: c[i],
       closed: d[i],
+      createdHref: c[i]
+        ? await boardHref(ctx, own, between("created", starts[i], end(i)))
+        : null,
+      closedHref: d[i]
+        ? await boardHref(ctx, own, [
+            ["statusCategory", "completed"],
+            ...between("updated", starts[i], end(i)),
+          ])
+        : null,
     })),
+  );
+  return {
+    type: "flow",
+    points,
     created: created.length,
     closed: closed.length,
   };
@@ -1707,7 +1745,7 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
     case "issues":
       return issues(ctx, where, config.sort, config.openOnly ?? true);
     case "flow":
-      return flow(ctx, where);
+      return flow(ctx, where, config.filter);
     case "burnup":
       return burnup(ctx, where);
     case "cycle":
