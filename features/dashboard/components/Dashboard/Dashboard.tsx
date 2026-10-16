@@ -3,7 +3,6 @@
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { useRef, useState, useTransition } from "react";
-import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { RangePicker } from "@/components/ui/charts/RangePicker/RangePicker";
