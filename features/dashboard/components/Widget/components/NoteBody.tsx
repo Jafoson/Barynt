@@ -4,7 +4,6 @@ import { Icon } from "@iconify/react";
 import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { Button } from "@/components/ui/atoms/Button/Button";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import type { NotePage, Widget } from "@/features/dashboard/widgets";
 import { fromMarkdown, isEmptyDoc, toDoc, toPlainText } from "@/lib/richtext";
@@ -166,15 +165,15 @@ export function NoteBody({
       />
       {canWrite && dirty && (
         <div className={styles.noteSave}>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={<Icon icon="lucide:check" width={14} />}
+          <button
+            type="button"
+            className={styles.noteSaveButton}
             onClick={save}
             disabled={saving}
           >
+            <Icon icon="lucide:check" width={14} />
             {t("save")}
-          </Button>
+          </button>
         </div>
       )}
     </div>
