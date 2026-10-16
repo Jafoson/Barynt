@@ -104,6 +104,10 @@ export function Dashboard({
   const [draft, setDraft] = useState<WidgetModel[]>(layout.widgets);
   const [data, setData] = useState<WidgetDataMap>(view.data);
   const [pending, startTransition] = useTransition();
+  /** A widget just added: scrolled to and focused once it's on screen. */
+  const [focusId, setFocusId] = useState<string | null>(null);
+  /** Marks the new widget for a short highlight. */
+  const [justAdded, setJustAdded] = useState<string | null>(null);
   const dragId = useRef<string | null>(null);
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
@@ -217,6 +221,8 @@ export function Dashboard({
             setDraft((list) => [...list, widget]);
             fetchData([widget]);
             close();
+            setFocusId(widget.id);
+            setJustAdded(widget.id);
           }}
           close={close}
         />
@@ -238,6 +244,33 @@ export function Dashboard({
     });
     return () => setFabAction(null);
   }, [editing, t]);
+
+  // After the gallery closes (and hands focus back to its trigger), move
+  // focus to the new widget and bring it into view. A frame later, so the
+  // dialog's own focus restore has run first.
+  useEffect(() => {
+    if (!focusId) return;
+    const frame = requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const cell = document.querySelector<HTMLElement>(
+          `[data-widget-id="${focusId}"]`,
+        );
+        cell?.scrollIntoView({ block: "center", behavior: "smooth" });
+        cell
+          ?.querySelector<HTMLElement>("button")
+          ?.focus({ preventScroll: true });
+        setFocusId(null);
+      }),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [focusId]);
+
+  // The highlight ends; the widget wiggles along with the rest again.
+  useEffect(() => {
+    if (!justAdded) return;
+    const timer = setTimeout(() => setJustAdded(null), 1500);
+    return () => clearTimeout(timer);
+  }, [justAdded]);
 
   const navigate = (patch: { range?: RangeKey; scope?: DashboardScope }) => {
     const params = new URLSearchParams(window.location.search);
@@ -466,6 +499,8 @@ export function Dashboard({
               key={widget.id}
               className={styles.cell}
               data-size={widget.size}
+              data-widget-id={widget.id}
+              data-new={widget.id === justAdded || undefined}
               draggable={editing}
               onDragStart={(event) => {
                 dragId.current = widget.id;

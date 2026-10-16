@@ -469,3 +469,32 @@
     padding-top: 2.75rem;
   }
 }
+
+/* A widget just added: a brief ring so the eye finds it. */
+.cell[data-new] > article {
+  animation: arrive 1.4s ease-out both;
+}
+
+@keyframes arrive {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 70%, transparent);
+    scale: 0.94;
+  }
+
+  25% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 70%, transparent);
+    scale: 1;
+  }
+
+  100% {
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell[data-new] > article {
+    animation: none;
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}

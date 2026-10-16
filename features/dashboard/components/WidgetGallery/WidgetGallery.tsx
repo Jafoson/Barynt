@@ -92,8 +92,8 @@ export function WidgetGallery({
     setSize(WIDGETS[next].size);
   };
 
-  const add = () =>
-    onAdd({ ...newWidget(type, randomId().slice(0, 12)), size });
+  const add = (chosen: WidgetSize = size) =>
+    onAdd({ ...newWidget(type, randomId().slice(0, 12)), size: chosen });
 
   return (
     <Modal
@@ -168,9 +168,12 @@ export function WidgetGallery({
                 key={s}
                 type="button"
                 aria-pressed={s === size}
+                aria-label={t("addSized", { size: t(`size_${s}`) })}
                 className={styles.sizeChoice}
                 data-size={s}
-                onClick={() => setSize(s)}
+                // A click on a preview adds that widget in that size at once.
+                onClick={() => add(s)}
+                onFocus={() => setSize(s)}
               >
                 {/* Drawn at the dashboard's real size and scaled down, so
                     it shows exactly what that size shows there. */}
@@ -199,7 +202,7 @@ export function WidgetGallery({
         <Button
           variant="primary"
           icon={<Icon icon="lucide:plus" width={15} />}
-          onClick={add}
+          onClick={() => add()}
         >
           {t("addSized", { size: t(`size_${size}`) })}
         </Button>
