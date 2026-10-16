@@ -459,7 +459,7 @@ export function Dashboard({
 
       <div className={styles.frame}>
         <ul className={styles.grid}>
-          {widgets.map((widget) => (
+          {widgets.map((widget, index) => (
             <li
               key={widget.id}
               className={styles.cell}
@@ -507,6 +507,27 @@ export function Dashboard({
                     title={t("remove")}
                     onClick={() => remove(widget.id)}
                   />
+                  {/* Touch: no dragging — move with the arrows instead. */}
+                  <span className={styles.moves}>
+                    <Button
+                      variant="elevated"
+                      size="sm"
+                      icon={<Icon icon="lucide:arrow-up" width={14} />}
+                      aria-label={t("moveEarlier")}
+                      title={t("moveEarlier")}
+                      disabled={index === 0}
+                      onClick={() => shift(widget.id, -1)}
+                    />
+                    <Button
+                      variant="elevated"
+                      size="sm"
+                      icon={<Icon icon="lucide:arrow-down" width={14} />}
+                      aria-label={t("moveLater")}
+                      title={t("moveLater")}
+                      disabled={index === widgets.length - 1}
+                      onClick={() => shift(widget.id, 1)}
+                    />
+                  </span>
                   {WIDGETS[widget.type].sizes.length > 1 && (
                     <fieldset className={styles.sizes} aria-label={t("size")}>
                       <SegmentedControl
