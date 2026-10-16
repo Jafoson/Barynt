@@ -333,9 +333,10 @@ export function Dashboard({
             )}
             <span className={styles.spacer} />
             {layout.personal && (
-              <Badge size="sm" mono={false}>
+              <span className={styles.personal}>
+                <Icon icon="lucide:user-pen" width={13} />
                 {t("personalBadge")}
-              </Badge>
+              </span>
             )}
             <Button
               variant="elevated"

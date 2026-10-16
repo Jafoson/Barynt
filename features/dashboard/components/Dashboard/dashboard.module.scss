@@ -50,13 +50,36 @@
 /* "Unsaved" — the same badge as a changed board or list view
    (`ViewSaveBar`). */
 .unsaved {
-  padding: 0.125rem 0.5625rem;
+  display: inline-flex;
+  align-items: center;
+  height: 1.625rem;
+  padding: 0 0.625rem;
   border-radius: var(--radius-pill);
   background: var(--secondary-container);
   color: var(--on-secondary-container);
   font-size: var(--text-xs);
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* "Customized" — your own arrangement, not the default. Same size as the
+   "unsaved" pill, but quiet. */
+.personal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  height: 1.625rem;
+  padding: 0 0.625rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+
+  & > svg {
+    flex: none;
+  }
 }
 
 .reset {
