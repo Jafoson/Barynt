@@ -1763,7 +1763,6 @@
     "shortcut_members": "Mitglieder",
     "shortcut_settings": "Einstellungen",
     "shortcut_activity": "Aktivität",
-    "shortcut_issues": "Aufgaben",
     "shortcut_projects": "Projekte",
     "shortcut_views": "Views",
     "shortcut_teams": "Teams",
@@ -1794,6 +1793,10 @@
     "addDesc": "Beschreibung hinzufügen",
     "progressLabel": "Erledigt",
     "size_W": "Volle Breite",
-    "sizeShort_W": "B"
+    "sizeShort_W": "B",
+    "shortcutsPick": "Kacheln",
+    "noShortcuts": "Keine Kacheln gewählt.",
+    "shortcut_myIssues": "Meine Aufgaben",
+    "shortcut_inbox": "Inbox"
   }
 }

@@ -1,5 +1,5 @@
 import type { DashboardScope } from "@/features/dashboard/scope";
-import type { Widget } from "@/features/dashboard/widgets";
+import type { ShortcutKey, Widget } from "@/features/dashboard/widgets";
 import type { AuditEntry } from "@/lib/audit/actions";
 import type { BucketUnit, RangeKey } from "@/lib/buckets";
 import type { User } from "@/types";
@@ -145,16 +145,7 @@ export interface ProjectRow {
 }
 
 export interface Shortcut {
-  key:
-    | "board"
-    | "list"
-    | "members"
-    | "settings"
-    | "activity"
-    | "issues"
-    | "projects"
-    | "views"
-    | "teams";
+  key: ShortcutKey;
   icon: string;
   href: string;
 }

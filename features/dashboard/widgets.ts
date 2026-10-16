@@ -103,6 +103,22 @@ export const MATRIX_FIELDS: GroupField[] = [
   "project",
 ];
 
+/** Where a shortcut tile can lead. Which ones a dashboard offers depends on
+ *  the place (project or workspace) and the viewer's permissions. */
+export const SHORTCUT_KEYS = [
+  "board",
+  "list",
+  "myIssues",
+  "inbox",
+  "projects",
+  "views",
+  "teams",
+  "members",
+  "activity",
+  "settings",
+] as const;
+export type ShortcutKey = (typeof SHORTCUT_KEYS)[number];
+
 export const ISSUE_SORTS = [
   "updated",
   "created",
@@ -169,6 +185,8 @@ export interface WidgetConfig {
   accent?: WidgetAccent;
   /** The note's text. */
   text?: string;
+  /** The shortcut tiles shown, in order; unset means every one offered. */
+  shortcuts?: ShortcutKey[];
 }
 
 export interface Widget {
@@ -529,6 +547,7 @@ const configSchema = z
     background: z.enum(BACKGROUNDS).optional(),
     accent: z.enum(ACCENTS).optional(),
     text: z.string().max(2000).optional(),
+    shortcuts: z.array(z.enum(SHORTCUT_KEYS)).max(20).optional(),
   })
   .strict();
 
@@ -592,6 +611,19 @@ export function labelsOf(widget: Widget): ChartLabels {
 /** The accent a widget is drawn in — its own or its kind's. */
 export function accentOf(widget: Widget): WidgetAccent {
   return widget.config.accent ?? WIDGETS[widget.type].accent;
+}
+
+/**
+ * The shortcut tiles a widget shows: the chosen ones in their order, from
+ * what the place offers. A choice the viewer can't reach (no permission,
+ * a workspace-only target on a project) simply drops out.
+ */
+export function pickShortcuts<T extends { key: ShortcutKey }>(
+  offered: T[],
+  chosen: ShortcutKey[] | undefined,
+): T[] {
+  if (!chosen) return offered;
+  return chosen.flatMap((key) => offered.filter((item) => item.key === key));
 }
 
 /** Move `id` to where `targetId` sits (drag and drop in edit mode). */

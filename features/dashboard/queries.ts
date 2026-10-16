@@ -1375,77 +1375,51 @@ async function links(workspaceId: string): Promise<WidgetData> {
   };
 }
 
+/** Every shortcut this place offers the viewer, in the default order —
+ *  the widget's own setting picks and orders from these. */
 async function shortcuts(
   workspaceId: string,
   projectId: string | null,
 ): Promise<WidgetData> {
   const place = await placeOf(workspaceId, projectId);
   const items: Shortcut[] = [];
+  const add = (key: Shortcut["key"], icon: string, href: string) =>
+    items.push({ key, icon, href });
+
   if (projectId && place.slug) {
     const slug = place.slug;
-    items.push(
-      {
-        key: "board",
-        icon: "lucide:kanban",
-        href: projectPath(workspaceId, slug, ""),
-      },
-      {
-        key: "list",
-        icon: "lucide:list",
-        href: projectPath(workspaceId, slug, "list"),
-      },
-      {
-        key: "members",
-        icon: "lucide:users",
-        href: projectPath(workspaceId, slug, "members"),
-      },
+    add("board", "lucide:kanban", projectPath(workspaceId, slug, ""));
+    add("list", "lucide:list", projectPath(workspaceId, slug, "list"));
+    add("myIssues", "lucide:circle-user", workspacePath(workspaceId, "my"));
+    add("inbox", "lucide:inbox", workspacePath(workspaceId, "inbox"));
+    add("members", "lucide:users", projectPath(workspaceId, slug, "members"));
+    add(
+      "activity",
+      "lucide:history",
+      projectSettingsPath(workspaceId, slug, "activity"),
     );
     if (PROJECT_SETTINGS_PERMISSIONS.some((key) => place.project.has(key)))
-      items.push({
-        key: "settings",
-        icon: "lucide:settings",
-        href: projectSettingsPath(workspaceId, slug, ""),
-      });
-    items.push({
-      key: "activity",
-      icon: "lucide:history",
-      href: projectSettingsPath(workspaceId, slug, "activity"),
-    });
+      add(
+        "settings",
+        "lucide:settings",
+        projectSettingsPath(workspaceId, slug, ""),
+      );
   } else {
-    items.push(
-      {
-        key: "issues",
-        icon: "lucide:kanban",
-        href: workspacePath(workspaceId, "issues"),
-      },
-      {
-        key: "projects",
-        icon: "lucide:folders",
-        href: workspacePath(workspaceId, "projects"),
-      },
-      {
-        key: "views",
-        icon: "lucide:layers",
-        href: workspacePath(workspaceId, "views"),
-      },
-      {
-        key: "teams",
-        icon: "lucide:users-round",
-        href: workspacePath(workspaceId, "teams"),
-      },
-    );
+    add("board", "lucide:kanban", workspacePath(workspaceId, "issues"));
+    add("list", "lucide:list", workspacePath(workspaceId, "issues/list"));
+    add("myIssues", "lucide:circle-user", workspacePath(workspaceId, "my"));
+    add("inbox", "lucide:inbox", workspacePath(workspaceId, "inbox"));
+    add("projects", "lucide:folders", workspacePath(workspaceId, "projects"));
+    add("views", "lucide:layers", workspacePath(workspaceId, "views"));
+    add("teams", "lucide:users-round", workspacePath(workspaceId, "teams"));
     if (place.workspace.has("member.view"))
-      items.push({
-        key: "members",
-        icon: "lucide:users",
-        href: workspacePath(workspaceId, "members"),
-      });
+      add("members", "lucide:users", workspacePath(workspaceId, "members"));
     if (WORKSPACE_SETTINGS_PERMISSIONS.some((key) => place.workspace.has(key)))
-      items.push({
-        key: "settings",
-        icon: "lucide:settings",
-        href: workspaceSettingsPath(workspaceId, ""),
-      });
+      add(
+        "settings",
+        "lucide:settings",
+        workspaceSettingsPath(workspaceId, ""),
+      );
   }
   return { type: "shortcuts", items };
 }

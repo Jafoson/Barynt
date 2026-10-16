@@ -172,3 +172,45 @@
 .danger {
   color: var(--red);
 }
+
+/* Shortcut tiles: on ones first (with order), off ones below. */
+.picker {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.pick {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+  font-size: var(--text-sm);
+
+  & + & {
+    border-top: 1px solid var(--outline-variant);
+  }
+
+  &[data-off] {
+    color: var(--on-surface-variant);
+  }
+}
+
+.pickIcon {
+  flex: none;
+  color: var(--on-surface-variant);
+}
+
+.pickName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

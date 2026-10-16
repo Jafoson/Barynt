@@ -7,6 +7,7 @@ import {
   newWidget,
   normalizeWidget,
   parseWidgets,
+  pickShortcuts,
   SIZE_SPAN,
   WIDGET_SIZES,
   WIDGET_TYPES,
@@ -118,5 +119,23 @@ describe("Editing", () => {
     expect(layoutKey({ kind: "project", id: "p1" }, "u1")).toBe(
       "project:p1:u1",
     );
+  });
+});
+
+describe("Shortcuts", () => {
+  const offered = [
+    { key: "board" as const },
+    { key: "list" as const },
+    { key: "settings" as const },
+  ];
+
+  it("shows everything offered while nothing is chosen", () => {
+    expect(pickShortcuts(offered, undefined)).toEqual(offered);
+  });
+
+  it("keeps the chosen order and drops what isn't offered", () => {
+    expect(
+      pickShortcuts(offered, ["settings", "inbox", "board"]).map((s) => s.key),
+    ).toEqual(["settings", "board"]);
   });
 });

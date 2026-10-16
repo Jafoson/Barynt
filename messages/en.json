@@ -1763,7 +1763,6 @@
     "shortcut_members": "Members",
     "shortcut_settings": "Settings",
     "shortcut_activity": "Activity",
-    "shortcut_issues": "Issues",
     "shortcut_projects": "Projects",
     "shortcut_views": "Views",
     "shortcut_teams": "Teams",
@@ -1794,6 +1793,10 @@
     "addDesc": "Add a description",
     "progressLabel": "Done",
     "size_W": "Full width",
-    "sizeShort_W": "W"
+    "sizeShort_W": "W",
+    "shortcutsPick": "Tiles",
+    "noShortcuts": "No tiles chosen.",
+    "shortcut_myIssues": "My issues",
+    "shortcut_inbox": "Inbox"
   }
 }

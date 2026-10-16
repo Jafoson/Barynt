@@ -6,6 +6,11 @@ import type { CSSProperties, ReactNode } from "react";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import type { WidgetData } from "@/features/dashboard/types";
+import {
+  pickShortcuts,
+  type ShortcutKey,
+  type Widget,
+} from "@/features/dashboard/widgets";
 import { useOpenLabelModal } from "@/features/issues/useOpenLabelModal";
 import { Link, useRouter } from "@/i18n/navigation";
 import { fullName } from "@/lib/utils/string";
@@ -20,7 +25,7 @@ type Data = Extract<
  *  links and the way to the neighboring areas — as widgets. Every row is a
  *  way somewhere: a person, a label or a team opens its open issues, a
  *  project its dashboard. */
-export function TeamBody({ data }: { data: Data }) {
+export function TeamBody({ data, widget }: { data: Data; widget: Widget }) {
   switch (data.type) {
     case "members":
       return <Members data={data} />;
@@ -33,7 +38,7 @@ export function TeamBody({ data }: { data: Data }) {
     case "links":
       return <Links data={data} />;
     case "shortcuts":
-      return <Shortcuts data={data} />;
+      return <Shortcuts data={data} chosen={widget.config.shortcuts} />;
   }
 }
 
@@ -343,11 +348,21 @@ function Links({ data }: { data: Extract<Data, { type: "links" }> }) {
   );
 }
 
-function Shortcuts({ data }: { data: Extract<Data, { type: "shortcuts" }> }) {
+function Shortcuts({
+  data,
+  chosen,
+}: {
+  data: Extract<Data, { type: "shortcuts" }>;
+  chosen: ShortcutKey[] | undefined;
+}) {
   const t = useTranslations("widgets");
+  const items = pickShortcuts(data.items, chosen);
+  if (items.length === 0) {
+    return <div className={styles.empty}>{t("noShortcuts")}</div>;
+  }
   return (
     <nav className={styles.shortcuts} aria-label={t("type_shortcuts")}>
-      {data.items.map((item) => (
+      {items.map((item) => (
         <Link key={item.key} href={item.href} className={styles.shortcut}>
           <Icon icon={item.icon} width={18} />
           <span>{t(`shortcut_${item.key}`)}</span>

@@ -161,6 +161,7 @@ export function Dashboard({
       ({ close }) => (
         <WidgetSettings
           widget={widget}
+          data={data[widget.id]}
           title={titleOf(widget)}
           lookups={lookups}
           area={area}

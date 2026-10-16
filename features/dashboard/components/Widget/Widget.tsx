@@ -119,7 +119,7 @@ export function Widget({
         data.type === "projects" ||
         data.type === "links" ||
         data.type === "shortcuts" ? (
-        <TeamBody data={data} />
+        <TeamBody data={data} widget={widget} />
       ) : data.type === "attention" ||
         data.type === "issues" ||
         data.type === "about" ||
