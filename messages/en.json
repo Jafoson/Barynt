@@ -1821,6 +1821,7 @@
     "issuesTitle_updated": "Recently changed",
     "issuesTitle_created": "Newly created",
     "issuesTitle_dueDate": "Due next",
-    "issuesTitle_priority": "By urgency"
+    "issuesTitle_priority": "By urgency",
+    "openBoard": "Open {name} on the board"
   }
 }

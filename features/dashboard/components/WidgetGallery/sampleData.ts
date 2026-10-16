@@ -68,9 +68,16 @@ export function sampleData(widget: Widget, words: SampleWords): WidgetData {
         value: widget.config.metric === "cycleTime" ? 9.6 : 24,
         previous: widget.config.metric === "cycleTime" ? 11.2 : 19,
         spark: [12, 14, 13, 17, 16, 19, 21, 20, 24],
+        href: null,
       };
     case "progress":
-      return { type: "progress", done: 17, inProgress: 3, total: 25 };
+      return {
+        type: "progress",
+        done: 17,
+        inProgress: 3,
+        total: 25,
+        href: null,
+      };
     case "distribution": {
       const slices =
         by === "priority"

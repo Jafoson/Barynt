@@ -161,8 +161,16 @@ export type WidgetData =
       previous: number | null;
       /** One value per bucket, oldest first. */
       spark: number[] | null;
+      /** The board filtered to what this number counts. */
+      href: string | null;
     }
-  | { type: "progress"; done: number; inProgress: number; total: number }
+  | {
+      type: "progress";
+      done: number;
+      inProgress: number;
+      total: number;
+      href: string | null;
+    }
   | { type: "distribution"; slices: Slice[]; total: number }
   | { type: "attention"; issues: DashboardIssue[]; total: number }
   | { type: "issues"; issues: DashboardIssue[]; total: number }

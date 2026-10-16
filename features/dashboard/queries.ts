@@ -31,6 +31,12 @@ import {
   type Widget,
 } from "@/features/dashboard/widgets";
 import type { IssueFilter } from "@/features/issues/filter";
+import {
+  filterToParams,
+  idToSlug,
+  mapFilterValues,
+  type SlugLookups,
+} from "@/features/issues/filter-url";
 import { toIssueWhere } from "@/features/issues/filter-where";
 import {
   filterContext,
@@ -313,6 +319,13 @@ interface Ctx {
   types: IssueType[];
   prefixes: Map<string, string>;
   statusById: Map<string, Status>;
+  scope: DashboardScope;
+  /** The board this dashboard's numbers come from: the project's, or the
+   *  workspace's across projects. */
+  boardBase: string;
+  /** Id → slug lookups for writing filters into an address — loaded on
+   *  first use. */
+  slugs: () => Promise<SlugLookups>;
 }
 
 /** Turn a list of filter nodes into one `where`, or `{}` when empty. */
@@ -341,9 +354,43 @@ async function buildCtx(
   const ids = (cats: string[]) =>
     statuses.filter((s) => cats.includes(s.category)).map((s) => s.id);
 
+  const place = await placeOf(resolved.workspaceId, resolved.projectId);
+  let slugs: Promise<SlugLookups> | null = null;
+  const loadSlugs = async (): Promise<SlugLookups> => {
+    const [members, labels, allProjects] = await Promise.all([
+      db.workspaceMember.findMany({
+        where: { workspaceId: resolved.workspaceId },
+        select: { user: { select: { id: true, handle: true } } },
+      }),
+      db.label.findMany({
+        where: { workspaceId: resolved.workspaceId },
+        select: { id: true, slug: true },
+      }),
+      db.project.findMany({
+        where: { workspaceId: resolved.workspaceId },
+        select: { id: true, slug: true },
+      }),
+    ]);
+    return {
+      priorities: priorities.map((p) => ({ id: p.id, key: p.key })),
+      members: members.map((m) => ({ id: m.user.id, handle: m.user.handle })),
+      labels,
+      projects: allProjects,
+    };
+  };
+
   return {
     resolved,
     userId,
+    scope,
+    boardBase:
+      resolved.projectId && place.slug
+        ? projectPath(resolved.workspaceId, place.slug, "")
+        : workspacePath(resolved.workspaceId, "issues"),
+    slugs: () => {
+      slugs ??= loadSlugs();
+      return slugs;
+    },
     base: {
       AND: [
         { projectId: { in: resolved.projectIds } },
@@ -377,6 +424,71 @@ function mapIssue(ctx: Ctx, row: IssueRow): Promise<DashboardIssue> {
     updated: row.updated.getTime(),
     dueDate: row.dueDate?.getTime() ?? null,
   }))();
+}
+
+/**
+ * The board, filtered to exactly what a number counts: the dashboard's
+ * scope ("mine"), a view's filter, the widget's own filter and the metric's
+ * condition. Rules joined by AND — the board reads repeated keys as such.
+ */
+async function boardHref(
+  ctx: Ctx,
+  own: IssueFilter | undefined,
+  extra: [string, string][],
+): Promise<string> {
+  const lookups = await ctx.slugs();
+  const params = new URLSearchParams();
+  const add = (filter: IssueFilter | null | undefined) => {
+    if (!filter?.rules.length) return;
+    for (const [key, value] of filterToParams(
+      mapFilterValues(filter, idToSlug(lookups)),
+    ))
+      params.append(key, value);
+  };
+  add(ctx.resolved.viewFilter);
+  add(own);
+  if (ctx.scope === "mine") params.append("assignee", "@me");
+  for (const [key, value] of extra) params.append(key, value);
+  const query = params.toString();
+  return query ? `${ctx.boardBase}?${query}` : ctx.boardBase;
+}
+
+const OPEN_PARAM: [string, string] = [
+  "statusCategory.not",
+  "completed,canceled",
+];
+
+/** What a number counts, as board filter parameters. */
+function metricParams(ctx: Ctx, metric: KpiMetric): [string, string][] {
+  const day = (date: Date) => bucketKey(date);
+  switch (metric) {
+    case "open":
+      return [OPEN_PARAM];
+    case "inProgress":
+      return [["statusCategory", "started"]];
+    case "inReview":
+      return [["status", "in_review"]];
+    case "created":
+      return [["created.after", day(ctx.window.from)]];
+    case "closed":
+    case "cycleTime":
+      return [
+        ["statusCategory", "completed"],
+        ["updated.after", day(ctx.window.from)],
+      ];
+    case "overdue":
+      return [OPEN_PARAM, ["dueDate.within", "overdue"]];
+    case "dueSoon":
+      return [OPEN_PARAM, ["dueDate.within", "next_7_days"]];
+    case "unassigned":
+      return [OPEN_PARAM, ["assignee.empty", "1"]];
+    case "urgent": {
+      const top = [...ctx.priorities].sort((a, b) => b.id - a.id)[0];
+      return top ? [OPEN_PARAM, ["priority", top.key]] : [OPEN_PARAM];
+    }
+    case "total":
+      return [];
+  }
 }
 
 const todayStart = () => {
@@ -458,6 +570,17 @@ async function kpi(
   ctx: Ctx,
   where: Where,
   metric: KpiMetric,
+  own: IssueFilter | undefined,
+): Promise<WidgetData> {
+  const href = await boardHref(ctx, own, metricParams(ctx, metric));
+  const data = await kpiValue(ctx, where, metric);
+  return data.type === "kpi" ? { ...data, href } : data;
+}
+
+async function kpiValue(
+  ctx: Ctx,
+  where: Where,
+  metric: KpiMetric,
 ): Promise<WidgetData> {
   const { window, previous } = ctx;
   const open: Where = { status: { notIn: ctx.closed } };
@@ -480,7 +603,7 @@ async function kpi(
         spark[i] = level;
         level -= c[i] - d[i];
       }
-      return { type: "kpi", value: now, previous: level, spark };
+      return { type: "kpi", value: now, previous: level, spark, href: null };
     }
     case "created":
     case "closed": {
@@ -494,6 +617,7 @@ async function kpi(
         value: dates.length,
         previous: before,
         spark: bucketCounts(dates, window),
+        href: null,
       };
     }
     case "cycleTime": {
@@ -506,6 +630,7 @@ async function kpi(
         value: avg(now.map((x) => x.days)),
         previous: avg(before.map((x) => x.days)),
         spark: cycleSpark(now, window).map((v) => v ?? 0),
+        href: null,
       };
     }
     case "inProgress":
@@ -538,6 +663,7 @@ const stock = (value: number): WidgetData => ({
   value,
   previous: null,
   spark: null,
+  href: null,
 });
 
 function cycleSpark(
@@ -565,7 +691,7 @@ async function progress(ctx: Ctx, where: Where): Promise<WidgetData> {
       where: { AND: [where, { status: { in: ctx.started } }] },
     }),
   ]);
-  return { type: "progress", total, done, inProgress };
+  return { type: "progress", total, done, inProgress, href: null };
 }
 
 const COLUMN: Record<
@@ -1561,9 +1687,14 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
 
   switch (widget.type) {
     case "kpi":
-      return kpi(ctx, where, config.metric ?? "open");
+      return kpi(ctx, where, config.metric ?? "open", config.filter);
     case "progress":
-      return progress(ctx, where);
+      return {
+        ...(await progress(ctx, where)),
+        href: await boardHref(ctx, config.filter, [
+          ["statusCategory.not", "canceled"],
+        ]),
+      } as WidgetData;
     case "distribution":
       return distribution(
         ctx,

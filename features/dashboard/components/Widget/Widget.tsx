@@ -9,6 +9,7 @@ import {
   WIDGETS,
   type Widget as WidgetModel,
 } from "@/features/dashboard/widgets";
+import { Link } from "@/i18n/navigation";
 import type { BucketUnit } from "@/lib/buckets";
 import { ChartBody } from "./components/ChartBody";
 import { ListBody } from "./components/ListBody";
@@ -130,6 +131,16 @@ export function Widget({
         <ListBody {...body} data={data} />
       ) : (
         <ChartBody {...body} data={data} />
+      )}
+      {/* A number opens the board filtered to what it counts — the whole
+          widget is the link (in edit mode the dashboard's cover sits above). */}
+      {(data?.type === "kpi" || data?.type === "progress") && data.href && (
+        <Link
+          href={data.href}
+          className={styles.widgetLink}
+          aria-label={t("openBoard", { name: titleOf(widget) })}
+          title={t("openBoard", { name: titleOf(widget) })}
+        />
       )}
     </article>
   );
