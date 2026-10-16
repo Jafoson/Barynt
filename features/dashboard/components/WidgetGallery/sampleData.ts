@@ -213,6 +213,7 @@ export function sampleData(widget: Widget, words: SampleWords): WidgetData {
           open: 20,
           projects: null,
           teams: 2,
+          progress: { done: 31, inProgress: 6, total: 51 },
           links: [
             { id: "s-k1", label: "Docs", url: "#" },
             { id: "s-k2", label: "GitHub", url: "#" },

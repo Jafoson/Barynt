@@ -1791,6 +1791,7 @@
     "medianShort": "Median",
     "cycleSub": "Ø von {count, plural, one {# geschlossenen Aufgabe} other {# geschlossenen Aufgaben}}",
     "teams": "Teams",
-    "addDesc": "Beschreibung hinzufügen"
+    "addDesc": "Beschreibung hinzufügen",
+    "progressLabel": "Erledigt"
   }
 }

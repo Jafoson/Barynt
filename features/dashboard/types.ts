@@ -89,6 +89,8 @@ export interface AboutData {
   projects: number | null;
   /** Teams working on it. */
   teams: number;
+  /** All issues except canceled ones, and how far they've come. */
+  progress: { done: number; inProgress: number; total: number };
   links: { id: string; label: string; url: string }[];
   /** Settings — only for who may change name and description. */
   editHref: string | null;

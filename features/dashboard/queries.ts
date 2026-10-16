@@ -987,11 +987,28 @@ const aboutFor = cache(
     workspaceId: string,
     projectId: string | null,
   ): Promise<AboutData | null> => {
-    const closed = await db.status.findMany({
-      where: { category: { in: ["completed", "canceled"] } },
-      select: { id: true },
+    const statuses = await db.status.findMany({
+      select: { id: true, category: true },
     });
-    const notClosed = { notIn: closed.map((s) => s.id) };
+    const idsIn = (...cats: string[]) =>
+      statuses.filter((s) => cats.includes(s.category)).map((s) => s.id);
+    const notClosed = { notIn: idsIn("completed", "canceled") };
+    /** Done, started and all-but-canceled within these projects. */
+    const progressIn = async (projectIds: string[]) => {
+      const scope = { projectId: { in: projectIds } };
+      const [done, inProgress, total] = await Promise.all([
+        db.issue.count({
+          where: { ...scope, status: { in: idsIn("completed") } },
+        }),
+        db.issue.count({
+          where: { ...scope, status: { in: idsIn("started") } },
+        }),
+        db.issue.count({
+          where: { ...scope, status: { notIn: idsIn("canceled") } },
+        }),
+      ]);
+      return { done, inProgress, total };
+    };
 
     if (projectId) {
       const project = await db.project.findUnique({
@@ -1010,9 +1027,10 @@ const aboutFor = cache(
         },
       });
       if (!project) return null;
-      const [open, teams] = await Promise.all([
+      const [open, teams, progress] = await Promise.all([
         db.issue.count({ where: { projectId, status: notClosed } }),
         db.teamProject.count({ where: { projectId } }),
+        progressIn([projectId]),
       ]);
       return {
         kind: "project",
@@ -1029,6 +1047,7 @@ const aboutFor = cache(
         open,
         projects: null,
         teams,
+        progress,
         links: [],
         editHref: (await placeOf(workspaceId, projectId)).project.has(
           "project.update",
@@ -1064,11 +1083,12 @@ const aboutFor = cache(
       visibleProjectIds(workspaceId),
     ]);
     if (!workspace) return null;
-    const [open, teams] = await Promise.all([
+    const [open, teams, progress] = await Promise.all([
       db.issue.count({
         where: { projectId: { in: [...visible] }, status: notClosed },
       }),
       db.team.count({ where: { workspaceId } }),
+      progressIn([...visible]),
     ]);
     return {
       kind: "workspace",
@@ -1085,6 +1105,7 @@ const aboutFor = cache(
       open,
       projects: visible.size,
       teams,
+      progress,
       links: workspace.links,
       editHref: (await placeOf(workspaceId, null)).workspace.has(
         "workspace.update",

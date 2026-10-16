@@ -1791,6 +1791,7 @@
     "medianShort": "Median",
     "cycleSub": "avg. of {count, plural, one {# closed issue} other {# closed issues}}",
     "teams": "Teams",
-    "addDesc": "Add a description"
+    "addDesc": "Add a description",
+    "progressLabel": "Done"
   }
 }

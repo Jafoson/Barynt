@@ -154,7 +154,9 @@ function About({ data }: { data: Extract<Data, { type: "about" }> }) {
       ? { key: "teams", value: about.teams, icon: "lucide:users-round" }
       : { key: "projects", value: about.projects, icon: "lucide:folders" },
   ];
-  const shown = about.members.slice(0, 6);
+  const { done, inProgress, total } = about.progress;
+  const pct = (n: number) => (total ? (n / total) * 100 : 0);
+  const shown = about.members.slice(0, 7);
   const rest = about.memberCount - shown.length;
 
   return (
@@ -217,24 +219,53 @@ function About({ data }: { data: Extract<Data, { type: "about" }> }) {
         )}
       </div>
 
-      {/* How big: three numbers. */}
-      <div className={styles.aboutFacts}>
-        {facts.map((fact) => (
-          <div key={fact.key}>
-            <Icon icon={fact.icon} width={14} />
-            <b>{fact.value}</b>
-            <small>{t(fact.key)}</small>
+      {/* How big: the numbers, and (extra large) how far it's come. */}
+      <div className={styles.aboutSide}>
+        <div className={styles.aboutFacts}>
+          {facts.map((fact) => (
+            <div key={fact.key}>
+              <Icon icon={fact.icon} width={16} />
+              <b>{fact.value}</b>
+              <small>{t(fact.key)}</small>
+            </div>
+          ))}
+        </div>
+        <div className={styles.aboutProgress}>
+          <div className={styles.aboutProgressHead}>
+            <span>{t("progressLabel")}</span>
+            <b>{Math.round(pct(done))} %</b>
           </div>
-        ))}
+          <div className={styles.aboutBar}>
+            <i data-part="done" style={{ width: `${pct(done)}%` }} />
+            <i data-part="started" style={{ width: `${pct(inProgress)}%` }} />
+          </div>
+          <div className={styles.legend}>
+            <span>
+              <i data-part="done" />
+              {t("doneSeries")} <b>{done}</b>
+            </span>
+            <span>
+              <i data-part="started" />
+              {t("inProgress")} <b>{inProgress}</b>
+            </span>
+            <span>
+              <i data-part="open" />
+              {t("openPart")} <b>{total - done - inProgress}</b>
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Who's in. */}
       <div className={styles.aboutPeople}>
         <span className={styles.aboutStack}>
           {shown.map((user) => (
-            <Avatar key={user.id} avatar={user} size={26} />
+            <Avatar key={user.id} avatar={user} size={30} />
           ))}
           {rest > 0 && <span className={styles.more2}>+{rest}</span>}
+        </span>
+        <span className={styles.aboutPeopleText}>
+          {t("memberCount", { count: about.memberCount })}
         </span>
       </div>
     </div>
