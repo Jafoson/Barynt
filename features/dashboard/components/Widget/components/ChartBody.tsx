@@ -630,36 +630,55 @@ function Workload({
   return (
     <>
       <div className={styles.bars}>
-        {data.rows.slice(0, 10).map((row) => (
-          <div key={row.user?.id ?? "_none"} className={styles.bar}>
-            <span className={styles.who}>
-              <Avatar avatar={row.user} size={20} />
-              {labels.axes && (
-                <span>
-                  {row.user
-                    ? row.user.firstName || row.user.lastName
-                    : t("noneAssignee")}
-                </span>
-              )}
-            </span>
-            <span className={styles.track}>
-              <i
-                style={{
-                  width: `${(row.inProgress / max) * 100}%`,
-                  background: "var(--amber)",
-                }}
-              />
-              <i
-                style={{
-                  width: `${((row.open - row.inProgress) / max) * 100}%`,
-                  background:
-                    "color-mix(in srgb, var(--on-surface) 35%, transparent)",
-                }}
-              />
-            </span>
-            {labels.values && <span>{row.open}</span>}
-          </div>
-        ))}
+        {data.rows.slice(0, 10).map((row) => {
+          const inner = (
+            <>
+              <span className={styles.who}>
+                <Avatar avatar={row.user} size={20} />
+                {labels.axes && (
+                  <span>
+                    {row.user
+                      ? row.user.firstName || row.user.lastName
+                      : t("noneAssignee")}
+                  </span>
+                )}
+              </span>
+              <span className={styles.track}>
+                <i
+                  style={{
+                    width: `${(row.inProgress / max) * 100}%`,
+                    background: "var(--amber)",
+                  }}
+                />
+                <i
+                  style={{
+                    width: `${((row.open - row.inProgress) / max) * 100}%`,
+                    background:
+                      "color-mix(in srgb, var(--on-surface) 35%, transparent)",
+                  }}
+                />
+              </span>
+              {labels.values && <span>{row.open}</span>}
+            </>
+          );
+          const name = row.user
+            ? `${row.user.firstName} ${row.user.lastName}`.trim()
+            : t("noneAssignee");
+          return row.href ? (
+            <Link
+              key={row.user?.id ?? "_none"}
+              href={row.href}
+              className={`${styles.bar} ${styles.sliceLink}`}
+              title={t("openIssuesOf", { name })}
+            >
+              {inner}
+            </Link>
+          ) : (
+            <div key={row.user?.id ?? "_none"} className={styles.bar}>
+              {inner}
+            </div>
+          );
+        })}
       </div>
       {labels.legend && (
         <div className={`${styles.legend} ${styles.noShort}`}>

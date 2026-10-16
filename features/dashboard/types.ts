@@ -80,6 +80,8 @@ export interface WorkloadRow {
   user: User | null;
   open: number;
   inProgress: number;
+  /** The board with this person's (or nobody's) open issues. */
+  href?: string | null;
 }
 
 export interface AboutData {

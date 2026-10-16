@@ -1102,7 +1102,11 @@ async function cycle(ctx: Ctx, where: Where): Promise<WidgetData> {
   };
 }
 
-async function workload(ctx: Ctx, where: Where): Promise<WidgetData> {
+async function workload(
+  ctx: Ctx,
+  where: Where,
+  own: IssueFilter | undefined,
+): Promise<WidgetData> {
   const rows = await db.issue.groupBy({
     by: ["assigneeId", "status"],
     where: { AND: [where, { status: { notIn: ctx.closed } }] },
@@ -1140,7 +1144,25 @@ async function workload(ctx: Ctx, where: Where): Promise<WidgetData> {
         b.open - a.open ||
         (a.user?.firstName ?? "").localeCompare(b.user?.firstName ?? ""),
     );
-  return { type: "workload", rows: list };
+  // Each person opens the board with their open issues.
+  const lookups = await ctx.slugs();
+  const withHrefs = await Promise.all(
+    list.map(async (row) => {
+      const handle = row.user
+        ? lookups.members.find((m) => m.id === row.user?.id)?.handle
+        : null;
+      const param: [string, string] | null = row.user
+        ? handle
+          ? ["assignee", handle]
+          : null
+        : ["assignee.empty", "1"];
+      return {
+        ...row,
+        href: param ? await boardHref(ctx, own, [OPEN_PARAM, param]) : null,
+      };
+    }),
+  );
+  return { type: "workload", rows: withHrefs };
 }
 
 async function matrix(
@@ -1812,7 +1834,7 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
     case "cycle":
       return cycle(ctx, where);
     case "workload":
-      return workload(ctx, where);
+      return workload(ctx, where, config.filter);
     case "matrix":
       return matrix(
         ctx,
