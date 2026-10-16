@@ -198,6 +198,20 @@ export interface WidgetConfig {
   text?: string;
   /** The shortcut tiles shown, in order; unset means every one offered. */
   shortcuts?: ShortcutKey[];
+  /** The note's pages (tabs); the first line of each is its tab name. */
+  pages?: NotePage[];
+}
+
+export interface NotePage {
+  id: string;
+  text: string;
+}
+
+/** A note's pages — stored ones, or one made from an older single text. */
+export function notePages(widget: Widget): NotePage[] {
+  const pages = widget.config.pages;
+  if (pages?.length) return pages;
+  return [{ id: "p1", text: widget.config.text ?? "" }];
 }
 
 export interface Widget {
@@ -624,8 +638,25 @@ const configSchema = z
     accent: z.enum(ACCENTS).optional(),
     text: z.string().max(2000).optional(),
     shortcuts: z.array(z.enum(SHORTCUT_KEYS)).max(20).optional(),
+    pages: z
+      .array(
+        z
+          .object({ id: z.string().min(1).max(40), text: z.string().max(5000) })
+          .strict(),
+      )
+      .max(12)
+      .optional(),
   })
   .strict();
+
+export const notePagesSchema = z
+  .array(
+    z
+      .object({ id: z.string().min(1).max(40), text: z.string().max(5000) })
+      .strict(),
+  )
+  .min(1)
+  .max(12);
 
 const widgetSchema = z
   .object({

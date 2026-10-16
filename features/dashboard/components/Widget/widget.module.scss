@@ -1661,3 +1661,111 @@
     outline-offset: 1px;
   }
 }
+
+/* ── Note: tabs for its pages, the text typed in place ───────────────── */
+.noteBox {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.noteTabs {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.noteTab {
+  flex: none;
+  max-width: 9rem;
+  padding: 0.1875rem 0.5625rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.71875rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--track);
+  }
+
+  &[aria-selected="true"] {
+    background: var(--track);
+    color: inherit;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+  }
+}
+
+.noteIcon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+
+  &[data-end] {
+    margin-left: auto;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--track);
+    color: inherit;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+  }
+}
+
+.noteText {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  resize: none;
+
+  &::placeholder {
+    color: var(--muted);
+  }
+
+  &:focus {
+    outline: none;
+  }
+}

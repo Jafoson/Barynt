@@ -261,19 +261,6 @@ export function WidgetSettings({
           />
         )}
 
-        {widget.type === "note" && (
-          <label className={styles.field}>
-            <span className={styles.label}>{t("text")}</span>
-            <textarea
-              className={styles.textarea}
-              value={config.text ?? ""}
-              rows={6}
-              maxLength={2000}
-              onChange={(e) => set({ text: e.target.value || undefined })}
-            />
-          </label>
-        )}
-
         {def.issues && (
           <div className={styles.field}>
             <span className={styles.label}>{t("filter")}</span>

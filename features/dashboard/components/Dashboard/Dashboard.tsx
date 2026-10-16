@@ -11,6 +11,7 @@ import { ScopePicker } from "@/components/ui/charts/ScopePicker/ScopePicker";
 import {
   loadWidgetData,
   resetDashboardWidgets,
+  saveDashboardNote,
   saveDashboardWidgets,
   setDashboardPrefs,
 } from "@/features/dashboard/actions";
@@ -18,6 +19,7 @@ import type { DashboardScope } from "@/features/dashboard/scope";
 import type { DashboardView, WidgetDataMap } from "@/features/dashboard/types";
 import {
   moveWidgetTo,
+  type NotePage,
   WIDGETS,
   type Widget as WidgetModel,
 } from "@/features/dashboard/widgets";
@@ -28,6 +30,7 @@ import type { RangeKey } from "@/lib/buckets";
 import { useModal } from "@/lib/context";
 import { setFabAction } from "@/lib/fab-action";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
+import { NoteContext } from "../NoteContext/NoteContext";
 import { useWidgetTitle, Widget } from "../Widget/Widget";
 import { WidgetGallery } from "../WidgetGallery/WidgetGallery";
 import { WidgetSettings } from "../WidgetSettings/WidgetSettings";
@@ -101,6 +104,8 @@ export function Dashboard({
   const { target, layout } = view;
 
   const [editing, setEditing] = useState(false);
+  // What's stored — the server's layout, plus notes typed in place since.
+  const [saved, setSaved] = useState<WidgetModel[]>(layout.widgets);
   const [draft, setDraft] = useState<WidgetModel[]>(layout.widgets);
   const [data, setData] = useState<WidgetDataMap>(view.data);
   const [pending, startTransition] = useTransition();
@@ -114,8 +119,8 @@ export function Dashboard({
   const openViewModal = useOpenViewModal();
   // The draft is what shows while editing; leaving edit mode either saves
   // it or throws it away.
-  const widgets = editing ? draft : layout.widgets;
-  const dirty = JSON.stringify(draft) !== JSON.stringify(layout.widgets);
+  const widgets = editing ? draft : saved;
+  const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
   const canSave = target.kind !== "view" || layout.canEdit;
 
   const fetchData = (list: WidgetModel[]) => {
@@ -157,7 +162,7 @@ export function Dashboard({
 
   const discard = () => {
     setEditing(false);
-    setDraft(layout.widgets);
+    setDraft(saved);
   };
 
   const save = (level: "personal" | "shared") =>
@@ -271,6 +276,32 @@ export function Dashboard({
     const timer = setTimeout(() => setJustAdded(null), 1500);
     return () => clearTimeout(timer);
   }, [justAdded]);
+
+  // Notes are written in place, outside edit mode — saved a moment after
+  // the last keystroke, per widget.
+  const noteTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const savedRef = useRef(saved);
+  savedRef.current = saved;
+  const noteContext = {
+    canWrite: target.kind !== "view" || layout.canEdit,
+    save: (widgetId: string, pages: NotePage[]) => {
+      const next = savedRef.current.map((w) =>
+        w.id === widgetId
+          ? { ...w, config: { ...w.config, pages, text: undefined } }
+          : w,
+      );
+      savedRef.current = next;
+      setSaved(next);
+      const timer = noteTimers.current.get(widgetId);
+      if (timer) clearTimeout(timer);
+      noteTimers.current.set(
+        widgetId,
+        setTimeout(() => {
+          void saveDashboardNote(target, savedRef.current, widgetId, pages);
+        }, 700),
+      );
+    },
+  };
 
   const navigate = (patch: { range?: RangeKey; scope?: DashboardScope }) => {
     const params = new URLSearchParams(window.location.search);
@@ -472,7 +503,7 @@ export function Dashboard({
                 size="sm"
                 icon={<Icon icon="lucide:layout-dashboard" width={15} />}
                 onClick={() => {
-                  setDraft(layout.widgets);
+                  setDraft(saved);
                   setEditing(true);
                 }}
               >
@@ -487,7 +518,7 @@ export function Dashboard({
                 aria-label={t("edit")}
                 title={t("edit")}
                 onClick={() => {
-                  setDraft(layout.widgets);
+                  setDraft(saved);
                   setEditing(true);
                 }}
               />
@@ -496,129 +527,131 @@ export function Dashboard({
         )}
       </div>
 
-      <div className={styles.frame}>
-        <ul className={styles.grid}>
-          {widgets.map((widget, index) => (
-            <li
-              key={widget.id}
-              className={styles.cell}
-              data-size={widget.size}
-              data-widget-id={widget.id}
-              data-new={widget.id === justAdded || undefined}
-              draggable={editing}
-              onDragStart={(event) => {
-                dragId.current = widget.id;
-                event.dataTransfer.effectAllowed = "move";
-              }}
-              onDragOver={(event) => {
-                if (!editing || !dragId.current) return;
-                event.preventDefault();
-                if (dragId.current !== widget.id) {
-                  const from = dragId.current;
-                  setDraft((list) => moveWidgetTo(list, from, widget.id));
-                }
-              }}
-              onDragEnd={() => {
-                dragId.current = null;
-              }}
-            >
-              <Widget
-                widget={widget}
-                data={data[widget.id]}
-                unit={view.unit}
-                issueBase={issueBase}
-                workspaceSlug={workspaceSlug}
-              />
-              {editing && (
-                <>
-                  {/* The whole widget opens its settings; the two controls
+      <NoteContext.Provider value={noteContext}>
+        <div className={styles.frame}>
+          <ul className={styles.grid}>
+            {widgets.map((widget, index) => (
+              <li
+                key={widget.id}
+                className={styles.cell}
+                data-size={widget.size}
+                data-widget-id={widget.id}
+                data-new={widget.id === justAdded || undefined}
+                draggable={editing}
+                onDragStart={(event) => {
+                  dragId.current = widget.id;
+                  event.dataTransfer.effectAllowed = "move";
+                }}
+                onDragOver={(event) => {
+                  if (!editing || !dragId.current) return;
+                  event.preventDefault();
+                  if (dragId.current !== widget.id) {
+                    const from = dragId.current;
+                    setDraft((list) => moveWidgetTo(list, from, widget.id));
+                  }
+                }}
+                onDragEnd={() => {
+                  dragId.current = null;
+                }}
+              >
+                <Widget
+                  widget={widget}
+                  data={data[widget.id]}
+                  unit={view.unit}
+                  issueBase={issueBase}
+                  workspaceSlug={workspaceSlug}
+                />
+                {editing && (
+                  <>
+                    {/* The whole widget opens its settings; the two controls
                       sit above that layer. */}
-                  <button
-                    type="button"
-                    className={styles.cover}
-                    aria-label={t("settingsFor", { name: titleOf(widget) })}
-                    onClick={() => openSettings(widget)}
-                  />
-                  <Button
-                    variant="elevated"
-                    size="sm"
-                    className={styles.remove}
-                    icon={<Icon icon="lucide:x" width={14} />}
-                    aria-label={t("removeNamed", { name: titleOf(widget) })}
-                    title={t("remove")}
-                    onClick={() => remove(widget.id)}
-                  />
-                  {/* Touch: no dragging — move with the arrows instead. */}
-                  <fieldset className={styles.moves} aria-label={t("move")}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      icon={<Icon icon="lucide:arrow-up" width={14} />}
-                      aria-label={t("moveEarlier")}
-                      title={t("moveEarlier")}
-                      disabled={index === 0}
-                      onClick={() => shift(widget.id, -1)}
+                    <button
+                      type="button"
+                      className={styles.cover}
+                      aria-label={t("settingsFor", { name: titleOf(widget) })}
+                      onClick={() => openSettings(widget)}
                     />
                     <Button
-                      variant="ghost"
+                      variant="elevated"
                       size="sm"
-                      icon={<Icon icon="lucide:arrow-down" width={14} />}
-                      aria-label={t("moveLater")}
-                      title={t("moveLater")}
-                      disabled={index === widgets.length - 1}
-                      onClick={() => shift(widget.id, 1)}
+                      className={styles.remove}
+                      icon={<Icon icon="lucide:x" width={14} />}
+                      aria-label={t("removeNamed", { name: titleOf(widget) })}
+                      title={t("remove")}
+                      onClick={() => remove(widget.id)}
                     />
-                  </fieldset>
-                  {WIDGETS[widget.type].sizes.length > 1 && (
-                    <fieldset className={styles.sizes} aria-label={t("size")}>
-                      <SegmentedControl
-                        variant="surface"
-                        value={widget.size}
-                        onChange={(size) =>
-                          update({
-                            ...widget,
-                            size: size as typeof widget.size,
-                          })
-                        }
-                        items={WIDGETS[widget.type].sizes.map((size) => ({
-                          value: size,
-                          label: t(`sizeShort_${size}`),
-                        }))}
+                    {/* Touch: no dragging — move with the arrows instead. */}
+                    <fieldset className={styles.moves} aria-label={t("move")}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon icon="lucide:arrow-up" width={14} />}
+                        aria-label={t("moveEarlier")}
+                        title={t("moveEarlier")}
+                        disabled={index === 0}
+                        onClick={() => shift(widget.id, -1)}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={<Icon icon="lucide:arrow-down" width={14} />}
+                        aria-label={t("moveLater")}
+                        title={t("moveLater")}
+                        disabled={index === widgets.length - 1}
+                        onClick={() => shift(widget.id, 1)}
                       />
                     </fieldset>
-                  )}
-                </>
-              )}
-            </li>
-          ))}
-          {editing && (
-            <li className={styles.addCell}>
-              <button
-                type="button"
-                className={styles.addTile}
-                onClick={openGallery}
+                    {WIDGETS[widget.type].sizes.length > 1 && (
+                      <fieldset className={styles.sizes} aria-label={t("size")}>
+                        <SegmentedControl
+                          variant="surface"
+                          value={widget.size}
+                          onChange={(size) =>
+                            update({
+                              ...widget,
+                              size: size as typeof widget.size,
+                            })
+                          }
+                          items={WIDGETS[widget.type].sizes.map((size) => ({
+                            value: size,
+                            label: t(`sizeShort_${size}`),
+                          }))}
+                        />
+                      </fieldset>
+                    )}
+                  </>
+                )}
+              </li>
+            ))}
+            {editing && (
+              <li className={styles.addCell}>
+                <button
+                  type="button"
+                  className={styles.addTile}
+                  onClick={openGallery}
+                >
+                  <Icon icon="lucide:plus" width={22} />
+                  {t("add")}
+                </button>
+              </li>
+            )}
+          </ul>
+          {widgets.length === 0 && !editing && (
+            <div className={styles.emptyPage}>
+              <p>{t("emptyDashboard")}</p>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setDraft(saved);
+                  setEditing(true);
+                }}
               >
-                <Icon icon="lucide:plus" width={22} />
-                {t("add")}
-              </button>
-            </li>
+                {t("edit")}
+              </Button>
+            </div>
           )}
-        </ul>
-        {widgets.length === 0 && !editing && (
-          <div className={styles.emptyPage}>
-            <p>{t("emptyDashboard")}</p>
-            <Button
-              variant="primary"
-              onClick={() => {
-                setDraft(layout.widgets);
-                setEditing(true);
-              }}
-            >
-              {t("edit")}
-            </Button>
-          </div>
-        )}
-      </div>
+        </div>
+      </NoteContext.Provider>
       {phoneBar}
     </div>
   );

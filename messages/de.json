@@ -1822,6 +1822,12 @@
     "issuesTitle_created": "Neu angelegt",
     "issuesTitle_dueDate": "Als Nächstes fällig",
     "issuesTitle_priority": "Nach Dringlichkeit",
-    "openBoard": "{name} im Board öffnen"
+    "openBoard": "{name} im Board öffnen",
+    "notePlaceholder": "Notiz schreiben … Die erste Zeile wird zum Namen.",
+    "notePageAdd": "Neue Seite",
+    "notePageDelete": "Seite löschen",
+    "notePageDeleteHint": "„{name}“ wird mit ihrem Text gelöscht.",
+    "notePageNew": "Neue Seite",
+    "notePageN": "Seite {n}"
   }
 }

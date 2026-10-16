@@ -13,6 +13,7 @@ import type {
 import { Link } from "@/i18n/navigation";
 import { useTimeAgo } from "@/lib/utils/useTimeAgo";
 import styles from "../widget.module.scss";
+import { NoteBody } from "./NoteBody";
 import type { BodyProps } from "./shared";
 
 type Data = Extract<
@@ -39,7 +40,7 @@ export function ListBody(props: BodyProps & { data: Data }) {
     case "activity":
       return <Activity {...props} data={data} />;
     case "note":
-      return <Note {...props} />;
+      return <NoteBody widget={props.widget} />;
   }
 }
 
@@ -285,10 +286,4 @@ function Activity({
       <ActivityFeed entries={data.entries} workspaceSlug={workspaceSlug} />
     </div>
   );
-}
-
-function Note({ widget }: BodyProps) {
-  const t = useTranslations("widgets");
-  const text = widget.config.text?.trim();
-  return <p className={styles.note}>{text || t("noteEmpty")}</p>;
 }
