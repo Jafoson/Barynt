@@ -43,7 +43,8 @@
     "noWorkspaces": "Noch kein Workspace",
     "noWorkspacesDescCreate": "Du gehörst noch keinem Workspace an. Erstelle einen, um loszulegen.",
     "noWorkspacesDescLocked": "Du gehörst noch keinem Workspace an. Bitte einen Admin, dich einzuladen.",
-    "navigation": "Navigation"
+    "navigation": "Navigation",
+    "views": "Views"
   },
   "actions": {
     "addLabel": "Label hinzufügen",

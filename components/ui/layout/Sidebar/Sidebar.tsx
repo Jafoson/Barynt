@@ -32,7 +32,8 @@ export function Sidebar({ isAdminRoute = false }: SidebarProps) {
           the footer like it, not part of what scrolls. */}
       {!isAdminRoute && (
         <div className={styles.pinned} data-nav-pinned>
-          {/* Phone only: "Overview" and "Dashboard" lead the bottom bar. */}
+          {/* Phone only: dashboard, board and "My tasks" lead the bottom
+              bar. */}
           <div className={styles.pinnedPhoneOnly}>
             <NavGroupWorkspaceDashboard bare />
           </div>

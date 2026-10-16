@@ -38,6 +38,7 @@ export type NavLabelKey =
   | "shortcuts"
   | "admin"
   | "overview"
+  | "views"
   | "users"
   | "audit"
   | "activity"
@@ -94,14 +95,30 @@ export const WORKSPACE_OVERVIEW_NAV: NavEntry = {
 
 export const WORKSPACE_DASHBOARD_NAV: NavEntry = {
   section: "dashboard",
-  icon: "lucide:layout-dashboard",
+  // The same gauge as the dashboard tab next to Board and List.
+  icon: "lucide:gauge",
   labelKey: "dashboard",
 };
 
-/** Sidebar "Global" group — always visible, not tied to workspace settings. */
+/** The workspace's board across all projects (V8). */
+export const WORKSPACE_BOARD_NAV: NavEntry = {
+  section: "issues",
+  icon: "lucide:layout-dashboard",
+  labelKey: "board",
+};
+
+/** "My tasks" — the "Assigned" system view since V8 (`/my` leads there). */
+export const MY_ISSUES_NAV: NavEntry = {
+  section: "my",
+  icon: "lucide:user",
+  labelKey: "myIssues",
+};
+
+/** Sidebar "Global" group — the workspace's directories: projects and
+ *  views (BARY-178). */
 export const GLOBAL_NAV: NavEntry[] = [
-  { section: "my", icon: "lucide:user", labelKey: "myIssues" },
   { section: "projects", icon: "lucide:folders", labelKey: "projects" },
+  { section: "views", icon: "lucide:layers", labelKey: "views" },
 ];
 
 /**
@@ -191,6 +208,8 @@ export const ACCOUNT_NAV: NavEntry = {
 export const WORKSPACE_SECTIONS: NavEntry[] = [
   WORKSPACE_OVERVIEW_NAV,
   WORKSPACE_DASHBOARD_NAV,
+  WORKSPACE_BOARD_NAV,
+  MY_ISSUES_NAV,
   ...GLOBAL_NAV,
   ...WORKSPACE_NAV,
   INBOX_NAV,
