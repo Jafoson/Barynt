@@ -268,7 +268,9 @@
   min-height: 0;
   display: flex;
   align-items: flex-end;
-  gap: 4%;
+  /* Not a plain percentage: 30 daily columns × 4 % of gap is more than the
+     whole width, and the bars collapse to nothing. */
+  gap: clamp(1px, 1%, 0.5rem);
   padding-top: 0.875rem;
 }
 
@@ -278,11 +280,12 @@
   height: 100%;
   display: flex;
   align-items: flex-end;
-  gap: 2px;
+  gap: clamp(0px, 8%, 2px);
 
   & > i {
     position: relative;
     flex: 1;
+    min-width: 1px;
     min-height: 2px;
     border-radius: 4px 4px 2px 2px;
   }
@@ -747,6 +750,10 @@
 }
 
 /* Age: older is stronger. */
+.ageCols {
+  gap: 8%;
+}
+
 .ageCols .col > i {
   background: var(--accent);
 
