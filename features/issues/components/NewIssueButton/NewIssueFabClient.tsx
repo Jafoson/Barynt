@@ -7,6 +7,7 @@ import type { IssueComposerData } from "@/features/issues/types";
 import { useOpenCreateProject } from "@/features/projects/useOpenCreateProject";
 import { useNewViewAction } from "@/features/views/newViewAction";
 import { usePathname } from "@/i18n/navigation";
+import { useFabAction } from "@/lib/fab-action";
 import styles from "./newIssueFab.module.scss";
 import { useNewIssueOpener } from "./useNewIssueOpener";
 
@@ -54,6 +55,8 @@ export function NewIssueFabClient({
   // Registered by the topbar on a project's board/list (`NewViewButton`).
   const newView = useNewViewAction();
   const [open, setOpen] = useState(false);
+  // A page's own job for the plus (the dashboard's "add widget").
+  const pageAction = useFabAction();
 
   // Escape closes the menu (a phone with a keyboard attached, or a desktop
   // window narrowed to phone width).
@@ -65,6 +68,29 @@ export function NewIssueFabClient({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
+
+  if (pageAction) {
+    return (
+      <div className={styles.root}>
+        <button
+          type="button"
+          className={styles.fab}
+          data-variant={pageAction.variant}
+          data-extended={pageAction.text ? true : undefined}
+          aria-label={pageAction.label}
+          title={pageAction.label}
+          onClick={pageAction.run}
+        >
+          <Icon
+            icon={pageAction.icon}
+            width={pageAction.text ? 20 : 26}
+            className={styles.plus}
+          />
+          {pageAction.text && <span>{pageAction.text}</span>}
+        </button>
+      </div>
+    );
+  }
 
   if (!ISSUE_VIEW_PATH.test(pathname) && !OVERVIEW_PATH.test(pathname)) {
     return null;

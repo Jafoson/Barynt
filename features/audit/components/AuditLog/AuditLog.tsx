@@ -259,7 +259,7 @@ function isLoud(action: string): boolean {
 /**
  * Icon and message key of an action — for more compact displays outside the
  * full table, such as the overview's activity card
- * (`ProjectProfileView`/`WorkspaceProfileView`). The translation itself stays
+ * (the dashboard's activity widget). The translation itself stays
  * with the calling component: `t(\`audit.action.${message}\`)`.
  */
 export function auditActionMeta(action: string) {

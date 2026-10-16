@@ -187,7 +187,9 @@ export function viewPath(
 
 /** The display settings an address spells out — what a view page draws
  *  with and what "Save" stores. Anything implausible is dropped. */
-export function displayFromParams(source: ParamSource): Required<ViewDisplay> {
+export function displayFromParams(
+  source: ParamSource,
+): Required<Omit<ViewDisplay, "widgets">> {
   const list = (key: string) =>
     (read(source, key) ?? "").split(",").filter(Boolean);
   return {

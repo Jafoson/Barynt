@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { widgetsSchema } from "@/features/dashboard/widgets";
 import { type IssueFilter, issueFilterSchema } from "@/features/issues/filter";
 import { GROUP_KEYS, type GroupKey } from "@/features/issues/group";
 import { SORT_KEYS, type SortKey } from "@/features/issues/sort";
@@ -34,6 +35,8 @@ export const viewDisplaySchema = z
     groupOrder: z.array(z.string().max(200)).max(500).optional(),
     hideEmptyGroups: z.boolean().optional(),
     showSubIssues: z.boolean().optional(),
+    /** A dashboard view's widgets (BARY-169). */
+    widgets: widgetsSchema.optional(),
   })
   .strict();
 export type ViewDisplay = z.infer<typeof viewDisplaySchema>;

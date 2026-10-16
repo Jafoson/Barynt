@@ -558,7 +558,7 @@ export async function resolveUrlFilter(
 
 /** The live lookups `toIssueWhere` needs: the viewer for `@me`, statuses by
  *  category, full-text search. */
-async function filterContext(): Promise<FilterContext> {
+export async function filterContext(): Promise<FilterContext> {
   return {
     userId: await currentUserId(),
     now: new Date(),

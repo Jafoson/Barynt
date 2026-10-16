@@ -15,6 +15,7 @@ import {
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
 import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
+import type { Widget } from "@/features/dashboard/widgets";
 import {
   createViewFromParams,
   updateView,
@@ -54,6 +55,8 @@ export interface ViewModalProps {
   currentParams?: Record<string, string>;
   /** Creating: the layout the board/list currently shows. */
   initialLayout?: ViewLayout;
+  /** Creating from a dashboard: its widgets, stored with the new view. */
+  widgets?: Widget[];
   close: () => void;
   /** A bottom sheet (phone) instead of a dialog. */
   sheet?: boolean;
@@ -84,6 +87,7 @@ export function ViewModal({
   close,
   sheet,
   scopes,
+  widgets,
 }: ViewModalProps) {
   const t = useTranslations();
   const router = useRouter();
@@ -173,6 +177,7 @@ export function ViewModal({
             layout,
           },
           takeOver ? { ...currentParams, layout } : { layout },
+          widgets ? { widgets } : {},
         );
         if (!result.ok) return setError(errorText(result));
         toast(t("views.created"));
@@ -332,6 +337,11 @@ export function ViewModal({
                   value: "list",
                   label: t("views.layoutList"),
                   icon: <Icon icon="lucide:list" width={15} />,
+                },
+                {
+                  value: "dashboard",
+                  label: t("views.layoutDashboard"),
+                  icon: <Icon icon="lucide:gauge" width={15} />,
                 },
               ]}
             />

@@ -1,0 +1,87 @@
+@use "breakpoints" as bp;
+
+/* Two halves, one control: the main action and an arrow for the rest. */
+.split {
+  display: inline-flex;
+  align-items: stretch;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+
+  @include bp.coarse {
+    height: var(--touch-min);
+  }
+}
+
+.main,
+.more {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+
+  &:hover:not(:disabled)::after {
+    opacity: var(--opacity-hover);
+  }
+
+  &:active:not(:disabled)::after {
+    opacity: var(--opacity-active);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: var(--opacity-disabled);
+    cursor: not-allowed;
+  }
+
+  .split[data-variant="primary"] & {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+
+  .split[data-variant="elevated"] & {
+    background: var(--surface-container);
+    border-color: var(--outline-variant);
+    color: var(--on-surface);
+  }
+}
+
+.main {
+  padding: 0 0.875rem;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+/* A thin seam between the halves. */
+.more {
+  width: 2rem;
+  padding: 0;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  border-left-color: color-mix(in srgb, currentColor 22%, transparent);
+
+  & > svg {
+    flex: none;
+  }
+
+  @include bp.coarse {
+    width: 2.5rem;
+  }
+}

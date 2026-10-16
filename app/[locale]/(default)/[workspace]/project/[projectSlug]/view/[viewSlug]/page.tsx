@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { DashboardLoader } from "@/features/dashboard/components/DashboardLoader/DashboardLoader";
 import { Board } from "@/features/issues/components/Board/Board";
 import { IssuePeek } from "@/features/issues/components/IssuePeek/IssuePeek";
 import { ListView } from "@/features/issues/components/ListView/ListView";
@@ -60,6 +61,29 @@ export default async function SavedViewPage({
   // Someone else's private view and a missing one look the same: 404.
   const view = await getViewBySlug(workspace, viewSlug);
   if (!view || view.projectId !== project.id) notFound();
+
+  // A dashboard view (BARY-169): its widgets over the view's filter.
+  if (view.layout === "dashboard") {
+    return (
+      <>
+        <Topbar
+          count={0}
+          view="board"
+          projectId={project.id}
+          activeView={view}
+          mode="dashboard"
+        />
+        <DashboardLoader
+          target={{ kind: "view", id: view.id }}
+          workspace={workspace}
+          params={{ range: filters.range, scope: filters.scope }}
+          area="project"
+          place={{ projectId: project.id, projectSlug: project.slug }}
+          savedView={view}
+        />
+      </>
+    );
+  }
 
   if (!filters.layout) {
     const [priorities, members, labels] = await Promise.all([

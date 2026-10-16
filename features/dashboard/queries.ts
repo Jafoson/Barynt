@@ -1,36 +1,72 @@
 import "server-only";
 import { cache } from "react";
-import type { DashboardScope } from "@/features/dashboard/scope";
-import type {
-  AttentionIssue,
-  AttentionReason,
-  DashboardStats,
-  PrioritySlice,
-  ProjectDashboardData,
-  ProjectDashboardView,
-  ProjectProfile,
-  ProjectRoleGroup,
-  StatusSlice,
-  ThroughputPoint,
-  WorkloadRow,
-  WorkspaceDashboardData,
-  WorkspaceDashboardView,
-  WorkspaceProfile,
-  WorkspaceProjectSummary,
-} from "@/features/dashboard/types";
-import { resolveLayout } from "@/features/dashboard/widgets";
-import { getPriorities, getStatuses } from "@/features/issues/queries";
 import {
-  type BucketUnit,
+  getProjectActivity,
+  getWorkspaceActivity,
+} from "@/features/audit/queries";
+import {
+  type DashboardScope,
+  toDashboardScope,
+} from "@/features/dashboard/scope";
+import type {
+  AboutData,
+  AttentionReason,
+  DashboardIssue,
+  DashboardTarget,
+  DashboardView,
+  LabelRow,
+  RoleGroup,
+  Shortcut,
+  Slice,
+  WidgetData,
+  WidgetDataMap,
+  WorkloadRow,
+} from "@/features/dashboard/types";
+import {
+  defaultWidgets,
+  type GroupField,
+  type KpiMetric,
+  layoutKey,
+  notePagesSchema,
+  parseWidgets,
+  type Widget,
+} from "@/features/dashboard/widgets";
+import type { IssueFilter } from "@/features/issues/filter";
+import {
+  filterToParams,
+  idToSlug,
+  mapFilterValues,
+  type SlugLookups,
+} from "@/features/issues/filter-url";
+import { toIssueWhere } from "@/features/issues/filter-where";
+import {
+  filterContext,
+  getIssueTypes,
+  getPriorities,
+  getStatuses,
+} from "@/features/issues/queries";
+import { getVisibleViewById } from "@/features/views/queries";
+import { systemViewSlug } from "@/features/views/system";
+import { viewPath } from "@/features/views/url";
+import {
   bucketKey,
+  previousWindow,
   type RangeKey,
+  toRange,
+  truncate,
+  type Window,
   windowFor,
 } from "@/lib/buckets";
 import { db } from "@/lib/db";
-import { Prisma } from "@/lib/generated/prisma/client";
+import type { Prisma } from "@/lib/generated/prisma/client";
 import {
+  accountPath,
   PROJECT_SETTINGS_PERMISSIONS,
+  projectPath,
+  projectSettingsPath,
   WORKSPACE_SETTINGS_PERMISSIONS,
+  workspacePath,
+  workspaceSettingsPath,
 } from "@/lib/nav";
 import {
   accessFor,
@@ -40,112 +76,36 @@ import {
   visibleProjectIds,
 } from "@/lib/permissions";
 import {
-  DEFAULT_PROJECT_ROLE_KEY,
   DEFAULT_WORKSPACE_ROLE_KEY,
   PROJECT_BLOCKED_ROLE_KEY,
-  PROJECT_GUEST_ROLE_KEY,
-  PROJECT_VIEWER_ROLE_KEY,
-  systemRolesIn,
   WORKSPACE_GUEST_ROLE_KEY,
   WORKSPACE_VIEWER_ROLE_KEY,
 } from "@/lib/rbac";
-import { getSession } from "@/lib/session";
-import { closedStatusIds } from "@/lib/statuses";
 import { resolveAvatarUrl } from "@/lib/storage";
-import type { User } from "@/types";
+import type { IssueType, Priority, Status, User } from "@/types";
 
-// ─── A project's dashboard ─────────────────────────────────────────────────────
+// ─── Dashboards (BARY-169) ──────────────────────────────────────────────────
 //
-// Counting happens in the database, not in memory. The obvious approach —
-// load every issue in the project and group in JavaScript — would, for a
-// project that's grown, transfer thousands of rows including their
-// descriptions, just to show a dozen numbers in the end. The only queries
-// that fetch whole rows are the two lists further down, and those have a
-// `take`.
+// Every widget is computed on its own: the dashboard's scope (projects,
+// "mine", a view's filter) AND the widget's own filter. Counting happens in
+// the database; the time series fetch a single date column of the matching
+// issues and bucket them here — a `GROUP BY` only knows buckets with
+// something in them, and a quiet week has to be a zero, not a gap.
 //
-// The time axis, by contrast, is built in code (`lib/buckets.ts`): a
-// `GROUP BY` only knows buckets that have something in them, and a quiet
-// week would otherwise not be a zero but a gap in the chart.
-//
-// **Permissions.** Everything here hangs off `project.view` — the numbers
-// are the project's content, in condensed form. Anyone not allowed to see
-// the issues also isn't allowed to know how many there are. As everywhere,
-// `null` returns what "doesn't exist for you"; the page turns that into a
-// 404, without revealing whether the project is missing or access is.
+// **Permissions.** Everything hangs off seeing the issues: `project.view`
+// for a project, entering the workspace (and then only its visible
+// projects) for the workspace, seeing the view for a view. `null` means
+// "doesn't exist for you"; the page turns it into a 404.
+
+type Where = Prisma.IssueWhereInput;
 
 /** After how long an in-progress issue counts as stale. */
 const STALE_DAYS = 14;
-
-/** How many rows the two lists below show at most. */
-const LIST_LIMIT = 6;
-
-/**
- * The contributor rank — the lower threshold above which a role is called
- * out individually in the profile card (see `groupByRole`).
- *
- * Pulled from the registry rather than written as a number: the ranks live
- * in `lib/rbac/roles.ts`, and a second copy here would be exactly the kind
- * of number that silently goes wrong when the roles are reordered.
- */
-const CONTRIBUTOR_RANK =
-  systemRolesIn("PROJECT").find((role) => role.key === DEFAULT_PROJECT_ROLE_KEY)
-    ?.rank ?? 3;
-
-/**
- * The system roles that mean "contributes" or "reads along". They appear in
- * the profile card as a list, not as individually named people.
- *
- * Why a list of keys and not just a rank cutoff: ranks are integers, and
- * there's no room between `contributor` (3) and `project_admin` (4). A
- * project-specific "Moderator" role would in practice also get rank 3 — by
- * rank alone it couldn't be distinguished from a contributor and would
- * vanish into that list, even though it's exactly the kind of role you'd
- * want to see called out by name on an overview.
- *
- * The keys come as constants from the registry: a rename there breaks the
- * type check here instead of silently reshuffling a group.
- */
-const ROSTER_ROLE_KEYS = new Set<string>([
-  DEFAULT_PROJECT_ROLE_KEY,
-  PROJECT_VIEWER_ROLE_KEY,
-  PROJECT_GUEST_ROLE_KEY,
-  PROJECT_BLOCKED_ROLE_KEY,
-]);
-
-/** Same thing one level up — being a contributor in the workspace instead of the project. */
-const WS_CONTRIBUTOR_RANK =
-  systemRolesIn("WORKSPACE").find(
-    (role) => role.key === DEFAULT_WORKSPACE_ROLE_KEY,
-  )?.rank ?? 2;
-
-/** The workspace roles that mean "contributes" or "reads along". */
-const WS_ROSTER_ROLE_KEYS = new Set<string>([
-  DEFAULT_WORKSPACE_ROLE_KEY,
-  WORKSPACE_VIEWER_ROLE_KEY,
-  WORKSPACE_GUEST_ROLE_KEY,
-]);
-
-async function mapUser(user: {
-  id: string;
-  firstName: string;
-  lastName: string;
-  handle: string;
-  email: string | null;
-  color: string;
-  image: string | null;
-  avatarKey: string | null;
-}): Promise<User> {
-  const image = (await resolveAvatarUrl(user.avatarKey)) ?? user.image;
-  return {
-    id: user.id,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    handle: user.handle,
-    email: user.email,
-    color: user.color,
-    ...(image ? { image } : {}),
-  };
-}
+/** Rows a list widget brings at most — the tall size shows about this many. */
+const LIST_LIMIT = 12;
+/** Entries per distribution before the rest becomes "other". */
+const SLICE_LIMIT = 12;
+const DAY = 86_400_000;
 
 const USER_SELECT = {
   id: true,
@@ -158,864 +118,1003 @@ const USER_SELECT = {
   avatarKey: true,
 } as const;
 
-/** Person lists are alphabetical — as everywhere in this app. */
-const byName = [
-  { user: { firstName: "asc" as const } },
-  { user: { lastName: "asc" as const } },
-];
+type UserRow = Prisma.UserGetPayload<{ select: typeof USER_SELECT }>;
 
-// ── The numbers up top ───────────────────────────────────────────────────────
+async function mapUser(user: UserRow): Promise<User> {
+  const image = (await resolveAvatarUrl(user.avatarKey)) ?? user.image;
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    handle: user.handle,
+    email: user.email,
+    color: user.color,
+    ...(image ? { image } : {}),
+  };
+}
+
+const ISSUE_SELECT = {
+  id: true,
+  key: true,
+  title: true,
+  status: true,
+  priority: true,
+  updated: true,
+  dueDate: true,
+  projectId: true,
+  assignee: { select: USER_SELECT },
+} as const;
+
+type IssueRow = Prisma.IssueGetPayload<{ select: typeof ISSUE_SELECT }>;
+
+// ── What a dashboard is about ────────────────────────────────────────────────
+
+interface Resolved {
+  workspaceId: string;
+  /** The project a project dashboard (or a project's view) belongs to. */
+  projectId: string | null;
+  projectIds: string[];
+  viewFilter: IssueFilter | null;
+  canViewAll: boolean;
+  canEdit: boolean;
+  canEditShared: boolean;
+  /** For a view: its stored widgets. */
+  viewWidgets: unknown;
+}
+
+const resolveTarget = cache(
+  async (
+    kind: DashboardTarget["kind"],
+    id: string,
+  ): Promise<Resolved | null> => {
+    const userId = await currentUserId();
+    if (!userId) return null;
+
+    if (kind === "project") {
+      if (!(await hasPermission("project.view", { projectId: id })))
+        return null;
+      const project = await db.project.findUnique({
+        where: { id },
+        select: { workspaceId: true },
+      });
+      if (!project) return null;
+      const [canViewAll, canEditShared] = await Promise.all([
+        hasPermission("dashboard.view.all", { projectId: id }),
+        hasPermission("dashboard.manage", { projectId: id }),
+      ]);
+      return {
+        workspaceId: project.workspaceId,
+        projectId: id,
+        projectIds: [id],
+        viewFilter: null,
+        canViewAll,
+        canEdit: true,
+        canEditShared,
+        viewWidgets: null,
+      };
+    }
+
+    if (kind === "workspace") {
+      if (!(await currentUserCanEnterWorkspace(id))) return null;
+      const [visible, canViewAll, canEditShared] = await Promise.all([
+        visibleProjectIds(id),
+        hasPermission("dashboard.view.all", { workspaceId: id }),
+        hasPermission("dashboard.manage", { workspaceId: id }),
+      ]);
+      return {
+        workspaceId: id,
+        projectId: null,
+        projectIds: [...visible],
+        viewFilter: null,
+        canViewAll,
+        canEdit: true,
+        canEditShared,
+        viewWidgets: null,
+      };
+    }
+
+    const view = await getVisibleViewById(id);
+    if (!view) return null;
+    const visible = await visibleProjectIds(view.workspaceId);
+    const projectIds = view.projectId
+      ? visible.has(view.projectId)
+        ? [view.projectId]
+        : []
+      : [...visible];
+    const canViewAll = await hasPermission(
+      "dashboard.view.all",
+      view.projectId
+        ? { projectId: view.projectId }
+        : { workspaceId: view.workspaceId },
+    );
+    return {
+      workspaceId: view.workspaceId,
+      projectId: view.projectId,
+      projectIds,
+      viewFilter: view.filter,
+      canViewAll,
+      canEdit: view.canEdit,
+      canEditShared: false,
+      viewWidgets: view.display.widgets,
+    };
+  },
+);
+
+// ── Layout ───────────────────────────────────────────────────────────────────
 
 /**
- * The project's key figures.
- *
- * Two kinds sit side by side here, and the difference matters enough for
- * this paragraph: `open`, `inProgress`, `urgent`, and `total` are stocks —
- * they hold *right now* and know no period. `created` and `closed` are
- * movements within the chosen window. A stock filtered by the period would
- * answer no question anyone actually asks: "how many are open" never means
- * "how many are open and were created in the last 30 days".
+ * The widgets a person sees: their own row, else the default admins set,
+ * else the built-in one. A row that no longer validates counts as missing.
  */
-async function statsFor(
-  projectId: string,
-  from: Date,
-  to: Date,
-  assigneeId: string | null,
-): Promise<DashboardStats> {
-  const closed = await closedStatusIds();
-  const window = { gte: from, lt: to };
-  // Narrowed to your own issues for "mine"; unchanged for "all" (`null`).
-  const mine = assigneeId ? { assigneeId } : {};
+async function layoutFor(
+  target: DashboardTarget,
+  resolved: Resolved,
+  userId: string,
+  scope: DashboardScope,
+): Promise<{ widgets: Widget[]; personal: boolean; hasShared: boolean }> {
+  if (target.kind === "view") {
+    return {
+      widgets: parseWidgets(resolved.viewWidgets) ?? defaultWidgets("view"),
+      personal: false,
+      hasShared: false,
+    };
+  }
+  const sharedKey = layoutKey(target, null);
+  const personalKey = layoutKey(target, userId);
+  const rows = await db.dashboardLayout.findMany({
+    where: { key: { in: [sharedKey, personalKey] } },
+    select: { key: true, widgets: true },
+  });
+  const shared = parseWidgets(rows.find((r) => r.key === sharedKey)?.widgets);
+  const personal = parseWidgets(
+    rows.find((r) => r.key === personalKey)?.widgets,
+  );
+  return {
+    // Someone looking at their own issues ("mine") starts from the personal
+    // default; the shared one is the team's view of everything.
+    widgets:
+      personal ??
+      (scope === "mine"
+        ? defaultWidgets(target.kind, "mine")
+        : (shared ?? defaultWidgets(target.kind, "all"))),
+    personal: !!personal,
+    hasShared: !!shared,
+  };
+}
 
-  const [total, open, inProgress, inReview, created, urgent, urgentUnassigned] =
-    await Promise.all([
-      db.issue.count({ where: { projectId, ...mine } }),
-      db.issue.count({
-        where: { projectId, status: { notIn: closed }, ...mine },
+/** Range and scope this person last opened the dashboard with. */
+async function storedPrefs(
+  target: DashboardTarget,
+  userId: string,
+): Promise<{ range: string | null; scope: string | null }> {
+  if (target.kind === "project") {
+    const row = await db.dashboardPreference.findUnique({
+      where: { userId_projectId: { userId, projectId: target.id } },
+      select: { range: true, scope: true },
+    });
+    return { range: row?.range ?? null, scope: row?.scope ?? null };
+  }
+  if (target.kind === "workspace") {
+    const row = await db.workspaceDashboardPreference.findUnique({
+      where: { userId_workspaceId: { userId, workspaceId: target.id } },
+      select: { range: true, scope: true },
+    });
+    return { range: row?.range ?? null, scope: row?.scope ?? null };
+  }
+  return { range: null, scope: null };
+}
+
+// ── Shared context for one computation ──────────────────────────────────────
+
+interface Ctx {
+  resolved: Resolved;
+  userId: string;
+  base: Where;
+  window: Window;
+  previous: Window;
+  closed: string[];
+  started: string[];
+  completed: string[];
+  statuses: Status[];
+  priorities: Priority[];
+  types: IssueType[];
+  prefixes: Map<string, string>;
+  statusById: Map<string, Status>;
+  scope: DashboardScope;
+  /** "<kind>:<id>" — where a private note is filed. */
+  targetKey: string;
+  /** The board this dashboard's numbers come from: the project's, or the
+   *  workspace's across projects. */
+  boardBase: string;
+  /** Id → slug lookups for writing filters into an address — loaded on
+   *  first use. */
+  slugs: () => Promise<SlugLookups>;
+}
+
+/** Turn a list of filter nodes into one `where`, or `{}` when empty. */
+async function filterWhere(filter: IssueFilter | null | undefined) {
+  if (!filter || filter.rules.length === 0) return {};
+  return toIssueWhere(filter, await filterContext());
+}
+
+async function buildCtx(
+  target: DashboardTarget,
+  resolved: Resolved,
+  userId: string,
+  range: RangeKey,
+  scope: DashboardScope,
+): Promise<Ctx> {
+  const window = windowFor(range);
+  const [statuses, priorities, types, projects, viewWhere] = await Promise.all([
+    getStatuses(resolved.workspaceId),
+    getPriorities(resolved.workspaceId),
+    getIssueTypes(resolved.workspaceId),
+    db.project.findMany({
+      where: { id: { in: resolved.projectIds } },
+      select: { id: true, prefix: true },
+    }),
+    filterWhere(resolved.viewFilter),
+  ]);
+  const ids = (cats: string[]) =>
+    statuses.filter((s) => cats.includes(s.category)).map((s) => s.id);
+
+  const place = await placeOf(resolved.workspaceId, resolved.projectId);
+  let slugs: Promise<SlugLookups> | null = null;
+  const loadSlugs = async (): Promise<SlugLookups> => {
+    const [members, labels, allProjects] = await Promise.all([
+      db.workspaceMember.findMany({
+        where: { workspaceId: resolved.workspaceId },
+        select: { user: { select: { id: true, handle: true } } },
       }),
-      db.issue.count({ where: { projectId, status: "in_progress", ...mine } }),
-      db.issue.count({ where: { projectId, status: "in_review", ...mine } }),
-      db.issue.count({ where: { projectId, created: window, ...mine } }),
-      db.issue.count({
-        where: { projectId, status: { notIn: closed }, priority: 4, ...mine },
+      db.label.findMany({
+        where: { workspaceId: resolved.workspaceId },
+        select: { id: true, slug: true },
       }),
-      // Assigned and unassigned at once is a contradiction — in your own
-      // scope the answer is always 0, with no query needed for it.
-      assigneeId
-        ? Promise.resolve(0)
-        : db.issue.count({
-            where: {
-              projectId,
-              status: { notIn: closed },
-              priority: 4,
-              assigneeId: null,
-            },
-          }),
+      db.project.findMany({
+        where: { workspaceId: resolved.workspaceId },
+        select: { id: true, slug: true },
+      }),
     ]);
-
-  // Count and average of closed issues in one trip: both read the same
-  // rows, and cycle time in SQL is a subtraction that in JavaScript would
-  // mean a second round trip for the data.
-  const [cycle] = await db.$queryRaw<
-    { closed: bigint; avg_days: number | null }[]
-  >`
-    SELECT COUNT(*)                                                   AS closed,
-           AVG(EXTRACT(EPOCH FROM ("closedAt" - "created")) / 86400.0) AS avg_days
-      FROM "Issue"
-     WHERE "projectId" = ${projectId}
-       AND "closedAt" >= ${from}
-       AND "closedAt" <  ${to}
-       AND (${assigneeId}::text IS NULL OR "assigneeId" = ${assigneeId})
-  `;
+    return {
+      priorities: priorities.map((p) => ({ id: p.id, key: p.key })),
+      members: members.map((m) => ({ id: m.user.id, handle: m.user.handle })),
+      labels,
+      projects: allProjects,
+    };
+  };
 
   return {
-    total,
-    open,
-    inProgress,
-    inReview,
-    created,
-    urgent,
-    urgentUnassigned,
-    closed: Number(cycle?.closed ?? 0),
-    // To one decimal place: "19.0 days" is a figure, "19.04871" would be a
-    // claim of precision this number doesn't have.
-    cycleDays:
-      cycle?.avg_days == null ? null : Math.round(cycle.avg_days * 10) / 10,
-  };
-}
-
-// ── Distributions ────────────────────────────────────────────────────────────
-
-/**
- * How all issues distribute across statuses.
- *
- * The order comes from the workspace's statuses, not from the result of the
- * `GROUP BY`: the bar chart is meant to mirror the ladder from "Backlog" to
- * "Canceled", and a status with no issues must not drop out — being empty is
- * the information.
- */
-async function statusesFor(
-  projectId: string,
-  workspaceId: string,
-  assigneeId: string | null,
-): Promise<StatusSlice[]> {
-  const [statuses, rows] = await Promise.all([
-    getStatuses(workspaceId),
-    db.issue.groupBy({
-      by: ["status"],
-      where: { projectId, ...(assigneeId ? { assigneeId } : {}) },
-      _count: { _all: true },
-    }),
-  ]);
-
-  const counts = new Map(rows.map((row) => [row.status, row._count._all]));
-  return statuses.map((status) => ({
-    id: status.id,
-    name: status.name,
-    short: status.short,
-    color: status.color,
-    count: counts.get(status.id) ?? 0,
-  }));
-}
-
-/**
- * How the **open** issues distribute across priorities.
- *
- * Deliberately only the open ones: whatever's done was urgent once and isn't
- * anymore. The question behind this widget is "what's pending", not "what
- * was once pending".
- */
-async function prioritiesFor(
-  projectId: string,
-  workspaceId: string,
-  assigneeId: string | null,
-): Promise<PrioritySlice[]> {
-  const closed = await closedStatusIds();
-  const [priorities, rows] = await Promise.all([
-    getPriorities(workspaceId),
-    db.issue.groupBy({
-      by: ["priority"],
-      where: {
-        projectId,
-        status: { notIn: closed },
-        ...(assigneeId ? { assigneeId } : {}),
-      },
-      _count: { _all: true },
-    }),
-  ]);
-
-  const counts = new Map(rows.map((row) => [row.priority, row._count._all]));
-  return (
-    priorities
-      .map((priority) => ({
-        id: priority.id,
-        key: priority.key,
-        name: priority.name,
-        color: priority.color,
-        count: counts.get(priority.id) ?? 0,
-      }))
-      // Descending: the most urgent row first. "No priority" ends up at the
-      // bottom this way, where it belongs — it's not a null value, it's the
-      // end of the ladder.
-      .sort((a, b) => b.id - a.id)
-  );
-}
-
-/**
- * Created and closed per marker on the time axis.
- *
- * Two series from two columns of the same table, hence two queries: a
- * `UNION` would save one round trip and cost readability. `date_trunc` gets
- * the unit as a parameter — the first argument is text, that's allowed;
- * identifiers stay fixed in the query.
- */
-async function throughputFor(
-  projectId: string,
-  unit: BucketUnit,
-  from: Date,
-  to: Date,
-  keys: string[],
-  assigneeId: string | null,
-): Promise<ThroughputPoint[]> {
-  const countsIn = async (column: "created" | "closedAt") => {
-    const rows = await db.$queryRaw<{ bucket: Date; count: bigint }[]>`
-      SELECT date_trunc(${unit}, ${Prisma.raw(`"${column}"`)}) AS bucket,
-             COUNT(*) AS count
-        FROM "Issue"
-       WHERE "projectId" = ${projectId}
-         AND ${Prisma.raw(`"${column}"`)} >= ${from}
-         AND ${Prisma.raw(`"${column}"`)} <  ${to}
-         AND (${assigneeId}::text IS NULL OR "assigneeId" = ${assigneeId})
-       GROUP BY 1
-    `;
-    return new Map(
-      rows.map((row) => [bucketKey(row.bucket), Number(row.count)]),
-    );
-  };
-
-  const [created, closed] = await Promise.all([
-    countsIn("created"),
-    countsIn("closedAt"),
-  ]);
-
-  // The axis leads, not the result of the `GROUP BY`: every bucket appears,
-  // even the empty one.
-  return keys.map((date) => ({
-    date,
-    created: created.get(date) ?? 0,
-    closed: closed.get(date) ?? 0,
-  }));
-}
-
-/**
- * Who's carrying how much open work.
- *
- * The unassigned pile is part of the list, not off to the side: it's the
- * quantity that matters when distributing work, and a project where it's
- * the tallest bar has exactly that as its finding.
- *
- * Counting happens across all issues, not project members: anyone who left
- * the project but is still on issues would otherwise vanish from the count,
- * even though their work stays behind.
- */
-async function workloadFor(
-  projectId: string,
-  assigneeId: string | null,
-): Promise<WorkloadRow[]> {
-  const closed = await closedStatusIds();
-  const rows = await db.issue.groupBy({
-    by: ["assigneeId", "status"],
-    where: {
-      projectId,
-      status: { notIn: closed },
-      ...(assigneeId ? { assigneeId } : {}),
+    resolved,
+    userId,
+    scope,
+    targetKey: `${target.kind}:${target.id}`,
+    boardBase:
+      resolved.projectId && place.slug
+        ? projectPath(resolved.workspaceId, place.slug, "")
+        : workspacePath(resolved.workspaceId, "issues"),
+    slugs: () => {
+      slugs ??= loadSlugs();
+      return slugs;
     },
-    _count: { _all: true },
-  });
-  if (rows.length === 0) return [];
-
-  const ids = [
-    ...new Set(
-      rows.map((row) => row.assigneeId).filter((id): id is string => !!id),
-    ),
-  ];
-  const users = await db.user.findMany({
-    where: { id: { in: ids } },
-    select: USER_SELECT,
-  });
-  const byId = new Map(
-    await Promise.all(
-      users.map(async (user) => [user.id, await mapUser(user)] as const),
-    ),
-  );
-
-  const totals = new Map<string, { open: number; inProgress: number }>();
-  for (const row of rows) {
-    // An empty key for "nobody" — `null` would work as a Map key, but would
-    // be a second case in the Map's type that every reader further down
-    // would have to keep in mind.
-    const key = row.assigneeId ?? "";
-    const entry = totals.get(key) ?? { open: 0, inProgress: 0 };
-    entry.open += row._count._all;
-    if (row.status === "in_progress") entry.inProgress += row._count._all;
-    totals.set(key, entry);
-  }
-
-  return (
-    [...totals.entries()]
-      .map(([id, counts]) => ({
-        user: id ? (byId.get(id) ?? null) : null,
-        ...counts,
-      }))
-      // The biggest pile first; ties are broken by name, so the list
-      // doesn't jump between two calls.
-      .sort(
-        (a, b) =>
-          b.open - a.open ||
-          (a.user?.firstName ?? "").localeCompare(b.user?.firstName ?? ""),
-      )
-  );
-}
-
-// ── The two lists ────────────────────────────────────────────────────────────
-
-function issueRef(prefix: string, key: number): string {
-  return `${prefix}-${key}`;
-}
-
-/**
- * What's at risk of falling by the wayside.
- *
- * Three reasons, in this order of precedence: urgent and unassigned, urgent
- * at all, in progress and untouched for two weeks. An issue can meet several
- * — the most severe one is shown, and it appears only once.
- *
- * Deliberately not a search over everything that could go wrong: the list is
- * short and meant to stay that way. A "needs attention" list with forty rows
- * no longer needs attention itself.
- */
-async function attentionFor(
-  projectId: string,
-  prefix: string,
-  statusColors: Map<string, string>,
-  assigneeId: string | null,
-): Promise<AttentionIssue[]> {
-  const closed = await closedStatusIds();
-  const staleBefore = new Date(Date.now() - STALE_DAYS * 86400_000);
-
-  const rows = await db.issue.findMany({
-    where: {
-      projectId,
-      status: { notIn: closed },
-      ...(assigneeId ? { assigneeId } : {}),
-      OR: [
-        { priority: { gte: 3 } },
-        { status: "in_progress", updated: { lt: staleBefore } },
+    base: {
+      AND: [
+        { projectId: { in: resolved.projectIds } },
+        scope === "mine" ? { assigneeId: userId } : {},
+        viewWhere,
       ],
     },
+    window,
+    previous: previousWindow(window, range),
+    closed: ids(["completed", "canceled"]),
+    started: ids(["started"]),
+    completed: ids(["completed"]),
+    statuses,
+    priorities,
+    types,
+    prefixes: new Map(projects.map((p) => [p.id, p.prefix])),
+    statusById: new Map(statuses.map((s) => [s.id, s])),
+  };
+}
+
+function mapIssue(ctx: Ctx, row: IssueRow): Promise<DashboardIssue> {
+  const status = ctx.statusById.get(row.status);
+  return (async () => ({
+    id: row.id,
+    ref: `${ctx.prefixes.get(row.projectId) ?? "?"}-${row.key}`,
+    title: row.title,
+    statusName: status?.name ?? row.status,
+    statusColor: status?.color ?? "#8a9099",
+    priority: row.priority,
+    assignee: row.assignee ? await mapUser(row.assignee) : null,
+    updated: row.updated.getTime(),
+    dueDate: row.dueDate?.getTime() ?? null,
+  }))();
+}
+
+/**
+ * The board, filtered to exactly what a number counts: the dashboard's
+ * scope ("mine"), a view's filter, the widget's own filter and the metric's
+ * condition. Rules joined by AND — the board reads repeated keys as such.
+ */
+async function boardHref(
+  ctx: Ctx,
+  own: IssueFilter | undefined,
+  extra: [string, string][],
+): Promise<string> {
+  const lookups = await ctx.slugs();
+  const params = new URLSearchParams();
+  const add = (filter: IssueFilter | null | undefined) => {
+    if (!filter?.rules.length) return;
+    for (const [key, value] of filterToParams(
+      mapFilterValues(filter, idToSlug(lookups)),
+    ))
+      params.append(key, value);
+  };
+  add(ctx.resolved.viewFilter);
+  add(own);
+  if (ctx.scope === "mine") params.append("assignee", "@me");
+  for (const [key, value] of extra) params.append(key, value);
+  const query = params.toString();
+  return query ? `${ctx.boardBase}?${query}` : ctx.boardBase;
+}
+
+const OPEN_PARAM: [string, string] = [
+  "statusCategory.not",
+  "completed,canceled",
+];
+
+/** What a number counts, as board filter parameters. */
+/** Board params for a date column within `[from, to)`. The board's
+ *  "after" starts the day after, its "before" ends the day before — so
+ *  the day before `from`, and `to` itself. */
+function between(
+  field: "created" | "updated",
+  from: Date,
+  to?: Date,
+): [string, string][] {
+  const before = new Date(from);
+  before.setDate(before.getDate() - 1);
+  return [
+    [`${field}.after`, bucketKey(before)],
+    ...(to ? ([[`${field}.before`, bucketKey(to)]] as [string, string][]) : []),
+  ];
+}
+
+function metricParams(ctx: Ctx, metric: KpiMetric): [string, string][] {
+  switch (metric) {
+    case "open":
+      return [OPEN_PARAM];
+    case "inProgress":
+      return [["statusCategory", "started"]];
+    case "inReview":
+      return [["status", "in_review"]];
+    case "created":
+      return between("created", ctx.window.from);
+    case "closed":
+    case "cycleTime":
+      return [
+        ["statusCategory", "completed"],
+        ...between("updated", ctx.window.from),
+      ];
+    case "overdue":
+      return [OPEN_PARAM, ["dueDate.within", "overdue"]];
+    case "dueSoon":
+      return [OPEN_PARAM, ["dueDate.within", "next_7_days"]];
+    case "unassigned":
+      return [OPEN_PARAM, ["assignee.empty", "1"]];
+    case "urgent": {
+      const top = [...ctx.priorities].sort((a, b) => b.id - a.id)[0];
+      return top ? [OPEN_PARAM, ["priority", top.key]] : [OPEN_PARAM];
+    }
+    case "total":
+      return [];
+  }
+}
+
+const todayStart = () => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+};
+
+// ── Time series helpers ─────────────────────────────────────────────────────
+
+/** Count dates per bucket of `window`, every bucket present. */
+function bucketCounts(dates: Date[], window: Window): number[] {
+  const index = new Map(window.keys.map((key, i) => [key, i]));
+  const counts = window.keys.map(() => 0);
+  for (const date of dates) {
+    const i = index.get(bucketKey(truncate(date, window.unit)));
+    if (i !== undefined) counts[i]++;
+  }
+  return counts;
+}
+
+async function datesIn(
+  where: Where,
+  column: "created" | "closedAt",
+  from: Date,
+  to: Date,
+): Promise<Date[]> {
+  const rows = await db.issue.findMany({
+    where: { AND: [where, { [column]: { gte: from, lt: to } }] },
+    select: { [column]: true },
+  });
+  return rows
+    .map((row) => (row as unknown as Record<string, Date | null>)[column])
+    .filter((d): d is Date => !!d);
+}
+
+/** Closed issues in a window with their cycle time in days. */
+async function cyclesIn(where: Where, from: Date, to: Date, take = 2000) {
+  const rows = await db.issue.findMany({
+    where: { AND: [where, { closedAt: { gte: from, lt: to } }] },
     select: {
       id: true,
       key: true,
       title: true,
-      status: true,
-      priority: true,
-      updated: true,
-      assignee: { select: USER_SELECT },
+      projectId: true,
+      created: true,
+      closedAt: true,
     },
-    // Urgency before age: what's been sitting the longest isn't
-    // automatically what's most urgent.
-    orderBy: [{ priority: "desc" }, { updated: "asc" }],
-    take: LIST_LIMIT,
+    orderBy: { closedAt: "desc" },
+    take,
   });
-
-  return Promise.all(
-    rows.map(async (row) => {
-      const reason: AttentionReason =
-        row.priority === 4 && !row.assignee
-          ? "unassigned"
-          : row.priority >= 3
-            ? "urgent"
-            : "stale";
-
-      return {
-        id: row.id,
-        ref: issueRef(prefix, row.key),
-        title: row.title,
-        status: row.status,
-        statusColor: statusColors.get(row.status) ?? "#8a9099",
-        priority: row.priority,
-        assignee: row.assignee ? await mapUser(row.assignee) : null,
-        updated: row.updated.getTime(),
-        reason,
-      } satisfies AttentionIssue;
-    }),
+  return rows.flatMap((row) =>
+    row.closedAt
+      ? [
+          {
+            ...row,
+            closedAt: row.closedAt,
+            days:
+              Math.max(0, row.closedAt.getTime() - row.created.getTime()) / DAY,
+          },
+        ]
+      : [],
   );
 }
 
-// ── The profile card ─────────────────────────────────────────────────────────
+const avg = (values: number[]) =>
+  values.length === 0
+    ? null
+    : Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10;
 
-/**
- * Bundle members by their project role, strongest role first.
- *
- * Grouping happens by what's in the database, not by a list of known roles
- * in code. That's not a convenience here, it's the point: besides the
- * system roles, there are project-specific ones (`Role.scope = PROJECT` with
- * a set `projectId`, see `prisma/schema.prisma`). If a workspace creates a
- * "Moderator" role, it appears here automatically as its own group with its
- * own name — with a fixed list, these are exactly the roles that would fall
- * through the cracks.
- *
- * `distinguished` separates the groups shown at the top with names and a
- * chip from those that run as a list below. Two conditions, both required:
- *
- *   - **at least the contributor rank.** A custom role below that
- *     ("Intern") isn't a distinction and belongs in the list.
- *   - **none of the system roles that mean contributing or reading along**
- *     (`ROSTER_ROLE_KEYS`). Otherwise every contributor would get their own
- *     row with a chip, and with forty people the card would be a wall.
- *
- * Taken together: leadership and anything a workspace has created for
- * itself besides that appears by name; contributors and readers appear as a
- * list.
- *
- * `contributorRank` and `rosterKeys` come in as parameters instead of being
- * fixed: the same procedure applies one level up for workspace membership,
- * just with different roles and a different rank for plain contribution
- * (`getWorkspaceDashboard`).
- */
-export async function groupByRole(
-  members: {
-    user: Parameters<typeof mapUser>[0];
-    role: { key: string; name: string; rank: number };
-  }[],
-  contributorRank: number = CONTRIBUTOR_RANK,
-  rosterKeys: Set<string> = ROSTER_ROLE_KEYS,
-): Promise<ProjectRoleGroup[]> {
-  const groups = new Map<string, ProjectRoleGroup>();
-
-  for (const member of members) {
-    const existing = groups.get(member.role.key);
-    if (existing) {
-      existing.members.push(await mapUser(member.user));
-      continue;
-    }
-    groups.set(member.role.key, {
-      key: member.role.key,
-      name: member.role.name,
-      rank: member.role.rank,
-      distinguished:
-        member.role.rank >= contributorRank && !rosterKeys.has(member.role.key),
-      members: [await mapUser(member.user)],
-    });
-  }
-
-  // Descending by rank; same-rank ties by name, so the order doesn't jump
-  // between two calls.
-  return [...groups.values()].sort(
-    (a, b) => b.rank - a.rank || a.name.localeCompare(b.name),
-  );
+function percentile(sorted: number[], p: number): number | null {
+  if (sorted.length === 0) return null;
+  const i = Math.min(sorted.length - 1, Math.ceil(p * sorted.length) - 1);
+  return Math.round(sorted[Math.max(0, i)] * 10) / 10;
 }
 
-/**
- * What the project is, independent of how it's currently doing.
- *
- * None of this has a time period, and that's exactly why it's not in
- * `ProjectDashboardData`: a reference prefix doesn't have 30 days. Both come
- * from a single call anyway — the page shows both views from the same data
- * and switches between them without a server round trip.
- *
- * The member list is `ProjectMember` and thus the same source
- * `lib/permissions.ts` uses to decide access. Workspace owners and admins
- * who can see every project without being entered in it are therefore
- * missing here — that's deliberate: the profile card shows who *works* in
- * the project, not who's allowed to look into everything. Anyone who needs
- * the full access list finds it under "Members" (`getProjectMembersView`).
- */
-async function profileFor(projectId: string): Promise<ProjectProfile | null> {
-  const userId = await currentUserId();
-  // The same permission the settings page also checks
-  // (`getProjectSettingsView`) — the button should appear exactly where it
-  // actually leads somewhere.
-  const access = await accessFor(userId, { projectId });
+// ── The widgets ──────────────────────────────────────────────────────────────
 
-  const project = await db.project.findUnique({
-    where: { id: projectId },
-    select: {
-      desc: true,
-      prefix: true,
-      visibility: true,
-      createdAt: true,
-      workspaceId: true,
-      createdBy: { select: USER_SELECT },
-      members: {
-        select: {
-          user: { select: USER_SELECT },
-          role: { select: { key: true, name: true, rank: true } },
-        },
-        orderBy: byName,
-      },
-      teams: {
-        select: {
-          team: { select: { id: true, name: true, key: true, color: true } },
-        },
-      },
-      labels: {
-        select: { id: true, name: true, color: true, slug: true },
-        orderBy: { name: "asc" },
-      },
-    },
-  });
-  if (!project) return null;
-
-  // Workspace labels apply in every project — except the ones this project
-  // has hidden. Without this second part, the profile card would show only
-  // the project's own labels and thereby claim there were no others.
-  const shared = await db.label.findMany({
-    where: {
-      projectId: null,
-      workspace: { projects: { some: { id: projectId } } },
-      hiddenIn: { none: { projectId } },
-    },
-    select: { id: true, name: true, color: true, slug: true },
-    orderBy: { name: "asc" },
-  });
-
-  // `team.project.manage` is a workspace permission (teams belong to the
-  // workspace, not the project) — it doesn't exist at all in the project
-  // context, hence a second, workspace-scoped lookup.
-  const wsAccess = await accessFor(userId, {
-    workspaceId: project.workspaceId,
-  });
-
-  return {
-    desc: project.desc,
-    prefix: project.prefix,
-    visibility: project.visibility,
-    createdAt: project.createdAt.getTime(),
-    createdBy: project.createdBy ? await mapUser(project.createdBy) : null,
-    canUpdate: access.has("project.update"),
-    canViewSettings: PROJECT_SETTINGS_PERMISSIONS.some(access.has),
-    canViewAllStats: access.has("dashboard.view.all"),
-    canCreateLabel: access.has("label.create"),
-    canManageTeams: wsAccess.has("team.project.manage"),
-    roles: await groupByRole(project.members),
-    memberCount: project.members.length,
-    teams: project.teams.map((entry) => entry.team),
-    labels: [
-      ...project.labels.map((label) => ({ ...label, own: true })),
-      ...shared.map((label) => ({ ...label, own: false })),
-    ],
-  };
+async function kpi(
+  ctx: Ctx,
+  where: Where,
+  metric: KpiMetric,
+  own: IssueFilter | undefined,
+): Promise<WidgetData> {
+  const href = await boardHref(ctx, own, metricParams(ctx, metric));
+  const data = await kpiValue(ctx, where, metric);
+  return data.type === "kpi" ? { ...data, href } : data;
 }
 
-// ── The layout, the way someone has set it up ───────────────────────────────
+async function kpiValue(
+  ctx: Ctx,
+  where: Where,
+  metric: KpiMetric,
+): Promise<WidgetData> {
+  const { window, previous } = ctx;
+  const open: Where = { status: { notIn: ctx.closed } };
+  const count = (extra: Where) =>
+    db.issue.count({ where: { AND: [where, extra] } });
 
-/**
- * Your own layout for this project.
- *
- * Without a row in the table, the default applies — `resolveLayout` doesn't
- * know the difference and doesn't need to. The period lives here too: it's
- * the one setting you'd otherwise have to re-choose every time you open the
- * page.
- */
-export const getMyDashboardLayout = cache(
-  async (
-    projectId: string,
-  ): Promise<{
-    order: string[];
-    hidden: string[];
-    range: string | null;
-    view: string | null;
-    scope: string | null;
-  }> => {
-    const session = await getSession();
-    if (!session) {
-      return { order: [], hidden: [], range: null, view: null, scope: null };
-    }
-
-    const row = await db.dashboardPreference.findUnique({
-      where: { userId_projectId: { userId: session.userId, projectId } },
-    });
-    return {
-      order: row?.order ?? [],
-      hidden: row?.hidden ?? [],
-      range: row?.range ?? null,
-      view: row?.view ?? null,
-      scope: row?.scope ?? null,
-    };
-  },
-);
-
-// ── Everything together ─────────────────────────────────────────────────────
-
-/**
- * A project's entire dashboard.
- *
- * Every widget is loaded, including the hidden ones. That's a deliberate
- * decision against the obvious approach: loading only what's visible saves a
- * few counting queries and, in exchange, means every show/hide toggle in the
- * customize dialog needs a fresh server round trip — the preview in the
- * dialog would then sit empty until it reloads. The queries are counts over
- * an index; the two most expensive lists have a `take` of six.
- */
-export const getProjectDashboard = cache(
-  async (
-    projectId: string,
-    range: RangeKey,
-    scope: DashboardScope = "all",
-  ): Promise<ProjectDashboardView | null> => {
-    if (!(await hasPermission("project.view", { projectId }))) return null;
-    const userId = await currentUserId();
-    if (!userId) return null;
-
-    const project = await db.project.findUnique({
-      where: { id: projectId },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        color: true,
-        avatarKey: true,
-        prefix: true,
-        workspaceId: true,
-      },
-    });
-    if (!project) return null;
-
-    const window = windowFor(range);
-
-    // Anyone without `dashboard.view.all` sees only their own numbers —
-    // regardless of what `scope` requests. `effectiveScope` ends up in
-    // `data.scope` and is therefore always what was actually delivered.
-    const canViewAll = await hasPermission("dashboard.view.all", {
-      projectId,
-    });
-    const effectiveScope: DashboardScope = canViewAll ? scope : "mine";
-    const assigneeId = effectiveScope === "mine" ? userId : null;
-
-    const [stats, statuses, priorities, throughput, workload, profile, layout] =
-      await Promise.all([
-        statsFor(projectId, window.from, window.to, assigneeId),
-        statusesFor(projectId, project.workspaceId, assigneeId),
-        prioritiesFor(projectId, project.workspaceId, assigneeId),
-        throughputFor(
-          projectId,
-          window.unit,
-          window.from,
-          window.to,
-          window.keys,
-          assigneeId,
-        ),
-        workloadFor(projectId, assigneeId),
-        profileFor(projectId),
-        getMyDashboardLayout(projectId),
+  switch (metric) {
+    case "open": {
+      const [now, created, closed] = await Promise.all([
+        count(open),
+        datesIn(where, "created", window.from, window.to),
+        datesIn(where, "closedAt", window.from, window.to),
       ]);
-    if (!profile) return null;
-
-    // Needs the statuses' colors and therefore waits on `statuses` — a
-    // second query against the same table would be the only way to
-    // parallelize this.
-    const attention = await attentionFor(
-      projectId,
-      project.prefix,
-      new Map(statuses.map((status) => [status.id, status.color])),
-      assigneeId,
-    );
-
-    const resolved = resolveLayout(layout.order, layout.hidden);
-
-    const data: ProjectDashboardData = {
-      range,
-      unit: window.unit,
-      scope: effectiveScope,
-      stats,
-      statuses,
-      priorities,
-      throughput,
-      workload,
-      attention,
-    };
-
-    return {
-      project: {
-        id: project.id,
-        name: project.name,
-        slug: project.slug,
-        color: project.color,
-        avatarUrl: await resolveAvatarUrl(project.avatarKey),
-      },
-      data,
-      profile,
-      order: resolved.visible,
-      hidden: resolved.hidden,
-    } satisfies ProjectDashboardView;
-  },
-);
-
-/** The period the dashboard opens with when there's no `?range=` in the address. */
-export async function getMyDashboardRange(
-  projectId: string,
-): Promise<string | null> {
-  return (await getMyDashboardLayout(projectId)).range;
+      // Walk back from now: the open pile at each bucket's end.
+      const c = bucketCounts(created, window);
+      const d = bucketCounts(closed, window);
+      const spark = window.keys.map(() => 0);
+      let level = now;
+      for (let i = window.keys.length - 1; i >= 0; i--) {
+        spark[i] = level;
+        level -= c[i] - d[i];
+      }
+      return { type: "kpi", value: now, previous: level, spark, href: null };
+    }
+    case "created":
+    case "closed": {
+      const column = metric === "created" ? "created" : "closedAt";
+      const [dates, before] = await Promise.all([
+        datesIn(where, column, window.from, window.to),
+        count({ [column]: { gte: previous.from, lt: previous.to } }),
+      ]);
+      return {
+        type: "kpi",
+        value: dates.length,
+        previous: before,
+        spark: bucketCounts(dates, window),
+        href: null,
+      };
+    }
+    case "cycleTime": {
+      const [now, before] = await Promise.all([
+        cyclesIn(where, window.from, window.to),
+        cyclesIn(where, previous.from, previous.to),
+      ]);
+      return {
+        type: "kpi",
+        value: avg(now.map((x) => x.days)),
+        previous: avg(before.map((x) => x.days)),
+        spark: cycleSpark(now, window).map((v) => v ?? 0),
+        href: null,
+      };
+    }
+    case "inProgress":
+      return stock(await count({ status: { in: ctx.started } }));
+    case "inReview":
+      return stock(await count({ status: "in_review" }));
+    case "overdue":
+      return stock(await count({ ...open, dueDate: { lt: todayStart() } }));
+    case "dueSoon":
+      return stock(
+        await count({
+          ...open,
+          dueDate: {
+            gte: todayStart(),
+            lt: new Date(todayStart().getTime() + 7 * DAY),
+          },
+        }),
+      );
+    case "unassigned":
+      return stock(await count({ ...open, assigneeId: null }));
+    case "urgent":
+      return stock(await count({ ...open, priority: { gte: 4 } }));
+    case "total":
+      return stock(await count({}));
+  }
 }
 
-/**
- * The view the project page opens in when there's no `?view=` in the
- * address — the one last used. `null` as long as nobody has switched it.
- */
-export async function getMyDashboardView(
-  projectId: string,
-): Promise<string | null> {
-  return (await getMyDashboardLayout(projectId)).view;
+const stock = (value: number): WidgetData => ({
+  type: "kpi",
+  value,
+  previous: null,
+  spark: null,
+  href: null,
+});
+
+function cycleSpark(
+  rows: { closedAt: Date; days: number }[],
+  window: Window,
+): (number | null)[] {
+  const index = new Map(window.keys.map((key, i) => [key, i]));
+  const sums = window.keys.map(() => [] as number[]);
+  for (const row of rows) {
+    const i = index.get(bucketKey(truncate(row.closedAt, window.unit)));
+    if (i !== undefined) sums[i].push(row.days);
+  }
+  return sums.map(avg);
 }
 
-// ─── The same, one level up: a workspace's dashboard ──────────────────────────
-//
-// The same widgets as for a project, just without the boundary to a single
-// project: every count goes through `project.workspaceId` instead of
-// `projectId`. Two separate routes instead of a toggle — see
-// `WorkspaceDashboardPreference` in the schema — hence no `view` and no
-// `setDashboardView` counterpart here.
-//
-// **Permissions.** `currentUserCanEnterWorkspace` instead of `project.view`:
-// the numbers condense every project, and access to those can already
-// differ — so who's allowed to see them is whoever can enter the workspace
-// at all, not whoever could see each individual project.
-
-async function wsStatsFor(
-  workspaceId: string,
-  from: Date,
-  to: Date,
-  assigneeId: string | null,
-): Promise<DashboardStats> {
-  const closed = await closedStatusIds();
-  const window = { gte: from, lt: to };
-  const project = { workspaceId };
-  const mine = assigneeId ? { assigneeId } : {};
-
-  const [total, open, inProgress, inReview, created, urgent, urgentUnassigned] =
-    await Promise.all([
-      db.issue.count({ where: { project, ...mine } }),
-      db.issue.count({
-        where: { project, status: { notIn: closed }, ...mine },
-      }),
-      db.issue.count({ where: { project, status: "in_progress", ...mine } }),
-      db.issue.count({ where: { project, status: "in_review", ...mine } }),
-      db.issue.count({ where: { project, created: window, ...mine } }),
-      db.issue.count({
-        where: { project, status: { notIn: closed }, priority: 4, ...mine },
-      }),
-      assigneeId
-        ? Promise.resolve(0)
-        : db.issue.count({
-            where: {
-              project,
-              status: { notIn: closed },
-              priority: 4,
-              assigneeId: null,
-            },
-          }),
-    ]);
-
-  const [cycle] = await db.$queryRaw<
-    { closed: bigint; avg_days: number | null }[]
-  >`
-    SELECT COUNT(*)                                                     AS closed,
-           AVG(EXTRACT(EPOCH FROM (i."closedAt" - i."created")) / 86400.0) AS avg_days
-      FROM "Issue" i
-      JOIN "Project" p ON p.id = i."projectId"
-     WHERE p."workspaceId" = ${workspaceId}
-       AND i."closedAt" >= ${from}
-       AND i."closedAt" <  ${to}
-       AND (${assigneeId}::text IS NULL OR i."assigneeId" = ${assigneeId})
-  `;
-
-  return {
-    total,
-    open,
-    inProgress,
-    inReview,
-    created,
-    urgent,
-    urgentUnassigned,
-    closed: Number(cycle?.closed ?? 0),
-    cycleDays:
-      cycle?.avg_days == null ? null : Math.round(cycle.avg_days * 10) / 10,
-  };
-}
-
-async function wsStatusesFor(
-  workspaceId: string,
-  assigneeId: string | null,
-): Promise<StatusSlice[]> {
-  const [statuses, rows] = await Promise.all([
-    getStatuses(workspaceId),
-    db.issue.groupBy({
-      by: ["status"],
-      where: {
-        project: { workspaceId },
-        ...(assigneeId ? { assigneeId } : {}),
-      },
-      _count: { _all: true },
+async function progress(ctx: Ctx, where: Where): Promise<WidgetData> {
+  const canceled = ctx.closed.filter((id) => !ctx.completed.includes(id));
+  const scoped: Where = { AND: [where, { status: { notIn: canceled } }] };
+  const [total, done, inProgress] = await Promise.all([
+    db.issue.count({ where: scoped }),
+    db.issue.count({
+      where: { AND: [where, { status: { in: ctx.completed } }] },
+    }),
+    db.issue.count({
+      where: { AND: [where, { status: { in: ctx.started } }] },
     }),
   ]);
-
-  const counts = new Map(rows.map((row) => [row.status, row._count._all]));
-  return statuses.map((status) => ({
-    id: status.id,
-    name: status.name,
-    short: status.short,
-    color: status.color,
-    count: counts.get(status.id) ?? 0,
-  }));
+  return { type: "progress", total, done, inProgress, href: null };
 }
 
-async function wsPrioritiesFor(
-  workspaceId: string,
-  assigneeId: string | null,
-): Promise<PrioritySlice[]> {
-  const closed = await closedStatusIds();
-  const [priorities, rows] = await Promise.all([
-    getPriorities(workspaceId),
-    db.issue.groupBy({
-      by: ["priority"],
-      where: {
-        project: { workspaceId },
-        status: { notIn: closed },
-        ...(assigneeId ? { assigneeId } : {}),
-      },
-      _count: { _all: true },
-    }),
-  ]);
+const COLUMN: Record<
+  Exclude<GroupField, "label">,
+  "status" | "priority" | "type" | "assigneeId" | "projectId"
+> = {
+  status: "status",
+  priority: "priority",
+  type: "type",
+  assignee: "assigneeId",
+  project: "projectId",
+};
 
-  const counts = new Map(rows.map((row) => [row.priority, row._count._all]));
-  return priorities
-    .map((priority) => ({
-      id: priority.id,
-      key: priority.key,
-      name: priority.name,
-      color: priority.color,
-      count: counts.get(priority.id) ?? 0,
-    }))
-    .sort((a, b) => b.id - a.id);
-}
-
-async function wsThroughputFor(
-  workspaceId: string,
-  unit: BucketUnit,
-  from: Date,
-  to: Date,
+/** Name and color for every key an axis can have, in its natural order. */
+async function axisFor(
+  ctx: Ctx,
+  field: GroupField,
   keys: string[],
-  assigneeId: string | null,
-): Promise<ThroughputPoint[]> {
-  const countsIn = async (column: "created" | "closedAt") => {
-    const rows = await db.$queryRaw<{ bucket: Date; count: bigint }[]>`
-      SELECT date_trunc(${unit}, ${Prisma.raw(`i."${column}"`)}) AS bucket,
-             COUNT(*) AS count
-        FROM "Issue" i
-        JOIN "Project" p ON p.id = i."projectId"
-       WHERE p."workspaceId" = ${workspaceId}
-         AND ${Prisma.raw(`i."${column}"`)} >= ${from}
-         AND ${Prisma.raw(`i."${column}"`)} <  ${to}
-         AND (${assigneeId}::text IS NULL OR i."assigneeId" = ${assigneeId})
-       GROUP BY 1
-    `;
-    return new Map(
-      rows.map((row) => [bucketKey(row.bucket), Number(row.count)]),
-    );
-  };
-
-  const [created, closed] = await Promise.all([
-    countsIn("created"),
-    countsIn("closedAt"),
-  ]);
-
-  return keys.map((date) => ({
-    date,
-    created: created.get(date) ?? 0,
-    closed: closed.get(date) ?? 0,
-  }));
+): Promise<Slice[]> {
+  switch (field) {
+    case "status":
+      return ctx.statuses.map((s) => ({
+        key: s.id,
+        label: s.name,
+        color: s.color,
+        count: 0,
+      }));
+    case "priority":
+      return [...ctx.priorities]
+        .sort((a, b) => b.id - a.id)
+        .map((p) => ({
+          key: String(p.id),
+          label: p.name,
+          color: p.color,
+          count: 0,
+        }));
+    case "type":
+      return ctx.types.map((t) => ({
+        key: t.id,
+        label: t.name,
+        color: t.color,
+        count: 0,
+      }));
+    case "assignee": {
+      const users = await db.user.findMany({
+        where: { id: { in: keys.filter((k) => k !== "_none") } },
+        select: USER_SELECT,
+      });
+      const mapped = await Promise.all(users.map(mapUser));
+      return [
+        ...mapped.map((user) => ({
+          key: user.id,
+          label: `${user.firstName} ${user.lastName}`.trim(),
+          color: user.color,
+          count: 0,
+          user,
+        })),
+        { key: "_none", label: "", color: "#8a9099", count: 0, user: null },
+      ];
+    }
+    case "project": {
+      const projects = await db.project.findMany({
+        where: { id: { in: keys } },
+        select: { id: true, name: true, color: true },
+        orderBy: { name: "asc" },
+      });
+      return projects.map((p) => ({
+        key: p.id,
+        label: p.name,
+        color: p.color,
+        count: 0,
+      }));
+    }
+    case "label": {
+      const labels = await db.label.findMany({
+        where: { id: { in: keys } },
+        select: { id: true, name: true, color: true },
+      });
+      return [
+        ...labels.map((l) => ({
+          key: l.id,
+          label: l.name,
+          color: l.color,
+          count: 0,
+        })),
+        { key: "_none", label: "", color: "#8a9099", count: 0 },
+      ];
+    }
+  }
 }
 
-async function wsWorkloadFor(
-  workspaceId: string,
-  assigneeId: string | null,
-): Promise<WorkloadRow[]> {
-  const closed = await closedStatusIds();
+/** Counts per key of one field. */
+async function countsBy(
+  where: Where,
+  field: GroupField,
+): Promise<Map<string, number>> {
+  if (field === "label") {
+    const rows = await db.issue.findMany({ where, select: { labels: true } });
+    const counts = new Map<string, number>();
+    for (const row of rows) {
+      const keys = row.labels.length ? row.labels : ["_none"];
+      for (const key of keys) counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+  }
+  const column = COLUMN[field];
   const rows = await db.issue.groupBy({
-    by: ["assigneeId", "status"],
-    where: {
-      project: { workspaceId },
-      status: { notIn: closed },
-      ...(assigneeId ? { assigneeId } : {}),
-    },
+    by: [column],
+    where,
     _count: { _all: true },
   });
-  if (rows.length === 0) return [];
+  return new Map(
+    rows.map((row) => [
+      String((row as Record<string, unknown>)[column] ?? "_none"),
+      row._count._all,
+    ]),
+  );
+}
 
+/** Ladder fields keep their order; people, projects and labels go by size. */
+const LADDER = new Set<GroupField>(["status", "priority", "type"]);
+
+/** Board params for one value of a field — `null` for "everything else". */
+async function sliceParams(
+  ctx: Ctx,
+  field: GroupField,
+  key: string,
+): Promise<[string, string][] | null> {
+  if (key === "_other") return null;
+  if (key === "_none") {
+    return field === "assignee"
+      ? [["assignee.empty", "1"]]
+      : field === "label"
+        ? [["label.empty", "1"]]
+        : null;
+  }
+  const lookups = await ctx.slugs();
+  switch (field) {
+    case "status":
+      return [["status", key]];
+    case "type":
+      return [["type", key]];
+    case "priority": {
+      const p = lookups.priorities.find((x) => String(x.id) === key);
+      return p ? [["priority", p.key]] : null;
+    }
+    case "assignee": {
+      const m = lookups.members.find((x) => x.id === key);
+      return m ? [["assignee", m.handle]] : null;
+    }
+    case "label": {
+      const l = lookups.labels.find((x) => x.id === key);
+      return l ? [["label", l.slug]] : null;
+    }
+    case "project": {
+      const p = lookups.projects?.find((x) => x.id === key);
+      return p ? [["project", p.slug]] : null;
+    }
+  }
+}
+
+async function distribution(
+  ctx: Ctx,
+  where: Where,
+  field: GroupField,
+  openOnly: boolean,
+  own: IssueFilter | undefined,
+): Promise<WidgetData> {
+  const scoped = openOnly
+    ? { AND: [where, { status: { notIn: ctx.closed } }] }
+    : where;
+  const counts = await countsBy(scoped, field);
+  const axis = await axisFor(ctx, field, [...counts.keys()]);
+  let slices = axis
+    .map((slice) => ({ ...slice, count: counts.get(slice.key) ?? 0 }))
+    .filter((slice) => slice.count > 0);
+  if (!LADDER.has(field)) slices.sort((a, b) => b.count - a.count);
+  const total = [...counts.values()].reduce((a, b) => a + b, 0);
+  if (slices.length > SLICE_LIMIT) {
+    const rest = slices.slice(SLICE_LIMIT - 1);
+    slices = [
+      ...slices.slice(0, SLICE_LIMIT - 1),
+      {
+        key: "_other",
+        label: "",
+        color: "#8a9099",
+        count: rest.reduce((a, b) => a + b.count, 0),
+      },
+    ];
+  }
+  // Each part opens the board filtered to its value.
+  const withHrefs = await Promise.all(
+    slices.map(async (slice) => {
+      const params = await sliceParams(ctx, field, slice.key);
+      return {
+        ...slice,
+        href: params
+          ? await boardHref(ctx, own, [
+              ...(openOnly ? [OPEN_PARAM] : []),
+              ...params,
+            ])
+          : null,
+      };
+    }),
+  );
+  return { type: "distribution", slices: withHrefs, total };
+}
+
+async function attention(ctx: Ctx, where: Where): Promise<WidgetData> {
+  const today = todayStart();
+  const staleBefore = new Date(Date.now() - STALE_DAYS * DAY);
+  const scoped: Where = {
+    AND: [
+      where,
+      { status: { notIn: ctx.closed } },
+      {
+        OR: [
+          { dueDate: { lt: today } },
+          { priority: { gte: 3 } },
+          { status: { in: ctx.started }, updated: { lt: staleBefore } },
+        ],
+      },
+    ],
+  };
+  const [rows, total] = await Promise.all([
+    db.issue.findMany({
+      where: scoped,
+      select: ISSUE_SELECT,
+      orderBy: [{ priority: "desc" }, { updated: "asc" }],
+      take: 200,
+    }),
+    db.issue.count({ where: scoped }),
+  ]);
+  const reasonOf = (row: IssueRow): AttentionReason =>
+    row.dueDate && row.dueDate < today
+      ? "overdue"
+      : row.priority >= 4 && !row.assignee
+        ? "unassigned"
+        : row.priority >= 3
+          ? "urgent"
+          : "stale";
+  const rank: Record<AttentionReason, number> = {
+    overdue: 0,
+    unassigned: 1,
+    urgent: 2,
+    stale: 3,
+  };
+  const picked = rows
+    .map((row) => ({ row, reason: reasonOf(row) }))
+    .sort((a, b) => rank[a.reason] - rank[b.reason])
+    .slice(0, LIST_LIMIT);
+  return {
+    type: "attention",
+    total,
+    issues: await Promise.all(
+      picked.map(async ({ row, reason }) => ({
+        ...(await mapIssue(ctx, row)),
+        reason,
+      })),
+    ),
+  };
+}
+
+async function issues(
+  ctx: Ctx,
+  where: Where,
+  sort: Widget["config"]["sort"],
+  openOnly: boolean,
+): Promise<WidgetData> {
+  const scoped = openOnly
+    ? { AND: [where, { status: { notIn: ctx.closed } }] }
+    : where;
+  const orderBy: Prisma.IssueOrderByWithRelationInput[] =
+    sort === "created"
+      ? [{ created: "desc" }]
+      : sort === "dueDate"
+        ? [{ dueDate: { sort: "asc", nulls: "last" } }, { priority: "desc" }]
+        : sort === "priority"
+          ? [{ priority: "desc" }, { updated: "desc" }]
+          : [{ updated: "desc" }];
+  const [rows, total] = await Promise.all([
+    db.issue.findMany({
+      where: scoped,
+      select: ISSUE_SELECT,
+      orderBy,
+      take: LIST_LIMIT,
+    }),
+    db.issue.count({ where: scoped }),
+  ]);
+  return {
+    type: "issues",
+    total,
+    issues: await Promise.all(rows.map((row) => mapIssue(ctx, row))),
+  };
+}
+
+async function flow(
+  ctx: Ctx,
+  where: Where,
+  own: IssueFilter | undefined,
+): Promise<WidgetData> {
+  const { window } = ctx;
+  const [created, closed] = await Promise.all([
+    datesIn(where, "created", window.from, window.to),
+    datesIn(where, "closedAt", window.from, window.to),
+  ]);
+  const c = bucketCounts(created, window);
+  const d = bucketCounts(closed, window);
+  // Each bar opens the board with what it counts: created in its bucket,
+  // or done and last changed in it (the board has no "closed on").
+  const starts = window.keys.map((key) => {
+    const [y, m, dd] = key.split("-").map(Number);
+    return new Date(y, m - 1, dd);
+  });
+  const end = (i: number) => starts[i + 1] ?? window.to;
+  const points = await Promise.all(
+    window.keys.map(async (date, i) => ({
+      date,
+      created: c[i],
+      closed: d[i],
+      createdHref: c[i]
+        ? await boardHref(ctx, own, between("created", starts[i], end(i)))
+        : null,
+      closedHref: d[i]
+        ? await boardHref(ctx, own, [
+            ["statusCategory", "completed"],
+            ...between("updated", starts[i], end(i)),
+          ])
+        : null,
+    })),
+  );
+  return {
+    type: "flow",
+    points,
+    created: created.length,
+    closed: closed.length,
+  };
+}
+
+async function burnup(ctx: Ctx, where: Where): Promise<WidgetData> {
+  const { window } = ctx;
+  const [totalBefore, doneBefore, created, closed] = await Promise.all([
+    db.issue.count({
+      where: { AND: [where, { created: { lt: window.from } }] },
+    }),
+    db.issue.count({
+      where: { AND: [where, { closedAt: { lt: window.from } }] },
+    }),
+    datesIn(where, "created", window.from, window.to),
+    datesIn(where, "closedAt", window.from, window.to),
+  ]);
+  const c = bucketCounts(created, window);
+  const d = bucketCounts(closed, window);
+  let total = totalBefore;
+  let done = doneBefore;
+  return {
+    type: "burnup",
+    points: window.keys.map((date, i) => {
+      total += c[i];
+      done += d[i];
+      return { date, total, done };
+    }),
+  };
+}
+
+async function cycle(ctx: Ctx, where: Where): Promise<WidgetData> {
+  const { window, previous } = ctx;
+  const [now, before] = await Promise.all([
+    cyclesIn(where, window.from, window.to),
+    cyclesIn(where, previous.from, previous.to),
+  ]);
+  const sorted = now.map((x) => x.days).sort((a, b) => a - b);
+  return {
+    type: "cycle",
+    avg: avg(sorted),
+    previous: avg(before.map((x) => x.days)),
+    p50: percentile(sorted, 0.5),
+    p75: percentile(sorted, 0.75),
+    p95: percentile(sorted, 0.95),
+    points: now.slice(0, 300).map((row) => ({
+      id: row.id,
+      ref: `${ctx.prefixes.get(row.projectId) ?? "?"}-${row.key}`,
+      title: row.title,
+      closed: row.closedAt.getTime(),
+      days: Math.round(row.days * 10) / 10,
+    })),
+    spark: cycleSpark(now, window),
+  };
+}
+
+async function workload(
+  ctx: Ctx,
+  where: Where,
+  own: IssueFilter | undefined,
+): Promise<WidgetData> {
+  const rows = await db.issue.groupBy({
+    by: ["assigneeId", "status"],
+    where: { AND: [where, { status: { notIn: ctx.closed } }] },
+    _count: { _all: true },
+  });
   const ids = [
     ...new Set(
-      rows.map((row) => row.assigneeId).filter((id): id is string => !!id),
+      rows.map((r) => r.assigneeId).filter((id): id is string => !!id),
     ),
   ];
   const users = await db.user.findMany({
@@ -1024,20 +1123,18 @@ async function wsWorkloadFor(
   });
   const byId = new Map(
     await Promise.all(
-      users.map(async (user) => [user.id, await mapUser(user)] as const),
+      users.map(async (u) => [u.id, await mapUser(u)] as const),
     ),
   );
-
   const totals = new Map<string, { open: number; inProgress: number }>();
   for (const row of rows) {
     const key = row.assigneeId ?? "";
     const entry = totals.get(key) ?? { open: 0, inProgress: 0 };
     entry.open += row._count._all;
-    if (row.status === "in_progress") entry.inProgress += row._count._all;
+    if (ctx.started.includes(row.status)) entry.inProgress += row._count._all;
     totals.set(key, entry);
   }
-
-  return [...totals.entries()]
+  const list: WorkloadRow[] = [...totals.entries()]
     .map(([id, counts]) => ({
       user: id ? (byId.get(id) ?? null) : null,
       ...counts,
@@ -1047,294 +1144,826 @@ async function wsWorkloadFor(
         b.open - a.open ||
         (a.user?.firstName ?? "").localeCompare(b.user?.firstName ?? ""),
     );
-}
-
-/** Like `attentionFor`, just across all projects — the reference therefore needs the prefix of the project each issue belongs to, instead of a fixed one. */
-async function wsAttentionFor(
-  workspaceId: string,
-  statusColors: Map<string, string>,
-  assigneeId: string | null,
-): Promise<AttentionIssue[]> {
-  const closed = await closedStatusIds();
-  const staleBefore = new Date(Date.now() - STALE_DAYS * 86400_000);
-
-  const rows = await db.issue.findMany({
-    where: {
-      project: { workspaceId },
-      status: { notIn: closed },
-      ...(assigneeId ? { assigneeId } : {}),
-      OR: [
-        { priority: { gte: 3 } },
-        { status: "in_progress", updated: { lt: staleBefore } },
-      ],
-    },
-    select: {
-      id: true,
-      key: true,
-      title: true,
-      status: true,
-      priority: true,
-      updated: true,
-      assignee: { select: USER_SELECT },
-      project: { select: { prefix: true } },
-    },
-    orderBy: [{ priority: "desc" }, { updated: "asc" }],
-    take: LIST_LIMIT,
-  });
-
-  return Promise.all(
-    rows.map(async (row) => {
-      const reason: AttentionReason =
-        row.priority === 4 && !row.assignee
-          ? "unassigned"
-          : row.priority >= 3
-            ? "urgent"
-            : "stale";
-
+  // Each person opens the board with their open issues.
+  const lookups = await ctx.slugs();
+  const withHrefs = await Promise.all(
+    list.map(async (row) => {
+      const handle = row.user
+        ? lookups.members.find((m) => m.id === row.user?.id)?.handle
+        : null;
+      const param: [string, string] | null = row.user
+        ? handle
+          ? ["assignee", handle]
+          : null
+        : ["assignee.empty", "1"];
       return {
-        id: row.id,
-        ref: issueRef(row.project.prefix, row.key),
-        title: row.title,
-        status: row.status,
-        statusColor: statusColors.get(row.status) ?? "#8a9099",
-        priority: row.priority,
-        assignee: row.assignee ? await mapUser(row.assignee) : null,
-        updated: row.updated.getTime(),
-        reason,
-      } satisfies AttentionIssue;
+        ...row,
+        href: param ? await boardHref(ctx, own, [OPEN_PARAM, param]) : null,
+      };
     }),
   );
+  return { type: "workload", rows: withHrefs };
 }
 
-/**
- * What the workspace is, independent of how it's currently doing — the
- * counterpart to `profileFor` one level down.
- *
- * No `desc`, no `prefix`: the workspace has neither. In their place, its
- * projects, which take the spot labels had in the project's profile card —
- * at this level, the question "what does this consist of" is answered by
- * the list of projects, not the list of labels.
- */
-async function wsProfileFor(
-  workspaceId: string,
-): Promise<WorkspaceProfile | null> {
-  const userId = await currentUserId();
-  const access = await accessFor(userId, { workspaceId });
-  // The same visibility rule as everywhere (`getProjects`): the profile
-  // card is just another view, not a separate path around private projects.
-  const visible = await visibleProjectIds(workspaceId);
-
-  const [workspace, assignableProjectRoles] = await Promise.all([
-    db.workspace.findUnique({
-      where: { id: workspaceId },
-      select: {
-        desc: true,
-        createdAt: true,
-        // Anyone invited but not yet joined isn't part of the team yet —
-        // the profile card shows who *has* access, not who's about to get it.
-        members: {
-          where: { pending: false },
-          select: {
-            user: { select: USER_SELECT },
-            role: { select: { key: true, name: true, rank: true } },
-          },
-          orderBy: byName,
-        },
-        teams: {
-          select: { id: true, name: true, key: true, color: true },
-          orderBy: { name: "asc" },
-        },
-        projects: {
-          where: { id: { in: [...visible] } },
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            color: true,
-            avatarKey: true,
-          },
-          orderBy: { name: "asc" },
-        },
-        links: {
-          select: { id: true, label: true, url: true },
-          orderBy: { position: "asc" },
-        },
-      },
-    }),
-    // As in `getWorkspaceTeamsView`: only the project roles that apply
-    // across every project in the workspace — see the comment on
-    // `WorkspaceTeamsView.assignableProjectRoles`.
-    db.role.findMany({
-      where: {
-        scope: "PROJECT",
-        OR: [{ system: true }, { workspaceId, projectId: null }],
-      },
-      select: { key: true, name: true, rank: true },
-      orderBy: { rank: "desc" },
-    }),
+async function matrix(
+  ctx: Ctx,
+  where: Where,
+  rowField: GroupField,
+  colField: GroupField,
+  openOnly: boolean,
+): Promise<WidgetData> {
+  // Labels can't be an axis (see `MATRIX_FIELDS`); fall back to status.
+  const rf = rowField === "label" ? "status" : rowField;
+  const cf =
+    colField === "label" || colField === rf
+      ? rf === "status"
+        ? "priority"
+        : "status"
+      : colField;
+  const scoped = openOnly
+    ? { AND: [where, { status: { notIn: ctx.closed } }] }
+    : where;
+  const r = COLUMN[rf];
+  const c = COLUMN[cf];
+  const rows = await db.issue.groupBy({
+    by: r === c ? [r] : [r, c],
+    where: scoped,
+    _count: { _all: true },
+  });
+  const keyOf = (row: Record<string, unknown>, column: string) =>
+    String(row[column] ?? "_none");
+  const rowKeys = new Set(rows.map((row) => keyOf(row, r)));
+  const colKeys = new Set(rows.map((row) => keyOf(row, c)));
+  const [rowAxis, colAxis] = await Promise.all([
+    axisFor(ctx, rf, [...rowKeys]),
+    axisFor(ctx, cf, [...colKeys]),
   ]);
-  if (!workspace) return null;
-
-  const canViewMembers = access.has("member.view");
-  const canViewSettings = WORKSPACE_SETTINGS_PERMISSIONS.some(access.has);
-
-  // Who's in charge is not protected information — unlike the full roster
-  // (member/viewer/guest), leadership stays visible even without
-  // `member.view`, otherwise nobody in the workspace would know who's
-  // running it. The rank and file behind them (`rest` in the view) drops out
-  // below via the filter anyway, since only `distinguished` remains.
-  const roles = await groupByRole(
-    workspace.members,
-    WS_CONTRIBUTOR_RANK,
-    WS_ROSTER_ROLE_KEYS,
-  );
-
+  const rowsUsed = rowAxis.filter((s) => rowKeys.has(s.key)).slice(0, 12);
+  const colsUsed = colAxis.filter((s) => colKeys.has(s.key)).slice(0, 8);
+  const cells = rowsUsed.map(() => colsUsed.map(() => 0));
+  for (const row of rows) {
+    const i = rowsUsed.findIndex((s) => s.key === keyOf(row, r));
+    const j = colsUsed.findIndex((s) => s.key === keyOf(row, c));
+    if (i >= 0 && j >= 0) cells[i][j] += row._count._all;
+  }
+  for (const [i, s] of rowsUsed.entries())
+    s.count = cells[i].reduce((a, b) => a + b, 0);
+  for (const [j, s] of colsUsed.entries())
+    s.count = cells.reduce((a, row) => a + row[j], 0);
   return {
-    desc: workspace.desc,
-    createdAt: workspace.createdAt.getTime(),
-    canUpdate: access.has("workspace.update"),
-    canViewMembers,
-    canViewSettings,
-    canViewAllStats: access.has("dashboard.view.all"),
-    // Without `member.view`, only leadership (`distinguished`) — the
-    // name-and-email profile of the other members stays hidden, otherwise
-    // hiding the tab would be pointless (the overview would show it to
-    // anyone allowed to enter the workspace).
-    roles: canViewMembers ? roles : roles.filter((r) => r.distinguished),
-    memberCount: workspace.members.length,
-    teams: workspace.teams,
-    projects: (await Promise.all(
-      workspace.projects.map(async ({ avatarKey, ...project }) => ({
-        ...project,
-        avatarUrl: await resolveAvatarUrl(avatarKey),
-      })),
-    )) satisfies WorkspaceProjectSummary[],
-    links: workspace.links,
-    canCreateProject: access.has("project.create"),
-    canCreateTeam: access.has("team.create"),
-    canManageTeamMembers: access.has("team.member.manage"),
-    canManageTeamProjects: access.has("team.project.manage"),
-    assignableProjectRoles,
+    type: "matrix",
+    rows: rowsUsed,
+    cols: colsUsed,
+    cells,
+    max: Math.max(0, ...cells.flat()),
   };
 }
 
-/** Your own layout for this workspace — the counterpart to `getMyDashboardLayout`. */
-export const getMyWorkspaceDashboardLayout = cache(
+/** Upper bounds of the age buckets, in days. */
+const AGE_BOUNDS = [7, 14, 28, 90];
+
+async function age(ctx: Ctx, where: Where): Promise<WidgetData> {
+  const scoped: Where = { AND: [where, { status: { notIn: ctx.closed } }] };
+  const [dates, oldest] = await Promise.all([
+    db.issue.findMany({ where: scoped, select: { created: true } }),
+    db.issue.findMany({
+      where: scoped,
+      select: ISSUE_SELECT,
+      orderBy: { created: "asc" },
+      take: 5,
+    }),
+  ]);
+  const now = Date.now();
+  const days = dates.map((row) => (now - row.created.getTime()) / DAY);
+  const buckets = [0, 0, 0, 0, 0];
+  for (const d of days) {
+    const i = AGE_BOUNDS.findIndex((bound) => d < bound);
+    buckets[i < 0 ? 4 : i]++;
+  }
+  return {
+    type: "age",
+    buckets,
+    avg: avg(days) === null ? null : Math.round(avg(days) ?? 0),
+    oldest: await Promise.all(oldest.map((row) => mapIssue(ctx, row))),
+  };
+}
+
+const aboutFor = cache(
   async (
     workspaceId: string,
-  ): Promise<{
-    order: string[];
-    hidden: string[];
-    range: string | null;
-    scope: string | null;
-  }> => {
-    const session = await getSession();
-    if (!session) {
-      return { order: [], hidden: [], range: null, scope: null };
+    projectId: string | null,
+  ): Promise<AboutData | null> => {
+    const statuses = await db.status.findMany({
+      select: { id: true, category: true },
+    });
+    const idsIn = (...cats: string[]) =>
+      statuses.filter((s) => cats.includes(s.category)).map((s) => s.id);
+    const notClosed = { notIn: idsIn("completed", "canceled") };
+    /** Done, started and all-but-canceled within these projects. */
+    const progressIn = async (projectIds: string[]) => {
+      const scope = { projectId: { in: projectIds } };
+      const [done, inProgress, total] = await Promise.all([
+        db.issue.count({
+          where: { ...scope, status: { in: idsIn("completed") } },
+        }),
+        db.issue.count({
+          where: { ...scope, status: { in: idsIn("started") } },
+        }),
+        db.issue.count({
+          where: { ...scope, status: { notIn: idsIn("canceled") } },
+        }),
+      ]);
+      return { done, inProgress, total };
+    };
+
+    if (projectId) {
+      const project = await db.project.findUnique({
+        where: { id: projectId },
+        select: {
+          name: true,
+          desc: true,
+          color: true,
+          avatarKey: true,
+          prefix: true,
+          createdAt: true,
+          members: {
+            select: { user: { select: USER_SELECT } },
+            orderBy: { user: { firstName: "asc" } },
+          },
+        },
+      });
+      if (!project) return null;
+      const [open, teams, progress] = await Promise.all([
+        db.issue.count({ where: { projectId, status: notClosed } }),
+        db.teamProject.count({ where: { projectId } }),
+        progressIn([projectId]),
+      ]);
+      return {
+        kind: "project",
+        name: project.name,
+        desc: project.desc,
+        color: project.color,
+        avatarUrl: await resolveAvatarUrl(project.avatarKey),
+        prefix: project.prefix,
+        createdAt: project.createdAt.getTime(),
+        members: await Promise.all(
+          project.members.slice(0, 8).map((m) => mapUser(m.user)),
+        ),
+        memberCount: project.members.length,
+        open,
+        projects: null,
+        teams,
+        progress,
+        links: [],
+        editHref: (await placeOf(workspaceId, projectId)).project.has(
+          "project.update",
+        )
+          ? projectSettingsPath(
+              workspaceId,
+              (await placeOf(workspaceId, projectId)).slug ?? "",
+              "",
+            )
+          : null,
+      };
     }
 
-    const row = await db.workspaceDashboardPreference.findUnique({
-      where: { userId_workspaceId: { userId: session.userId, workspaceId } },
-    });
+    const [workspace, visible] = await Promise.all([
+      db.workspace.findUnique({
+        where: { id: workspaceId },
+        select: {
+          name: true,
+          desc: true,
+          color: true,
+          avatarKey: true,
+          createdAt: true,
+          links: {
+            select: { id: true, label: true, url: true },
+            orderBy: { position: "asc" },
+          },
+          members: {
+            select: { user: { select: USER_SELECT } },
+            orderBy: { user: { firstName: "asc" } },
+          },
+        },
+      }),
+      visibleProjectIds(workspaceId),
+    ]);
+    if (!workspace) return null;
+    const [open, teams, progress] = await Promise.all([
+      db.issue.count({
+        where: { projectId: { in: [...visible] }, status: notClosed },
+      }),
+      db.team.count({ where: { workspaceId } }),
+      progressIn([...visible]),
+    ]);
     return {
-      order: row?.order ?? [],
-      hidden: row?.hidden ?? [],
-      range: row?.range ?? null,
-      scope: row?.scope ?? null,
+      kind: "workspace",
+      name: workspace.name,
+      desc: workspace.desc,
+      color: workspace.color,
+      avatarUrl: await resolveAvatarUrl(workspace.avatarKey),
+      prefix: null,
+      createdAt: workspace.createdAt.getTime(),
+      members: await Promise.all(
+        workspace.members.slice(0, 8).map((m) => mapUser(m.user)),
+      ),
+      memberCount: workspace.members.length,
+      open,
+      projects: visible.size,
+      teams,
+      progress,
+      links: workspace.links,
+      editHref: (await placeOf(workspaceId, null)).workspace.has(
+        "workspace.update",
+      )
+        ? workspaceSettingsPath(workspaceId, "")
+        : null,
     };
   },
 );
 
-/** A workspace's entire dashboard — the counterpart to `getProjectDashboard`. */
-export const getWorkspaceDashboard = cache(
-  async (
-    workspaceId: string,
-    range: RangeKey,
-    scope: DashboardScope = "all",
-  ): Promise<WorkspaceDashboardView | null> => {
-    if (!(await currentUserCanEnterWorkspace(workspaceId))) return null;
-    const userId = await currentUserId();
-    if (!userId) return null;
+// ── What the old overview showed ────────────────────────────────────────────
 
-    const workspace = await db.workspace.findUnique({
-      where: { id: workspaceId },
+/** The project's slug and the caller's permissions, in both contexts. */
+const placeOf = cache(async (workspaceId: string, projectId: string | null) => {
+  const userId = await currentUserId();
+  const [project, slug, workspace] = await Promise.all([
+    projectId
+      ? accessFor(userId, { projectId })
+      : Promise.resolve(new Set<string>()),
+    projectId
+      ? db.project
+          .findUnique({ where: { id: projectId }, select: { slug: true } })
+          .then((row) => row?.slug ?? null)
+      : Promise.resolve(null),
+    accessFor(userId, { workspaceId }),
+  ]);
+  return {
+    slug,
+    project: project as { has: (key: string) => boolean },
+    workspace: workspace as { has: (key: string) => boolean },
+  };
+});
+
+/** Workspace roles that mean "contributes" or "reads along" — without
+ *  `member.view` only the others (leadership) are listed. */
+const WS_ROSTER_ROLE_KEYS = new Set<string>([
+  DEFAULT_WORKSPACE_ROLE_KEY,
+  WORKSPACE_VIEWER_ROLE_KEY,
+  WORKSPACE_GUEST_ROLE_KEY,
+]);
+
+/** The list page of the dashboard's place, filtered to open issues. */
+function openListHref(
+  workspaceId: string,
+  projectSlug: string | null,
+  params: Record<string, string>,
+): string {
+  const base = projectSlug
+    ? projectPath(workspaceId, projectSlug, "list")
+    : workspacePath(workspaceId, "issues/list");
+  const query = new URLSearchParams({
+    ...params,
+    "statusCategory.not": "completed,canceled",
+  });
+  return `${base}?${query}`;
+}
+
+async function members(ctx: Ctx): Promise<WidgetData> {
+  const { workspaceId, projectId } = ctx.resolved;
+  const place = await placeOf(workspaceId, projectId);
+  const select = {
+    user: { select: USER_SELECT },
+    role: { select: { key: true, name: true, rank: true } },
+  } as const;
+  const rows = await (projectId
+    ? db.projectMember.findMany({
+        // Locked out of the project isn't "a member" to show off.
+        where: {
+          projectId,
+          role: { key: { not: PROJECT_BLOCKED_ROLE_KEY } },
+        },
+        select,
+        orderBy: { user: { firstName: "asc" } },
+      })
+    : db.workspaceMember.findMany({
+        where: { workspaceId },
+        select,
+        orderBy: { user: { firstName: "asc" } },
+      }));
+  const seeAll = projectId ? true : place.workspace.has("member.view");
+  const groups = new Map<string, RoleGroup>();
+  for (const row of rows) {
+    if (!seeAll && WS_ROSTER_ROLE_KEYS.has(row.role.key)) continue;
+    const group = groups.get(row.role.key) ?? {
+      key: row.role.key,
+      name: row.role.name,
+      rank: row.role.rank,
+      members: [],
+    };
+    group.members.push({
+      user: await mapUser(row.user),
+      href: openListHref(workspaceId, place.slug, {
+        assignee: row.user.handle,
+      }),
+    });
+    groups.set(row.role.key, group);
+  }
+  return {
+    type: "members",
+    groups: [...groups.values()].sort((a, b) => b.rank - a.rank),
+    total: seeAll
+      ? rows.length
+      : [...groups.values()].reduce((n, g) => n + g.members.length, 0),
+    href: projectId
+      ? projectPath(workspaceId, place.slug ?? "", "members")
+      : seeAll
+        ? workspacePath(workspaceId, "members")
+        : null,
+  };
+}
+
+async function teams(ctx: Ctx): Promise<WidgetData> {
+  const { workspaceId, projectId } = ctx.resolved;
+  const place = await placeOf(workspaceId, projectId);
+  const rows = await db.team.findMany({
+    where: projectId ? { projects: { some: { projectId } } } : { workspaceId },
+    select: {
+      id: true,
+      name: true,
+      key: true,
+      color: true,
+      lead: { select: USER_SELECT },
+      members: {
+        select: { user: { select: USER_SELECT } },
+        orderBy: { user: { firstName: "asc" } },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+  return {
+    type: "teams",
+    teams: await Promise.all(
+      rows.map(async (row) => ({
+        id: row.id,
+        name: row.name,
+        key: row.key,
+        color: row.color,
+        members: row.members.length,
+        lead: row.lead ? await mapUser(row.lead) : null,
+        people: await Promise.all(
+          row.members.slice(0, 6).map((m) => mapUser(m.user)),
+        ),
+        href: row.members.length
+          ? openListHref(workspaceId, place.slug, {
+              assignee: row.members.map((m) => m.user.handle).join(","),
+            })
+          : null,
+      })),
+    ),
+    href: workspacePath(workspaceId, "teams"),
+  };
+}
+
+async function labels(ctx: Ctx): Promise<WidgetData> {
+  const { workspaceId, projectId } = ctx.resolved;
+  const place = await placeOf(workspaceId, projectId);
+  const [rows, issues] = await Promise.all([
+    db.label.findMany({
+      where: projectId
+        ? {
+            OR: [
+              { projectId },
+              {
+                projectId: null,
+                workspaceId,
+                hiddenIn: { none: { projectId } },
+              },
+            ],
+          }
+        : { workspaceId, projectId: null },
+      select: {
+        id: true,
+        name: true,
+        color: true,
+        slug: true,
+        projectId: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    db.issue.findMany({
+      where: { AND: [ctx.base, { status: { notIn: ctx.closed } }] },
+      select: { labels: true },
+    }),
+  ]);
+  const counts = new Map<string, number>();
+  for (const issue of issues)
+    for (const id of issue.labels) counts.set(id, (counts.get(id) ?? 0) + 1);
+  const list: LabelRow[] = rows
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      color: row.color,
+      open: counts.get(row.id) ?? 0,
+      own: row.projectId !== null,
+      href: openListHref(workspaceId, place.slug, { label: row.slug }),
+    }))
+    .sort((a, b) => b.open - a.open || a.name.localeCompare(b.name));
+  const canCreate = projectId
+    ? place.project.has("label.create")
+    : place.workspace.has("label.create");
+  return {
+    type: "labels",
+    labels: list,
+    projectId,
+    workspaceId,
+    canCreate,
+    href: canCreate
+      ? projectId
+        ? projectSettingsPath(workspaceId, place.slug ?? "", "labels")
+        : workspaceSettingsPath(workspaceId, "labels")
+      : null,
+  };
+}
+
+async function projects(ctx: Ctx): Promise<WidgetData> {
+  const { workspaceId, projectIds } = ctx.resolved;
+  const [rows, open] = await Promise.all([
+    db.project.findMany({
+      where: { id: { in: projectIds }, archivedAt: null },
       select: {
         id: true,
         name: true,
         slug: true,
+        prefix: true,
         color: true,
         avatarKey: true,
       },
-    });
-    if (!workspace) return null;
-    const workspaceAvatarUrl = await resolveAvatarUrl(workspace.avatarKey);
+      orderBy: { name: "asc" },
+    }),
+    db.issue.groupBy({
+      by: ["projectId"],
+      where: { AND: [ctx.base, { status: { notIn: ctx.closed } }] },
+      _count: { _all: true },
+    }),
+  ]);
+  const openBy = new Map(open.map((row) => [row.projectId, row._count._all]));
+  return {
+    type: "projects",
+    projects: await Promise.all(
+      rows.map(async (row) => ({
+        id: row.id,
+        name: row.name,
+        prefix: row.prefix,
+        color: row.color,
+        avatarUrl: await resolveAvatarUrl(row.avatarKey),
+        open: openBy.get(row.id) ?? 0,
+        href: projectPath(workspaceId, row.slug, "overview"),
+      })),
+    ),
+    href: workspacePath(workspaceId, "projects"),
+  };
+}
 
-    const window = windowFor(range);
+async function links(workspaceId: string): Promise<WidgetData> {
+  const place = await placeOf(workspaceId, null);
+  const rows = await db.workspaceLink.findMany({
+    where: { workspaceId },
+    select: { id: true, label: true, url: true },
+    orderBy: { position: "asc" },
+  });
+  return {
+    type: "links",
+    links: rows,
+    href: place.workspace.has("workspace.update")
+      ? workspaceSettingsPath(workspaceId, "")
+      : null,
+  };
+}
 
-    const canViewAll = await hasPermission("dashboard.view.all", {
-      workspaceId,
-    });
-    const effectiveScope: DashboardScope = canViewAll ? scope : "mine";
-    const assigneeId = effectiveScope === "mine" ? userId : null;
-
-    const [stats, statuses, priorities, throughput, workload, profile, layout] =
-      await Promise.all([
-        wsStatsFor(workspaceId, window.from, window.to, assigneeId),
-        wsStatusesFor(workspaceId, assigneeId),
-        wsPrioritiesFor(workspaceId, assigneeId),
-        wsThroughputFor(
-          workspaceId,
-          window.unit,
-          window.from,
-          window.to,
-          window.keys,
-          assigneeId,
-        ),
-        wsWorkloadFor(workspaceId, assigneeId),
-        wsProfileFor(workspaceId),
-        getMyWorkspaceDashboardLayout(workspaceId),
-      ]);
-    if (!profile) return null;
-
-    const attention = await wsAttentionFor(
-      workspaceId,
-      new Map(statuses.map((status) => [status.id, status.color])),
-      assigneeId,
-    );
-
-    const resolved = resolveLayout(layout.order, layout.hidden);
-
-    const data: WorkspaceDashboardData = {
-      range,
-      unit: window.unit,
-      scope: effectiveScope,
-      stats,
-      statuses,
-      priorities,
-      throughput,
-      workload,
-      attention,
-    };
-
-    return {
-      workspace: {
-        id: workspace.id,
-        name: workspace.name,
-        slug: workspace.slug,
-        color: workspace.color,
-        avatarUrl: workspaceAvatarUrl,
-      },
-      data,
-      profile,
-      order: resolved.visible,
-      hidden: resolved.hidden,
-    } satisfies WorkspaceDashboardView;
-  },
-);
-
-/** The period the workspace dashboard opens with when there's no `?range=` in the address. */
-export async function getMyWorkspaceDashboardRange(
+/** Every shortcut this place offers the viewer, in the default order —
+ *  the widget's own setting picks and orders from these. `false` as the last
+ *  argument: offered, but off until someone switches it on. */
+async function shortcuts(
   workspaceId: string,
-): Promise<string | null> {
-  return (await getMyWorkspaceDashboardLayout(workspaceId)).range;
+  projectId: string | null,
+): Promise<WidgetData> {
+  const place = await placeOf(workspaceId, projectId);
+  const items: Shortcut[] = [];
+  const add = (
+    key: Shortcut["key"],
+    icon: string,
+    href: string,
+    shown = true,
+  ) => items.push({ key, icon, href, default: shown });
+  const ws = place.workspace;
+  const createdByMe = await systemViewSlug(workspaceId, "created-by-me");
+
+  if (projectId && place.slug) {
+    const slug = place.slug;
+    const pr = place.project;
+    add("board", "lucide:kanban", projectPath(workspaceId, slug, ""));
+    add("list", "lucide:list", projectPath(workspaceId, slug, "list"));
+    add(
+      "myIssues",
+      "lucide:circle-user",
+      workspacePath(workspaceId, "my"),
+      false,
+    );
+    if (createdByMe)
+      add(
+        "createdByMe",
+        "lucide:pen-line",
+        viewPath(workspaceId, null, createdByMe),
+        false,
+      );
+    add("inbox", "lucide:inbox", workspacePath(workspaceId, "inbox"), false);
+    add(
+      "workspaceDashboard",
+      "lucide:gauge",
+      workspacePath(workspaceId, "dashboard"),
+      false,
+    );
+    add("members", "lucide:users", projectPath(workspaceId, slug, "members"));
+    if (pr.has("role.manage"))
+      add(
+        "roles",
+        "lucide:shield",
+        projectPath(workspaceId, slug, "roles"),
+        false,
+      );
+    if (pr.has("label.create"))
+      add(
+        "labels",
+        "lucide:tag",
+        projectSettingsPath(workspaceId, slug, "labels"),
+        false,
+      );
+    if (pr.has("project.update"))
+      add(
+        "fields",
+        "lucide:sliders-horizontal",
+        projectSettingsPath(workspaceId, slug, "fields"),
+        false,
+      );
+    if (pr.has("member.invite"))
+      add(
+        "invitations",
+        "lucide:mail-plus",
+        projectSettingsPath(workspaceId, slug, "invitations"),
+        false,
+      );
+    add(
+      "activity",
+      "lucide:history",
+      projectSettingsPath(workspaceId, slug, "activity"),
+    );
+    if (PROJECT_SETTINGS_PERMISSIONS.some((key) => pr.has(key)))
+      add(
+        "settings",
+        "lucide:settings",
+        projectSettingsPath(workspaceId, slug, ""),
+      );
+  } else {
+    add("board", "lucide:kanban", workspacePath(workspaceId, "issues"));
+    add(
+      "list",
+      "lucide:list",
+      workspacePath(workspaceId, "issues/list"),
+      false,
+    );
+    add(
+      "myIssues",
+      "lucide:circle-user",
+      workspacePath(workspaceId, "my"),
+      false,
+    );
+    if (createdByMe)
+      add(
+        "createdByMe",
+        "lucide:pen-line",
+        viewPath(workspaceId, null, createdByMe),
+        false,
+      );
+    add("inbox", "lucide:inbox", workspacePath(workspaceId, "inbox"), false);
+    add("projects", "lucide:folders", workspacePath(workspaceId, "projects"));
+    add("views", "lucide:layers", workspacePath(workspaceId, "views"));
+    add("teams", "lucide:users-round", workspacePath(workspaceId, "teams"));
+    if (ws.has("member.view"))
+      add("members", "lucide:users", workspacePath(workspaceId, "members"));
+    if (ws.has("role.manage"))
+      add("roles", "lucide:shield", workspacePath(workspaceId, "roles"), false);
+    if (ws.has("label.create"))
+      add(
+        "labels",
+        "lucide:tag",
+        workspaceSettingsPath(workspaceId, "labels"),
+        false,
+      );
+    if (ws.has("member.invite"))
+      add(
+        "invitations",
+        "lucide:mail-plus",
+        workspaceSettingsPath(workspaceId, "invitations"),
+        false,
+      );
+    if (ws.has("audit.view"))
+      add(
+        "activity",
+        "lucide:history",
+        workspaceSettingsPath(workspaceId, "activity"),
+        false,
+      );
+    if (ws.has("webhook.manage"))
+      add(
+        "webhooks",
+        "lucide:webhook",
+        workspaceSettingsPath(workspaceId, "webhooks"),
+        false,
+      );
+    if (WORKSPACE_SETTINGS_PERMISSIONS.some((key) => ws.has(key)))
+      add(
+        "settings",
+        "lucide:settings",
+        workspaceSettingsPath(workspaceId, ""),
+      );
+  }
+  // Your own corner — on every dashboard, off by default.
+  add(
+    "notifications",
+    "lucide:bell",
+    accountPath(workspaceId, "notifications"),
+    false,
+  );
+  add("account", "lucide:user-cog", accountPath(workspaceId, ""), false);
+  return { type: "shortcuts", items };
+}
+
+async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
+  const { config } = widget;
+  const own = await filterWhere(config.filter);
+  const where: Where = { AND: [ctx.base, own] };
+  const { resolved } = ctx;
+
+  switch (widget.type) {
+    case "kpi":
+      return kpi(ctx, where, config.metric ?? "open", config.filter);
+    case "progress":
+      return {
+        ...(await progress(ctx, where)),
+        href: await boardHref(ctx, config.filter, [
+          ["statusCategory.not", "canceled"],
+        ]),
+      } as WidgetData;
+    case "distribution":
+      return distribution(
+        ctx,
+        where,
+        config.groupBy ?? "status",
+        config.openOnly ?? false,
+        config.filter,
+      );
+    case "attention":
+      return attention(ctx, where);
+    case "issues":
+      return issues(ctx, where, config.sort, config.openOnly ?? true);
+    case "flow":
+      return flow(ctx, where, config.filter);
+    case "burnup":
+      return burnup(ctx, where);
+    case "cycle":
+      return cycle(ctx, where);
+    case "workload":
+      return workload(ctx, where, config.filter);
+    case "matrix":
+      return matrix(
+        ctx,
+        where,
+        config.groupBy ?? "assignee",
+        config.groupBy2 ?? "status",
+        config.openOnly ?? true,
+      );
+    case "age":
+      return age(ctx, where);
+    case "about":
+      return {
+        type: "about",
+        about: await aboutFor(resolved.workspaceId, resolved.projectId),
+      };
+    case "activity": {
+      const view = resolved.projectId
+        ? await getProjectActivity(resolved.projectId, 20)
+        : await getWorkspaceActivity(resolved.workspaceId, 20);
+      return { type: "activity", entries: view.entries };
+    }
+    case "members":
+      return members(ctx);
+    case "teams":
+      return teams(ctx);
+    case "labels":
+      return labels(ctx);
+    case "projects":
+      return projects(ctx);
+    case "links":
+      return links(resolved.workspaceId);
+    case "shortcuts":
+      return shortcuts(resolved.workspaceId, resolved.projectId);
+    case "note": {
+      // Only this person's own text — never anyone else's.
+      const row = await db.dashboardNote.findUnique({
+        where: { key: `${ctx.targetKey}:${widget.id}:${ctx.userId}` },
+        select: { pages: true },
+      });
+      const pages = notePagesSchema.safeParse(row?.pages);
+      return {
+        type: "note",
+        pages: pages.success ? pages.data : [{ id: "p1" }],
+      };
+    }
+  }
+}
+
+/** Data for the given widgets — the page's load and the edit mode's
+ *  refresh after a widget was added or reconfigured. */
+export async function computeWidgets(
+  target: DashboardTarget,
+  widgets: Widget[],
+  range: RangeKey,
+  scope: DashboardScope,
+): Promise<WidgetDataMap | null> {
+  const userId = await currentUserId();
+  if (!userId) return null;
+  const resolved = await resolveTarget(target.kind, target.id);
+  if (!resolved) return null;
+  const effective: DashboardScope = resolved.canViewAll ? scope : "mine";
+  const ctx = await buildCtx(target, resolved, userId, range, effective);
+
+  const entries = await Promise.all(
+    widgets.map(async (widget) => {
+      try {
+        return [widget.id, await widgetData(ctx, widget)] as const;
+      } catch (error) {
+        // One broken widget (a filter pointing at something gone) must not
+        // take the whole dashboard down — it shows as empty.
+        console.error("dashboard widget failed", widget.type, error);
+        return [widget.id, null] as const;
+      }
+    }),
+  );
+  return Object.fromEntries(
+    entries.filter(
+      (entry): entry is readonly [string, WidgetData] => !!entry[1],
+    ),
+  );
+}
+
+/**
+ * A whole dashboard. Range and scope follow the usual precedence: the
+ * address, then what the person last chose, then the default.
+ */
+export async function getDashboard(
+  target: DashboardTarget,
+  params: { range?: string; scope?: string } = {},
+): Promise<DashboardView | null> {
+  const userId = await currentUserId();
+  if (!userId) return null;
+  const resolved = await resolveTarget(target.kind, target.id);
+  if (!resolved) return null;
+
+  const stored = await storedPrefs(target, userId);
+  const range = toRange(params.range ?? stored.range ?? undefined);
+  const wanted = toDashboardScope(params.scope, stored.scope);
+  const scope: DashboardScope = resolved.canViewAll ? wanted : "mine";
+  const layout = await layoutFor(target, resolved, userId, scope);
+
+  const data =
+    (await computeWidgets(target, layout.widgets, range, scope)) ?? {};
+
+  return {
+    target,
+    range,
+    unit: windowFor(range).unit,
+    scope,
+    canViewAll: resolved.canViewAll,
+    layout: {
+      ...layout,
+      canEdit: resolved.canEdit,
+      canEditShared: resolved.canEditShared,
+    },
+    data,
+  };
+}
+
+/** For the server actions: may the current user see, edit (own or view), or
+ *  set the shared default of this dashboard? */
+export async function dashboardAccess(target: DashboardTarget) {
+  const resolved = await resolveTarget(target.kind, target.id);
+  return resolved
+    ? {
+        workspaceId: resolved.workspaceId,
+        projectId: resolved.projectId,
+        canEdit: resolved.canEdit,
+        canEditShared: resolved.canEditShared,
+      }
+    : null;
 }

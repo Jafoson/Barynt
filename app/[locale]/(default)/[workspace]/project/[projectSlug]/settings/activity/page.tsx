@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * The full, unfiltered activity of this project — unlike the compact card in
- * the overview (`ProjectProfileView`), which without `audit.view` only shows
+ * the dashboard's activity widget, which without `audit.view` only shows
  * your own entries. There's no filtered intermediate state here: anyone who
  * reaches this page has the permission and sees everything.
  */

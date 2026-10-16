@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { DashboardLoader } from "@/features/dashboard/components/DashboardLoader/DashboardLoader";
 import { Board } from "@/features/issues/components/Board/Board";
 import { IssuePeek } from "@/features/issues/components/IssuePeek/IssuePeek";
 import { ListView } from "@/features/issues/components/ListView/ListView";
@@ -55,6 +56,23 @@ export default async function WorkspaceViewPage({
   // the same: 404.
   const view = await getViewBySlug(workspace, viewSlug);
   if (!view || view.projectId !== null) notFound();
+
+  // A dashboard view (BARY-169): its widgets over the view's filter.
+  if (view.layout === "dashboard") {
+    return (
+      <>
+        <Topbar count={0} view="board" activeView={view} mode="dashboard" />
+        <DashboardLoader
+          target={{ kind: "view", id: view.id }}
+          workspace={workspace}
+          params={{ range: filters.range, scope: filters.scope }}
+          area="my"
+          place={{ projectId: null, projectSlug: null }}
+          savedView={view}
+        />
+      </>
+    );
+  }
 
   if (!filters.layout) {
     const [priorities, members, labels] = await Promise.all([
