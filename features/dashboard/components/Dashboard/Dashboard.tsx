@@ -251,11 +251,23 @@ export function Dashboard({
   // left, save on the right — the other ways to save behind its arrow.
   const phoneBar = editing && (
     <div className={styles.phoneBar}>
-      <Button variant="ghost" onClick={discard} disabled={pending}>
+      {!dirty && resetLevel ? (
+        <Button
+          variant="text"
+          className={styles.reset}
+          icon={<Icon icon="lucide:rotate-ccw" width={14} />}
+          onClick={() => reset(resetLevel)}
+          disabled={pending}
+        >
+          {t("reset")}
+        </Button>
+      ) : (
+        dirty && <span className={styles.unsavedPhone}>{t("unsaved")}</span>
+      )}
+      <span className={styles.spacer} />
+      <Button variant="elevated" onClick={discard} disabled={pending}>
         {t("cancel")}
       </Button>
-      {dirty && <span className={styles.unsavedPhone}>{t("unsaved")}</span>}
-      <span className={styles.spacer} />
       <SplitButton
         label={canSave ? t("save") : t("saveAsView")}
         onClick={() =>
@@ -291,19 +303,9 @@ export function Dashboard({
             label: t("saveAsView"),
             icon: <Icon icon="lucide:layers" width={15} />,
           },
-          ...(!dirty && resetLevel
-            ? [
-                {
-                  value: "reset",
-                  label: t("reset"),
-                  icon: <Icon icon="lucide:rotate-ccw" width={15} />,
-                },
-              ]
-            : []),
         ]}
         onPick={(value) => {
           if (value === "view") saveAsView();
-          else if (value === "reset" && resetLevel) reset(resetLevel);
           else if (value === "shared")
             dirty ? save("shared") : setEditing(false);
           else if (value === "personal")
