@@ -1,0 +1,327 @@
+@use "breakpoints" as bp;
+
+/* The page scrolls as a whole; the toolbar stays on top. */
+.page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 1.5rem 3rem;
+
+  @include bp.phone {
+    padding: 0 1rem calc(5.5rem + var(--safe-bottom, 0px));
+  }
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.625rem;
+  max-width: 90rem;
+  margin: 0 auto;
+  padding: 0.875rem 0;
+  background: var(--surface);
+
+  [data-editing] & {
+    background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+    box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--primary) 6%, var(--surface));
+    clip-path: inset(0 -100vmax);
+  }
+}
+
+.spacer {
+  flex: 1;
+}
+
+.hint {
+  font-size: var(--text-xs);
+  color: var(--on-surface-variant);
+
+  @include bp.phone {
+    flex: 1 1 100%;
+    order: 9;
+  }
+}
+
+.badge {
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  font-size: var(--text-xs);
+}
+
+.level {
+  display: contents;
+}
+
+/* ── The grid ─────────────────────────────────────────────────────────────
+   Square units: a row is as high as a column is wide. The column count
+   follows the space the dashboard has (a container query), not the
+   window — a narrow panel beside it counts too. */
+.frame {
+  container: dash / inline-size;
+  max-width: 90rem;
+  margin: 0 auto;
+}
+
+.grid {
+  --cols: 8;
+  --gap: 0.875rem;
+
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-auto-rows: calc((100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols));
+  grid-auto-flow: row dense;
+  gap: var(--gap);
+}
+
+@container dash (max-width: 73.75rem) {
+  .grid {
+    --cols: 6;
+  }
+}
+
+@container dash (max-width: 53.75rem) {
+  .grid {
+    --cols: 4;
+  }
+}
+
+@container dash (max-width: 37.5rem) {
+  .grid {
+    --cols: 2;
+    --gap: 0.75rem;
+  }
+}
+
+.cell {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+
+  &[data-size="S"] {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+
+  &[data-size="M"] {
+    grid-column: span 2;
+    grid-row: span 1;
+  }
+
+  &[data-size="L"] {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+
+  &[data-size="T"] {
+    grid-column: span 2;
+    grid-row: span 4;
+  }
+
+  &[data-size="XL"] {
+    grid-column: span 4;
+    grid-row: span 2;
+  }
+}
+
+/* A phone has no extra large — it draws as large. */
+@container dash (max-width: 37.5rem) {
+  .cell[data-size="XL"] {
+    grid-column: span 2;
+  }
+}
+
+/* ── Edit mode ──────────────────────────────────────────────────────────── */
+
+@keyframes jiggle {
+  from {
+    rotate: -0.45deg;
+  }
+
+  to {
+    rotate: 0.45deg;
+  }
+}
+
+[data-editing] .cell {
+  cursor: grab;
+
+  & > article {
+    animation: jiggle 0.28s ease-in-out infinite alternate;
+  }
+
+  &:nth-child(2n) > article {
+    animation-delay: -0.14s;
+    animation-direction: alternate-reverse;
+  }
+
+  /* Big widgets wiggle less — the same angle moves their corners further. */
+  &:is([data-size="L"], [data-size="T"], [data-size="XL"]) > article {
+    animation-name: jiggle-soft;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    & > article {
+      animation: none !important;
+      outline: 1px dashed var(--outline);
+      outline-offset: 3px;
+    }
+  }
+}
+
+@keyframes jiggle-soft {
+  from {
+    rotate: -0.2deg;
+  }
+
+  to {
+    rotate: 0.2deg;
+  }
+}
+
+.cover {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 0;
+  border-radius: 1.375rem;
+  background: transparent;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--on-surface) 4%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 2px;
+  }
+}
+
+.remove {
+  position: absolute;
+  top: -0.4375rem;
+  left: -0.4375rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-container-highest);
+  color: var(--on-surface);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--red);
+    color: white;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 1px;
+  }
+
+  @include bp.coarse {
+    width: 1.875rem;
+    height: 1.875rem;
+  }
+}
+
+/* S · M · L · H · XL — floating at the bottom like a control on glass. */
+.sizes {
+  position: absolute;
+  left: 50%;
+  bottom: 0.5rem;
+  z-index: 2;
+  display: flex;
+  gap: 2px;
+  margin: 0;
+  padding: 3px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  translate: -50% 0;
+  background: color-mix(in srgb, var(--surface-container-lowest) 86%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.35);
+
+  & > button {
+    min-width: 1.625rem;
+    padding: 0.25rem 0.4375rem;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--on-surface-variant);
+    font: inherit;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--on-surface);
+    }
+
+    &[aria-pressed="true"] {
+      background: var(--primary);
+      color: var(--on-primary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--tertiary);
+    }
+  }
+}
+
+.addCell {
+  grid-column: span 1;
+  grid-row: span 1;
+}
+
+.addTile {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.25rem;
+  border: 2px dashed var(--outline-variant);
+  border-radius: 1.375rem;
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+
+  & > svg {
+    color: var(--primary);
+  }
+
+  &:hover {
+    border-color: var(--primary);
+    color: var(--on-surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 2px;
+  }
+}
+
+.emptyPage {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 4rem 1rem;
+  color: var(--on-surface-variant);
+}

@@ -22,7 +22,7 @@ export const DEFAULT_DASHBOARD_SCOPE: DashboardScope = "all";
  *
  * Falls back to the default instead of throwing: a typo in a parameter that
  * only picks the display is no reason for a 404. Multiple candidates may be
- * passed in in order — the first known one wins, as with `toProjectView`.
+ * passed in in order — the first known one wins.
  */
 export function toDashboardScope(
   ...candidates: (string | null | undefined)[]

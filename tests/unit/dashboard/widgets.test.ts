@@ -1,154 +1,122 @@
 import { describe, expect, it } from "bun:test";
 import {
-  moveWidget,
-  resolveLayout,
-  WIDGET_KEYS,
+  defaultWidgets,
+  fitSize,
+  layoutKey,
+  moveWidgetTo,
+  newWidget,
+  normalizeWidget,
+  parseWidgets,
+  SIZE_SPAN,
+  WIDGET_SIZES,
+  WIDGET_TYPES,
   WIDGETS,
-  type WidgetKey,
-  widgetDef,
+  type Widget,
 } from "@/features/dashboard/widgets";
 
-// The layout of the project dashboard. Pure arithmetic with no database
-// involved — and the kind of code whose bugs you only notice months later: a
-// widget added later either shows up in the wrong spot or not at all for
-// anyone who has already rearranged something.
-
-const DEFAULT_ORDER = WIDGETS.map((widget) => widget.key);
+// The dashboard's widget registry (BARY-169). Pure data and arithmetic — the
+// kind of code whose bugs show months later: a stored layout from an older
+// registry that suddenly fails to load, or a size a kind can't draw.
 
 describe("The registry", () => {
-  it("describes every key exactly once", () => {
-    expect(DEFAULT_ORDER).toEqual([...WIDGET_KEYS]);
-    expect(new Set(DEFAULT_ORDER).size).toBe(DEFAULT_ORDER.length);
+  it("describes every kind, with a default size it offers", () => {
+    for (const type of WIDGET_TYPES) {
+      const def = WIDGETS[type];
+      expect(def.type).toBe(type);
+      expect(def.sizes.length).toBeGreaterThan(0);
+      expect(def.sizes).toContain(def.size);
+    }
   });
 
-  it("has exactly one widget that must stay", () => {
-    // More than one would no longer be customization, and zero would allow
-    // an empty dashboard that no one could find their way back from.
-    const permanent = WIDGETS.filter((widget) => widget.permanent);
-    expect(permanent.map((widget) => widget.key)).toEqual(["stats"]);
+  it("lists every kind's sizes small to large", () => {
+    for (const type of WIDGET_TYPES) {
+      const ranks = WIDGETS[type].sizes.map((s) => WIDGET_SIZES.indexOf(s));
+      expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+    }
+  });
+
+  it("lets only kinds without data colors take a full background", () => {
+    const fill = WIDGET_TYPES.filter((type) => WIDGETS[type].fill);
+    expect(fill.sort()).toEqual(["kpi", "note", "progress"]);
+  });
+
+  it("gives the tall size two columns and four rows", () => {
+    expect(SIZE_SPAN.T).toEqual({ cols: 2, rows: 4 });
+    expect(SIZE_SPAN.XL).toEqual({ cols: 4, rows: 2 });
   });
 });
 
-describe("Without a saved setting", () => {
-  it("the default applies, complete and in its order", () => {
-    expect(resolveLayout()).toEqual({ visible: DEFAULT_ORDER, hidden: [] });
-  });
-
-  it("copes with empty lists too", () => {
-    expect(resolveLayout([], [])).toEqual({
-      visible: DEFAULT_ORDER,
-      hidden: [],
+describe("Defaults", () => {
+  for (const kind of ["project", "workspace", "view"] as const) {
+    it(`builds a valid ${kind} dashboard`, () => {
+      const widgets = defaultWidgets(kind);
+      expect(parseWidgets(widgets)).toEqual(widgets);
+      expect(new Set(widgets.map((w) => w.id)).size).toBe(widgets.length);
     });
-  });
-});
+  }
 
-describe("The saved order", () => {
-  it("leads, as far as it reaches", () => {
-    const { visible } = resolveLayout(["attention", "workload"]);
-    expect(visible.slice(0, 2)).toEqual(["attention", "workload"]);
-  });
-
-  it("fills in the rest from the default without losing anything", () => {
-    const { visible } = resolveLayout(["attention"]);
-    expect(new Set(visible)).toEqual(new Set(DEFAULT_ORDER));
-    expect(visible).toHaveLength(DEFAULT_ORDER.length);
-  });
-
-  it("still shows a widget added later", () => {
-    // The actual reason for the incomplete stored data: a row from a time
-    // when "attention" didn't exist yet.
-    const stored = DEFAULT_ORDER.filter((key) => key !== "attention");
-    expect(resolveLayout(stored).visible).toContain("attention");
-  });
-
-  it("skips the unknown instead of failing on it", () => {
-    const { visible } = resolveLayout(["burndown", "attention"]);
-    expect(visible).not.toContain("burndown" as WidgetKey);
-    expect(visible[0]).toBe("attention");
-  });
-
-  it("takes a row stored twice only once", () => {
-    const { visible } = resolveLayout(["attention", "attention", "workload"]);
-    expect(visible.filter((key) => key === "attention")).toHaveLength(1);
-    expect(visible).toHaveLength(DEFAULT_ORDER.length);
-  });
-});
-
-describe("Hidden widgets", () => {
-  it("aren't in the visible list, but are in the other one", () => {
-    const { visible, hidden } = resolveLayout([], ["workload", "priority"]);
-    expect(visible).not.toContain("workload");
-    // In the resolved order, not the order they were stored in: `hidden` is a
-    // selection from the same list as `visible`, and the default puts
-    // "priority" before "workload".
-    expect(hidden).toEqual(["priority", "workload"]);
-  });
-
-  it("keep their place in the order", () => {
-    // Brought back, the widget is where it was again — that's why
-    // `resolveLayout` maintains one order across all of them, not just the
-    // visible ones.
-    const { hidden } = resolveLayout(
-      ["priority", "workload", "attention"],
-      ["workload"],
+  it("fills whole rows of eight columns", () => {
+    const cells = defaultWidgets("project").reduce(
+      (sum, w) => sum + SIZE_SPAN[w.size].cols * SIZE_SPAN[w.size].rows,
+      0,
     );
-    expect(hidden).toEqual(["workload"]);
+    expect(cells % 8).toBe(0);
   });
 
-  it("can't target the anchor", () => {
-    // An old row can date from a time when that was still possible.
-    const { visible, hidden } = resolveLayout([], ["stats"]);
-    expect(visible).toContain("stats");
-    expect(hidden).not.toContain("stats");
-  });
-
-  it("ignore the unknown", () => {
-    const { visible } = resolveLayout([], ["burndown"]);
-    expect(visible).toEqual(DEFAULT_ORDER);
+  it("has no about card on a view", () => {
+    expect(defaultWidgets("view").some((w) => w.type === "about")).toBe(false);
   });
 });
 
-describe("Moving", () => {
-  const order: WidgetKey[] = ["stats", "status", "throughput"];
-
-  it("swaps with its neighbor", () => {
-    expect(moveWidget(order, "status", -1)).toEqual([
-      "status",
-      "stats",
-      "throughput",
-    ]);
-    expect(moveWidget(order, "status", 1)).toEqual([
-      "stats",
-      "throughput",
-      "status",
-    ]);
+describe("Reading stored widgets", () => {
+  it("rejects what doesn't validate", () => {
+    expect(parseWidgets(null)).toBeNull();
+    expect(
+      parseWidgets([{ id: "a", type: "nope", size: "S", config: {} }]),
+    ).toBeNull();
+    expect(
+      parseWidgets([
+        { id: "a", type: "kpi", size: "S", config: {} },
+        { id: "a", type: "kpi", size: "S", config: {} },
+      ]),
+    ).toBeNull();
   });
 
-  it("does nothing at the edge", () => {
-    expect(moveWidget(order, "stats", -1)).toEqual(order);
-    expect(moveWidget(order, "throughput", 1)).toEqual(order);
+  it("brings a size the kind doesn't offer to the nearest one", () => {
+    expect(fitSize("kpi", "XL")).toBe("M");
+    expect(fitSize("matrix", "S")).toBe("L");
+    expect(fitSize("flow", "L")).toBe("L");
   });
 
-  it("leaves the input untouched", () => {
-    const before = [...order];
-    moveWidget(order, "status", 1);
-    expect(order).toEqual(before);
-  });
-
-  it("does nothing for a key that isn't in the list", () => {
-    expect(moveWidget(order, "attention", -1)).toEqual(order);
+  it("turns a full background into a tint where it isn't allowed", () => {
+    const widget: Widget = {
+      id: "x",
+      type: "distribution",
+      size: "L",
+      config: { background: "fill" },
+    };
+    expect(normalizeWidget(widget).config.background).toBe("tint");
   });
 });
 
-describe("A single widget", () => {
-  it("knows its width", () => {
-    expect(widgetDef("stats").span).toBe("full");
-    expect(widgetDef("status").span).toBe("half");
+describe("Editing", () => {
+  const list = ["a", "b", "c", "d"].map((id) => newWidget("kpi", id));
+  const ids = (widgets: Widget[]) => widgets.map((w) => w.id);
+
+  it("moves a widget to where another one sits", () => {
+    expect(ids(moveWidgetTo(list, "a", "c"))).toEqual(["b", "c", "a", "d"]);
+    expect(ids(moveWidgetTo(list, "d", "a"))).toEqual(["d", "a", "b", "c"]);
   });
 
-  it("throws for a key that doesn't exist", () => {
-    // Can only happen if someone lets `WIDGET_KEYS` and `WIDGETS` drift apart
-    // — and then it should blow up loudly, not silently render nothing.
-    expect(() => widgetDef("burndown" as WidgetKey)).toThrow();
+  it("leaves the list alone for unknown ids", () => {
+    expect(moveWidgetTo(list, "x", "a")).toBe(list);
+    expect(moveWidgetTo(list, "a", "a")).toBe(list);
+  });
+
+  it("keys the shared and the personal layout apart", () => {
+    expect(layoutKey({ kind: "project", id: "p1" }, null)).toBe("project:p1");
+    expect(layoutKey({ kind: "project", id: "p1" }, "u1")).toBe(
+      "project:p1:u1",
+    );
   });
 });

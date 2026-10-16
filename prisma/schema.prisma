@@ -55,6 +55,7 @@ model Workspace {
   roles         Role[]
   // Wie einzelne Personen das Dashboard dieses Workspace eingerichtet haben.
   dashboards    WorkspaceDashboardPreference[]
+  dashboardLayouts DashboardLayout[]
   // Wie einzelne Personen Board/Liste der projektübergreifenden "Meine
   // Issues"-Ansicht eingerichtet haben (BARY-33).
   myIssuesViewPreferences MyIssuesViewPreference[]
@@ -178,6 +179,7 @@ model User {
   preferences         UserPreferences?
   dashboards          DashboardPreference[]
   workspaceDashboards WorkspaceDashboardPreference[]
+  dashboardLayouts    DashboardLayout[]
   issueViewPreferences   IssueViewPreference[]
   myIssuesViewPreferences MyIssuesViewPreference[]
   savedViews             SavedView[]
@@ -468,49 +470,23 @@ model UserPreferences {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// ─── Das Projekt-Dashboard, wie es einer eingerichtet hat ────────────────────
+// ─── Dashboards: Zeitraum und Umfang je Person ──────────────────────────────
 //
-// Eine Zeile je Person **und** Projekt. Das Dashboard gehört keinem Projekt und
-// keinem Team, sondern dem, der es ansieht: wer Aufgaben verteilt, will die
-// Auslastung oben haben, wer selbst welche abarbeitet, den Rückstand. Beide auf
-// dieselbe Anordnung festzulegen hieße, einem von beiden die falsche Seite zu
-// zeigen.
-//
-// Die Zeile entsteht erst, wenn jemand etwas verstellt — wie `UserPreferences`.
-// Wer nie etwas anfasst, bekommt die Vorgabe aus `features/dashboard/widgets.ts`,
-// und die Oberfläche muss den Unterschied nicht kennen.
+// Eine Zeile je Person **und** Projekt bzw. Workspace — womit das Dashboard
+// aufgeht. Die Widgets selbst stehen in `DashboardLayout` (BARY-169).
 
 model DashboardPreference {
   userId    String
   projectId String
-
-  /// Bausteine, die diese Person ausgeblendet hat — Keys aus `WIDGETS`.
-  hidden String[]
-
-  /// Die Reihenfolge, in der die Bausteine stehen. Unvollständig gespeichert:
-  /// was hier fehlt, behält seinen Platz aus der Vorgabe. Sonst erschiene ein
-  /// später ergänzter Baustein bei niemandem mehr, der einmal etwas verschoben
-  /// hat.
-  order String[]
 
   /// Der Zeitraum, mit dem das Dashboard aufgeht — "7d" | "30d" | "90d" | "12m".
   /// Steht auch in der Adresse (`?range=`); hier steht, womit es ohne Angabe
   /// beginnt.
   range String @default("30d")
 
-  /// Welche der beiden Ansichten zuletzt offen war — "profile" | "dashboard".
-  ///
-  /// Die Projektzeile in der Seitenleiste führt ohne `?view=` auf diese Seite;
-  /// wer zuletzt die Zahlen ansah, soll sie beim nächsten Klick wieder sehen und
-  /// nicht erst wieder umschalten. Die Vorgabe ist der Steckbrief: er beantwortet
-  /// „was ist das hier" und gilt auch für den, der das Projekt zum ersten Mal
-  /// öffnet.
-  view String @default("profile")
-
   /// Mit welchem Umfang das Dashboard aufgeht — "all" | "mine". Wer
   /// `dashboard.view.all` nicht trägt, bekommt beim Lesen ohnehin "mine"
-  /// erzwungen (siehe `getProjectDashboard`); hier steht nur, womit es für die
-  /// aufgeht, die überhaupt wählen dürfen.
+  /// erzwungen; hier steht nur, womit es für die aufgeht, die wählen dürfen.
   scope String @default("all")
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -520,26 +496,15 @@ model DashboardPreference {
   @@index([projectId])
 }
 
-/// Wie eine Person das Dashboard eines Workspace eingerichtet hat — dasselbe
-/// Muster wie `DashboardPreference` eine Ebene tiefer, nur ohne `view`: Dashboard
-/// und Übersicht sind beim Workspace zwei eigene Routen mit je einem eigenen
-/// Navlink in der Seitenleiste, keine Ansicht, die sich eine Zeile merken muss.
+/// Dasselbe eine Ebene höher: das Workspace-Dashboard.
 model WorkspaceDashboardPreference {
   userId      String
   workspaceId String
 
-  /// Bausteine, die diese Person ausgeblendet hat — Keys aus `WIDGETS`.
-  hidden String[]
-
-  /// Die Reihenfolge, in der die Bausteine stehen. Unvollständig gespeichert,
-  /// siehe `DashboardPreference.order`.
-  order String[]
-
   /// Der Zeitraum, mit dem das Dashboard aufgeht — "7d" | "30d" | "90d" | "12m".
   range String @default("30d")
 
-  /// Mit welchem Umfang das Dashboard aufgeht — "all" | "mine". Dasselbe Feld
-  /// wie `DashboardPreference.scope` eine Ebene tiefer.
+  /// Mit welchem Umfang das Dashboard aufgeht — "all" | "mine".
   scope String @default("all")
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -547,6 +512,36 @@ model WorkspaceDashboardPreference {
 
   @@id([userId, workspaceId])
   @@index([workspaceId])
+}
+
+/// Die Widgets eines Projekt- oder Workspace-Dashboards (BARY-169).
+///
+/// Zwei Ebenen: eine Zeile ohne `userId` ist die Vorgabe für alle, die
+/// Projekt- bzw. Workspace-Admins einrichten; eine Zeile mit `userId` ist die
+/// eigene Anordnung einer Person und gewinnt. Ohne beide gilt die Vorgabe aus
+/// `features/dashboard/widgets.ts`. Dashboard-Views (`SavedView` mit
+/// `layout = "dashboard"`) führen ihre Widgets in `display.widgets` statt hier.
+model DashboardLayout {
+  /// "project:<id>" bzw. "workspace:<id>", dazu ":<userId>" für eine eigene —
+  /// eindeutig, weil Postgres zwei `NULL` in einem Unique-Index nicht als
+  /// gleich ansieht.
+  key         String  @id
+  workspaceId String
+  projectId   String?
+  userId      String?
+
+  /// `Widget[]` — geprüft beim Lesen und Schreiben (`widgetsSchema`).
+  widgets Json
+
+  updatedAt DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([userId])
 }
 
 /// Wie eine Person Board/Liste eines Projekts eingerichtet hat — Anzeige,
@@ -851,6 +846,7 @@ model Project {
   roles         Role[]
   // Wie einzelne Personen das Dashboard dieses Projekts eingerichtet haben.
   dashboards    DashboardPreference[]
+  dashboardLayouts DashboardLayout[]
   // Wie einzelne Personen Board/Liste dieses Projekts eingerichtet haben
   // (BARY-33) — welche Kartenfelder sie zusätzlich zu Project.hiddenDetailFields
   // ausgeblendet haben.

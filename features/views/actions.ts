@@ -472,18 +472,20 @@ export async function saveViewState(
   if (!userId) return fail("unauthenticated");
   const row = await db.savedView.findUnique({
     where: { id },
-    select: { projectId: true, workspaceId: true },
+    select: { projectId: true, workspaceId: true, layout: true },
   });
   if (!row) return fail("notFound");
-  return updateView(
-    id,
-    await stateFromParams(
-      row.projectId
-        ? { projectId: row.projectId }
-        : { workspaceId: row.workspaceId },
-      params,
-    ),
+  const state = await stateFromParams(
+    row.projectId
+      ? { projectId: row.projectId }
+      : { workspaceId: row.workspaceId },
+    params,
   );
+  // A dashboard view's address carries no layout or display — taking them
+  // from it would turn it into a board and drop its widgets (BARY-169).
+  if (row.layout === "dashboard")
+    return updateView(id, { filter: state.filter });
+  return updateView(id, state);
 }
 
 /**

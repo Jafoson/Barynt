@@ -1,0 +1,526 @@
+"use client";
+
+import { useFormatter, useTranslations } from "next-intl";
+import type { CSSProperties } from "react";
+import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
+import type { Slice, WidgetData } from "@/features/dashboard/types";
+import { Link } from "@/i18n/navigation";
+import styles from "../widget.module.scss";
+import { type BodyProps, Spark, TimeAxis } from "./shared";
+
+type Data = Extract<
+  WidgetData,
+  {
+    type:
+      | "distribution"
+      | "flow"
+      | "burnup"
+      | "cycle"
+      | "age"
+      | "matrix"
+      | "workload";
+  }
+>;
+
+/** The chart kinds. Colors come from the data where it has its own
+ *  (statuses, priorities, labels); time series use the chart tokens. */
+export function ChartBody(props: BodyProps & { data: Data }) {
+  const { data } = props;
+  switch (data.type) {
+    case "distribution":
+      return <Distribution {...props} data={data} />;
+    case "flow":
+      return <Flow {...props} data={data} />;
+    case "burnup":
+      return <Burnup {...props} data={data} />;
+    case "cycle":
+      return <Cycle {...props} data={data} />;
+    case "age":
+      return <Age {...props} data={data} />;
+    case "matrix":
+      return <Matrix {...props} data={data} />;
+    case "workload":
+      return <Workload {...props} data={data} />;
+  }
+}
+
+function Empty() {
+  const t = useTranslations("widgets");
+  return <div className={styles.empty}>{t("empty")}</div>;
+}
+
+/** "_none" / "_other" get their words here, everything else its name. */
+function useSliceName() {
+  const t = useTranslations("widgets");
+  return (slice: Slice, field?: string) =>
+    slice.key === "_other"
+      ? t("other")
+      : slice.key === "_none"
+        ? field === "label"
+          ? t("noneLabel")
+          : t("noneAssignee")
+        : slice.label;
+}
+
+function Distribution({
+  widget,
+  data,
+  labels,
+}: BodyProps & { data: Extract<Data, { type: "distribution" }> }) {
+  const name = useSliceName();
+  const field = widget.config.groupBy;
+  if (data.total === 0) return <Empty />;
+
+  if (widget.config.chart === "bars") {
+    const max = Math.max(1, ...data.slices.map((s) => s.count));
+    return (
+      <div className={styles.bars}>
+        {data.slices.map((slice) => (
+          <div key={slice.key} className={styles.bar}>
+            {labels.axes && (
+              <span className={styles.name}>{name(slice, field)}</span>
+            )}
+            <span className={styles.track}>
+              <i
+                style={{
+                  width: `${(slice.count / max) * 100}%`,
+                  background: slice.color,
+                }}
+              />
+            </span>
+            {labels.values && <span>{slice.count}</span>}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // The ring: one circle per slice, offset by everything before it.
+  const circumference = 100;
+  let offset = 0;
+  return (
+    <div className={styles.ringRow}>
+      <svg viewBox="0 0 42 42" role="img" aria-label={String(data.total)}>
+        <g transform="rotate(-90 21 21)" fill="none" strokeWidth={6}>
+          <circle cx={21} cy={21} r={15.915} stroke="var(--track)" />
+          {data.slices.map((slice) => {
+            const part = (slice.count / data.total) * circumference;
+            const el = (
+              <circle
+                key={slice.key}
+                cx={21}
+                cy={21}
+                r={15.915}
+                stroke={slice.color}
+                strokeDasharray={`${part} ${circumference - part}`}
+                strokeDashoffset={-offset}
+              >
+                <title>{`${name(slice, field)}: ${slice.count}`}</title>
+              </circle>
+            );
+            offset += part;
+            return el;
+          })}
+        </g>
+        <text
+          x={21}
+          y={23.6}
+          textAnchor="middle"
+          fill="currentColor"
+          fontSize={8}
+          fontWeight={750}
+        >
+          {data.total}
+        </text>
+      </svg>
+      {labels.legend && (
+        <div className={`${styles.list} ${styles.noS}`}>
+          {data.slices.map((slice) => (
+            <div key={slice.key} className={styles.listRow}>
+              <i style={{ background: slice.color }} />
+              <span className={styles.name}>{name(slice, field)}</span>
+              {labels.values ? <span>{slice.count}</span> : <span />}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Flow({
+  data,
+  labels,
+  bucketLabel,
+}: BodyProps & { data: Extract<Data, { type: "flow" }> }) {
+  const t = useTranslations("widgets");
+  const max = Math.max(1, ...data.points.flatMap((p) => [p.created, p.closed]));
+  const net = data.created - data.closed;
+  const showValues = labels.values && data.points.length <= 14;
+  return (
+    <>
+      {labels.legend && (
+        <div className={`${styles.legend} ${styles.noShort}`}>
+          <span>
+            <i style={{ background: "var(--chart-1)" }} />
+            {t("created")} <b>{data.created}</b>
+          </span>
+          <span>
+            <i style={{ background: "var(--chart-3)" }} />
+            {t("closed")} <b>{data.closed}</b>
+          </span>
+          <span>
+            {t("net")}{" "}
+            <b className={net > 0 ? styles.bad : net < 0 ? styles.good : ""}>
+              {net > 0 ? `+${net}` : net}
+            </b>
+          </span>
+        </div>
+      )}
+      <div className={styles.cols}>
+        {data.points.map((p) => (
+          <div
+            key={p.date}
+            className={styles.col}
+            title={`${bucketLabel(p.date)} · ${t("created")} ${p.created} · ${t("closed")} ${p.closed}`}
+          >
+            <i
+              style={{
+                height: `${(p.created / max) * 100}%`,
+                background: "var(--chart-1)",
+              }}
+            >
+              {showValues && p.created > 0 && (
+                <em className={`${styles.value} ${styles.noShort}`}>
+                  {p.created}
+                </em>
+              )}
+            </i>
+            <i
+              style={{
+                height: `${(p.closed / max) * 100}%`,
+                background: "var(--chart-3)",
+              }}
+            >
+              {showValues && p.closed > 0 && (
+                <em className={`${styles.value} ${styles.noShort}`}>
+                  {p.closed}
+                </em>
+              )}
+            </i>
+          </div>
+        ))}
+      </div>
+      {labels.axes && (
+        <TimeAxis keys={data.points.map((p) => p.date)} label={bucketLabel} />
+      )}
+    </>
+  );
+}
+
+function Burnup({
+  data,
+  labels,
+  bucketLabel,
+}: BodyProps & { data: Extract<Data, { type: "burnup" }> }) {
+  const t = useTranslations("widgets");
+  const n = data.points.length;
+  const max = Math.max(1, ...data.points.map((p) => p.total));
+  const x = (i: number) => (n === 1 ? 50 : (i / (n - 1)) * 100);
+  const y = (v: number) => 100 - (v / max) * 96;
+  const line = (pick: (p: (typeof data.points)[number]) => number) =>
+    data.points
+      .map((p, i) => `${i ? "L" : "M"}${x(i)} ${y(pick(p))}`)
+      .join(" ");
+  const done = line((p) => p.done);
+  const total = line((p) => p.total);
+  const back = (path: string) =>
+    path
+      .split(" L")
+      .reverse()
+      .map((seg) => seg.replace("M", ""))
+      .join(" L");
+  const last = data.points[n - 1];
+
+  return (
+    <>
+      <svg
+        className={styles.chart}
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={
+          last ? `${t("doneSeries")} ${last.done} / ${last.total}` : ""
+        }
+      >
+        <path
+          d={`${done} L100 100 L0 100Z`}
+          fill="var(--chart-3)"
+          opacity={0.85}
+        />
+        <path
+          d={`${total} L${back(done)}Z`}
+          fill="var(--chart-1)"
+          opacity={0.28}
+        />
+        <path
+          d={total}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.5}
+          strokeDasharray="4 4"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      {labels.axes && (
+        <TimeAxis keys={data.points.map((p) => p.date)} label={bucketLabel} />
+      )}
+      {labels.legend && (
+        <div className={`${styles.legend} ${styles.noShort}`}>
+          <span>
+            <i style={{ background: "var(--chart-3)" }} />
+            {t("doneSeries")} {labels.values && last && <b>{last.done}</b>}
+          </span>
+          <span>
+            <i
+              style={{
+                background:
+                  "color-mix(in srgb, var(--chart-1) 45%, transparent)",
+              }}
+            />
+            {t("openPart")}{" "}
+            {labels.values && last && <b>{last.total - last.done}</b>}
+          </span>
+          <span>– – {t("scope")}</span>
+        </div>
+      )}
+    </>
+  );
+}
+
+function Cycle({
+  data,
+  labels,
+  issueHref,
+}: BodyProps & { data: Extract<Data, { type: "cycle" }> }) {
+  const t = useTranslations("widgets");
+  const format = useFormatter();
+  const num = (n: number) => format.number(n, { maximumFractionDigits: 1 });
+  if (data.points.length === 0) return <Empty />;
+
+  const delta =
+    data.avg !== null && data.previous !== null
+      ? Math.round((data.avg - data.previous) * 10) / 10
+      : null;
+  const top = Math.max(1, (data.p95 ?? 1) * 1.25);
+  const times = data.points.map((p) => p.closed);
+  const from = Math.min(...times);
+  const span = Math.max(1, Math.max(...times) - from);
+  const marks = [
+    { key: "p50", value: data.p50, color: "var(--teal)" },
+    { key: "p75", value: data.p75, color: "var(--amber)" },
+    { key: "p95", value: data.p95, color: "var(--red)" },
+  ].filter(
+    (m): m is { key: string; value: number; color: string } => m.value !== null,
+  );
+
+  return (
+    <>
+      {/* Small and medium: the number and how it moved. */}
+      <div className={`${styles.kpi} ${styles.onlyShort}`}>
+        <div>
+          <div className={styles.big}>
+            {data.avg === null ? "–" : num(data.avg)}
+            <small>{t("daysUnit")}</small>
+          </div>
+          <div className={styles.sub}>
+            {delta !== null && delta !== 0 && (
+              <span className={delta < 0 ? styles.good : styles.bad}>
+                {delta > 0 ? "▲" : "▼"} {num(Math.abs(delta))}{" "}
+              </span>
+            )}
+            {data.p50 !== null && t("median", { days: num(data.p50) })}
+          </div>
+        </div>
+        <span className={`${styles.grow} ${styles.noS}`}>
+          <Spark values={data.spark} area />
+        </span>
+      </div>
+
+      {/* Large: every closed issue as a dot, with percentile lines. */}
+      <div className={`${styles.scatter} ${styles.noShort}`}>
+        {marks.map((m) => (
+          <span
+            key={m.key}
+            className={styles.mark}
+            style={
+              {
+                bottom: `${Math.min(100, (m.value / top) * 100)}%`,
+                "--c": m.color,
+              } as CSSProperties
+            }
+          >
+            {labels.values && (
+              <em>
+                {m.key.toUpperCase()} {t("days", { days: num(m.value) })}
+              </em>
+            )}
+          </span>
+        ))}
+        {data.points.map((p) => (
+          <Link
+            key={p.id}
+            href={issueHref(p.ref)}
+            className={styles.dotPoint}
+            style={{
+              left: `${((p.closed - from) / span) * 100}%`,
+              bottom: `${Math.min(100, (p.days / top) * 100)}%`,
+            }}
+            title={`${p.ref} · ${p.title} · ${t("days", { days: num(p.days) })}`}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+const AGE_KEYS = ["age_0", "age_1", "age_2", "age_3", "age_4"] as const;
+
+function Age({
+  data,
+  labels,
+}: BodyProps & { data: Extract<Data, { type: "age" }> }) {
+  const t = useTranslations("widgets");
+  const max = Math.max(1, ...data.buckets);
+  if (data.buckets.every((b) => b === 0)) return <Empty />;
+  return (
+    <>
+      <div className={`${styles.cols} ${styles.ageCols}`}>
+        {data.buckets.map((count, i) => (
+          <div
+            key={AGE_KEYS[i]}
+            className={styles.col}
+            title={`${t(AGE_KEYS[i])}: ${count}`}
+          >
+            <i style={{ height: `${(count / max) * 100}%` }} data-step={i}>
+              {labels.values && count > 0 && (
+                <em className={styles.value}>{count}</em>
+              )}
+            </i>
+          </div>
+        ))}
+      </div>
+      {labels.axes && (
+        <div className={styles.axis}>
+          {AGE_KEYS.map((key) => (
+            <span key={key}>{t(key)}</span>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function Matrix({
+  widget,
+  data,
+  labels,
+}: BodyProps & { data: Extract<Data, { type: "matrix" }> }) {
+  const name = useSliceName();
+  if (data.rows.length === 0) return <Empty />;
+  return (
+    <div
+      className={styles.matrix}
+      style={{
+        gridTemplateColumns: `minmax(3rem, 1.4fr) repeat(${data.cols.length}, minmax(0, 1fr))`,
+      }}
+    >
+      <span className={styles.mHead} />
+      {data.cols.map((col) => (
+        <span key={col.key} className={styles.mHead} title={name(col)}>
+          {labels.axes ? name(col, widget.config.groupBy2) : ""}
+        </span>
+      ))}
+      {data.rows.map((row, i) => [
+        <span key={`${row.key}-h`} className={styles.mRow} title={name(row)}>
+          {labels.axes ? name(row, widget.config.groupBy) : ""}
+        </span>,
+        ...data.cols.map((col, j) => (
+          <span
+            key={`${row.key}-${col.key}`}
+            style={
+              {
+                "--v": data.max ? data.cells[i][j] / data.max : 0,
+              } as CSSProperties
+            }
+            title={`${name(row)} × ${name(col)}: ${data.cells[i][j]}`}
+          >
+            {labels.values ? data.cells[i][j] : ""}
+          </span>
+        )),
+      ])}
+    </div>
+  );
+}
+
+function Workload({
+  data,
+  labels,
+}: BodyProps & { data: Extract<Data, { type: "workload" }> }) {
+  const t = useTranslations("widgets");
+  if (data.rows.length === 0) return <Empty />;
+  const max = Math.max(1, ...data.rows.map((r) => r.open));
+  return (
+    <>
+      <div className={styles.bars}>
+        {data.rows.slice(0, 10).map((row) => (
+          <div key={row.user?.id ?? "_none"} className={styles.bar}>
+            <span className={styles.who}>
+              <Avatar avatar={row.user} size={20} />
+              {labels.axes && (
+                <span>
+                  {row.user
+                    ? row.user.firstName || row.user.lastName
+                    : t("noneAssignee")}
+                </span>
+              )}
+            </span>
+            <span className={styles.track}>
+              <i
+                style={{
+                  width: `${(row.inProgress / max) * 100}%`,
+                  background: "var(--amber)",
+                }}
+              />
+              <i
+                style={{
+                  width: `${((row.open - row.inProgress) / max) * 100}%`,
+                  background:
+                    "color-mix(in srgb, var(--on-surface) 35%, transparent)",
+                }}
+              />
+            </span>
+            {labels.values && <span>{row.open}</span>}
+          </div>
+        ))}
+      </div>
+      {labels.legend && (
+        <div className={`${styles.legend} ${styles.noShort}`}>
+          <span>
+            <i style={{ background: "var(--amber)" }} />
+            {t("inProgress")}
+          </span>
+          <span>
+            <i
+              style={{
+                background:
+                  "color-mix(in srgb, var(--on-surface) 35%, transparent)",
+              }}
+            />
+            {t("openPart")}
+          </span>
+        </div>
+      )}
+    </>
+  );
+}

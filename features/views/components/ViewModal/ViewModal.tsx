@@ -333,6 +333,11 @@ export function ViewModal({
                   label: t("views.layoutList"),
                   icon: <Icon icon="lucide:list" width={15} />,
                 },
+                {
+                  value: "dashboard",
+                  label: t("views.layoutDashboard"),
+                  icon: <Icon icon="lucide:gauge" width={15} />,
+                },
               ]}
             />
           </div>

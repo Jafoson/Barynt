@@ -1,159 +1,523 @@
-// ─── The project dashboard's widgets ────────────────────────────────────────
+import { z } from "zod";
+import { type IssueFilter, issueFilterSchema } from "@/features/issues/filter";
+
+// ─── Dashboard widgets (BARY-169) ───────────────────────────────────────────
 //
-// Dependency-free: no DB, no `server-only`, no React. The server side needs
-// the list to only load what's actually shown; the UI needs it to render;
-// the customize dialog needs it to offer as choices. Three readers, one
-// source of truth — and tests that run without a database.
+// Dependency-free: no DB, no `server-only`, no React. The server reads it to
+// know what to compute, the UI to render and offer, the actions to validate.
+//
+// Widgets work like the ones on iOS and macOS: a few **fixed sizes** on a
+// square grid instead of free resizing. A bigger size shows more, it doesn't
+// just scale — and every kind only offers the sizes it looks good in. The
+// grid is 8 columns on a desktop, 4 on a tablet and 2 on a phone; the order
+// is the same everywhere and gaps fill themselves, so nobody keeps three
+// layouts.
 
-/** Every widget the dashboard knows about. */
-export const WIDGET_KEYS = [
-  "stats",
-  "status",
-  "throughput",
-  "priority",
-  "workload",
+/** The sizes, small to large. `T` ("tall") is the narrow, high one. */
+export const WIDGET_SIZES = ["S", "M", "L", "T", "XL"] as const;
+export type WidgetSize = (typeof WIDGET_SIZES)[number];
+
+/** Columns × rows each size takes on the grid. On a phone (2 columns) an
+ *  `XL` is drawn as an `L` — see `dashboard.module.scss`. */
+export const SIZE_SPAN: Record<WidgetSize, { cols: number; rows: number }> = {
+  S: { cols: 1, rows: 1 },
+  M: { cols: 2, rows: 1 },
+  L: { cols: 2, rows: 2 },
+  T: { cols: 2, rows: 4 },
+  XL: { cols: 4, rows: 2 },
+};
+
+export const WIDGET_TYPES = [
+  "kpi",
+  "progress",
+  "distribution",
   "attention",
+  "issues",
+  "flow",
+  "burnup",
+  "cycle",
+  "workload",
+  "matrix",
+  "age",
+  "about",
+  "activity",
+  "note",
 ] as const;
+export type WidgetType = (typeof WIDGET_TYPES)[number];
 
-export type WidgetKey = (typeof WIDGET_KEYS)[number];
+/** What a number widget counts. */
+export const KPI_METRICS = [
+  "open",
+  "inProgress",
+  "inReview",
+  "created",
+  "closed",
+  "overdue",
+  "unassigned",
+  "urgent",
+  "cycleTime",
+  "total",
+] as const;
+export type KpiMetric = (typeof KPI_METRICS)[number];
 
-/**
- * How wide a widget sits.
- *
- * `full` takes the whole row, `half` shares it with a neighbor. This lives
- * here and not in the stylesheet, because it belongs to the widget, not the
- * page: if someone reorders the widgets, the widths should travel along
- * without a second list needing to be updated anywhere.
- */
-export type WidgetSpan = "half" | "full";
+/** Whether more of a metric is good news (green trend) or bad (red). */
+export const METRIC_MORE_IS_GOOD: Record<KpiMetric, boolean> = {
+  open: false,
+  inProgress: true,
+  inReview: true,
+  created: true,
+  closed: true,
+  overdue: false,
+  unassigned: false,
+  urgent: false,
+  cycleTime: false,
+  total: true,
+};
 
-export interface WidgetDef {
-  key: WidgetKey;
-  span: WidgetSpan;
-  /** Icon in the customize dialog — the same one as in the widget's header. */
-  icon: string;
-  /**
-   * Widgets that can't be hidden.
-   *
-   * Exactly one: the key-figures row. A dashboard with neither a number nor
-   * a chart on it isn't a configured dashboard, it's an empty page nobody
-   * can find their way back from — the row stays the anchor from which
-   * customization can still be reached.
-   */
-  permanent?: boolean;
-}
-
-/**
- * The default: order and width when nobody has changed anything.
- *
- * From coarse to fine, like the platform dashboard: first the state in
- * numbers, then how it's distributed and developing, then where the work
- * sits — and finally the list pointing to individual issues.
- */
-export const WIDGETS: WidgetDef[] = [
-  { key: "stats", span: "full", icon: "lucide:layout-grid", permanent: true },
-  { key: "status", span: "half", icon: "lucide:chart-pie" },
-  { key: "throughput", span: "half", icon: "lucide:chart-column" },
-  { key: "priority", span: "half", icon: "lucide:signal-high" },
-  { key: "workload", span: "half", icon: "lucide:users" },
-  { key: "attention", span: "full", icon: "lucide:triangle-alert" },
+/** What a distribution or a matrix axis groups by. Labels only for the
+ *  distribution — an issue with three labels would count three times in a
+ *  matrix cell. */
+export const GROUP_FIELDS = [
+  "status",
+  "priority",
+  "type",
+  "assignee",
+  "label",
+  "project",
+] as const;
+export type GroupField = (typeof GROUP_FIELDS)[number];
+export const MATRIX_FIELDS: GroupField[] = [
+  "status",
+  "priority",
+  "type",
+  "assignee",
+  "project",
 ];
 
-const BY_KEY = new Map(WIDGETS.map((widget) => [widget.key, widget]));
+export const ISSUE_SORTS = [
+  "updated",
+  "created",
+  "dueDate",
+  "priority",
+] as const;
+export type IssueSort = (typeof ISSUE_SORTS)[number];
 
-export function widgetDef(key: WidgetKey): WidgetDef {
-  const found = BY_KEY.get(key);
-  // Can't happen as long as `WidgetKey` derives from `WIDGETS` — and if it
-  // did, it would be a missing entry, not a minor issue.
-  if (!found) throw new Error(`Unknown dashboard widget: ${key}`);
-  return found;
+/** How a distribution draws: a ring with a legend, or bars. */
+export const DISTRIBUTION_CHARTS = ["ring", "bars"] as const;
+export type DistributionChart = (typeof DISTRIBUTION_CHARTS)[number];
+
+/** The four backgrounds, each in the widget's accent. `fill` only where the
+ *  content has no colors of its own (`WidgetDef.fill`). */
+export const BACKGROUNDS = ["plain", "tint", "gradient", "fill"] as const;
+export type WidgetBackground = (typeof BACKGROUNDS)[number];
+
+/** Accent colors — the app's chart and named colors, plus pink and gray. */
+export const ACCENTS = [
+  "blue",
+  "teal",
+  "green",
+  "lime",
+  "ochre",
+  "amber",
+  "orange",
+  "red",
+  "pink",
+  "purple",
+  "indigo",
+  "gray",
+] as const;
+export type WidgetAccent = (typeof ACCENTS)[number];
+
+export interface ChartLabels {
+  legend: boolean;
+  axes: boolean;
+  values: boolean;
 }
 
-/** Is this a widget that actually exists? Filters what comes from the database. */
-export function isWidgetKey(value: string): value is WidgetKey {
-  return (WIDGET_KEYS as readonly string[]).includes(value);
+/** Legend and axes on; values (numbers on bars and cells) too — a chart
+ *  without its numbers answers "roughly" where people ask "how many". */
+export const DEFAULT_LABELS: ChartLabels = {
+  legend: true,
+  axes: true,
+  values: true,
+};
+
+export interface WidgetConfig {
+  /** Own title; empty means the kind's (or the metric's) name. */
+  title?: string;
+  /** The widget's own filter, on top of the dashboard's. */
+  filter?: IssueFilter;
+  metric?: KpiMetric;
+  groupBy?: GroupField;
+  /** The matrix's second axis (columns). */
+  groupBy2?: GroupField;
+  chart?: DistributionChart;
+  /** Only issues that are still open. */
+  openOnly?: boolean;
+  sort?: IssueSort;
+  labels?: ChartLabels;
+  background?: WidgetBackground;
+  accent?: WidgetAccent;
+  /** The note's text. */
+  text?: string;
 }
 
-export interface DashboardLayout {
-  /** The visible widgets, in the order they appear. */
-  visible: WidgetKey[];
-  /** The hidden ones — for the customize dialog, which can bring them back. */
-  hidden: WidgetKey[];
+export interface Widget {
+  /** Stable within a dashboard — the React key and the data map's key. */
+  id: string;
+  type: WidgetType;
+  size: WidgetSize;
+  config: WidgetConfig;
+}
+
+export interface WidgetDef {
+  type: WidgetType;
+  icon: string;
+  /** The sizes this kind offers, small to large. */
+  sizes: WidgetSize[];
+  size: WidgetSize;
+  accent: WidgetAccent;
+  /** Has chart labels (legend, axes, values) to switch. */
+  chart?: boolean;
+  /** May take the `fill` background — only kinds without data colors. */
+  fill?: boolean;
+  /** Reads issues (and so takes a filter). */
+  issues: boolean;
+  /** The gallery's section. */
+  group: "numbers" | "charts" | "lists" | "other";
+  config: WidgetConfig;
+}
+
+export const WIDGETS: Record<WidgetType, WidgetDef> = {
+  kpi: {
+    type: "kpi",
+    icon: "lucide:hash",
+    sizes: ["S", "M"],
+    size: "S",
+    accent: "blue",
+    fill: true,
+    issues: true,
+    group: "numbers",
+    config: { metric: "open" },
+  },
+  progress: {
+    type: "progress",
+    icon: "lucide:target",
+    sizes: ["S", "M"],
+    size: "M",
+    accent: "lime",
+    fill: true,
+    issues: true,
+    group: "numbers",
+    config: {},
+  },
+  distribution: {
+    type: "distribution",
+    icon: "lucide:chart-pie",
+    sizes: ["S", "M", "L", "T"],
+    size: "L",
+    accent: "indigo",
+    chart: true,
+    issues: true,
+    group: "charts",
+    config: { groupBy: "status", chart: "ring" },
+  },
+  flow: {
+    type: "flow",
+    icon: "lucide:chart-column",
+    sizes: ["M", "L", "XL"],
+    size: "XL",
+    accent: "blue",
+    chart: true,
+    issues: true,
+    group: "charts",
+    config: {},
+  },
+  burnup: {
+    type: "burnup",
+    icon: "lucide:chart-area",
+    sizes: ["M", "L", "XL"],
+    size: "XL",
+    accent: "lime",
+    chart: true,
+    issues: true,
+    group: "charts",
+    config: {},
+  },
+  cycle: {
+    type: "cycle",
+    icon: "lucide:timer",
+    sizes: ["S", "M", "L", "XL"],
+    size: "L",
+    accent: "teal",
+    chart: true,
+    issues: true,
+    group: "charts",
+    config: {},
+  },
+  age: {
+    type: "age",
+    icon: "lucide:hourglass",
+    sizes: ["M", "L"],
+    size: "M",
+    accent: "orange",
+    chart: true,
+    issues: true,
+    group: "charts",
+    config: {},
+  },
+  matrix: {
+    type: "matrix",
+    icon: "lucide:grid-3x3",
+    sizes: ["L", "T", "XL"],
+    size: "L",
+    accent: "indigo",
+    issues: true,
+    group: "charts",
+    config: { groupBy: "assignee", groupBy2: "status", openOnly: true },
+  },
+  attention: {
+    type: "attention",
+    icon: "lucide:triangle-alert",
+    sizes: ["S", "M", "L", "T"],
+    size: "L",
+    accent: "red",
+    issues: true,
+    group: "lists",
+    config: {},
+  },
+  issues: {
+    type: "issues",
+    icon: "lucide:list",
+    sizes: ["M", "L", "T", "XL"],
+    size: "L",
+    accent: "blue",
+    issues: true,
+    group: "lists",
+    config: { sort: "updated", openOnly: true },
+  },
+  workload: {
+    type: "workload",
+    icon: "lucide:users",
+    sizes: ["M", "L", "T"],
+    size: "L",
+    accent: "purple",
+    chart: true,
+    issues: true,
+    group: "lists",
+    config: {},
+  },
+  activity: {
+    type: "activity",
+    icon: "lucide:history",
+    sizes: ["M", "L", "T"],
+    size: "L",
+    accent: "ochre",
+    issues: false,
+    group: "lists",
+    config: {},
+  },
+  about: {
+    type: "about",
+    icon: "lucide:info",
+    sizes: ["M", "L", "T"],
+    size: "L",
+    accent: "green",
+    issues: false,
+    group: "other",
+    config: { background: "gradient" },
+  },
+  note: {
+    type: "note",
+    icon: "lucide:sticky-note",
+    sizes: ["S", "M", "L", "T"],
+    size: "M",
+    accent: "ochre",
+    fill: true,
+    issues: false,
+    group: "other",
+    config: { background: "fill" },
+  },
+};
+
+/** A fresh widget of a kind, with its defaults. */
+export function newWidget(type: WidgetType, id: string): Widget {
+  const def = WIDGETS[type];
+  return { id, type, size: def.size, config: { ...def.config } };
+}
+
+// ─── Defaults ────────────────────────────────────────────────────────────────
+
+/** Fixed ids so the default layout is stable across renders and requests. */
+function w(
+  id: string,
+  type: WidgetType,
+  size: WidgetSize,
+  config: WidgetConfig = {},
+): Widget {
+  return { id, type, size, config: { ...WIDGETS[type].config, ...config } };
 }
 
 /**
- * Turn the stored setting into a layout.
- *
- * Both inputs are wishes, not truth: they come from a row that can be older
- * than the list of widgets. So nothing from there is trusted blindly —
- * everything is checked against `WIDGETS`.
- *
- * Two rules that together ensure a newly added widget also appears for
- * people who've already rearranged something:
- *
- *   1. `order` leads, but isn't complete — whatever's missing from it comes
- *      afterward, in the default order.
- *   2. Only what's explicitly listed in `hidden` counts as hidden. An
- *      unknown widget is new, not deselected.
- *
- * The reverse approach — save only the visible ones — would be shorter and
- * would have exactly this bug: a widget added later wouldn't appear in any
- * saved list and would stay invisible forever.
+ * What a project or workspace dashboard shows before anyone changes it.
+ * Coarse to fine: the state in numbers and its movement, then how it's
+ * distributed and what needs attention, then how it developed.
  */
-export function resolveLayout(
-  order: string[] = [],
-  hidden: string[] = [],
-): DashboardLayout {
-  const hiddenSet = new Set(hidden.filter(isWidgetKey));
+export function defaultWidgets(
+  kind: "project" | "workspace" | "view",
+): Widget[] {
+  // On 8 columns: the flow (4×2) beside four numbers and two halves, then
+  // four large ones, then the burn-up beside two large ones. Narrower grids
+  // reflow the same order.
+  const priority = w("priority", "distribution", "L", {
+    groupBy: "priority",
+    chart: "bars",
+    openOnly: true,
+    accent: "orange",
+  });
+  return [
+    w("flow", "flow", "XL"),
+    w("open", "kpi", "S", { metric: "open", background: "fill" }),
+    w("inProgress", "kpi", "S", {
+      metric: "inProgress",
+      accent: "amber",
+      background: "tint",
+    }),
+    w("overdue", "kpi", "S", {
+      metric: "overdue",
+      accent: "red",
+      background: "tint",
+    }),
+    w("closed", "kpi", "S", { metric: "closed", accent: "green" }),
+    w("cycle", "cycle", "M", { background: "gradient" }),
+    w("done", "progress", "M", { background: "fill" }),
+    w("status", "distribution", "L", { groupBy: "status" }),
+    w("attention", "attention", "L"),
+    w("workload", "workload", "L"),
+    kind === "view" ? priority : w("about", "about", "L"),
+    w("burnup", "burnup", "XL"),
+    kind === "workspace"
+      ? w("projects", "distribution", "L", {
+          groupBy: "project",
+          chart: "bars",
+          openOnly: true,
+          accent: "teal",
+        })
+      : kind === "view"
+        ? w("types", "distribution", "L", {
+            groupBy: "type",
+            chart: "bars",
+            accent: "teal",
+          })
+        : priority,
+    w("activity", "activity", "L"),
+  ];
+}
 
-  // First the saved order (with no unknowns and no duplicates), then
-  // everything the default still knows about.
-  const seen = new Set<WidgetKey>();
-  const ordered: WidgetKey[] = [];
+// ─── Validation ──────────────────────────────────────────────────────────────
 
-  for (const key of order) {
-    if (!isWidgetKey(key) || seen.has(key)) continue;
-    seen.add(key);
-    ordered.push(key);
-  }
-  for (const widget of WIDGETS) {
-    if (seen.has(widget.key)) continue;
-    seen.add(widget.key);
-    ordered.push(widget.key);
-  }
+const labelsSchema = z
+  .object({ legend: z.boolean(), axes: z.boolean(), values: z.boolean() })
+  .strict();
 
-  return {
-    // Whatever *can't* be hidden stays visible, even if it's listed in
-    // `hidden` — an old row might date back to a time when that was still
-    // allowed.
-    visible: ordered.filter(
-      (key) => !hiddenSet.has(key) || widgetDef(key).permanent,
-    ),
-    hidden: ordered.filter(
-      (key) => hiddenSet.has(key) && !widgetDef(key).permanent,
-    ),
-  };
+const configSchema = z
+  .object({
+    title: z.string().trim().max(80).optional(),
+    filter: issueFilterSchema.optional(),
+    metric: z.enum(KPI_METRICS).optional(),
+    groupBy: z.enum(GROUP_FIELDS).optional(),
+    groupBy2: z.enum(GROUP_FIELDS).optional(),
+    chart: z.enum(DISTRIBUTION_CHARTS).optional(),
+    openOnly: z.boolean().optional(),
+    sort: z.enum(ISSUE_SORTS).optional(),
+    labels: labelsSchema.optional(),
+    background: z.enum(BACKGROUNDS).optional(),
+    accent: z.enum(ACCENTS).optional(),
+    text: z.string().max(2000).optional(),
+  })
+  .strict();
+
+const widgetSchema = z
+  .object({
+    id: z.string().min(1).max(40),
+    type: z.enum(WIDGET_TYPES),
+    size: z.enum(WIDGET_SIZES),
+    config: configSchema,
+  })
+  .strict();
+
+/** A dashboard's widgets — at most 40, ids unique. */
+export const widgetsSchema = z
+  .array(widgetSchema)
+  .max(40)
+  .refine((list) => new Set(list.map((x) => x.id)).size === list.length, {
+    message: "Duplicate widget id",
+  });
+
+/**
+ * Bring a size the kind doesn't offer to the nearest one it does — a
+ * stored row may predate a change to the registry.
+ */
+export function fitSize(type: WidgetType, size: WidgetSize): WidgetSize {
+  const sizes = WIDGETS[type].sizes;
+  if (sizes.includes(size)) return size;
+  const rank = WIDGET_SIZES.indexOf(size);
+  return (
+    [...sizes].sort(
+      (a, b) =>
+        Math.abs(WIDGET_SIZES.indexOf(a) - rank) -
+        Math.abs(WIDGET_SIZES.indexOf(b) - rank),
+    )[0] ?? WIDGETS[type].size
+  );
 }
 
 /**
- * Move a widget by one spot — the customize dialog's move action.
- *
- * Movement happens within the visible list; nothing happens at the edge.
- * Purely computational and stateless, so the dialog only has to save the
- * result.
+ * Read stored widgets. Anything that doesn't validate is `null` (the caller
+ * falls back to the next level); sizes and `fill` are brought in line with
+ * the registry.
  */
-export function moveWidget(
-  order: WidgetKey[],
-  key: WidgetKey,
-  direction: -1 | 1,
-): WidgetKey[] {
-  const from = order.indexOf(key);
-  if (from < 0) return order;
+export function parseWidgets(input: unknown): Widget[] | null {
+  const parsed = widgetsSchema.safeParse(input);
+  if (!parsed.success) return null;
+  return parsed.data.map((widget) => normalizeWidget(widget as Widget));
+}
 
-  const to = from + direction;
-  if (to < 0 || to >= order.length) return order;
+export function normalizeWidget(widget: Widget): Widget {
+  const def = WIDGETS[widget.type];
+  const config = { ...widget.config };
+  if (config.background === "fill" && !def.fill) config.background = "tint";
+  return { ...widget, size: fitSize(widget.type, widget.size), config };
+}
 
-  const next = [...order];
-  [next[from], next[to]] = [next[to], next[from]];
+/** The labels a chart shows — stored or the default. */
+export function labelsOf(widget: Widget): ChartLabels {
+  return widget.config.labels ?? DEFAULT_LABELS;
+}
+
+/** The accent a widget is drawn in — its own or its kind's. */
+export function accentOf(widget: Widget): WidgetAccent {
+  return widget.config.accent ?? WIDGETS[widget.type].accent;
+}
+
+/** Move `id` to where `targetId` sits (drag and drop in edit mode). */
+export function moveWidgetTo(
+  widgets: Widget[],
+  id: string,
+  targetId: string,
+): Widget[] {
+  const from = widgets.findIndex((x) => x.id === id);
+  const to = widgets.findIndex((x) => x.id === targetId);
+  if (from < 0 || to < 0 || from === to) return widgets;
+  const next = [...widgets];
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
   return next;
+}
+
+/** Storage key of a dashboard's layout row (`DashboardLayout.key`). */
+export function layoutKey(
+  target: { kind: "project" | "workspace"; id: string },
+  userId: string | null,
+): string {
+  return `${target.kind}:${target.id}${userId ? `:${userId}` : ""}`;
 }
