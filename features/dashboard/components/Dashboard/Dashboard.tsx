@@ -76,11 +76,11 @@ const needsData = (a: WidgetModel, b: WidgetModel) =>
  * removes one, the switch at the bottom changes its size, dragging moves
  * it, a click opens its settings.
  *
- * Saving works like a view's (BARY-164): once the arrangement differs from
- * the stored one, the toolbar says "Unsaved" and offers Discard, Save as new
- * view and Save — for oneself, and with `dashboard.manage` also as the
- * default for everyone. A dashboard view saves into the view, if the person
- * may change it; otherwise only a new view remains.
+ * Edit mode carries its own way out, like a view's save bar (BARY-164):
+ * Cancel, Save as new view and Save — for oneself, and with
+ * `dashboard.manage` also as the default for everyone. A dashboard view
+ * saves into the view if the person may change it; otherwise only a new
+ * view remains.
  */
 export function Dashboard({
   view,
@@ -107,8 +107,9 @@ export function Dashboard({
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
   const openViewModal = useOpenViewModal();
-  // The draft is what shows; "unsaved" is it differing from what's stored.
-  const widgets = draft;
+  // The draft is what shows while editing; leaving edit mode either saves
+  // it or throws it away.
+  const widgets = editing ? draft : layout.widgets;
   const dirty = JSON.stringify(draft) !== JSON.stringify(layout.widgets);
   const canSave = target.kind !== "view" || layout.canEdit;
 
@@ -223,14 +224,18 @@ export function Dashboard({
     });
   };
 
-  // Unsaved: the same row of actions as a changed view.
-  const saveBar = dirty && (
+  // Edit mode's own actions, always there while editing: cancel, a new
+  // view from this arrangement, and save — for oneself, and with
+  // `dashboard.manage` as the default for everyone.
+  const editActions = (
     <span className={styles.saveBar}>
-      <Badge size="sm" mono={false}>
-        {t("unsaved")}
-      </Badge>
+      {dirty && (
+        <Badge size="sm" mono={false}>
+          {t("unsaved")}
+        </Badge>
+      )}
       <Button variant="ghost" size="sm" onClick={discard} disabled={pending}>
-        {t("discard")}
+        {t("cancel")}
       </Button>
       <Button
         variant={canSave ? "elevated" : "primary"}
@@ -246,7 +251,7 @@ export function Dashboard({
           variant="elevated"
           size="sm"
           icon={<Icon icon="lucide:users" width={14} />}
-          onClick={() => save("shared")}
+          onClick={() => (dirty ? save("shared") : setEditing(false))}
           disabled={pending}
           title={t("hintShared")}
         >
@@ -257,7 +262,9 @@ export function Dashboard({
         <Button
           variant="primary"
           size="sm"
-          onClick={() => save("personal")}
+          // Nothing changed: just leave — writing the unchanged layout as
+          // one's own would freeze the default for this person.
+          onClick={() => (dirty ? save("personal") : setEditing(false))}
           disabled={pending}
           title={target.kind === "view" ? t("hintView") : t("hintPersonal")}
         >
@@ -305,15 +312,7 @@ export function Dashboard({
                   {t("resetShared")}
                 </Button>
               )}
-            {saveBar}
-            <Button
-              variant={dirty ? "ghost" : "primary"}
-              size="sm"
-              onClick={() => setEditing(false)}
-              disabled={pending}
-            >
-              {t("done")}
-            </Button>
+            {editActions}
           </>
         ) : (
           <>
@@ -334,17 +333,19 @@ export function Dashboard({
               <span className={styles.hint}>{td("scopeMineHint")}</span>
             )}
             <span className={styles.spacer} />
-            {!dirty && layout.personal && (
+            {layout.personal && (
               <Badge size="sm" mono={false}>
                 {t("personalBadge")}
               </Badge>
             )}
-            {saveBar}
             <Button
               variant="elevated"
               size="sm"
               icon={<Icon icon="lucide:layout-dashboard" width={15} />}
-              onClick={() => setEditing(true)}
+              onClick={() => {
+                setDraft(layout.widgets);
+                setEditing(true);
+              }}
             >
               {t("edit")}
             </Button>
@@ -440,7 +441,13 @@ export function Dashboard({
         {widgets.length === 0 && !editing && (
           <div className={styles.emptyPage}>
             <p>{t("emptyDashboard")}</p>
-            <Button variant="primary" onClick={() => setEditing(true)}>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setDraft(layout.widgets);
+                setEditing(true);
+              }}
+            >
               {t("edit")}
             </Button>
           </div>
