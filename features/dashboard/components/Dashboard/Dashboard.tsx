@@ -169,6 +169,15 @@ export function Dashboard({
       router.refresh();
     });
 
+  const resetLevel: "personal" | "shared" | null =
+    target.kind === "view"
+      ? null
+      : layout.personal
+        ? "personal"
+        : layout.canEditShared && layout.hasShared
+          ? "shared"
+          : null;
+
   const saveAsView = () =>
     openViewModal({ ...newView, initialLayout: "dashboard", widgets: draft });
 
@@ -285,29 +294,23 @@ export function Dashboard({
             </Button>
             <span className={styles.hint}>{t("hintEdit")}</span>
             <span className={styles.spacer} />
-            {!dirty && target.kind !== "view" && layout.personal && (
+            {/* One way back: one's own layout to the default, or — with
+                nothing of one's own — the default to the built-in one. */}
+            {!dirty && resetLevel && (
               <Button
                 variant="text"
                 size="sm"
-                onClick={() => reset("personal")}
+                className={styles.reset}
+                icon={<Icon icon="lucide:rotate-ccw" width={14} />}
+                onClick={() => reset(resetLevel)}
                 disabled={pending}
+                title={t(
+                  resetLevel === "shared" ? "resetShared" : "resetPersonal",
+                )}
               >
-                {t("resetPersonal")}
+                {t("reset")}
               </Button>
             )}
-            {!dirty &&
-              target.kind !== "view" &&
-              layout.canEditShared &&
-              layout.hasShared && (
-                <Button
-                  variant="text"
-                  size="sm"
-                  onClick={() => reset("shared")}
-                  disabled={pending}
-                >
-                  {t("resetShared")}
-                </Button>
-              )}
             {editActions}
           </>
         ) : (

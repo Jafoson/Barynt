@@ -1811,6 +1811,7 @@
     "saveShared": "Save for everyone",
     "savePersonal": "Save for me",
     "save": "Save",
-    "hintEdit": "Changes apply once you save them."
+    "hintEdit": "Changes apply once you save them.",
+    "reset": "Reset"
   }
 }
