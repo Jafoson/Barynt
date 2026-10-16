@@ -167,7 +167,7 @@ function About({ data }: { data: Extract<Data, { type: "about" }> }) {
             color: about.color,
             ...(about.avatarUrl ? { image: about.avatarUrl } : {}),
           }}
-          size={44}
+          size={52}
           shape="square"
         />
         <div className={styles.aboutTitle}>
