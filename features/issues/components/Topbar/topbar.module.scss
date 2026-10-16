@@ -262,7 +262,8 @@
   padding: 0.1875rem 0.25rem;
   border: 1.5px solid color-mix(in srgb, var(--box-accent) 55%, transparent);
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--box-accent) 5%, transparent);
+  /* Tinted in its kind's color, so the block reads as one. */
+  background: color-mix(in srgb, var(--box-accent) 12%, transparent);
 
   &[data-op="or"] {
     --box-accent: var(--amber);
