@@ -440,14 +440,17 @@ export function ViewsDirectory({
             />
           )}
         </InlinePicker>
-        <Input
-          variant="search"
-          className={styles.search}
-          placeholder={t("viewsPage.search")}
-          aria-label={t("viewsPage.search")}
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
+        {/* `Input` puts a class on the field, not on its frame with the
+            magnifier — the size and place go on a wrapper. */}
+        <div className={styles.search}>
+          <Input
+            variant="search"
+            placeholder={t("viewsPage.search")}
+            aria-label={t("viewsPage.search")}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className={styles.body}>
