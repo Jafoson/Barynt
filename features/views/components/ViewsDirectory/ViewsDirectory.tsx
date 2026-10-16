@@ -358,11 +358,7 @@ export function ViewsDirectory({
             { value: "all", label: t("viewsPage.showAll") },
             { value: "mine", label: t("viewsPage.showMine") },
             { value: "shared", label: t("viewsPage.showShared") },
-            {
-              value: "favorites",
-              label: t("viewsPage.showFavorites"),
-              icon: <Icon icon="lucide:star" width={14} />,
-            },
+            { value: "favorites", label: t("viewsPage.showFavorites") },
           ]}
         />
         <InlinePicker
