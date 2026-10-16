@@ -6,11 +6,11 @@
 .button.button {
   flex: none;
   height: var(--control-h);
-  /* A text button with its icon — primary, like the other text actions in
-     the bar ("Reset"). */
-  padding-inline: 0.625rem;
+  /* An icon button: a square as tall as the bar's controls, the plus in
+     primary. */
+  width: var(--control-h);
+  padding: 0;
   color: var(--primary);
-  font-weight: 600;
 
   /* Wherever the floating plus shows (phone and tablet, the same mixin as
      `newIssueFab.module.scss`), it offers this action instead. */
