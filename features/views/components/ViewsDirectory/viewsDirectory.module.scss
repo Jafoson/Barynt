@@ -1,0 +1,120 @@
+@use "breakpoints" as bp;
+@use "card-rows";
+
+/* "All · Mine · Shared · Favorites" and the search, above the list. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.25rem 1.5rem 0;
+
+  @include bp.phone {
+    padding-inline: 1rem;
+
+    /* The switch scrolls sideways if it must; the search takes a line. */
+    & > :first-child {
+      max-width: 100%;
+    }
+  }
+}
+
+.search {
+  flex: 0 1 18rem;
+  margin-left: auto;
+
+  @include bp.phone {
+    flex: 1 1 100%;
+    margin-left: 0;
+  }
+}
+
+/* It's not the page that scrolls, but the table itself (`fill`). */
+.content {
+  --table-row-height: 3.25rem;
+  --table-divider: var(--outline-variant);
+
+  flex: 1;
+  min-height: 0;
+  padding: 0.75rem 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+
+  @include card-rows.card-rows;
+
+  /* Phone: name and star/pin on the first line, the rest small below. */
+  @include bp.phone {
+    td[data-col="name"] {
+      order: 1;
+      flex: 1 1 calc(100% - 6.5rem);
+    }
+    td[data-col="actions"] {
+      order: 2;
+      margin-inline-start: auto;
+    }
+    td[data-col="layout"] {
+      order: 3;
+    }
+    td[data-col="visibility"] {
+      order: 4;
+    }
+    td[data-col="owner"] {
+      order: 5;
+    }
+  }
+}
+
+.groupHead {
+  font-weight: 600;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+  font-weight: 550;
+
+  & > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.muted {
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+}
+
+.actions {
+  display: inline-flex;
+  gap: 0.125rem;
+}
+
+/* Star and pin: muted while off, the star amber and filled while on, the
+   pin in the text color. Doubled class: the text button sets its own. */
+.toggle.toggle {
+  color: var(--on-surface-variant);
+
+  &[data-on] {
+    color: var(--on-surface);
+  }
+
+  &[data-on]:first-child {
+    color: var(--amber);
+
+    svg {
+      fill: currentColor;
+    }
+  }
+}
+
+/* Replaced by the floating plus wherever that one is shown. */
+.newButton {
+  display: contents;
+
+  @include bp.tablet-down {
+    display: none;
+  }
+}

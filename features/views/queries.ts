@@ -15,6 +15,7 @@ import {
   type SortDir,
   VIEW_LAYOUTS,
   type ViewLayout,
+  type ViewVisibility,
   viewDisplaySchema,
 } from "./schema";
 import { viewPath } from "./url";
@@ -334,6 +335,9 @@ export interface ViewEntry {
   color: string | null;
   layout: ViewLayout;
   favorite: boolean;
+  pinned: boolean;
+  visibility: ViewVisibility;
+  ownerId: string | null;
   projectId: string | null;
   projectSlug: string | null;
   projectName: string | null;
@@ -356,7 +360,10 @@ export async function getVisibleViews(
     },
     include: {
       project: { select: { slug: true, name: true } },
-      userStates: { where: { userId }, select: { favorite: true } },
+      userStates: {
+        where: { userId },
+        select: { favorite: true, pinned: true },
+      },
     },
     orderBy: ORDER,
   });
@@ -390,6 +397,9 @@ export async function getVisibleViews(
               ? (row.layout as ViewLayout)
               : "list",
             favorite: row.userStates[0]?.favorite ?? false,
+            pinned: row.userStates[0]?.pinned ?? false,
+            visibility: row.visibility,
+            ownerId: row.ownerId,
             projectId: row.projectId,
             projectSlug: row.project?.slug ?? null,
             projectName: row.project?.name ?? null,

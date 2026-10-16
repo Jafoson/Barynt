@@ -834,7 +834,8 @@
       "created-by-me": "Created by me"
     },
     "moreViews": "More",
-    "tabTitle": "View"
+    "tabTitle": "View",
+    "allViews": "Show all views"
   },
   "realtime": {
     "staleGlobal": "There are changes.",
@@ -1531,5 +1532,24 @@
     "startView": "A view",
     "startViewPick": "Which view",
     "startViewNone": "No view to pick yet — create one in a project first."
+  },
+  "viewsPage": {
+    "subtitle": "Every view you can see. The sidebar holds only the starred and pinned ones.",
+    "workspace": "Workspace",
+    "name": "Name",
+    "layout": "Layout",
+    "visibility": "Visible to",
+    "owner": "Created by",
+    "you": "You",
+    "visibilitySystem": "Everyone (system)",
+    "visibilityPrivate": "Only me",
+    "showAll": "All",
+    "showMine": "Mine",
+    "showShared": "Shared",
+    "showFavorites": "Favorites",
+    "search": "Search views…",
+    "emptyTitle": "No views yet",
+    "emptyDesc": "Create a view — it remembers filters, grouping and layout.",
+    "noMatchTitle": "No view matches"
   }
 }

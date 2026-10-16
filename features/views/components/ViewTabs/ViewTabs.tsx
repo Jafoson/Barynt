@@ -10,6 +10,7 @@ import {
   useTransition,
 } from "react";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
+import { SelectAction } from "@/components/ui/atoms/SelectMenu/atoms/SelectAction";
 import {
   type ISelectItem,
   SelectMenu,
@@ -435,6 +436,18 @@ export function ViewTabs({
               value={null}
               searchable={overflow.length > 5}
               placeholder={t("placeholders.search")}
+              // The full list, with every view of the workspace (BARY-178).
+              footer={
+                <SelectAction
+                  icon={<Icon icon="lucide:layers" width={14} />}
+                  onClick={() => {
+                    close();
+                    router.push(`/${workspaceId}/views`);
+                  }}
+                >
+                  {t("views.allViews")}
+                </SelectAction>
+              }
               onPick={(id) => {
                 close();
                 const view = overflow.find((v) => v.id === id);
