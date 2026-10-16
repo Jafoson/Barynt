@@ -56,8 +56,8 @@ function RuleText({
 }
 
 /** From this depth on (the row's own items being 1), a group shows folded
- *  as "⋯ n ▸" until opened. */
-const FOLD_FROM = 3;
+ *  as "⋯ n ▸" until opened — every box inside a group. */
+const FOLD_FROM = 2;
 
 /** Which folded groups are open, by top-level index and path. */
 const FoldContext = createContext<{
