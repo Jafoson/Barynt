@@ -231,7 +231,9 @@ export function Dashboard({
     if (!editing) return;
     setFabAction({
       label: t("add"),
+      text: t("addShort"),
       icon: "lucide:plus",
+      variant: "elevated",
       run: () => openGalleryRef.current(),
     });
     return () => setFabAction(null);

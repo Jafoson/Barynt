@@ -75,11 +75,18 @@ export function NewIssueFabClient({
         <button
           type="button"
           className={styles.fab}
+          data-variant={pageAction.variant}
+          data-extended={pageAction.text ? true : undefined}
           aria-label={pageAction.label}
           title={pageAction.label}
           onClick={pageAction.run}
         >
-          <Icon icon={pageAction.icon} width={26} className={styles.plus} />
+          <Icon
+            icon={pageAction.icon}
+            width={pageAction.text ? 20 : 26}
+            className={styles.plus}
+          />
+          {pageAction.text && <span>{pageAction.text}</span>}
         </button>
       </div>
     );

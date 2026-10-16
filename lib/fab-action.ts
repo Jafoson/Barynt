@@ -11,9 +11,14 @@ import { useSyncExternalStore } from "react";
  * Same pattern as `features/views/newViewAction.ts`.
  */
 export interface FabAction {
+  /** Accessible name and tooltip. */
   label: string;
   icon: string;
   run: () => void;
+  /** A short word beside the icon — makes it an extended FAB. */
+  text?: string;
+  /** `elevated`: a quiet surface instead of the primary color. */
+  variant?: "primary" | "elevated";
 }
 
 let current: FabAction | null = null;

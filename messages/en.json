@@ -1814,6 +1814,7 @@
     "hintEdit": "Changes apply once you save them.",
     "reset": "Reset",
     "saveOptions": "More ways to save",
-    "move": "Move"
+    "move": "Move",
+    "addShort": "Widget"
   }
 }

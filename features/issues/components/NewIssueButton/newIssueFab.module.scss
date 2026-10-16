@@ -88,6 +88,22 @@
     outline: none;
     box-shadow: var(--shadow-pop), 0 0 0 3px var(--tertiary);
   }
+
+  /* Extended: icon and a word ("＋ Widget"). */
+  &[data-extended] {
+    width: auto;
+    gap: 0.5rem;
+    padding: 0 1.25rem 0 1rem;
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+
+  /* A quiet surface, for a page's own job (the dashboard's "add widget"). */
+  &[data-variant="elevated"] {
+    border: 1px solid var(--outline-variant);
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
 }
 
 /* The plus turns into a cross while the menu is open. */

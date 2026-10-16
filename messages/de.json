@@ -1814,6 +1814,7 @@
     "hintEdit": "Änderungen gelten erst, wenn du sie speicherst.",
     "reset": "Zurücksetzen",
     "saveOptions": "Weitere Speicher-Optionen",
-    "move": "Verschieben"
+    "move": "Verschieben",
+    "addShort": "Widget"
   }
 }
