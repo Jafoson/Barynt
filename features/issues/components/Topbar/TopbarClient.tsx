@@ -13,7 +13,11 @@ import {
   type ViewTab,
   ViewTabs,
 } from "@/features/views/components/ViewTabs/ViewTabs";
-import type { ViewLayout } from "@/features/views/schema";
+import {
+  SYSTEM_VIEW_BASE,
+  type SystemViewKey,
+  type ViewLayout,
+} from "@/features/views/schema";
 import {
   displayFromParams,
   pickViewState,
@@ -87,6 +91,8 @@ export interface TopbarViews {
         layout: ViewLayout;
         /** Its stored state as a query string (`viewParams`). */
         canonical: string;
+        /** Set on a system view (V8) — its fixed condition. */
+        systemKey: SystemViewKey | null;
       })
     | null;
 }
@@ -177,7 +183,15 @@ export function TopbarClient({
     !sameViewState(searchParams, new URLSearchParams(activeView.canonical));
   // What "New view"/"Save" take over: the view state of the address, with the
   // layout spelled out (the plain board/list keep theirs in the path).
-  const currentParams = { ...pickViewState(searchParams), layout: view };
+  // A system view's fixed condition isn't in the address (V8); "save as new
+  // view" takes it along as an ordinary filter.
+  const currentParams = {
+    ...(views?.active?.systemKey
+      ? SYSTEM_VIEW_BASE[views.active.systemKey]
+      : {}),
+    ...pickViewState(searchParams),
+    layout: view,
+  };
 
   // A saved view's display settings come from — and go to — its address
   // (BARY-165); the plain board and list keep the person's own preference.

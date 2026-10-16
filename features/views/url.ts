@@ -56,11 +56,17 @@ export type { SlugLookups } from "@/features/issues/filter-url";
 /** The address parameters of a view's stored state. `layout` is always set —
  *  it's how a view page tells "opened bare" from "all filters cleared". */
 export function viewParams(
-  view: Pick<SavedView, "filter" | "groupBy" | "sortBy" | "layout" | "display">,
+  view: Pick<
+    SavedView,
+    "filter" | "groupBy" | "sortBy" | "layout" | "display"
+  > & { systemKey?: SavedView["systemKey"] },
   lookups: SlugLookups,
 ): URLSearchParams {
+  // A system view's own condition stays off the address (`SYSTEM_VIEW_BASE`).
   const params = new URLSearchParams(
-    filterToParams(mapFilterValues(view.filter, idToSlug(lookups))),
+    view.systemKey
+      ? []
+      : filterToParams(mapFilterValues(view.filter, idToSlug(lookups))),
   );
   if (view.groupBy && view.groupBy !== VIEW_DEFAULT_GROUP)
     params.set("group", view.groupBy);

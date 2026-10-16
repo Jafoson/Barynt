@@ -42,6 +42,8 @@ export interface ViewTab {
   href: string;
   /** Name of who shared it — set only for someone else's shared view. */
   sharedBy: string | null;
+  /** A workspace's system view (V8) — personal, though nobody's. */
+  system: boolean;
   /** The viewer's own state (V7). */
   pinned: boolean;
   favorite: boolean;
@@ -362,7 +364,7 @@ export function ViewTabs({
         }
       >
         {view.name}
-        {view.visibility !== "PRIVATE" && (
+        {view.visibility !== "PRIVATE" && !view.system && (
           <Icon
             icon="lucide:users"
             width={12}

@@ -832,7 +832,8 @@
       "my-issues": "Zugewiesen",
       "created-by-me": "Von mir erstellt"
     },
-    "moreViews": "Mehr"
+    "moreViews": "Mehr",
+    "tabTitle": "View"
   },
   "realtime": {
     "staleGlobal": "Es gibt Änderungen.",

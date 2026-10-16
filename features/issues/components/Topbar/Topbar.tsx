@@ -199,6 +199,7 @@ async function loadTopbarViews({
     canEdit: v.canEdit,
     href: hrefOf(v),
     sharedBy: sharedByOf(v),
+    system: Boolean(v.systemKey),
     pinned: v.pinned,
     favorite: v.favorite,
     startView: v.startView,
@@ -221,6 +222,7 @@ async function loadTopbarViews({
           color: activeView.color,
           layout: activeView.layout,
           canonical: viewParams(activeView, lookups).toString(),
+          systemKey: activeView.systemKey,
         }
       : null,
   };

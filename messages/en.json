@@ -832,7 +832,8 @@
       "my-issues": "Assigned",
       "created-by-me": "Created by me"
     },
-    "moreViews": "More"
+    "moreViews": "More",
+    "tabTitle": "View"
   },
   "realtime": {
     "staleGlobal": "There are changes.",

@@ -662,7 +662,8 @@ export async function getWorkspaceIssues(
   {
     subIssues = true,
     assignedTo,
-  }: IssueListOptions & { assignedTo?: string } = {},
+    reportedBy,
+  }: IssueListOptions & { assignedTo?: string; reportedBy?: string } = {},
 ): Promise<IssueDetail[]> {
   const visible = await accessibleProjectIds(userId, workspaceId);
   if (visible.size === 0) return [];
@@ -683,6 +684,7 @@ export async function getWorkspaceIssues(
     where: {
       ...where,
       ...(assignedTo && { assigneeId: assignedTo }),
+      ...(reportedBy && { reporterId: reportedBy }),
       projectId: { in: scoped },
       ...(!subIssues && { parentId: null }),
     },

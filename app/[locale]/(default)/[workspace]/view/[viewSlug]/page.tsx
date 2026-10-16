@@ -90,6 +90,9 @@ export default async function WorkspaceViewPage({
   const [issues, statuses, composer] = await Promise.all([
     getWorkspaceIssues(userId, workspace, filters, {
       subIssues: layout === "list" || display.showSubIssues,
+      // A system view's own condition, behind the filters (V8).
+      ...(view.systemKey === "my-issues" && { assignedTo: userId }),
+      ...(view.systemKey === "created-by-me" && { reportedBy: userId }),
     }),
     getWorkspaceStatuses(),
     getIssueComposerData(),

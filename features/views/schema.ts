@@ -112,6 +112,17 @@ export function isSystemViewKey(value: unknown): value is SystemViewKey {
   return (SYSTEM_VIEW_KEYS as readonly unknown[]).includes(value);
 }
 
+/**
+ * What makes a system view what it is — applied on the server, never in
+ * the address or the filter bar, so it can't be filtered away ("My issues"
+ * without "assigned to me" would be all issues). "Save as new view" writes
+ * it into the copy as an ordinary filter.
+ */
+export const SYSTEM_VIEW_BASE: Record<SystemViewKey, Record<string, string>> = {
+  "my-issues": { assignee: "@me" },
+  "created-by-me": { reporter: "@me" },
+};
+
 /** A saved view as the app reads it — filter and display already parsed,
  *  plus the viewer's own state and whether they may change it. */
 export interface SavedView {
