@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 /* The same grid as `ProjectDashboard/projectDashboard.module.scss` one
    level down — see there for the reasoning behind each rule. A separate
    file instead of a shared import: the two pages live in different
@@ -152,4 +154,13 @@ a.stat:hover {
   padding: 0.875rem 0 0.25rem;
   font-size: var(--text-sm);
   color: var(--outline);
+}
+
+/* "Overview | Dashboard" — desktop only (V8). */
+.viewSwitch {
+  display: contents;
+
+  @include bp.tablet-down {
+    display: none;
+  }
 }

@@ -510,6 +510,11 @@
 /* Board | List at the panel's top, on a saved view (V8): the whole width,
    both halves the same. */
 .layoutSwitch {
+  /* A phone only has the list. */
+  @include bp.phone {
+    display: none;
+  }
+
   & > * {
     display: flex;
     width: 100%;

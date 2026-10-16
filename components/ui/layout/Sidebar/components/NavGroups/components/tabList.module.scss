@@ -13,6 +13,13 @@
 .item {
   display: flex;
   flex-direction: column;
+
+  /* An entry a phone doesn't have (the board), wrapper and all. */
+  &[data-phone-hidden] {
+    @include bp.phone {
+      display: none;
+    }
+  }
 }
 
 .row {

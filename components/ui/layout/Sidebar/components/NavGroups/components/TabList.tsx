@@ -68,7 +68,12 @@ function TabItem({ item }: { item: TabGroup }) {
   );
 
   return (
-    <div className={styles.item}>
+    // Hidden on a phone as a whole — an empty wrapper would still take a
+    // cell of the bottom bar.
+    <div
+      className={styles.item}
+      data-phone-hidden={item.hideOnPhone || undefined}
+    >
       <div className={styles.row}>
         <NavLink
           href={item.href}

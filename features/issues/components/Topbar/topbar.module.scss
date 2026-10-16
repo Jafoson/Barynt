@@ -22,6 +22,22 @@
   & > :not(nav) {
     align-self: center;
   }
+
+  /* Phone and tablet: the whole row — Board · List · Dashboard and every
+     view — scrolls sideways in one piece, nothing tucked into "More". */
+  @include bp.tablet-down {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    & > * {
+      flex: none;
+    }
+  }
 }
 
 /* Between the tab groups. */
@@ -412,3 +428,10 @@
   }
 }
 
+
+/* Not on a phone, which only has the list (the "Board" tab). */
+.notOnPhone {
+  @include bp.phone {
+    display: none !important;
+  }
+}

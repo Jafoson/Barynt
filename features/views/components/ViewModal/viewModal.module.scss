@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 .form {
   display: flex;
   flex-direction: column;
@@ -125,4 +127,21 @@
     margin: 0;
     accent-color: var(--primary);
   }
+}
+
+/* "Where should it live?" (BARY-178): the two places side by side, the
+   project picker under them. */
+.whereChoices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+
+  @include bp.phone {
+    grid-template-columns: 1fr;
+  }
+}
+
+.projectSelect {
+  width: 100%;
+  margin-top: 0.5rem;
 }

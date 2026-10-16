@@ -6,6 +6,7 @@ import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { ColorPicker } from "@/components/ui/atoms/ColorPicker/ColorPicker";
 import { Input } from "@/components/ui/atoms/Input/Input";
+import { NativeSelect } from "@/components/ui/atoms/NativeSelect/NativeSelect";
 import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import {
   ModalFooter,
@@ -56,6 +57,15 @@ export interface ViewModalProps {
   close: () => void;
   /** A bottom sheet (phone) instead of a dialog. */
   sheet?: boolean;
+  /**
+   * Creating with a choice of where the view lives (the views page,
+   * BARY-178): the workspace or one of these projects, `projectId` the
+   * preset. `canShareIn` per project id, `""` for the workspace.
+   */
+  scopes?: {
+    projects: { id: string; slug: string; name: string }[];
+    canShareIn: Record<string, boolean>;
+  };
 }
 
 /**
@@ -73,6 +83,7 @@ export function ViewModal({
   initialLayout = "board",
   close,
   sheet,
+  scopes,
 }: ViewModalProps) {
   const t = useTranslations();
   const router = useRouter();
@@ -80,6 +91,15 @@ export function ViewModal({
   const [isPending, startTransition] = useTransition();
   const bodyRef = useRef<HTMLDivElement>(null);
   const swipe = useSwipeToClose(close, bodyRef);
+
+  // Where the new view lives — fixed by the caller, or chosen here.
+  const [scope, setScope] = useState<string | null>(projectId);
+  const scopeProject = scopes?.projects.find((p) => p.id === scope);
+  const targetProjectId = scopes ? (scopeProject?.id ?? null) : projectId;
+  const targetProjectSlug = scopes ? (scopeProject?.slug ?? null) : projectSlug;
+  const mayShare = scopes
+    ? (scopes.canShareIn[targetProjectId ?? ""] ?? false)
+    : canShare;
 
   const [name, setName] = useState(view?.name ?? "");
   const [icon, setIcon] = useState<string | null>(view?.icon ?? null);
@@ -89,12 +109,21 @@ export function ViewModal({
   );
   // Shared means the project — or, for a cross-project view, the
   // workspace (V8).
-  const shared: ViewVisibility = projectId ? "PROJECT" : "WORKSPACE";
+  const shared: ViewVisibility = targetProjectId ? "PROJECT" : "WORKSPACE";
   const [visibility, setVisibility] = useState<ViewVisibility>(
     view?.visibility ?? "PRIVATE",
   );
   const [takeOver, setTakeOver] = useState(true);
   const [error, setError] = useState("");
+
+  // A new place may not allow sharing — then the view starts private.
+  const pickScope = (next: string | null) => {
+    setScope(next);
+    if (visibility !== "PRIVATE") {
+      const allowed = scopes?.canShareIn[next ?? ""] ?? false;
+      setVisibility(allowed ? (next ? "PROJECT" : "WORKSPACE") : "PRIVATE");
+    }
+  };
 
   const trimmed = name.trim();
   const title = view ? t("views.editTitle") : t("views.newTitle");
@@ -126,7 +155,9 @@ export function ViewModal({
           // A new layout changes the view's address (`?layout=`): open it
           // bare, so the page lands on its stored state again.
           if (layout !== view.layout)
-            router.push(viewPath(workspaceId, projectSlug, result.data.slug));
+            router.push(
+              viewPath(workspaceId, targetProjectSlug, result.data.slug),
+            );
           else router.refresh();
           return;
         }
@@ -134,7 +165,7 @@ export function ViewModal({
         const result = await createViewFromParams(
           {
             workspaceId,
-            projectId,
+            projectId: targetProjectId,
             name: trimmed,
             icon,
             color,
@@ -147,7 +178,7 @@ export function ViewModal({
         toast(t("views.created"));
         close();
         // The bare address — the page redirects to the view's own state.
-        router.push(viewPath(workspaceId, projectSlug, result.data.slug));
+        router.push(viewPath(workspaceId, targetProjectSlug, result.data.slug));
       } catch {
         setError(t("views.errorGeneric"));
       }
@@ -183,6 +214,56 @@ export function ViewModal({
             submit();
           }}
         >
+          {scopes && !view && (
+            <fieldset className={styles.field}>
+              <legend className={styles.fieldLabel}>{t("views.where")}</legend>
+              <div className={styles.whereChoices}>
+                <label className={styles.choice}>
+                  <input
+                    type="radio"
+                    name="scope"
+                    checked={scope === null}
+                    onChange={() => pickScope(null)}
+                  />
+                  <Icon icon="lucide:layers" width={15} />
+                  <span className={styles.choiceText}>
+                    {t("views.whereWorkspace")}
+                    <small>{t("views.whereWorkspaceHint")}</small>
+                  </span>
+                </label>
+                <label
+                  className={styles.choice}
+                  data-disabled={scopes.projects.length === 0 || undefined}
+                >
+                  <input
+                    type="radio"
+                    name="scope"
+                    disabled={scopes.projects.length === 0}
+                    checked={scope !== null}
+                    onChange={() => pickScope(scopes.projects[0]?.id ?? null)}
+                  />
+                  <Icon icon="lucide:folder" width={15} />
+                  <span className={styles.choiceText}>
+                    {t("views.whereProject")}
+                    <small>{t("views.whereProjectHint")}</small>
+                  </span>
+                </label>
+              </div>
+              {scope !== null && (
+                <NativeSelect
+                  label={t("fields.project")}
+                  className={styles.projectSelect}
+                  value={scope}
+                  items={scopes.projects.map((p) => ({
+                    value: p.id,
+                    label: p.name,
+                  }))}
+                  onChange={(id) => pickScope(id)}
+                />
+              )}
+            </fieldset>
+          )}
+
           <Input
             label={t("fields.name")}
             value={name}
@@ -276,24 +357,24 @@ export function ViewModal({
               </label>
               <label
                 className={styles.choice}
-                data-disabled={!canShare || undefined}
+                data-disabled={!mayShare || undefined}
               >
                 <input
                   type="radio"
                   name="visibility"
-                  disabled={!canShare}
+                  disabled={!mayShare}
                   checked={visibility === shared}
                   onChange={() => setVisibility(shared)}
                 />
                 <Icon icon="lucide:users" width={15} />
                 <span className={styles.choiceText}>
-                  {projectId
+                  {targetProjectId
                     ? t("views.visibilityProject")
                     : t("views.visibilityWorkspace")}
                   <small>
-                    {!canShare
+                    {!mayShare
                       ? t("views.visibilityNotAllowed")
-                      : projectId
+                      : targetProjectId
                         ? t("views.visibilityProjectHint")
                         : t("views.visibilityWorkspaceHint")}
                   </small>
