@@ -166,10 +166,13 @@
   color: var(--on-surface-variant);
 }
 
-/* Each size at its real proportions on a small unit. */
+/* Each size drawn at the dashboard's real size (`--u`, `--g` match a
+   desktop grid) and scaled by `--k` — the widget measures its real size,
+   so the preview shows what that size shows on the dashboard. */
 .sizes {
-  --u: 6.75rem;
+  --u: 8.125rem;
   --g: 0.875rem;
+  --k: 0.8;
 
   display: flex;
   flex-wrap: wrap;
@@ -180,14 +183,15 @@
   border: 0;
 
   @include bp.phone {
-    --u: 5.25rem;
-    --g: 0.625rem;
+    --k: 0.62;
   }
 }
 
 .sizeChoice {
   --c: 1;
   --r: 1;
+  --w: calc(var(--u) * var(--c) + var(--g) * (var(--c) - 1));
+  --h: calc(var(--u) * var(--r) + var(--g) * (var(--r) - 1));
 
   display: flex;
   flex-direction: column;
@@ -222,13 +226,28 @@
   }
 }
 
+/* The scaled box that takes up space in the row. */
 .frame {
+  position: relative;
   display: block;
-  width: calc(var(--u) * var(--c) + var(--g) * (var(--c) - 1));
-  height: calc(var(--u) * var(--r) + var(--g) * (var(--r) - 1));
-  border-radius: 1.375rem;
+  flex: none;
+  width: calc(var(--w) * var(--k));
+  height: calc(var(--h) * var(--k));
+  border-radius: calc(1.375rem * var(--k));
   text-align: left;
   pointer-events: none;
+}
+
+/* The widget at full size, shrunk into the frame. */
+.real {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: var(--w);
+  height: var(--h);
+  transform: scale(var(--k));
+  transform-origin: top left;
 }
 
 .sizeLabel {

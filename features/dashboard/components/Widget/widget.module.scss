@@ -1005,7 +1005,15 @@
   overflow: hidden;
 
   & > svg {
+    flex: none;
     color: var(--accent);
+  }
+
+  & > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &:hover {
@@ -1044,5 +1052,17 @@
 
   &:focus-visible {
     outline: 2px solid var(--tertiary);
+  }
+}
+
+/* A short (medium) widget: no "all …" link, only rows that fit whole. */
+@container w (max-height: 13.75rem) {
+  .more {
+    display: none;
+  }
+
+  .rows > :nth-child(n + 3),
+  .tiles > :nth-child(n + 3) {
+    display: none;
   }
 }

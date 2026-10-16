@@ -2,13 +2,12 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { ModalFooter } from "@/components/ui/layout/Modal/components/ModalFooter";
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
 import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
-import type { WidgetData, WidgetDataMap } from "@/features/dashboard/types";
 import {
   newWidget,
   offeredOn,
@@ -22,18 +21,17 @@ import type { BucketUnit } from "@/lib/buckets";
 import { randomId } from "@/lib/utils/id";
 import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
 import { Widget } from "../Widget/Widget";
+import { type SampleWords, sampleData } from "./sampleData";
 import styles from "./widgetGallery.module.scss";
 
 interface Props {
-  /** Fetches data for widgets of this dashboard — the previews are real. */
-  load: (widgets: WidgetModel[]) => Promise<WidgetDataMap | null>;
   unit: BucketUnit;
   issueBase: string;
   workspaceSlug: string;
   kind: "project" | "workspace" | "view";
   sheet: boolean;
-  /** Adds the widget; the preview's data comes along so it shows at once. */
-  onAdd: (widget: WidgetModel, data: WidgetData | undefined) => void;
+  /** Adds the widget; its real numbers are fetched by the dashboard. */
+  onAdd: (widget: WidgetModel) => void;
   close: () => void;
 }
 
@@ -45,7 +43,6 @@ const GROUPS = ["numbers", "charts", "lists", "team", "other"] as const;
  * dashboard's real numbers. Pick a size, add.
  */
 export function WidgetGallery({
-  load,
   unit,
   issueBase,
   workspaceSlug,
@@ -60,9 +57,6 @@ export function WidgetGallery({
   const [query, setQuery] = useState("");
   const [type, setType] = useState<WidgetType>("kpi");
   const [size, setSize] = useState<WidgetSize>(WIDGETS.kpi.size);
-  const [previews, setPreviews] = useState<
-    Partial<Record<WidgetType, WidgetData>>
-  >({});
 
   const types = WIDGET_TYPES.filter((x) => offeredOn(x, kind));
   const needle = query.trim().toLowerCase();
@@ -73,20 +67,24 @@ export function WidgetGallery({
       t(`desc_${x}`).toLowerCase().includes(needle),
   );
 
-  const preview = newWidget(type, "preview");
-
-  useEffect(() => {
-    if (previews[type]) return;
-    let live = true;
-    void load([newWidget(type, "preview")]).then((data) => {
-      const found = data?.preview;
-      if (live && found)
-        setPreviews((current) => ({ ...current, [type]: found }));
-    });
-    return () => {
-      live = false;
-    };
-  }, [type, previews, load]);
+  // Made-up numbers: every preview is filled at once and looks exactly
+  // like the widget will, just with sample content.
+  const words: SampleWords = {
+    statuses: ([0, 1, 2, 3, 4] as const).map((i) =>
+      t(`sampleStatus_${i}`),
+    ) as SampleWords["statuses"],
+    priorities: ([0, 1, 2, 3] as const).map((i) =>
+      t(`samplePriority_${i}`),
+    ) as SampleWords["priorities"],
+    titles: ([0, 1, 2, 3, 4, 5] as const).map((i) => t(`sampleTitle_${i}`)),
+    role: (key) => t(`sampleRole_${key}`),
+  };
+  const base = newWidget(type, "preview");
+  const preview: WidgetModel =
+    type === "note"
+      ? { ...base, config: { ...base.config, text: t("sampleNote") } }
+      : base;
+  const data = sampleData(preview, words);
 
   const choose = (next: WidgetType) => {
     setType(next);
@@ -94,10 +92,7 @@ export function WidgetGallery({
   };
 
   const add = () =>
-    onAdd(
-      { ...newWidget(type, randomId().slice(0, 12)), size },
-      previews[type],
-    );
+    onAdd({ ...newWidget(type, randomId().slice(0, 12)), size });
 
   return (
     <Modal
@@ -175,14 +170,18 @@ export function WidgetGallery({
                 data-size={s}
                 onClick={() => setSize(s)}
               >
+                {/* Drawn at the dashboard's real size and scaled down, so
+                    it shows exactly what that size shows there. */}
                 <span className={styles.frame} inert>
-                  <Widget
-                    widget={{ ...preview, size: s }}
-                    data={previews[type]}
-                    unit={unit}
-                    issueBase={issueBase}
-                    workspaceSlug={workspaceSlug}
-                  />
+                  <span className={styles.real}>
+                    <Widget
+                      widget={{ ...preview, size: s }}
+                      data={data}
+                      unit={unit}
+                      issueBase={issueBase}
+                      workspaceSlug={workspaceSlug}
+                    />
+                  </span>
                 </span>
                 <span className={styles.sizeLabel}>{t(`size_${s}`)}</span>
               </button>

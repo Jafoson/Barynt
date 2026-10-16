@@ -180,17 +180,14 @@ export function Dashboard({
     openModal(
       ({ close }) => (
         <WidgetGallery
-          load={(list) => loadWidgetData(target, list, view.range, view.scope)}
           unit={view.unit}
           issueBase={issueBase}
           workspaceSlug={workspaceSlug}
           kind={target.kind}
           sheet={isPhone}
-          onAdd={(widget, preview) => {
+          onAdd={(widget) => {
             setDraft((list) => [...list, widget]);
-            if (preview)
-              setData((current) => ({ ...current, [widget.id]: preview }));
-            else fetchData([widget]);
+            fetchData([widget]);
             close();
           }}
           close={close}

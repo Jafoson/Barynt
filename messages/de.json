@@ -1766,6 +1766,25 @@
     "shortcut_issues": "Aufgaben",
     "shortcut_projects": "Projekte",
     "shortcut_views": "Views",
-    "shortcut_teams": "Teams"
+    "shortcut_teams": "Teams",
+    "sampleStatus_0": "Backlog",
+    "sampleStatus_1": "Todo",
+    "sampleStatus_2": "In Arbeit",
+    "sampleStatus_3": "In Prüfung",
+    "sampleStatus_4": "Erledigt",
+    "samplePriority_0": "Dringend",
+    "samplePriority_1": "Hoch",
+    "samplePriority_2": "Mittel",
+    "samplePriority_3": "Niedrig",
+    "sampleTitle_0": "Crash beim Öffnen von Benachrichtigungen",
+    "sampleTitle_1": "Login mit Passkey bricht ab",
+    "sampleTitle_2": "Offline-Sync verliert Kommentare",
+    "sampleTitle_3": "Export als CSV fehlt Spalten",
+    "sampleTitle_4": "Onboarding-Mail überarbeiten",
+    "sampleTitle_5": "Die App für iOS und Android — Release 2.4 im November.",
+    "sampleRole_lead": "Leitung",
+    "sampleRole_member": "Mitwirkende",
+    "sampleRole_viewer": "Lesend",
+    "sampleNote": "Fokus Q4: Stabilität vor Features.\n• Crash-Rate unter 0,5 %\n• Passkeys überall"
   }
 }

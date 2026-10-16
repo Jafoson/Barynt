@@ -1766,6 +1766,25 @@
     "shortcut_issues": "Issues",
     "shortcut_projects": "Projects",
     "shortcut_views": "Views",
-    "shortcut_teams": "Teams"
+    "shortcut_teams": "Teams",
+    "sampleStatus_0": "Backlog",
+    "sampleStatus_1": "Todo",
+    "sampleStatus_2": "In progress",
+    "sampleStatus_3": "In review",
+    "sampleStatus_4": "Done",
+    "samplePriority_0": "Urgent",
+    "samplePriority_1": "High",
+    "samplePriority_2": "Medium",
+    "samplePriority_3": "Low",
+    "sampleTitle_0": "Crash when opening notifications",
+    "sampleTitle_1": "Passkey login aborts",
+    "sampleTitle_2": "Offline sync loses comments",
+    "sampleTitle_3": "CSV export misses columns",
+    "sampleTitle_4": "Rework the onboarding mail",
+    "sampleTitle_5": "The app for iOS and Android — release 2.4 in November.",
+    "sampleRole_lead": "Leads",
+    "sampleRole_member": "Contributors",
+    "sampleRole_viewer": "Readers",
+    "sampleNote": "Q4 focus: stability over features.\n• Crash rate below 0.5%\n• Passkeys everywhere"
   }
 }
