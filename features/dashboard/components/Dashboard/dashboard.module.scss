@@ -122,6 +122,12 @@
     grid-column: span 4;
     grid-row: span 2;
   }
+
+  /* The whole row, however many columns there are. */
+  &[data-size="W"] {
+    grid-column: 1 / -1;
+    grid-row: span 1;
+  }
 }
 
 /* A phone has no extra large — it draws as large. */

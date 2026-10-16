@@ -13,8 +13,9 @@ import { type IssueFilter, issueFilterSchema } from "@/features/issues/filter";
 // is the same everywhere and gaps fill themselves, so nobody keeps three
 // layouts.
 
-/** The sizes, small to large. `T` ("tall") is the narrow, high one. */
-export const WIDGET_SIZES = ["S", "M", "L", "T", "XL"] as const;
+/** The sizes, small to large. `T` ("tall") is the narrow, high one; `W`
+ *  ("wide") takes the whole row, one unit high — only the shortcuts have it. */
+export const WIDGET_SIZES = ["S", "M", "L", "T", "XL", "W"] as const;
 export type WidgetSize = (typeof WIDGET_SIZES)[number];
 
 /** Columns × rows each size takes on the grid. On a phone (2 columns) an
@@ -25,6 +26,8 @@ export const SIZE_SPAN: Record<WidgetSize, { cols: number; rows: number }> = {
   L: { cols: 2, rows: 2 },
   T: { cols: 2, rows: 4 },
   XL: { cols: 4, rows: 2 },
+  /** Every column of the grid, whatever their number. */
+  W: { cols: 8, rows: 1 },
 };
 
 export const WIDGET_TYPES = [
@@ -390,7 +393,7 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   shortcuts: {
     type: "shortcuts",
     icon: "lucide:layout-grid",
-    sizes: ["M", "L"],
+    sizes: ["M", "L", "W"],
     size: "L",
     accent: "gray",
     issues: false,

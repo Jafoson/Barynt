@@ -1792,6 +1792,8 @@
     "cycleSub": "avg. of {count, plural, one {# closed issue} other {# closed issues}}",
     "teams": "Teams",
     "addDesc": "Add a description",
-    "progressLabel": "Done"
+    "progressLabel": "Done",
+    "size_W": "Full width",
+    "sizeShort_W": "W"
   }
 }

@@ -1792,6 +1792,8 @@
     "cycleSub": "Ø von {count, plural, one {# geschlossenen Aufgabe} other {# geschlossenen Aufgaben}}",
     "teams": "Teams",
     "addDesc": "Beschreibung hinzufügen",
-    "progressLabel": "Erledigt"
+    "progressLabel": "Erledigt",
+    "size_W": "Volle Breite",
+    "sizeShort_W": "B"
   }
 }

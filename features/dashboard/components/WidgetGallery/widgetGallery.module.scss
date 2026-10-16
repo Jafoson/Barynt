@@ -196,6 +196,7 @@
   &[data-size="L"] { --c: 2; --r: 2; }
   &[data-size="T"] { --c: 2; --r: 4; }
   &[data-size="XL"] { --c: 4; --r: 2; }
+  &[data-size="W"] { --c: 5; }
 
   &[aria-pressed="true"] {
     color: var(--on-surface);
