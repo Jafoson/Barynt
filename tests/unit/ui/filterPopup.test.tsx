@@ -24,6 +24,7 @@ import type { FilterState } from "@/features/issues/components/Topbar/useTopbar"
 const empty: FilterState = {
   status: [],
   priority: [],
+  type: [],
   assignee: [],
   label: [],
   project: [],
@@ -43,8 +44,21 @@ function render(filterCount: number) {
       members={[]}
       labels={[]}
       projects={[]}
+      issueTypes={[]}
       onToggle={() => {}}
       onClearAll={() => {}}
+      tree={{ op: "and", rules: [] }}
+      onFilterChange={() => {}}
+      negated={{
+        status: false,
+        priority: false,
+        type: false,
+        assignee: false,
+        label: false,
+        project: false,
+        storyPoints: false,
+      }}
+      onNegate={() => {}}
     />,
   );
 }

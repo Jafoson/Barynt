@@ -42,6 +42,29 @@
   gap: 0.375rem;
 }
 
+/* A chosen value, like the desktop's active filter chip (`FilterChip`): a
+   neutral surface, the filter's own color as outline. Doubled class to
+   outrank the chip's `.selected`. A touch-sized height on a phone. */
+.valueChip.valueChip {
+  background: var(--surface-container-high);
+  border-color: var(--filter-accent);
+  color: var(--on-surface);
+
+  &::after {
+    background: var(--on-surface);
+  }
+
+  @include bp.coarse {
+    min-height: 2.25rem;
+  }
+}
+
+/* "Is not": the values are crossed out — what's left out of the list. */
+.chips[data-not] .valueChip {
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--on-surface) 70%, transparent);
+}
+
 .footer {
   display: flex;
   align-items: center;
@@ -444,4 +467,42 @@
   &:hover {
     background: var(--surface-container-high);
   }
+}
+
+/* The phone's "Advanced filter settings" below the filter rows (BARY-166):
+   stuck to the sheet's bottom edge, however long the list. It reaches over
+   the body's own padding (`.sheetBody`) so nothing scrolls past under it. */
+.advancedFooter {
+  position: sticky;
+  bottom: -0.75rem;
+  z-index: 1;
+  margin: auto -1.25rem -1.125rem;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--outline-variant);
+  background: var(--surface-container);
+}
+
+/* With conditions in it: outlined like a set filter chip. Doubled class to
+   outrank the elevated button's own border. */
+.advancedButton.advancedButton[data-active] {
+  border: 1px solid var(--primary);
+  color: var(--primary);
+}
+
+/* "is not" after a filter's name in its row (BARY-166). */
+.rowNot {
+  color: var(--on-surface-variant);
+  font-weight: 400;
+}
+
+/* The popup's way into the advanced editor (BARY-166): a primary text
+   button, centered and as wide as "reset" below it. Doubled class to
+   outrank the button's own color. */
+.advancedLink.advancedLink {
+  align-self: stretch;
+  justify-content: center;
+  /* Closer to the divider of "reset" below than the rows' gap. */
+  margin-bottom: -0.375rem;
+  color: var(--primary);
+  font-weight: 600;
 }

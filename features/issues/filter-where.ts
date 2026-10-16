@@ -1,11 +1,12 @@
 import type { Prisma } from "@/lib/generated/prisma/client";
 import type { StatusCategory } from "@/lib/status-category";
 import {
-  type FilterGroup,
+  type FilterNode,
   type FilterRule,
   type IssueFilter,
   isGroup,
   ME,
+  NONE_VALUE,
   type RelativeDate,
 } from "./filter";
 
@@ -131,25 +132,60 @@ async function ruleWhere(
       const column = field === "assignee" ? "assigneeId" : "reporterId";
       if (is === "empty") return { [column]: null };
       if (is === "notEmpty") return { [column]: { not: null } };
-      const ids = list<string>(value).flatMap((v) =>
-        v === ME ? (ctx.userId ? [ctx.userId] : []) : [v],
+      const raw = list<string>(value);
+      // "Not set" in the list: nobody assigned (BARY-166).
+      const unset = column === "assigneeId" && raw.includes(NONE_VALUE);
+      const ids = raw.flatMap((v) =>
+        v === NONE_VALUE
+          ? []
+          : v === ME
+            ? ctx.userId
+              ? [ctx.userId]
+              : []
+            : [v],
       );
-      if (!ids.length) return null;
-      if (is === "none")
-        return column === "assigneeId"
-          ? { OR: [{ assigneeId: { notIn: ids } }, { assigneeId: null }] }
-          : { reporterId: { notIn: ids } };
+      if (!ids.length && !unset) return null;
+      if (is === "none") {
+        if (column === "reporterId") return { reporterId: { notIn: ids } };
+        // Excluding people keeps the unassigned — unless "not set" is
+        // excluded too.
+        if (unset)
+          return ids.length
+            ? {
+                AND: [
+                  { assigneeId: { notIn: ids } },
+                  { assigneeId: { not: null } },
+                ],
+              }
+            : { assigneeId: { not: null } };
+        return { OR: [{ assigneeId: { notIn: ids } }, { assigneeId: null }] };
+      }
+      if (unset)
+        return ids.length
+          ? { OR: [{ assigneeId: { in: ids } }, { assigneeId: null }] }
+          : { assigneeId: null };
       return { [column]: { in: ids } };
     }
 
     case "label": {
       if (is === "empty") return { labels: { isEmpty: true } };
       if (is === "notEmpty") return { labels: { isEmpty: false } };
-      const ids = list<string>(value);
-      if (!ids.length) return null;
-      if (is === "all") return { labels: { hasEvery: ids } };
-      if (is === "none") return { NOT: { labels: { hasSome: ids } } };
-      return { labels: { hasSome: ids } };
+      const raw = list<string>(value);
+      const unset = raw.includes(NONE_VALUE);
+      const ids = raw.filter((v) => v !== NONE_VALUE);
+      if (!ids.length && !unset) return null;
+      if (is === "all")
+        return ids.length ? { labels: { hasEvery: ids } } : null;
+      if (is === "none") {
+        const parts: Where[] = [];
+        if (ids.length) parts.push({ NOT: { labels: { hasSome: ids } } });
+        if (unset) parts.push({ labels: { isEmpty: false } });
+        return parts.length === 1 ? parts[0] : { AND: parts };
+      }
+      const parts: Where[] = [];
+      if (ids.length) parts.push({ labels: { hasSome: ids } });
+      if (unset) parts.push({ labels: { isEmpty: true } });
+      return parts.length === 1 ? parts[0] : { OR: parts };
     }
 
     case "project": {
@@ -167,11 +203,29 @@ async function ruleWhere(
         return typeof value === "number"
           ? { storyPoints: { [is]: value } }
           : null;
-      const values = list<number>(value);
-      if (!values.length) return null;
-      return is === "none"
-        ? { OR: [{ storyPoints: { notIn: values } }, { storyPoints: null }] }
-        : { storyPoints: { in: values } };
+      const raw = list<number | string>(value);
+      const unset = raw.includes(NONE_VALUE);
+      const values = raw.filter((v): v is number => typeof v === "number");
+      if (!values.length && !unset) return null;
+      if (is === "none") {
+        if (unset)
+          return values.length
+            ? {
+                AND: [
+                  { storyPoints: { notIn: values } },
+                  { storyPoints: { not: null } },
+                ],
+              }
+            : { storyPoints: { not: null } };
+        return {
+          OR: [{ storyPoints: { notIn: values } }, { storyPoints: null }],
+        };
+      }
+      if (unset)
+        return values.length
+          ? { OR: [{ storyPoints: { in: values } }, { storyPoints: null }] }
+          : { storyPoints: null };
+      return { storyPoints: { in: values } };
     }
 
     case "estimate": {
@@ -222,15 +276,19 @@ async function ruleWhere(
   }
 }
 
-async function groupWhere(
-  group: FilterGroup,
+/** A rule or a group — groups nest, each joining its parts with AND or OR.
+ *  A part that yields nothing (no values) drops out. */
+async function nodeWhere(
+  node: FilterNode,
   ctx: FilterContext,
 ): Promise<Where | null> {
+  if (!isGroup(node)) return ruleWhere(node, ctx);
   const parts = (
-    await Promise.all(group.rules.map((r) => ruleWhere(r, ctx)))
+    await Promise.all(node.rules.map((child) => nodeWhere(child, ctx)))
   ).filter((w): w is Where => w !== null);
   if (!parts.length) return null;
-  return parts.length === 1 ? parts[0] : { OR: parts };
+  if (parts.length === 1) return parts[0];
+  return node.op === "or" ? { OR: parts } : { AND: parts };
 }
 
 /**
@@ -246,11 +304,7 @@ export async function toIssueWhere(
   ctx: FilterContext,
 ): Promise<Where> {
   const parts = (
-    await Promise.all(
-      filter.rules.map((node) =>
-        isGroup(node) ? groupWhere(node, ctx) : ruleWhere(node, ctx),
-      ),
-    )
+    await Promise.all(filter.rules.map((node) => nodeWhere(node, ctx)))
   ).filter((w): w is Where => w !== null);
   return parts.length ? { AND: parts } : {};
 }

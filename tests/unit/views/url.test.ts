@@ -240,3 +240,63 @@ describe("display in the address (BARY-165)", () => {
     ).toBe(false);
   });
 });
+
+describe("the full filter form in a view (BARY-166)", () => {
+  it("writes operators, OR groups and tokens", () => {
+    const params = viewParams(
+      view({
+        op: "and",
+        rules: [
+          { field: "status", is: "none", value: ["done"] },
+          { field: "assignee", is: "any", value: ["@me", "_none"] },
+          {
+            op: "or",
+            rules: [
+              { field: "priority", is: "gte", value: 3 },
+              { field: "label", is: "any", value: ["l1"] },
+            ],
+          },
+        ],
+      }),
+      lookups,
+    );
+    expect(Object.fromEntries(params)).toEqual({
+      "status.not": "done",
+      assignee: "@me,_none",
+      or: "priority.gte:high;label:bug",
+      layout: "board",
+    });
+  });
+
+  it("compares the full form regardless of order, search excluded", () => {
+    const stored = new URLSearchParams(
+      "layout=board&status.not=done,canceled&or=label:bug;priority:high",
+    );
+    expect(
+      sameViewState(
+        new URLSearchParams(
+          "layout=board&or=priority:high;label:bug&status.not=canceled,done&q=x",
+        ),
+        stored,
+      ),
+    ).toBe(true);
+    expect(
+      sameViewState(
+        new URLSearchParams("layout=board&status=done,canceled"),
+        stored,
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps the full form when saving", () => {
+    expect(
+      pickViewState({
+        "status.not": "done",
+        or: "label:bug",
+        q: "login",
+        issue: "x",
+        layout: "list",
+      }),
+    ).toEqual({ "status.not": "done", or: "label:bug", layout: "list" });
+  });
+});

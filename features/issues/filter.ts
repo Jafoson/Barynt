@@ -35,6 +35,17 @@ export type FilterOp = (typeof FILTER_OPS)[number];
  *  shared view means "my issues" for every person who opens it. */
 export const ME = "@me";
 
+/** "Not set" as one of the values of an any/none rule (BARY-166): "assignee
+ *  is me or nobody". Only for fields that can be empty (`NULLABLE_FIELDS`). */
+export const NONE_VALUE = "_none";
+
+/** Fields whose rules may list `NONE_VALUE`. */
+export const NULLABLE_FIELDS = new Set<string>([
+  "assignee",
+  "label",
+  "storyPoints",
+]);
+
 /** Relative date ranges for `within` (and `today` for `before`/`after`).
  *  Resolved against the moment of reading, like `@me`. */
 export const RELATIVE_DATES = [
@@ -105,20 +116,54 @@ export interface FilterRule {
   value?: FilterValue;
 }
 
+/**
+ * Rules and further groups joined by AND ("all of these") or OR ("one of
+ * these") — nested as deep as anyone likes (BARY-166).
+ */
 export interface FilterGroup {
-  op: "or";
-  rules: FilterRule[];
+  op: "and" | "or";
+  rules: FilterNode[];
 }
 
+export type FilterNode = FilterRule | FilterGroup;
+
+/** The whole filter: everything on top must hold. A top-level rule is what
+ *  a chip shows; anything else sits in a group. */
 export interface IssueFilter {
   op: "and";
-  rules: (FilterRule | FilterGroup)[];
+  rules: FilterNode[];
 }
 
 export const EMPTY_FILTER: IssueFilter = { op: "and", rules: [] };
 
-export function isGroup(node: FilterRule | FilterGroup): node is FilterGroup {
+export function isGroup(node: FilterNode): node is FilterGroup {
   return "op" in node;
+}
+
+/** Every rule in a node, however deep. */
+export function rulesIn(node: FilterNode): FilterRule[] {
+  return isGroup(node) ? node.rules.flatMap(rulesIn) : [node];
+}
+
+/**
+ * A node with every rule passed through `map` — `null` drops the rule. A
+ * group left with nothing drops out (`null` when nothing is left), one
+ * shrunk to a single node becomes that node; an untouched one keeps its
+ * shape.
+ */
+export function mapNode(
+  node: FilterNode,
+  map: (rule: FilterRule) => FilterRule | null,
+): FilterNode | null {
+  if (!isGroup(node)) return map(node);
+  const rules = node.rules.flatMap((child) => {
+    const out = mapNode(child, map);
+    return out ? [out] : [];
+  });
+  if (!rules.length) return null;
+  // Shrunk to one: that one, no box around it.
+  if (rules.length === 1 && node.rules.length > 1) return rules[0];
+  return { op: node.op, rules };
 }
 
 /**
@@ -160,12 +205,15 @@ function valueFits(field: FilterField, is: FilterOp, value: unknown): boolean {
   if (is === "empty" || is === "notEmpty") return value === undefined;
   if (is === "any" || is === "none" || is === "all") {
     if (!Array.isArray(value)) return false;
-    if (kind === "numbers") return value.every((v) => typeof v === "number");
+    const plain = NULLABLE_FIELDS.has(field)
+      ? value.filter((v) => v !== NONE_VALUE)
+      : value;
+    if (kind === "numbers") return plain.every((v) => typeof v === "number");
     if (kind === "categories")
-      return value.every((v) =>
+      return plain.every((v) =>
         (STATUS_CATEGORIES as readonly unknown[]).includes(v),
       );
-    return value.every((v) => typeof v === "string");
+    return plain.every((v) => typeof v === "string");
   }
   if (is === "gte" || is === "lte")
     return typeof value === "number" && Number.isFinite(value);
@@ -207,82 +255,38 @@ const ruleSchema = z
     }
   });
 
-const groupSchema = z
-  .object({ op: z.literal("or"), rules: z.array(ruleSchema).max(50) })
-  .strict();
+type NodeInput =
+  | z.infer<typeof ruleSchema>
+  | {
+      op: "and" | "or";
+      rules: NodeInput[];
+    };
+
+// Groups nest without a depth limit; only the size of each list is capped.
+const nodeSchema: z.ZodType<NodeInput> = z.lazy(() =>
+  z.union([
+    z
+      .object({
+        op: z.enum(["and", "or"]),
+        rules: z.array(nodeSchema).max(50),
+      })
+      .strict(),
+    ruleSchema,
+  ]),
+);
 
 /** Validates a filter before it's stored (saved views, V3) or taken from an
  *  API call (V12). */
 export const issueFilterSchema = z
   .object({
     op: z.literal("and"),
-    rules: z.array(z.union([groupSchema, ruleSchema])).max(50),
+    rules: z.array(nodeSchema).max(50),
   })
   .strict();
 
 export function parseIssueFilter(input: unknown): IssueFilter | null {
   const result = issueFilterSchema.safeParse(input);
   return result.success ? (result.data as IssueFilter) : null;
-}
-
-// ─── From the URL ───────────────────────────────────────────────────────────
-
-/** The URL filters after their slugs were looked up (`resolveIssueFilters`
- *  in `queries.ts`) — ids, not slugs. A slug that matched nothing is simply
- *  missing from its list. */
-export interface ResolvedUrlFilters {
-  statuses: string[];
-  priorities: number[];
-  assignees: string[];
-  labels: string[];
-  /** Cross-project views only. */
-  projects: string[];
-  storyPoints: number[];
-  /** Buckets: `overdue`, `today`, `week`, `none` (BARY-4). */
-  dueDate: string[];
-  q?: string;
-}
-
-const DUE_BUCKETS: Record<string, FilterRule> = {
-  overdue: { field: "dueDate", is: "within", value: "overdue" },
-  today: { field: "dueDate", is: "within", value: "today" },
-  week: { field: "dueDate", is: "within", value: "next_7_days" },
-  none: { field: "dueDate", is: "empty" },
-};
-
-/**
- * The URL's flat filters as a tree: every parameter is one AND-ed rule,
- * several values of one parameter mean "any of them" — exactly what the
- * URL meant before BARY-162. The due-date buckets become an OR group of
- * their own ("overdue or no due date").
- *
- * A parameter whose slugs all matched nothing leaves no rule: the view then
- * shows everything instead of nothing, so a stale link doesn't end up on an
- * empty page.
- */
-export function filterFromUrl(url: ResolvedUrlFilters): IssueFilter {
-  const rules: (FilterRule | FilterGroup)[] = [];
-  const anyOf = (field: FilterField, value: (string | number)[]) => {
-    if (value.length) rules.push({ field, is: "any", value });
-  };
-
-  anyOf("status", url.statuses);
-  anyOf("priority", url.priorities);
-  anyOf("assignee", url.assignees);
-  anyOf("label", url.labels);
-  anyOf("project", url.projects);
-  anyOf("storyPoints", url.storyPoints);
-
-  const due = url.dueDate.flatMap((b) =>
-    DUE_BUCKETS[b] ? [DUE_BUCKETS[b]] : [],
-  );
-  if (due.length === 1) rules.push(due[0]);
-  else if (due.length > 1) rules.push({ op: "or", rules: due });
-
-  const q = url.q?.trim();
-  if (q) rules.push({ field: "text", is: "contains", value: q });
-
-  return { op: "and", rules };
 }
 
 // ─── References that no longer exist ────────────────────────────────────────
@@ -323,16 +327,9 @@ export function pruneMissingRefs(
     return kept.length ? { ...rule, value: kept } : null;
   };
 
-  const rules = filter.rules.flatMap((node): (FilterRule | FilterGroup)[] => {
-    if (!isGroup(node)) {
-      const rule = pruneRule(node);
-      return rule ? [rule] : [];
-    }
-    const inner = node.rules.flatMap((r) => {
-      const rule = pruneRule(r);
-      return rule ? [rule] : [];
-    });
-    return inner.length ? [{ op: "or", rules: inner }] : [];
+  const rules = filter.rules.flatMap((node) => {
+    const out = mapNode(node, pruneRule);
+    return out ? [out] : [];
   });
 
   return { filter: { op: "and", rules }, missing };

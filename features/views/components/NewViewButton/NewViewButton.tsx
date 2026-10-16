@@ -66,14 +66,13 @@ export function NewViewButton({
 
   return (
     <Button
-      variant="elevated"
+      variant="text"
       className={styles.button}
-      icon={<Icon icon="lucide:plus" width={15} />}
+      // Icon only; the label is its tooltip and accessible name.
+      icon={<Icon icon="lucide:plus" width={18} />}
       aria-label={label}
       title={label}
       onClick={open}
-    >
-      {label}
-    </Button>
+    />
   );
 }
