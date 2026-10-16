@@ -361,7 +361,7 @@ export function Dashboard({
               <Button
                 variant="elevated"
                 size="sm"
-                icon={<Icon icon="lucide:layout-dashboard" width={16} />}
+                icon={<Icon icon="lucide:pencil" width={16} />}
                 aria-label={t("edit")}
                 title={t("edit")}
                 onClick={() => {
