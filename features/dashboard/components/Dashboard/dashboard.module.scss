@@ -20,7 +20,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem 0.625rem;
-  max-width: 90rem;
+  max-width: 140rem;
   margin: 0 auto;
   padding: 0.875rem 0;
   background: var(--surface);
@@ -56,7 +56,7 @@
    window — a narrow panel beside it counts too. */
 .frame {
   container: dash / inline-size;
-  max-width: 90rem;
+  max-width: 140rem;
   margin: 0 auto;
 }
 
@@ -72,6 +72,14 @@
   grid-auto-rows: calc((100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols));
   grid-auto-flow: row dense;
   gap: var(--gap);
+}
+
+/* A wide screen (2K and up) gets more columns rather than bigger tiles —
+   the default layout packs into twelve without a gap. */
+@container dash (min-width: 100rem) {
+  .grid {
+    --cols: 12;
+  }
 }
 
 @container dash (max-width: 73.75rem) {
