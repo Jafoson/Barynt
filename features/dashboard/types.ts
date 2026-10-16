@@ -231,7 +231,11 @@ export type WidgetData =
       href: string | null;
     }
   | { type: "shortcuts"; items: Shortcut[] }
-  | { type: "note" };
+  | {
+      type: "note";
+      /** This person's own pages — nobody else's. */
+      pages: { id: string; text: string }[];
+    };
 
 /** Widget id → its data. */
 export type WidgetDataMap = Record<string, WidgetData>;

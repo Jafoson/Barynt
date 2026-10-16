@@ -4,11 +4,7 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
-import {
-  type NotePage,
-  notePages,
-  type Widget,
-} from "@/features/dashboard/widgets";
+import type { NotePage, Widget } from "@/features/dashboard/widgets";
 import { randomId } from "@/lib/utils/id";
 import { useNoteContext } from "../../NoteContext/NoteContext";
 import styles from "../widget.module.scss";
@@ -20,15 +16,25 @@ const titleOf = (page: NotePage) =>
 /**
  * A note you write straight into (BARY-169): tabs for its pages, "+" for a
  * new one, × to delete the open one; the text saves itself. The first line
- * names the tab, like a note on a phone. Read-only where the person can't
- * change the dashboard (someone else's view) and in the gallery's preview.
+ * names the tab, like a note on a phone. Private: what someone writes here
+ * only they see, even in a shared dashboard. Read-only in the gallery's
+ * preview.
  */
-export function NoteBody({ widget }: { widget: Widget }) {
+export function NoteBody({
+  widget,
+  initial,
+}: {
+  widget: Widget;
+  /** This person's stored pages. */
+  initial: NotePage[];
+}) {
   const t = useTranslations("widgets");
   const confirm = useConfirm();
   const note = useNoteContext();
   const canWrite = !!note?.canWrite;
-  const [pages, setPages] = useState<NotePage[]>(() => notePages(widget));
+  const [pages, setPages] = useState<NotePage[]>(() =>
+    initial.length ? initial : [{ id: "p1", text: "" }],
+  );
   const [activeId, setActiveId] = useState(pages[0].id);
   const active = pages.find((p) => p.id === activeId) ?? pages[0];
 

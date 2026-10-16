@@ -79,12 +79,9 @@ export function WidgetGallery({
     ) as SampleWords["priorities"],
     titles: ([0, 1, 2, 3, 4, 5] as const).map((i) => t(`sampleTitle_${i}`)),
     role: (key) => t(`sampleRole_${key}`),
+    note: t("sampleNote"),
   };
-  const base = newWidget(type, "preview");
-  const preview: WidgetModel =
-    type === "note"
-      ? { ...base, config: { ...base.config, text: t("sampleNote") } }
-      : base;
+  const preview: WidgetModel = newWidget(type, "preview");
   const data = sampleData(preview, words);
 
   const choose = (next: WidgetType) => {

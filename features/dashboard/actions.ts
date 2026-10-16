@@ -140,88 +140,47 @@ export async function resetDashboardWidgets(
 }
 
 /**
- * A note typed straight into the widget (outside edit mode). It lands where
- * the arrangement comes from: the caller's own layout if there is one, else
- * the shared default (with `dashboard.manage`), else a new own layout made
- * from what the caller sees (`current`). A view's note goes into the view.
+ * A note typed straight into the widget (outside edit mode). Always private:
+ * one row per person, dashboard and widget — the widget may sit in a shared
+ * arrangement, what someone writes in it is theirs alone.
  *
  * No revalidation: the page already shows the text, and a fresh render
  * would pull the field out from under the typing person.
  */
 export async function saveDashboardNote(
   rawTarget: DashboardTarget,
-  current: unknown,
   widgetId: string,
   rawPages: unknown,
 ): Promise<Result> {
   const session = await getSession();
   const target = targetSchema.safeParse(rawTarget);
-  const shown = parseWidgetList(current);
   const pages = notePagesSchema.safeParse(rawPages);
-  if (!session || !target.success || !shown || !pages.success) {
+  if (
+    !session ||
+    !target.success ||
+    !pages.success ||
+    typeof widgetId !== "string" ||
+    widgetId.length === 0 ||
+    widgetId.length > 40
+  ) {
     return { error: NOT_ALLOWED };
   }
-  const access = await dashboardAccess(target.data);
-  if (!access) return { error: NOT_ALLOWED };
+  // Only on a dashboard the person may see.
+  if (!(await dashboardAccess(target.data))) return { error: NOT_ALLOWED };
 
-  const withPages = (list: Widget[]) =>
-    list.map((w) =>
-      w.id === widgetId && w.type === "note"
-        ? { ...w, config: { ...w.config, pages: pages.data, text: undefined } }
-        : w,
-    );
-
-  if (target.data.kind === "view") {
-    if (!access.canEdit) return { error: NOT_ALLOWED };
-    const row = await db.savedView.findUnique({
-      where: { id: target.data.id },
-      select: { display: true },
-    });
-    const display = (row?.display ?? {}) as Record<string, unknown>;
-    const stored = parseWidgetList(display.widgets) ?? shown;
-    await db.savedView.update({
-      where: { id: target.data.id },
-      data: {
-        display: {
-          ...display,
-          widgets: withPages(stored),
-        } as unknown as Prisma.InputJsonValue,
-      },
-    });
-    return { ok: true };
-  }
-
-  const scope = { kind: target.data.kind, id: target.data.id };
-  const personalKey = layoutKey(scope, session.userId);
-  const sharedKey = layoutKey(scope, null);
-  const rows = await db.dashboardLayout.findMany({
-    where: { key: { in: [personalKey, sharedKey] } },
-    select: { key: true, widgets: true },
-  });
-  const personal = rows.find((r) => r.key === personalKey);
-  const shared = rows.find((r) => r.key === sharedKey);
-  const own = personal && parseWidgetList(personal.widgets);
-  const team = shared && parseWidgetList(shared.widgets);
-
-  // The note lives where the widget does — own row first, then the shared
-  // one if this person may change it.
-  const key = own?.some((w) => w.id === widgetId)
-    ? personalKey
-    : team?.some((w) => w.id === widgetId) && access.canEditShared
-      ? sharedKey
-      : personalKey;
-  const base = key === personalKey ? (own ?? shown) : (team ?? shown);
-  const widgets = withPages(base) as unknown as Prisma.InputJsonValue;
-  await db.dashboardLayout.upsert({
+  const where = `${target.data.kind}:${target.data.id}`;
+  const key = `${where}:${widgetId}:${session.userId}`;
+  const data = pages.data as unknown as Prisma.InputJsonValue;
+  await db.dashboardNote.upsert({
     where: { key },
     create: {
       key,
-      workspaceId: access.workspaceId,
-      projectId: target.data.kind === "project" ? target.data.id : null,
-      userId: key === personalKey ? session.userId : null,
-      widgets,
+      userId: session.userId,
+      target: where,
+      widgetId,
+      pages: data,
     },
-    update: { widgets },
+    update: { pages: data },
   });
   return { ok: true };
 }

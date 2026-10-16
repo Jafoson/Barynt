@@ -6,7 +6,6 @@ import {
   moveWidgetTo,
   newWidget,
   normalizeWidget,
-  notePages,
   parseWidgets,
   pickShortcuts,
   SIZE_SPAN,
@@ -153,28 +152,14 @@ describe("Shortcuts", () => {
 });
 
 describe("Notes", () => {
-  it("reads an older single text as one page", () => {
-    const widget: Widget = {
+  it("never carry their text in a layout — it's private", () => {
+    const widget = {
       id: "n",
       type: "note",
       size: "M",
-      config: { text: "Ziele" },
+      config: { text: "geheim", pages: [{ id: "a", text: "geheim" }] },
     };
-    expect(notePages(widget)).toEqual([{ id: "p1", text: "Ziele" }]);
-  });
-
-  it("keeps stored pages", () => {
-    const pages = [
-      { id: "a", text: "Eins" },
-      { id: "b", text: "Zwei" },
-    ];
-    const widget: Widget = {
-      id: "n",
-      type: "note",
-      size: "M",
-      config: { pages },
-    };
-    expect(notePages(widget)).toEqual(pages);
-    expect(parseWidgets([widget])).toEqual([widget]);
+    const [read] = parseWidgets([widget]) ?? [];
+    expect(read.config).toEqual({});
   });
 });

@@ -27,6 +27,7 @@ import {
   type GroupField,
   type KpiMetric,
   layoutKey,
+  notePagesSchema,
   parseWidgets,
   type Widget,
 } from "@/features/dashboard/widgets";
@@ -320,6 +321,8 @@ interface Ctx {
   prefixes: Map<string, string>;
   statusById: Map<string, Status>;
   scope: DashboardScope;
+  /** "<kind>:<id>" — where a private note is filed. */
+  targetKey: string;
   /** The board this dashboard's numbers come from: the project's, or the
    *  workspace's across projects. */
   boardBase: string;
@@ -335,6 +338,7 @@ async function filterWhere(filter: IssueFilter | null | undefined) {
 }
 
 async function buildCtx(
+  target: DashboardTarget,
   resolved: Resolved,
   userId: string,
   range: RangeKey,
@@ -383,6 +387,7 @@ async function buildCtx(
     resolved,
     userId,
     scope,
+    targetKey: `${target.kind}:${target.id}`,
     boardBase:
       resolved.projectId && place.slug
         ? projectPath(resolved.workspaceId, place.slug, "")
@@ -1785,8 +1790,18 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
       return links(resolved.workspaceId);
     case "shortcuts":
       return shortcuts(resolved.workspaceId, resolved.projectId);
-    case "note":
-      return { type: "note" };
+    case "note": {
+      // Only this person's own text — never anyone else's.
+      const row = await db.dashboardNote.findUnique({
+        where: { key: `${ctx.targetKey}:${widget.id}:${ctx.userId}` },
+        select: { pages: true },
+      });
+      const pages = notePagesSchema.safeParse(row?.pages);
+      return {
+        type: "note",
+        pages: pages.success ? pages.data : [{ id: "p1", text: "" }],
+      };
+    }
   }
 }
 
@@ -1803,7 +1818,7 @@ export async function computeWidgets(
   const resolved = await resolveTarget(target.kind, target.id);
   if (!resolved) return null;
   const effective: DashboardScope = resolved.canViewAll ? scope : "mine";
-  const ctx = await buildCtx(resolved, userId, range, effective);
+  const ctx = await buildCtx(target, resolved, userId, range, effective);
 
   const entries = await Promise.all(
     widgets.map(async (widget) => {

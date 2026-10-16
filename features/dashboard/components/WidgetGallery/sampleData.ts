@@ -33,6 +33,7 @@ export interface SampleWords {
   priorities: [string, string, string, string];
   titles: string[];
   role: (key: "lead" | "member" | "viewer") => string;
+  note: string;
 }
 
 const STATUS_COLORS = ["#8a9099", "#b8bcc4", "#e0992b", "#5b9bd5", "#5ab98a"];
@@ -374,6 +375,6 @@ export function sampleData(widget: Widget, words: SampleWords): WidgetData {
         ],
       };
     case "note":
-      return { type: "note" };
+      return { type: "note", pages: [{ id: "p1", text: words.note }] };
   }
 }

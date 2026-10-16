@@ -198,20 +198,13 @@ export interface WidgetConfig {
   text?: string;
   /** The shortcut tiles shown, in order; unset means every one offered. */
   shortcuts?: ShortcutKey[];
-  /** The note's pages (tabs); the first line of each is its tab name. */
-  pages?: NotePage[];
 }
 
+/** A page of a note — its text is private to whoever wrote it
+ *  (`DashboardNote`), never part of the layout. */
 export interface NotePage {
   id: string;
   text: string;
-}
-
-/** A note's pages — stored ones, or one made from an older single text. */
-export function notePages(widget: Widget): NotePage[] {
-  const pages = widget.config.pages;
-  if (pages?.length) return pages;
-  return [{ id: "p1", text: widget.config.text ?? "" }];
 }
 
 export interface Widget {
@@ -638,14 +631,9 @@ const configSchema = z
     accent: z.enum(ACCENTS).optional(),
     text: z.string().max(2000).optional(),
     shortcuts: z.array(z.enum(SHORTCUT_KEYS)).max(20).optional(),
-    pages: z
-      .array(
-        z
-          .object({ id: z.string().min(1).max(40), text: z.string().max(5000) })
-          .strict(),
-      )
-      .max(12)
-      .optional(),
+    // Notes used to carry their text here; it's private now
+    // (`DashboardNote`) and dropped on read (`normalizeWidget`).
+    pages: z.unknown().optional(),
   })
   .strict();
 
@@ -707,6 +695,11 @@ export function normalizeWidget(widget: Widget): Widget {
   const def = WIDGETS[widget.type];
   const config = { ...widget.config };
   if (config.background === "fill" && !def.fill) config.background = "tint";
+  // A note's text never travels with a layout — it's private to each person.
+  if (widget.type === "note") {
+    delete config.text;
+    delete (config as { pages?: unknown }).pages;
+  }
   return { ...widget, size: fitSize(widget.type, widget.size), config };
 }
 

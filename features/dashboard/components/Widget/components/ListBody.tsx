@@ -40,7 +40,7 @@ export function ListBody(props: BodyProps & { data: Data }) {
     case "activity":
       return <Activity {...props} data={data} />;
     case "note":
-      return <NoteBody widget={props.widget} />;
+      return <NoteBody widget={props.widget} initial={data.pages} />;
   }
 }
 

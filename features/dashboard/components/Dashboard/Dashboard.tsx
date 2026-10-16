@@ -104,8 +104,8 @@ export function Dashboard({
   const { target, layout } = view;
 
   const [editing, setEditing] = useState(false);
-  // What's stored — the server's layout, plus notes typed in place since.
-  const [saved, setSaved] = useState<WidgetModel[]>(layout.widgets);
+  // What's stored — the server's layout.
+  const saved = layout.widgets;
   const [draft, setDraft] = useState<WidgetModel[]>(layout.widgets);
   const [data, setData] = useState<WidgetDataMap>(view.data);
   const [pending, startTransition] = useTransition();
@@ -277,27 +277,18 @@ export function Dashboard({
     return () => clearTimeout(timer);
   }, [justAdded]);
 
-  // Notes are written in place, outside edit mode — saved a moment after
-  // the last keystroke, per widget.
+  // Notes are written in place, outside edit mode, and are private — saved
+  // a moment after the last keystroke, per widget.
   const noteTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
-  const savedRef = useRef(saved);
-  savedRef.current = saved;
   const noteContext = {
-    canWrite: target.kind !== "view" || layout.canEdit,
+    canWrite: true,
     save: (widgetId: string, pages: NotePage[]) => {
-      const next = savedRef.current.map((w) =>
-        w.id === widgetId
-          ? { ...w, config: { ...w.config, pages, text: undefined } }
-          : w,
-      );
-      savedRef.current = next;
-      setSaved(next);
       const timer = noteTimers.current.get(widgetId);
       if (timer) clearTimeout(timer);
       noteTimers.current.set(
         widgetId,
         setTimeout(() => {
-          void saveDashboardNote(target, savedRef.current, widgetId, pages);
+          void saveDashboardNote(target, widgetId, pages);
         }, 700),
       );
     },
