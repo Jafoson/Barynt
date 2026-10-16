@@ -360,25 +360,31 @@
   }
 }
 
-/* Up/down — only on touch, where there's no dragging. Bottom right; the
-   size switch moves to the left there to make room. */
+/* Up/down — only on touch, where there's no dragging. Top right, mirroring
+   the remove button, the two arrows in one container so they read as a
+   pair. */
 .moves {
   display: none;
 
   @include bp.coarse {
     position: absolute;
-    right: 0.5rem;
-    bottom: 0.5rem;
+    top: -0.5rem;
+    right: -0.5rem;
     z-index: 2;
     display: flex;
-    gap: 0.25rem;
+    gap: 1px;
+    margin: 0;
+    padding: 2px;
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--radius-sm);
+    background: var(--surface-container);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
 
     & > button {
-      width: 2rem;
-      min-width: 2rem;
-      height: 2rem;
-      min-height: 2rem;
-      box-shadow: 0 4px 14px rgb(0 0 0 / 0.3);
+      width: 1.875rem;
+      min-width: 1.875rem;
+      height: 1.75rem;
+      min-height: 1.75rem;
     }
   }
 }
@@ -395,11 +401,6 @@
   translate: -50% 0;
   border-radius: var(--radius-sm);
   box-shadow: 0 4px 14px rgb(0 0 0 / 0.3);
-
-  @include bp.coarse {
-    left: 0.5rem;
-    translate: none;
-  }
 
   & > * {
     --control-h: 1.875rem;

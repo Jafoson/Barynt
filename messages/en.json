@@ -1813,6 +1813,7 @@
     "save": "Save",
     "hintEdit": "Changes apply once you save them.",
     "reset": "Reset",
-    "saveOptions": "More ways to save"
+    "saveOptions": "More ways to save",
+    "move": "Move"
   }
 }

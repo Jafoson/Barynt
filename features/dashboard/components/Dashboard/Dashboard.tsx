@@ -508,9 +508,9 @@ export function Dashboard({
                     onClick={() => remove(widget.id)}
                   />
                   {/* Touch: no dragging — move with the arrows instead. */}
-                  <span className={styles.moves}>
+                  <fieldset className={styles.moves} aria-label={t("move")}>
                     <Button
-                      variant="elevated"
+                      variant="ghost"
                       size="sm"
                       icon={<Icon icon="lucide:arrow-up" width={14} />}
                       aria-label={t("moveEarlier")}
@@ -519,7 +519,7 @@ export function Dashboard({
                       onClick={() => shift(widget.id, -1)}
                     />
                     <Button
-                      variant="elevated"
+                      variant="ghost"
                       size="sm"
                       icon={<Icon icon="lucide:arrow-down" width={14} />}
                       aria-label={t("moveLater")}
@@ -527,7 +527,7 @@ export function Dashboard({
                       disabled={index === widgets.length - 1}
                       onClick={() => shift(widget.id, 1)}
                     />
-                  </span>
+                  </fieldset>
                   {WIDGETS[widget.type].sizes.length > 1 && (
                     <fieldset className={styles.sizes} aria-label={t("size")}>
                       <SegmentedControl
