@@ -2,9 +2,10 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
+import { SplitButton } from "@/components/ui/atoms/SplitButton/SplitButton";
 import { RangePicker } from "@/components/ui/charts/RangePicker/RangePicker";
 import { ScopePicker } from "@/components/ui/charts/ScopePicker/ScopePicker";
 import {
@@ -25,6 +26,7 @@ import { useOpenViewModal } from "@/features/views/useOpenViewModal";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import type { RangeKey } from "@/lib/buckets";
 import { useModal } from "@/lib/context";
+import { setFabAction } from "@/lib/fab-action";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useWidgetTitle, Widget } from "../Widget/Widget";
 import { WidgetGallery } from "../WidgetGallery/WidgetGallery";
@@ -222,6 +224,19 @@ export function Dashboard({
       isPhone ? { placement: "bottom" } : { width: 960, centered: true },
     );
 
+  // Edit mode on a phone or tablet: the floating plus adds widgets.
+  const openGalleryRef = useRef(openGallery);
+  openGalleryRef.current = openGallery;
+  useEffect(() => {
+    if (!editing) return;
+    setFabAction({
+      label: t("add"),
+      icon: "lucide:plus",
+      run: () => openGalleryRef.current(),
+    });
+    return () => setFabAction(null);
+  }, [editing, t]);
+
   const navigate = (patch: { range?: RangeKey; scope?: DashboardScope }) => {
     const params = new URLSearchParams(window.location.search);
     if (patch.range) params.set("range", patch.range);
@@ -231,6 +246,72 @@ export function Dashboard({
       await setDashboardPrefs(target, patch);
     });
   };
+
+  // The phone's edit bar, pinned to the bottom (BARY-169): cancel on the
+  // left, save on the right — the other ways to save behind its arrow.
+  const phoneBar = editing && (
+    <div className={styles.phoneBar}>
+      <Button variant="ghost" onClick={discard} disabled={pending}>
+        {t("cancel")}
+      </Button>
+      {dirty && <span className={styles.unsavedPhone}>{t("unsaved")}</span>}
+      <span className={styles.spacer} />
+      <SplitButton
+        label={canSave ? t("save") : t("saveAsView")}
+        onClick={() =>
+          canSave
+            ? dirty
+              ? save("personal")
+              : setEditing(false)
+            : saveAsView()
+        }
+        disabled={pending}
+        menuLabel={t("saveOptions")}
+        items={[
+          ...(canSave && target.kind !== "view"
+            ? [
+                {
+                  value: "personal",
+                  label: t("savePersonal"),
+                  icon: <Icon icon="lucide:user" width={15} />,
+                },
+              ]
+            : []),
+          ...(layout.canEditShared && target.kind !== "view"
+            ? [
+                {
+                  value: "shared",
+                  label: t("saveShared"),
+                  icon: <Icon icon="lucide:users" width={15} />,
+                },
+              ]
+            : []),
+          {
+            value: "view",
+            label: t("saveAsView"),
+            icon: <Icon icon="lucide:layers" width={15} />,
+          },
+          ...(!dirty && resetLevel
+            ? [
+                {
+                  value: "reset",
+                  label: t("reset"),
+                  icon: <Icon icon="lucide:rotate-ccw" width={15} />,
+                },
+              ]
+            : []),
+        ]}
+        onPick={(value) => {
+          if (value === "view") saveAsView();
+          else if (value === "reset" && resetLevel) reset(resetLevel);
+          else if (value === "shared")
+            dirty ? save("shared") : setEditing(false);
+          else if (value === "personal")
+            dirty ? save("personal") : setEditing(false);
+        }}
+      />
+    </div>
+  );
 
   // Edit mode's own actions, always there while editing: cancel, a new
   // view from this arrangement, and save — for oneself, and with
@@ -248,8 +329,7 @@ export function Dashboard({
         onClick={saveAsView}
         disabled={pending}
       >
-        <span className={styles.long}>{t("saveAsView")}</span>
-        <span className={styles.short}>{t("saveAsViewShort")}</span>
+        {t("saveAsView")}
       </Button>
       {layout.canEditShared && target.kind !== "view" && (
         <Button
@@ -260,8 +340,7 @@ export function Dashboard({
           disabled={pending}
           title={t("hintShared")}
         >
-          <span className={styles.long}>{t("saveShared")}</span>
-          <span className={styles.short}>{t("saveSharedShort")}</span>
+          {t("saveShared")}
         </Button>
       )}
       {canSave && (
@@ -274,10 +353,7 @@ export function Dashboard({
           disabled={pending}
           title={target.kind === "view" ? t("hintView") : t("hintPersonal")}
         >
-          <span className={styles.long}>
-            {target.kind === "view" ? t("save") : t("savePersonal")}
-          </span>
-          <span className={styles.short}>{t("save")}</span>
+          {target.kind === "view" ? t("save") : t("savePersonal")}
         </Button>
       )}
     </span>
@@ -312,7 +388,7 @@ export function Dashboard({
                   resetLevel === "shared" ? "resetShared" : "resetPersonal",
                 )}
               >
-                <span className={styles.long}>{t("reset")}</span>
+                {t("reset")}
               </Button>
             )}
             {editActions}
@@ -479,6 +555,7 @@ export function Dashboard({
           </div>
         )}
       </div>
+      {phoneBar}
     </div>
   );
 }

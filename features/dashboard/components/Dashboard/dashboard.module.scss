@@ -44,14 +44,6 @@
   display: contents;
 }
 
-.short {
-  display: none;
-
-  @include bp.phone {
-    display: inline;
-  }
-}
-
 .onlyPhone {
   display: none;
 
@@ -90,33 +82,18 @@
     display: none;
   }
 
-  [data-editing] .hint,
-  [data-editing] .spacer,
-  .unsaved {
+  /* Edit mode: the top bar gives way to the bar at the bottom. */
+  [data-editing] .toolbar {
     display: none;
   }
 
-  /* Edit mode: "add widget" over the width with reset beside it, then the
-     actions as one row of equal buttons with short words. */
-  [data-editing] .toolbar > button:first-child {
-    flex: 1;
+  .page[data-editing] {
+    padding-bottom: 0;
   }
 
-  .long {
-    display: none;
-  }
-
-  .saveBar {
-    display: grid;
-    flex: 1 1 100%;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
-    gap: 0.375rem;
-
-    & > button {
-      width: 100%;
-      min-width: 0;
-    }
+  /* The floating plus ("add widget") sits above the bottom bar. */
+  :global(body):has(.phoneBar) {
+    --fab-lift: 4.25rem;
   }
 }
 
@@ -131,9 +108,29 @@
 }
 
 /* Unsaved changes: badge, discard, new view, save — like a changed view. */
+/* The phone's edit bar: cancel · unsaved · save ▾, pinned to the bottom. */
+.phoneBar {
+  display: none;
+
+  @include bp.phone {
+    position: sticky;
+    bottom: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1rem -1rem 0;
+    padding: 0.625rem 1rem calc(0.625rem + var(--safe-bottom, 0px));
+    border-top: 1px solid var(--outline-variant);
+    background: color-mix(in srgb, var(--primary) 6%, var(--surface));
+    box-shadow: 0 -0.5rem 1.5rem rgb(0 0 0 / 0.2);
+  }
+}
+
 /* "Unsaved" — the same badge as a changed board or list view
    (`ViewSaveBar`). */
-.unsaved {
+.unsaved,
+.unsavedPhone {
   display: inline-flex;
   align-items: center;
   height: 1.625rem;

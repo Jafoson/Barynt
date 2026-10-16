@@ -10,7 +10,9 @@
   @include bp.tablet-down {
     position: fixed;
     right: calc(1rem + var(--safe-right));
-    bottom: calc(1rem + var(--safe-bottom));
+    /* `--fab-lift`: room for a bar a page pins to the bottom (the
+       dashboard's edit actions). */
+    bottom: calc(1rem + var(--safe-bottom) + var(--fab-lift, 0px));
     z-index: 1300;
     display: flex;
     flex-direction: column;

@@ -1813,7 +1813,6 @@
     "save": "Speichern",
     "hintEdit": "Änderungen gelten erst, wenn du sie speicherst.",
     "reset": "Zurücksetzen",
-    "saveAsViewShort": "View",
-    "saveSharedShort": "Für alle"
+    "saveOptions": "Weitere Speicher-Optionen"
   }
 }
