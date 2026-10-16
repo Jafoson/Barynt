@@ -1560,6 +1560,9 @@
     "addIn": "View in {place}",
     "addInWorkspace": "View im Workspace",
     "placeEmpty": "Hier gibt es noch keine View.",
-    "formerMember": "Ehemaliges Mitglied"
+    "formerMember": "Ehemaliges Mitglied",
+    "options": "Optionen",
+    "order": "Sortierung",
+    "place": "Ort"
   }
 }

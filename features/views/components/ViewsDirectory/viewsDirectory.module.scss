@@ -19,9 +19,24 @@
 
   @include bp.phone {
     padding-inline: 1rem;
+  }
+}
 
-    & > :first-child {
-      max-width: 100%;
+/* All · Mine · Shared · Favorites — on a phone the whole width, the
+   segments the same. */
+.showSwitch {
+  max-width: 100%;
+
+  @include bp.phone {
+    flex: 1 1 100%;
+
+    & > * {
+      display: flex;
+      width: 100%;
+
+      & > * {
+        flex: 1 1 0;
+      }
     }
   }
 }
@@ -55,15 +70,56 @@
     outline: 2px solid var(--tertiary);
     outline-offset: 1px;
   }
+
+  /* Phone and tablet: behind "Options" instead. */
+  @include bp.tablet-down {
+    display: none;
+  }
 }
 
 .search {
   flex: 0 1 18rem;
   margin-left: auto;
 
+  /* Phone and tablet: the app's own search is a tap away. */
   @include bp.tablet-down {
-    flex: 1 1 100%;
-    margin-left: 0;
+    display: none;
+  }
+}
+
+/* "Options" — phone and tablet only. */
+.optionsButton {
+  display: none;
+
+  @include bp.tablet-down {
+    display: contents;
+  }
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.375rem;
+}
+
+.optionsLabel {
+  padding: 0.25rem 0.25rem 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+.fullSwitch {
+  & > * {
+    display: flex;
+    width: 100%;
+
+    & > * {
+      flex: 1 1 0;
+    }
   }
 }
 

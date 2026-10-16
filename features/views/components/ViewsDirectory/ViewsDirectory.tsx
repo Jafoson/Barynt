@@ -327,6 +327,71 @@ export function ViewsDirectory({
     );
   };
 
+  const placeItems = [
+    { value: "all", label: t("viewsPage.placeAll") },
+    {
+      value: "",
+      label: t("viewsPage.workspace"),
+      icon: <Icon icon="lucide:layers" width={15} />,
+    },
+    ...projects.map((p) => ({
+      value: p.id,
+      label: p.name,
+      icon: (
+        <Avatar
+          avatar={{
+            name: p.name,
+            color: p.color,
+            image: p.avatarUrl ?? undefined,
+          }}
+          shape="square"
+          size={16}
+        />
+      ),
+    })),
+  ];
+
+  // Phone and tablet: place and order behind one "Options" button — a
+  // sheet on a phone (BARY-178); the toolbar keeps only the switch.
+  const optionsButton = (
+    <span className={styles.optionsButton}>
+      <InlinePicker
+        width={280}
+        align="end"
+        title={t("viewsPage.options")}
+        trigger={
+          <Button
+            variant="text"
+            icon={<Icon icon="lucide:sliders-horizontal" width={15} />}
+          >
+            {t("viewsPage.options")}
+          </Button>
+        }
+      >
+        <div className={styles.options}>
+          <span className={styles.optionsLabel}>{t("viewsPage.order")}</span>
+          <div className={styles.fullSwitch}>
+            <SegmentedControl
+              variant="surface"
+              value={sort}
+              onChange={(v) => setSort(v as Sort)}
+              items={[
+                { value: "updated", label: t("viewsPage.sortUpdated") },
+                { value: "name", label: t("viewsPage.sortName") },
+              ]}
+            />
+          </div>
+          <span className={styles.optionsLabel}>{t("viewsPage.place")}</span>
+          <SelectMenu
+            items={placeItems}
+            value={place}
+            onPick={(v) => setPlace(String(v ?? "all"))}
+          />
+        </div>
+      </InlinePicker>
+    </span>
+  );
+
   const newButton = (
     <span className={styles.newButton}>
       <Button
@@ -346,21 +411,28 @@ export function ViewsDirectory({
         title={t("nav.views")}
         count={views.length}
         description={t("viewsPage.subtitle")}
-        actions={newButton}
+        actions={
+          <>
+            {optionsButton}
+            {newButton}
+          </>
+        }
       />
 
       <div className={styles.toolbar}>
-        <SegmentedControl
-          variant="surface"
-          value={show}
-          onChange={(v) => setShow(v as Show)}
-          items={[
-            { value: "all", label: t("viewsPage.showAll") },
-            { value: "mine", label: t("viewsPage.showMine") },
-            { value: "shared", label: t("viewsPage.showShared") },
-            { value: "favorites", label: t("viewsPage.showFavorites") },
-          ]}
-        />
+        <div className={styles.showSwitch}>
+          <SegmentedControl
+            variant="surface"
+            value={show}
+            onChange={(v) => setShow(v as Show)}
+            items={[
+              { value: "all", label: t("viewsPage.showAll") },
+              { value: "mine", label: t("viewsPage.showMine") },
+              { value: "shared", label: t("viewsPage.showShared") },
+              { value: "favorites", label: t("viewsPage.showFavorites") },
+            ]}
+          />
+        </div>
         <InlinePicker
           width={240}
           trigger={
@@ -373,29 +445,7 @@ export function ViewsDirectory({
         >
           {(close) => (
             <SelectMenu
-              items={[
-                { value: "all", label: t("viewsPage.placeAll") },
-                {
-                  value: "",
-                  label: t("viewsPage.workspace"),
-                  icon: <Icon icon="lucide:layers" width={15} />,
-                },
-                ...projects.map((p) => ({
-                  value: p.id,
-                  label: p.name,
-                  icon: (
-                    <Avatar
-                      avatar={{
-                        name: p.name,
-                        color: p.color,
-                        image: p.avatarUrl ?? undefined,
-                      }}
-                      shape="square"
-                      size={16}
-                    />
-                  ),
-                })),
-              ]}
+              items={placeItems}
               value={place}
               searchable={projects.length > 5}
               placeholder={t("placeholders.search")}
