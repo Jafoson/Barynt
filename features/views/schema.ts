@@ -96,6 +96,8 @@ export const viewUserStateSchema = z
     pinned: z.boolean().optional(),
     favorite: z.boolean().optional(),
     favoritePosition: z.number().finite().nullable().optional(),
+    /** This project's start view for the caller (V7). */
+    startView: z.boolean().optional(),
     collapsedGroups: z.array(z.string().max(200)).max(500).optional(),
   })
   .strict();
@@ -127,6 +129,8 @@ export interface SavedView {
   pinned: boolean;
   favorite: boolean;
   favoritePosition: number | null;
+  /** The caller's start view of its project (V7). */
+  startView: boolean;
   collapsedGroups: string[];
   /** Whether the viewer may edit or delete it (`canEditView`). */
   canEdit: boolean;

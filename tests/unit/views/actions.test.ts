@@ -97,8 +97,20 @@ const db = {
     ),
     delete: mock(async () => ({})),
   },
-  savedViewUserState: { upsert: mock(async (_args: unknown) => ({})) },
-  $transaction: mock(async (ops: unknown[]) => ops),
+  savedViewUserState: {
+    upsert: mock(async (_args: unknown) => ({})),
+    updateMany: mock(async (_args: unknown) => ({ count: 0 })),
+    aggregate: mock(async () => ({ _max: { favoritePosition: 3 } })),
+  },
+  projectUserState: {
+    upsert: mock(async (_args: unknown) => ({})),
+    updateMany: mock(async (_args: unknown) => ({ count: 0 })),
+    aggregate: mock(async () => ({ _max: { favoritePosition: 5 } })),
+  },
+  // Both forms: a list of queries, or a callback with the client.
+  $transaction: mock(async (ops: unknown) =>
+    typeof ops === "function" ? ops(db) : ops,
+  ),
 };
 mock.module("@/lib/db", () => ({ db }));
 
@@ -107,8 +119,10 @@ import {
   createViewFromParams,
   deleteView,
   duplicateView,
+  reorderFavorites,
   reorderViews,
   saveViewState,
+  setProjectFavorite,
   setViewUserState,
   updateView,
 } from "@/features/views/actions";
@@ -123,6 +137,9 @@ beforeEach(() => {
     ...Object.values(db.savedView),
     db.project.findUnique,
     db.savedViewUserState.upsert,
+    db.savedViewUserState.updateMany,
+    db.projectUserState.upsert,
+    db.projectUserState.updateMany,
     db.$transaction,
   ])
     (fn as ReturnType<typeof mock>).mockClear();
@@ -322,6 +339,32 @@ describe("setViewUserState", () => {
     });
   });
 
+  it("stars at the end of the favorites, views and projects together", async () => {
+    rows = [viewRow({ ownerId: "other", visibility: "PROJECT" })];
+    await setViewUserState("v1", { favorite: true });
+    expect(db.savedViewUserState.upsert.mock.calls.at(-1)?.[0]).toMatchObject({
+      update: { favorite: true, favoritePosition: 6 },
+    });
+    await setViewUserState("v1", { favorite: false });
+    expect(db.savedViewUserState.upsert.mock.calls.at(-1)?.[0]).toMatchObject({
+      update: { favorite: false, favoritePosition: null },
+    });
+  });
+
+  it("keeps one start view per project", async () => {
+    rows = [viewRow({ ownerId: "other", visibility: "PROJECT" })];
+    await setViewUserState("v1", { startView: true });
+    expect(db.savedViewUserState.updateMany.mock.calls.at(-1)?.[0]).toEqual({
+      where: {
+        userId: "me",
+        startView: true,
+        viewId: { not: "v1" },
+        view: { projectId: "p1" },
+      },
+      data: { startView: false },
+    });
+  });
+
   it("answers notFound for someone else's private view", async () => {
     rows = [viewRow({ ownerId: "other" })];
     expect(await setViewUserState("v1", { pinned: true })).toEqual({
@@ -432,5 +475,46 @@ describe("createViewFromParams", () => {
         rules: [{ field: "status", is: "any", value: ["todo"] }],
       },
     });
+  });
+});
+
+describe("setProjectFavorite", () => {
+  it("stars a project the caller sees, at the end of the favorites", async () => {
+    expect((await setProjectFavorite("p1", true)).ok).toBe(true);
+    expect(db.projectUserState.upsert.mock.calls.at(-1)?.[0]).toMatchObject({
+      where: { userId_projectId: { userId: "me", projectId: "p1" } },
+      update: { favorite: true, favoritePosition: 6 },
+    });
+  });
+
+  it("answers notFound without project.view", async () => {
+    granted = new Set();
+    expect(await setProjectFavorite("p1", true)).toMatchObject({
+      ok: false,
+    });
+    expect(db.projectUserState.upsert).not.toHaveBeenCalled();
+  });
+});
+
+describe("reorderFavorites", () => {
+  it("numbers views and projects in the given order", async () => {
+    await reorderFavorites([
+      { kind: "project", id: "p1" },
+      { kind: "view", id: "v1" },
+    ]);
+    expect(db.projectUserState.updateMany.mock.calls.at(-1)?.[0]).toEqual({
+      where: { userId: "me", projectId: "p1", favorite: true },
+      data: { favoritePosition: 1 },
+    });
+    expect(db.savedViewUserState.updateMany.mock.calls.at(-1)?.[0]).toEqual({
+      where: { userId: "me", viewId: "v1", favorite: true },
+      data: { favoritePosition: 2 },
+    });
+  });
+
+  it("refuses an unknown kind", async () => {
+    expect(
+      await reorderFavorites([{ kind: "nope" as "view", id: "x" }]),
+    ).toMatchObject({ ok: false });
   });
 });

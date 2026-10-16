@@ -9,13 +9,14 @@ import { searchIssuesForPalette } from "@/features/issues/actions";
 import { StatusIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import { issuePath } from "@/features/issues/issue-links";
 import { getRecentIssueIdentifiers } from "@/features/issues/recent-issues";
-import { useRouter } from "@/i18n/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import type { Translator } from "@/i18n/types";
 import { modKey } from "@/lib/a11y";
 import { type NavLabelKey, WORKSPACE_SECTIONS, workspacePath } from "@/lib/nav";
 import { useHasKeyboard } from "@/lib/shortcuts/useHasKeyboard";
 import type { Project, SearchableIssue, Status } from "@/types";
 import styles from "./commandPalette.module.scss";
+import { ViewSwitcher } from "./ViewSwitcher";
 
 /** How many leading results get a `mod+N` quick-select badge — one digit
  *  row, same as Raycast's own numbered favorites. */
@@ -57,6 +58,8 @@ interface CommandPaletteProps {
    *  existing and doing nothing. */
   onNewIssue?: () => void;
   onShowShortcuts?: () => void;
+  /** Open straight in "go to view" (key V, V7). */
+  startInViews?: boolean;
 }
 
 export function CommandPalette({
@@ -68,6 +71,7 @@ export function CommandPalette({
   searchIssues,
   onNewIssue,
   onShowShortcuts,
+  startInViews = false,
 }: CommandPaletteProps) {
   const t = useTranslations();
   // Without a keyboard the palette shows no shortcuts, and no command that
@@ -76,6 +80,10 @@ export function CommandPalette({
   const router = useRouter();
   const base = `/${workspaceId}`;
   const [q, setQ] = useState("");
+  // "Go to view" replaces the palette's content in the same frame (V7).
+  const [viewMode, setViewMode] = useState(false);
+  const pathname = usePathname();
+  const currentProjectSlug = pathname.match(/\/project\/([^/]+)/)?.[1] ?? null;
   const [cursor, setCursor] = useState(0);
   const [recentIdentifiers, setRecentIdentifiers] = useState<string[]>([]);
   // Ranked, server-side full-text results (title, description, and
@@ -102,6 +110,14 @@ export function CommandPalette({
   // point, not just a jump list. Each only exists as an entry once its
   // handler does (see `CommandPaletteProps`).
   const COMMAND_ENTRIES: CommandEntry[] = [
+    {
+      id: "switch-view",
+      label: (t: Translator) => t("palette.switchViewEllipsis"),
+      icon: "lucide:layout-dashboard",
+      run: () => {
+        setViewMode(true);
+      },
+    },
     ...(onNewIssue
       ? [
           {
@@ -128,10 +144,11 @@ export function CommandPalette({
     if (open) {
       setQ("");
       setCursor(0);
+      setViewMode(startInViews);
       setRecentIdentifiers(getRecentIssueIdentifiers());
       setTimeout(() => inputRef.current?.focus(), 30);
     }
-  }, [open]);
+  }, [open, startInViews]);
 
   // Arrow-key navigation moves `cursor` without touching scroll position,
   // so once the list is taller than the viewport the active row can end up
@@ -262,6 +279,8 @@ export function CommandPalette({
   const select = (item: ResultItem) => {
     if (item.kind === "command") {
       item.run();
+      // A command that changes the palette keeps it open.
+      if (item.id === "switch-view") return;
     } else if (item.kind === "nav" || item.kind === "board") {
       router.push(item.href);
     } else {
@@ -281,211 +300,238 @@ export function CommandPalette({
         onClick={onClose}
       />
       <div className={styles.panel}>
-        <div className={styles.inputWrap}>
-          <Icon icon="lucide:search" width={16} className="faint" />
-          <input
-            ref={inputRef}
-            className={styles.input}
-            placeholder={t("placeholders.searchIssues")}
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value);
-              setCursor(0);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowDown") {
-                e.preventDefault();
-                setCursor((c) => Math.min(c + 1, results.length - 1));
-              }
-              if (e.key === "ArrowUp") {
-                e.preventDefault();
-                setCursor((c) => Math.max(c - 1, 0));
-              }
-              if (e.key === "Enter" && results[cursor]) select(results[cursor]);
-              if (e.key === "Escape") onClose();
-              // "mod+1".."mod+9" jump straight to that project's board —
-              // Raycast's own pattern for its numbered favorites, scoped to
-              // the Projects group specifically (see `quickSelectBadge`).
-              // Never a bare digit: this is a search box, so "1" alone has
-              // to keep typing "1".
-              if ((e.metaKey || e.ctrlKey) && /^[1-9]$/.test(e.key)) {
-                const p = boardHits[Number(e.key) - 1];
-                if (p) {
-                  e.preventDefault();
-                  select({
-                    kind: "board",
-                    href: `${base}/project/${p.slug}`,
-                    project: p,
-                  });
-                }
-              }
-            }}
+        {viewMode ? (
+          <ViewSwitcher
+            workspaceId={workspaceId}
+            currentProjectSlug={currentProjectSlug}
+            onClose={onClose}
+            onBack={() => setViewMode(false)}
           />
-          {/* A keyboard hint where there's a keyboard, a close button on a
-              phone (CSS) and wherever there's no keyboard to press Escape on. */}
-          {hasKeyboard && <span className={`kbd ${styles.escHint}`}>ESC</span>}
-          <button
-            type="button"
-            className={[styles.closeBtn, !hasKeyboard && styles.closeAlways]
-              .filter(Boolean)
-              .join(" ")}
-            aria-label={t("actions.close")}
-            onClick={onClose}
-          >
-            <Icon icon="lucide:x" width={20} />
-          </button>
-        </div>
-
-        <div className={styles.results} ref={resultsRef}>
-          {results.length === 0 && (
-            <div className={styles.empty}>{t("empty.noResults", { q })}</div>
-          )}
-          {commandHits.length > 0 && (
-            <>
-              <div className={styles.groupLabel}>{t("palette.commands")}</div>
-              {commandHits.map((c, idx) => (
-                <button
-                  type="button"
-                  key={c.id}
-                  className={`${styles.row}${idx === cursor ? ` ${styles.active}` : ""}`}
-                  onMouseEnter={() => setCursor(idx)}
-                  onClick={() =>
-                    select({
-                      kind: "command",
-                      id: c.id,
-                      label: c.label(t),
-                      icon: c.icon,
-                      run: c.run,
-                    })
+        ) : (
+          <>
+            <div className={styles.inputWrap}>
+              <Icon icon="lucide:search" width={16} className="faint" />
+              <input
+                ref={inputRef}
+                className={styles.input}
+                placeholder={t("placeholders.searchIssues")}
+                value={q}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setCursor(0);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setCursor((c) => Math.min(c + 1, results.length - 1));
                   }
-                >
-                  <Icon icon={c.icon} width={15} />
-                  <span>{c.label(t)}</span>
-                </button>
-              ))}
-            </>
-          )}
-          {boardHits.length > 0 && (
-            <>
-              <div className={styles.groupLabel}>{t("palette.projects")}</div>
-              {boardHits.map((p, idx) => {
-                const absIdx = commandHits.length + idx;
-                const href = `${base}/project/${p.slug}`;
-                return (
-                  <button
-                    type="button"
-                    key={p.id}
-                    className={`${styles.row}${absIdx === cursor ? ` ${styles.active}` : ""}`}
-                    onMouseEnter={() => setCursor(absIdx)}
-                    onClick={() => select({ kind: "board", href, project: p })}
-                  >
-                    <Avatar
-                      avatar={{
-                        name: p.name,
-                        color: p.color,
-                        image: p.avatarUrl ?? undefined,
-                      }}
-                      shape="square"
-                      size={17}
-                    />
-                    <span>{p.name}</span>
-                    {quickSelectBadge(idx)}
-                  </button>
-                );
-              })}
-            </>
-          )}
-          {navHits.length > 0 && (
-            <>
-              <div className={styles.groupLabel}>{t("palette.navigation")}</div>
-              {navHits.map((e, idx) => {
-                const absIdx = commandHits.length + boardHits.length + idx;
-                return (
-                  <button
-                    type="button"
-                    key={e.href}
-                    className={`${styles.row}${absIdx === cursor ? ` ${styles.active}` : ""}`}
-                    onMouseEnter={() => setCursor(absIdx)}
-                    onClick={() =>
+                  if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setCursor((c) => Math.max(c - 1, 0));
+                  }
+                  if (e.key === "Enter" && results[cursor])
+                    select(results[cursor]);
+                  if (e.key === "Escape") onClose();
+                  // "mod+1".."mod+9" jump straight to that project's board —
+                  // Raycast's own pattern for its numbered favorites, scoped to
+                  // the Projects group specifically (see `quickSelectBadge`).
+                  // Never a bare digit: this is a search box, so "1" alone has
+                  // to keep typing "1".
+                  if ((e.metaKey || e.ctrlKey) && /^[1-9]$/.test(e.key)) {
+                    const p = boardHits[Number(e.key) - 1];
+                    if (p) {
+                      e.preventDefault();
                       select({
-                        kind: "nav",
-                        href: e.href,
-                        label: e.label(t),
-                        icon: e.icon,
-                      })
+                        kind: "board",
+                        href: `${base}/project/${p.slug}`,
+                        project: p,
+                      });
                     }
-                  >
-                    <Icon icon={e.icon} width={15} />
-                    <span>{e.label(t)}</span>
-                  </button>
-                );
-              })}
-            </>
-          )}
-          {issueHits.length > 0 && (
-            <>
-              <div className={styles.groupLabel}>
-                {t(lq ? "palette.issues" : "palette.recentIssues")}
-              </div>
-              {issueHits.map((i, idx) => {
-                const absIdx =
-                  commandHits.length + navHits.length + boardHits.length + idx;
-                const identifier = identifierOf(i);
-                return (
-                  <button
-                    type="button"
-                    key={i.id}
-                    className={`${styles.row}${absIdx === cursor ? ` ${styles.active}` : ""}`}
-                    onMouseEnter={() => setCursor(absIdx)}
-                    onClick={() =>
-                      select({
-                        kind: "issue",
-                        id: i.id,
-                        title: i.title,
-                        status: i.status,
-                        identifier,
-                      })
-                    }
-                  >
-                    <StatusIcon
-                      status={i.status}
-                      size={15}
-                      color={statuses.find((s) => s.id === i.status)?.color}
-                    />
-                    <span className={styles.issueTitle}>{i.title}</span>
-                    <span
-                      className="faint mono"
-                      style={{ fontSize: 11, marginLeft: "auto" }}
-                    >
-                      {identifier}
-                    </span>
-                  </button>
-                );
-              })}
-            </>
-          )}
-        </div>
+                  }
+                }}
+              />
+              {/* A keyboard hint where there's a keyboard, a close button on a
+              phone (CSS) and wherever there's no keyboard to press Escape on. */}
+              {hasKeyboard && (
+                <span className={`kbd ${styles.escHint}`}>ESC</span>
+              )}
+              <button
+                type="button"
+                className={[styles.closeBtn, !hasKeyboard && styles.closeAlways]
+                  .filter(Boolean)
+                  .join(" ")}
+                aria-label={t("actions.close")}
+                onClick={onClose}
+              >
+                <Icon icon="lucide:x" width={20} />
+              </button>
+            </div>
 
-        {hasKeyboard && (
-          <div className={`${styles.footer} ${styles.keyHints}`}>
-            <span className="kbd">↑↓</span> {t("palette.navigate")}
-            <span className="kbd" style={{ marginLeft: 8 }}>
-              ↵
-            </span>{" "}
-            {t("palette.select")}
-            {boardHits.length > 0 && (
-              <>
+            <div className={styles.results} ref={resultsRef}>
+              {results.length === 0 && (
+                <div className={styles.empty}>
+                  {t("empty.noResults", { q })}
+                </div>
+              )}
+              {commandHits.length > 0 && (
+                <>
+                  <div className={styles.groupLabel}>
+                    {t("palette.commands")}
+                  </div>
+                  {commandHits.map((c, idx) => (
+                    <button
+                      type="button"
+                      key={c.id}
+                      className={`${styles.row}${idx === cursor ? ` ${styles.active}` : ""}`}
+                      onMouseEnter={() => setCursor(idx)}
+                      onClick={() =>
+                        select({
+                          kind: "command",
+                          id: c.id,
+                          label: c.label(t),
+                          icon: c.icon,
+                          run: c.run,
+                        })
+                      }
+                    >
+                      <Icon icon={c.icon} width={15} />
+                      <span>{c.label(t)}</span>
+                    </button>
+                  ))}
+                </>
+              )}
+              {boardHits.length > 0 && (
+                <>
+                  <div className={styles.groupLabel}>
+                    {t("palette.projects")}
+                  </div>
+                  {boardHits.map((p, idx) => {
+                    const absIdx = commandHits.length + idx;
+                    const href = `${base}/project/${p.slug}`;
+                    return (
+                      <button
+                        type="button"
+                        key={p.id}
+                        className={`${styles.row}${absIdx === cursor ? ` ${styles.active}` : ""}`}
+                        onMouseEnter={() => setCursor(absIdx)}
+                        onClick={() =>
+                          select({ kind: "board", href, project: p })
+                        }
+                      >
+                        <Avatar
+                          avatar={{
+                            name: p.name,
+                            color: p.color,
+                            image: p.avatarUrl ?? undefined,
+                          }}
+                          shape="square"
+                          size={17}
+                        />
+                        <span>{p.name}</span>
+                        {quickSelectBadge(idx)}
+                      </button>
+                    );
+                  })}
+                </>
+              )}
+              {navHits.length > 0 && (
+                <>
+                  <div className={styles.groupLabel}>
+                    {t("palette.navigation")}
+                  </div>
+                  {navHits.map((e, idx) => {
+                    const absIdx = commandHits.length + boardHits.length + idx;
+                    return (
+                      <button
+                        type="button"
+                        key={e.href}
+                        className={`${styles.row}${absIdx === cursor ? ` ${styles.active}` : ""}`}
+                        onMouseEnter={() => setCursor(absIdx)}
+                        onClick={() =>
+                          select({
+                            kind: "nav",
+                            href: e.href,
+                            label: e.label(t),
+                            icon: e.icon,
+                          })
+                        }
+                      >
+                        <Icon icon={e.icon} width={15} />
+                        <span>{e.label(t)}</span>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
+              {issueHits.length > 0 && (
+                <>
+                  <div className={styles.groupLabel}>
+                    {t(lq ? "palette.issues" : "palette.recentIssues")}
+                  </div>
+                  {issueHits.map((i, idx) => {
+                    const absIdx =
+                      commandHits.length +
+                      navHits.length +
+                      boardHits.length +
+                      idx;
+                    const identifier = identifierOf(i);
+                    return (
+                      <button
+                        type="button"
+                        key={i.id}
+                        className={`${styles.row}${absIdx === cursor ? ` ${styles.active}` : ""}`}
+                        onMouseEnter={() => setCursor(absIdx)}
+                        onClick={() =>
+                          select({
+                            kind: "issue",
+                            id: i.id,
+                            title: i.title,
+                            status: i.status,
+                            identifier,
+                          })
+                        }
+                      >
+                        <StatusIcon
+                          status={i.status}
+                          size={15}
+                          color={statuses.find((s) => s.id === i.status)?.color}
+                        />
+                        <span className={styles.issueTitle}>{i.title}</span>
+                        <span
+                          className="faint mono"
+                          style={{ fontSize: 11, marginLeft: "auto" }}
+                        >
+                          {identifier}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+
+            {hasKeyboard && (
+              <div className={`${styles.footer} ${styles.keyHints}`}>
+                <span className="kbd">↑↓</span> {t("palette.navigate")}
                 <span className="kbd" style={{ marginLeft: 8 }}>
-                  {mod}1-9
+                  ↵
                 </span>{" "}
-                {t("palette.jump")}
-              </>
+                {t("palette.select")}
+                {boardHits.length > 0 && (
+                  <>
+                    <span className="kbd" style={{ marginLeft: 8 }}>
+                      {mod}1-9
+                    </span>{" "}
+                    {t("palette.jump")}
+                  </>
+                )}
+                <span className="kbd" style={{ marginLeft: 8 }}>
+                  ESC
+                </span>{" "}
+                {t("palette.close")}
+              </div>
             )}
-            <span className="kbd" style={{ marginLeft: 8 }}>
-              ESC
-            </span>{" "}
-            {t("palette.close")}
-          </div>
+          </>
         )}
       </div>
     </div>,

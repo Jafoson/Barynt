@@ -569,7 +569,14 @@
       "members": "Zu Mitgliedern",
       "teams": "Zu Teams",
       "settings": "Zu Einstellungen"
-    }
+    },
+    "switchView": "Zu View",
+    "switchViewEllipsis": "Zu View wechseln…",
+    "searchViews": "View oder Projekt suchen…",
+    "viewsHere": "Dieses Projekt",
+    "viewsElsewhere": "Andere Projekte",
+    "views": "Views",
+    "noViews": "Noch keine View — lege eine in einem Projekt an."
   },
   "login": {
     "subtitle": "Weiter zu Barynt Issue Tracker",
@@ -798,7 +805,21 @@
     "errorForbidden": "Dafür fehlt dir die Berechtigung.",
     "errorNotFound": "Die View gibt es nicht mehr.",
     "errorInvalid": "Die Eingabe ist ungültig.",
-    "errorGeneric": "Das hat nicht geklappt. Versuch es noch einmal."
+    "errorGeneric": "Das hat nicht geklappt. Versuch es noch einmal.",
+    "pin": "In der Sidebar anheften",
+    "unpin": "Aus der Sidebar lösen",
+    "favorite": "Zu Favoriten",
+    "unfavorite": "Aus Favoriten entfernen",
+    "startView": "Als Start-View des Projekts",
+    "unsetStartView": "Nicht mehr Start-View",
+    "pinned": "In der Sidebar angeheftet",
+    "unpinned": "Aus der Sidebar gelöst",
+    "favorited": "Zu Favoriten hinzugefügt",
+    "unfavorited": "Aus Favoriten entfernt",
+    "startViewOn": "Ist jetzt die Start-View des Projekts",
+    "startViewOff": "Keine Start-View mehr",
+    "sidebarHeading": "Views",
+    "favoritesHeading": "Favoriten"
   },
   "realtime": {
     "staleGlobal": "Es gibt Änderungen.",
@@ -1117,7 +1138,8 @@
     "shortcutNavOpen": "Fokussierten Eintrag öffnen",
     "shortcutSubmit": "Speichern oder erstellen",
     "shortcutSubmitDesc": "Funktioniert auch direkt im Textfeld.",
-    "shortcutLink": "Link einfügen oder bearbeiten"
+    "shortcutLink": "Link einfügen oder bearbeiten",
+    "shortcutSwitchView": "Zu View wechseln"
   },
   "apiKeys": {
     "title": "API-Schlüssel",
@@ -1488,6 +1510,11 @@
     "shortcutSequenceHint": "Nur die zweite Taste ist änderbar.",
     "issuePageOpenMode": "„Vollständig öffnen“ im Issue",
     "issuePageOpenModeDesc": "Was der Knopf oben im Issue-Detail (und die Taste O) tut: die ganze Seite des Issues öffnen.",
-    "openSameTab": "Im selben Tab"
+    "openSameTab": "Im selben Tab",
+    "landingView": "Start-View",
+    "landingViewHint": "Die Start-View setzt du pro Projekt im Menü eines View-Tabs. Ohne sie öffnet sich das Board.",
+    "startView": "Eine View",
+    "startViewPick": "Welche View",
+    "startViewNone": "Noch keine View zum Auswählen — lege zuerst eine in einem Projekt an."
   }
 }

@@ -54,6 +54,11 @@ export function shortcutGroups(t: Translator): ShortcutGroup[] {
           keys: "mod+k",
         },
         {
+          id: "switch-view",
+          label: t("account.shortcutSwitchView"),
+          keys: "v",
+        },
+        {
           id: "toggle-sidebar",
           label: t("account.shortcutToggleSidebar"),
           keys: "mod+b",
