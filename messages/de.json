@@ -1797,6 +1797,16 @@
     "shortcutsPick": "Kacheln",
     "noShortcuts": "Keine Kacheln gewählt.",
     "shortcut_myIssues": "Meine Aufgaben",
-    "shortcut_inbox": "Inbox"
+    "shortcut_inbox": "Inbox",
+    "shortcut_createdByMe": "Von mir erstellt",
+    "shortcut_workspaceDashboard": "Workspace-Dashboard",
+    "shortcut_roles": "Rollen",
+    "shortcut_labels": "Labels",
+    "shortcut_fields": "Felder",
+    "shortcut_invitations": "Einladungen",
+    "shortcut_webhooks": "Webhooks",
+    "shortcut_notifications": "Benachrichtigungen",
+    "shortcut_account": "Mein Konto",
+    "shortcutsHidden": "Weitere"
   }
 }

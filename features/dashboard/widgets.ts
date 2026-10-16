@@ -109,13 +109,22 @@ export const SHORTCUT_KEYS = [
   "board",
   "list",
   "myIssues",
+  "createdByMe",
   "inbox",
+  "workspaceDashboard",
   "projects",
   "views",
   "teams",
   "members",
+  "roles",
+  "labels",
+  "fields",
+  "invitations",
   "activity",
+  "webhooks",
   "settings",
+  "notifications",
+  "account",
 ] as const;
 export type ShortcutKey = (typeof SHORTCUT_KEYS)[number];
 
@@ -618,11 +627,13 @@ export function accentOf(widget: Widget): WidgetAccent {
  * what the place offers. A choice the viewer can't reach (no permission,
  * a workspace-only target on a project) simply drops out.
  */
-export function pickShortcuts<T extends { key: ShortcutKey }>(
+export function pickShortcuts<T extends { key: ShortcutKey; default: boolean }>(
   offered: T[],
   chosen: ShortcutKey[] | undefined,
 ): T[] {
-  if (!chosen) return offered;
+  // Nothing chosen yet: the tiles shown by default; the rest wait in the
+  // settings to be switched on.
+  if (!chosen) return offered.filter((item) => item.default);
   return chosen.flatMap((key) => offered.filter((item) => item.key === key));
 }
 

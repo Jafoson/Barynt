@@ -254,6 +254,7 @@ export function WidgetSettings({
             offered={data.items.map((item) => ({
               key: item.key,
               icon: item.icon,
+              default: item.default,
             }))}
             chosen={config.shortcuts}
             onChange={(shortcuts) => set({ shortcuts })}
@@ -408,7 +409,7 @@ function ShortcutPicker({
   chosen: stored,
   onChange,
 }: {
-  offered: { key: ShortcutKey; icon: string }[];
+  offered: { key: ShortcutKey; icon: string; default: boolean }[];
   chosen: ShortcutKey[] | undefined;
   onChange: (next: ShortcutKey[]) => void;
 }) {
@@ -458,6 +459,9 @@ function ShortcutPicker({
             />
           </li>
         ))}
+        {rest.length > 0 && (
+          <li className={styles.pickHead}>{t("shortcutsHidden")}</li>
+        )}
         {rest.map((item) => (
           <li key={item.key} className={styles.pick} data-off>
             <Icon icon={item.icon} width={16} className={styles.pickIcon} />

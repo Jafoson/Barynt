@@ -146,6 +146,8 @@ export interface ProjectRow {
 
 export interface Shortcut {
   key: ShortcutKey;
+  /** Shown while the widget has no choice of its own. */
+  default: boolean;
   icon: string;
   href: string;
 }

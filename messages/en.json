@@ -1797,6 +1797,16 @@
     "shortcutsPick": "Tiles",
     "noShortcuts": "No tiles chosen.",
     "shortcut_myIssues": "My issues",
-    "shortcut_inbox": "Inbox"
+    "shortcut_inbox": "Inbox",
+    "shortcut_createdByMe": "Created by me",
+    "shortcut_workspaceDashboard": "Workspace dashboard",
+    "shortcut_roles": "Roles",
+    "shortcut_labels": "Labels",
+    "shortcut_fields": "Fields",
+    "shortcut_invitations": "Invitations",
+    "shortcut_webhooks": "Webhooks",
+    "shortcut_notifications": "Notifications",
+    "shortcut_account": "My account",
+    "shortcutsHidden": "More"
   }
 }

@@ -214,3 +214,22 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.pickHead {
+  padding: 0.5rem 0.75rem 0.25rem;
+  border-top: 1px solid var(--outline-variant);
+  background: var(--surface-container-low);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+
+  &:first-child {
+    border-top: 0;
+  }
+
+  & + .pick {
+    border-top: 0;
+  }
+}

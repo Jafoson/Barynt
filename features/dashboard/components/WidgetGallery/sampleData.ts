@@ -354,11 +354,16 @@ export function sampleData(widget: Widget, words: SampleWords): WidgetData {
       return {
         type: "shortcuts",
         items: [
-          { key: "board", icon: "lucide:kanban", href: "#" },
-          { key: "list", icon: "lucide:list", href: "#" },
-          { key: "members", icon: "lucide:users", href: "#" },
-          { key: "settings", icon: "lucide:settings", href: "#" },
-          { key: "activity", icon: "lucide:history", href: "#" },
+          { key: "board", default: true, icon: "lucide:kanban", href: "#" },
+          { key: "list", default: true, icon: "lucide:list", href: "#" },
+          { key: "members", default: true, icon: "lucide:users", href: "#" },
+          {
+            key: "settings",
+            default: true,
+            icon: "lucide:settings",
+            href: "#",
+          },
+          { key: "activity", default: true, icon: "lucide:history", href: "#" },
         ],
       };
     case "note":

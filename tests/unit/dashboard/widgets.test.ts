@@ -124,13 +124,16 @@ describe("Editing", () => {
 
 describe("Shortcuts", () => {
   const offered = [
-    { key: "board" as const },
-    { key: "list" as const },
-    { key: "settings" as const },
+    { key: "board" as const, default: true },
+    { key: "list" as const, default: false },
+    { key: "settings" as const, default: true },
   ];
 
-  it("shows everything offered while nothing is chosen", () => {
-    expect(pickShortcuts(offered, undefined)).toEqual(offered);
+  it("shows the default tiles while nothing is chosen", () => {
+    expect(pickShortcuts(offered, undefined).map((s) => s.key)).toEqual([
+      "board",
+      "settings",
+    ]);
   });
 
   it("keeps the chosen order and drops what isn't offered", () => {

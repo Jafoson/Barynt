@@ -39,6 +39,8 @@ import {
   getStatuses,
 } from "@/features/issues/queries";
 import { getVisibleViewById } from "@/features/views/queries";
+import { systemViewSlug } from "@/features/views/system";
+import { viewPath } from "@/features/views/url";
 import {
   bucketKey,
   previousWindow,
@@ -51,6 +53,7 @@ import {
 import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import {
+  accountPath,
   PROJECT_SETTINGS_PERMISSIONS,
   projectPath,
   projectSettingsPath,
@@ -1376,29 +1379,83 @@ async function links(workspaceId: string): Promise<WidgetData> {
 }
 
 /** Every shortcut this place offers the viewer, in the default order —
- *  the widget's own setting picks and orders from these. */
+ *  the widget's own setting picks and orders from these. `false` as the last
+ *  argument: offered, but off until someone switches it on. */
 async function shortcuts(
   workspaceId: string,
   projectId: string | null,
 ): Promise<WidgetData> {
   const place = await placeOf(workspaceId, projectId);
   const items: Shortcut[] = [];
-  const add = (key: Shortcut["key"], icon: string, href: string) =>
-    items.push({ key, icon, href });
+  const add = (
+    key: Shortcut["key"],
+    icon: string,
+    href: string,
+    shown = true,
+  ) => items.push({ key, icon, href, default: shown });
+  const ws = place.workspace;
+  const createdByMe = await systemViewSlug(workspaceId, "created-by-me");
 
   if (projectId && place.slug) {
     const slug = place.slug;
+    const pr = place.project;
     add("board", "lucide:kanban", projectPath(workspaceId, slug, ""));
     add("list", "lucide:list", projectPath(workspaceId, slug, "list"));
-    add("myIssues", "lucide:circle-user", workspacePath(workspaceId, "my"));
-    add("inbox", "lucide:inbox", workspacePath(workspaceId, "inbox"));
+    add(
+      "myIssues",
+      "lucide:circle-user",
+      workspacePath(workspaceId, "my"),
+      false,
+    );
+    if (createdByMe)
+      add(
+        "createdByMe",
+        "lucide:pen-line",
+        viewPath(workspaceId, null, createdByMe),
+        false,
+      );
+    add("inbox", "lucide:inbox", workspacePath(workspaceId, "inbox"), false);
+    add(
+      "workspaceDashboard",
+      "lucide:gauge",
+      workspacePath(workspaceId, "dashboard"),
+      false,
+    );
     add("members", "lucide:users", projectPath(workspaceId, slug, "members"));
+    if (pr.has("role.manage"))
+      add(
+        "roles",
+        "lucide:shield",
+        projectPath(workspaceId, slug, "roles"),
+        false,
+      );
+    if (pr.has("label.create"))
+      add(
+        "labels",
+        "lucide:tag",
+        projectSettingsPath(workspaceId, slug, "labels"),
+        false,
+      );
+    if (pr.has("project.update"))
+      add(
+        "fields",
+        "lucide:sliders-horizontal",
+        projectSettingsPath(workspaceId, slug, "fields"),
+        false,
+      );
+    if (pr.has("member.invite"))
+      add(
+        "invitations",
+        "lucide:mail-plus",
+        projectSettingsPath(workspaceId, slug, "invitations"),
+        false,
+      );
     add(
       "activity",
       "lucide:history",
       projectSettingsPath(workspaceId, slug, "activity"),
     );
-    if (PROJECT_SETTINGS_PERMISSIONS.some((key) => place.project.has(key)))
+    if (PROJECT_SETTINGS_PERMISSIONS.some((key) => pr.has(key)))
       add(
         "settings",
         "lucide:settings",
@@ -1406,21 +1463,76 @@ async function shortcuts(
       );
   } else {
     add("board", "lucide:kanban", workspacePath(workspaceId, "issues"));
-    add("list", "lucide:list", workspacePath(workspaceId, "issues/list"));
-    add("myIssues", "lucide:circle-user", workspacePath(workspaceId, "my"));
-    add("inbox", "lucide:inbox", workspacePath(workspaceId, "inbox"));
+    add(
+      "list",
+      "lucide:list",
+      workspacePath(workspaceId, "issues/list"),
+      false,
+    );
+    add(
+      "myIssues",
+      "lucide:circle-user",
+      workspacePath(workspaceId, "my"),
+      false,
+    );
+    if (createdByMe)
+      add(
+        "createdByMe",
+        "lucide:pen-line",
+        viewPath(workspaceId, null, createdByMe),
+        false,
+      );
+    add("inbox", "lucide:inbox", workspacePath(workspaceId, "inbox"), false);
     add("projects", "lucide:folders", workspacePath(workspaceId, "projects"));
     add("views", "lucide:layers", workspacePath(workspaceId, "views"));
     add("teams", "lucide:users-round", workspacePath(workspaceId, "teams"));
-    if (place.workspace.has("member.view"))
+    if (ws.has("member.view"))
       add("members", "lucide:users", workspacePath(workspaceId, "members"));
-    if (WORKSPACE_SETTINGS_PERMISSIONS.some((key) => place.workspace.has(key)))
+    if (ws.has("role.manage"))
+      add("roles", "lucide:shield", workspacePath(workspaceId, "roles"), false);
+    if (ws.has("label.create"))
+      add(
+        "labels",
+        "lucide:tag",
+        workspaceSettingsPath(workspaceId, "labels"),
+        false,
+      );
+    if (ws.has("member.invite"))
+      add(
+        "invitations",
+        "lucide:mail-plus",
+        workspaceSettingsPath(workspaceId, "invitations"),
+        false,
+      );
+    if (ws.has("audit.view"))
+      add(
+        "activity",
+        "lucide:history",
+        workspaceSettingsPath(workspaceId, "activity"),
+        false,
+      );
+    if (ws.has("webhook.manage"))
+      add(
+        "webhooks",
+        "lucide:webhook",
+        workspaceSettingsPath(workspaceId, "webhooks"),
+        false,
+      );
+    if (WORKSPACE_SETTINGS_PERMISSIONS.some((key) => ws.has(key)))
       add(
         "settings",
         "lucide:settings",
         workspaceSettingsPath(workspaceId, ""),
       );
   }
+  // Your own corner — on every dashboard, off by default.
+  add(
+    "notifications",
+    "lucide:bell",
+    accountPath(workspaceId, "notifications"),
+    false,
+  );
+  add("account", "lucide:user-cog", accountPath(workspaceId, ""), false);
   return { type: "shortcuts", items };
 }
 
