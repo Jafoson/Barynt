@@ -71,6 +71,8 @@ export function AreaTabs({
           key={tab.key}
           href={tab.href}
           active={tab.key === active}
+          // A phone only has the list — the board falls back to it anyway.
+          className={tab.key === "board" ? styles.notOnPhone : undefined}
           icon={<Icon icon={tab.icon} width={15} />}
         >
           {tab.label}

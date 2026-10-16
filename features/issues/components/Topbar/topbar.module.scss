@@ -428,3 +428,10 @@
   }
 }
 
+
+/* Not on a phone, which only has the list (the "Board" tab). */
+.notOnPhone {
+  @include bp.phone {
+    display: none !important;
+  }
+}

@@ -45,6 +45,8 @@ async function NavGroupWorkspaceDashboard({
       activeHref: `${workspacePath(workspace.id, WORKSPACE_BOARD_NAV.section)}/*`,
       icon: WORKSPACE_BOARD_NAV.icon,
       label: t(WORKSPACE_BOARD_NAV.labelKey),
+      // A phone has no board — only the list.
+      hideOnPhone: true,
     },
     {
       href: myHref,
