@@ -1458,32 +1458,23 @@
   font-weight: 700;
 }
 
-/* Medium: one row — who on the left, the numbers on the right. */
+/* Medium: just who it is — picture, name, since when — and what for. */
 @container w (max-height: 13.75rem) {
   .aboutBox {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: 1fr;
-    grid-template-areas: "hero facts";
-    align-items: center;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "hero" "text";
+    gap: 0.5rem;
   }
 
-  .aboutText,
-  .aboutPeople {
+  .aboutFacts,
+  .aboutPeople,
+  .aboutLinks,
+  .aboutEdit {
     display: none;
   }
 
-  .aboutFacts {
-    grid-template-columns: repeat(3, auto);
-
-    & > div {
-      padding: 0.375rem 0.5rem;
-    }
-  }
-}
-
-@container w (max-height: 13.75rem) and (max-width: 26rem) {
-  .aboutFacts > div:nth-child(n + 2) {
-    display: none;
+  .aboutDesc {
+    -webkit-line-clamp: 2;
   }
 }
 
