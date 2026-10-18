@@ -217,6 +217,7 @@
 /* The scaled box that takes up space in the row. */
 .frame {
   position: relative;
+  overflow: hidden;
   display: block;
   flex: none;
   width: calc(var(--w) * var(--k));
@@ -322,10 +323,21 @@
 }
 
 .builderPreview {
-  /* The same real-size-and-scale as the gallery's previews (`.sizes`). */
+  /* The same real-size-and-scale as the gallery's previews (`.sizes`),
+     shrunk only as far as the size needs to fit the column. */
   --u: 8.125rem;
   --g: 0.875rem;
-  --k: 0.72;
+  --k: 1;
+
+  min-width: 0;
+
+  & > .sizeChoice[data-size="T"] {
+    --k: 0.62;
+  }
+
+  & > .sizeChoice[data-size="XL"] {
+    --k: 0.78;
+  }
 
   position: sticky;
   top: 0;
@@ -338,11 +350,17 @@
   @include bp.tablet-down {
     position: static;
     order: -1;
-    --k: 0.62;
   }
 
   @include bp.phone {
-    --k: 0.5;
+    & > .sizeChoice {
+      --k: 0.62;
+    }
+
+    & > .sizeChoice[data-size="T"],
+    & > .sizeChoice[data-size="XL"] {
+      --k: 0.42;
+    }
   }
 }
 

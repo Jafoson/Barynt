@@ -250,7 +250,7 @@ export function WidgetGallery({
 
   return (
     <Modal
-      width={960}
+      width={1180}
       variant={sheet ? "sheet" : "dialog"}
       className={styles.modal}
       style={sheet ? swipe.style : undefined}

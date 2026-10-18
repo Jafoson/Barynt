@@ -240,7 +240,7 @@ export function Dashboard({
           close={close}
         />
       ),
-      isPhone ? { placement: "bottom" } : { width: 960, centered: true },
+      isPhone ? { placement: "bottom" } : { width: 1180, centered: true },
     );
 
   // Edit mode on a phone or tablet: the floating plus adds widgets.
