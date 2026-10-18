@@ -26,6 +26,8 @@ interface Props {
   /** `/<workspace>/issue` — rows link to `<base>/<ref>`. */
   issueBase: string;
   workspaceSlug: string;
+  /** The element being edited in the builder — drawn marked. */
+  activeElement?: string;
 }
 
 /** The title a widget shows: its own, else what it counts or groups by. */
@@ -74,6 +76,7 @@ export function Widget({
   unit,
   issueBase,
   workspaceSlug,
+  activeElement,
 }: Props) {
   const t = useTranslations("widgets");
   const format = useFormatter();
@@ -101,6 +104,7 @@ export function Widget({
     issueHref: (ref) => `${issueBase}/${ref}`,
     bucketLabel,
     workspaceSlug,
+    activeElement,
   };
 
   return (

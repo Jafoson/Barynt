@@ -2,6 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { Input } from "@/components/ui/atoms/Input/Input";
 import { NativeSelect } from "@/components/ui/atoms/NativeSelect/NativeSelect";
@@ -52,6 +53,8 @@ interface Props {
   data?: WidgetData;
   /** The builder names a custom widget itself — no separate title field. */
   hideTitle?: boolean;
+  /** The element whose settings are open — for a preview to mark it. */
+  onActiveElement?: (id: string | null) => void;
 }
 
 /**
@@ -68,10 +71,16 @@ export function WidgetForm({
   sheet,
   data,
   hideTitle = false,
+  onActiveElement,
 }: Props) {
   const t = useTranslations("widgets");
   const { openModal } = useModal();
   const def = WIDGETS[widget.type];
+  const [openElement, setOpenElement] = useState<string | null>(null);
+  const openOne = (id: string | null) => {
+    setOpenElement(id);
+    onActiveElement?.(id);
+  };
   const { config } = widget;
 
   const apply = onChange;
@@ -352,6 +361,8 @@ export function WidgetForm({
             widget={widget}
             onChange={(elements) => set({ elements, labels: undefined })}
             editFilter={openFilter}
+            open={openElement}
+            onOpen={openOne}
           />
         </div>
       )}

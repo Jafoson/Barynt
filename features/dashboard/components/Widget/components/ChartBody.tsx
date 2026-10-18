@@ -5,13 +5,13 @@ import type { CSSProperties } from "react";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import type { Slice, WidgetData } from "@/features/dashboard/types";
 import {
-  elementOf,
-  elementsOf,
+  shownElement,
+  shownElements,
   type Widget,
 } from "@/features/dashboard/widgets";
 import { Link, useRouter } from "@/i18n/navigation";
 import styles from "../widget.module.scss";
-import { type BodyProps, Spark, TimeAxis } from "./shared";
+import { type BodyProps, marked, Spark, TimeAxis } from "./shared";
 
 type Data = Extract<
   WidgetData,
@@ -85,6 +85,7 @@ function Distribution({
   widget,
   data,
   labels,
+  activeElement,
 }: BodyProps & { data: Extract<Data, { type: "distribution" }> }) {
   const name = useSliceName();
   const router = useRouter();
@@ -92,32 +93,39 @@ function Distribution({
   const fmt = useMeasureFormat(widget.config.measure);
   const field = widget.config.groupBy;
   if (data.total === 0) return <Empty />;
-  const kinds = new Set(elementsOf(widget).map((e) => e.kind));
   const pct = (n: number) => `${Math.round((n / data.total) * 100)} %`;
-  // "Top N": the biggest N, the rest folded into "Weitere".
-  const topN = elementOf(widget, "topN")?.value;
+  // "Top N": the biggest N, the rest folded into "Weitere" — or left out.
+  const topEl = shownElement(widget, "topN");
+  const topN = topEl?.value;
   const slices: Slice[] =
     topN && data.slices.length > topN
       ? [
           ...data.slices.slice(0, topN),
-          {
-            key: "_other",
-            label: "",
-            color: "var(--outline)",
-            count: data.slices
-              .slice(topN)
-              .reduce((sum, slice) => sum + slice.count, 0),
-          },
+          ...(topEl?.flag
+            ? []
+            : [
+                {
+                  key: "_other",
+                  label: "",
+                  color: "var(--outline)",
+                  count: data.slices
+                    .slice(topN)
+                    .reduce((sum, slice) => sum + slice.count, 0),
+                },
+              ]),
         ]
       : data.slices;
+  const totalEl = shownElement(widget, "total");
+  const totalName = totalEl?.label?.trim() || t("total");
+  const percentEl = shownElement(widget, "percent");
   /** The number beside a slice: its value, its share, or both. */
   const shown = (count: number) =>
-    labels.values && kinds.has("percent")
+    percentEl && percentEl.style !== "only" && labels.values
       ? `${fmt(count, false)} · ${pct(count)}`
-      : kinds.has("percent")
+      : percentEl
         ? pct(count)
         : fmt(count, false);
-  const showValue = labels.values || kinds.has("percent");
+  const showValue = labels.values || !!percentEl;
 
   if (widget.config.chart === "table") {
     return (
@@ -146,10 +154,10 @@ function Distribution({
               </tr>
             ))}
           </tbody>
-          {kinds.has("total") && (
-            <tfoot>
+          {totalEl && (
+            <tfoot {...marked(activeElement, totalEl.id)}>
               <tr>
-                <td>{t("total")}</td>
+                <td>{totalName}</td>
                 <td>{fmt(data.total, false)}</td>
                 <td>100 %</td>
               </tr>
@@ -164,9 +172,12 @@ function Distribution({
     const max = Math.max(1, ...slices.map((s) => s.count));
     return (
       <div className={styles.bars}>
-        {kinds.has("total") && (
-          <div className={`${styles.sumRow} ${styles.noS}`}>
-            {t("total")} <b>{fmt(data.total)}</b>
+        {totalEl && (
+          <div
+            className={`${styles.sumRow} ${styles.noS}`}
+            {...marked(activeElement, totalEl.id)}
+          >
+            {totalName} <b>{fmt(data.total)}</b>
           </div>
         )}
         {slices.map((slice) => {
@@ -237,7 +248,7 @@ function Distribution({
             return el;
           })}
         </g>
-        {kinds.has("total") && (
+        {totalEl && (
           <text
             x={21}
             y={23.6}
@@ -285,6 +296,7 @@ function Flow({
   data,
   labels,
   bucketLabel,
+  activeElement,
 }: BodyProps & { data: Extract<Data, { type: "flow" }> }) {
   const t = useTranslations("widgets");
   const fmt = useMeasureFormat(widget.config.measure);
@@ -305,8 +317,10 @@ function Flow({
               { key: s.key, label: s.label, color: s.color, count: 0 },
               widget.config.splitBy,
             );
-  const elements = elementsOf(widget);
+  const elements = shownElements(widget);
   const kinds = new Set(elements.map((e) => e.kind));
+  const find = (kind: (typeof elements)[number]["kind"]) =>
+    elements.find((e) => e.kind === kind);
   const n = data.dates.length;
   // "Kumulativ": every bucket carries the ones before it.
   const running = (values: number[]) => {
@@ -319,9 +333,16 @@ function Flow({
   const shape = (values: number[]) =>
     kinds.has("cumulative") ? running(values) : values;
   const series = data.series.map((s) => ({ ...s, values: shape(s.values) }));
-  const previous =
-    kinds.has("previous") && data.previous ? shape(data.previous) : null;
-  const goal = elementOf(widget, "goalLine")?.value ?? null;
+  const previousEl = find("previous");
+  const previous = previousEl && data.previous ? shape(data.previous) : null;
+  // The range before as pale columns behind the bars (not on a line chart).
+  const ghost = previousEl?.style === "bars" && chart !== "line";
+  const goalEl = find("goalLine");
+  const goal = goalEl?.value ?? null;
+  const goalName = goalEl?.label?.trim() || t("goal");
+  // Its color comes from CSS (`[data-goal]`), red by default.
+  const goalColor = "var(--goal)";
+  const averageEl = find("average");
   const sums = data.dates.map((_, i) =>
     series.reduce((a, s) => a + s.values[i], 0),
   );
@@ -349,14 +370,16 @@ function Flow({
         ? 50
         : (i / (n - 1)) * 100
       : ((i + 0.5) / n) * 100;
-  const overlay = (previous || average !== null || goal !== null) && (
+  const overlay = ((previous && !ghost) ||
+    average !== null ||
+    goal !== null) && (
     <svg
       className={`${styles.overlay} ${chart === "line" ? "" : styles.overlayCols}`}
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
       aria-hidden="true"
     >
-      {previous && (
+      {previous && !ghost && (
         <polyline
           points={previous.map((v, i) => `${xOf(i)},${yOf(v)}`).join(" ")}
           fill="none"
@@ -385,7 +408,7 @@ function Flow({
           x2={100}
           y1={yOf(goal)}
           y2={yOf(goal)}
-          stroke="var(--red)"
+          stroke={goalColor}
           strokeWidth={1.5}
           strokeDasharray="5 3"
           vectorEffect="non-scaling-stroke"
@@ -394,13 +417,52 @@ function Flow({
     </svg>
   );
 
+  const legend = (id: string) => (
+    <div
+      key={id}
+      className={`${styles.legend} ${styles.noShort}`}
+      {...marked(activeElement, id)}
+    >
+      {data.series.map((s) => (
+        <span key={s.key}>
+          <i style={{ background: s.color }} />
+          {nameOf(s)} <b>{fmt(s.total)}</b>
+        </span>
+      ))}
+      {pair && (
+        <span>
+          {t("net")}{" "}
+          <b className={net > 0 ? styles.bad : net < 0 ? styles.good : ""}>
+            {net > 0 ? `+${fmt(net)}` : fmt(net)}
+          </b>
+        </span>
+      )}
+      {previous && <span>– – {t("previousRange")}</span>}
+      {average !== null && !kinds.has("sumRow") && (
+        <span>
+          ⋯ {t("averageShort")} <b>{fmt(Math.round(average * 10) / 10)}</b>
+        </span>
+      )}
+      {goal !== null && (
+        <span className={styles.goalKey} data-goal={goalEl?.color}>
+          – – {goalName} <b>{fmt(goal)}</b>
+        </span>
+      )}
+    </div>
+  );
+  const legendEl = find("legend");
+
   return (
     <>
       {/* Legend and total row above the chart, in their order. */}
       {elements.map((e) =>
         e.kind === "sumRow" ? (
-          <div key={e.id} className={styles.sumRow}>
-            {t("total")} <b>{fmt(total)}</b>
+          <div
+            key={e.id}
+            className={styles.sumRow}
+            {...marked(activeElement, e.id)}
+          >
+            {e.label?.trim() || t("total")} <b>{fmt(total)}</b>
             {average !== null && (
               <span className={styles.noS}>
                 {" · "}
@@ -408,43 +470,14 @@ function Flow({
               </span>
             )}
           </div>
-        ) : e.kind === "legend" ? (
-          <div key={e.id} className={`${styles.legend} ${styles.noShort}`}>
-            {data.series.map((s) => (
-              <span key={s.key}>
-                <i style={{ background: s.color }} />
-                {nameOf(s)} <b>{fmt(s.total)}</b>
-              </span>
-            ))}
-            {pair && (
-              <span>
-                {t("net")}{" "}
-                <b
-                  className={net > 0 ? styles.bad : net < 0 ? styles.good : ""}
-                >
-                  {net > 0 ? `+${fmt(net)}` : fmt(net)}
-                </b>
-              </span>
-            )}
-            {previous && <span>– – {t("previousRange")}</span>}
-            {average !== null && !kinds.has("sumRow") && (
-              <span>
-                ⋯ {t("averageShort")}{" "}
-                <b>{fmt(Math.round(average * 10) / 10)}</b>
-              </span>
-            )}
-            {goal !== null && (
-              <span className={styles.goalKey}>
-                – – {t("goal")} <b>{fmt(goal)}</b>
-              </span>
-            )}
-          </div>
+        ) : e.kind === "legend" && e.style !== "bottom" ? (
+          legend(e.id)
         ) : null,
       )}
       {all ? (
         <Empty />
       ) : (
-        <div className={styles.plot}>
+        <div className={styles.plot} data-goal={goalEl?.color}>
           {chart === "line" ? (
             <svg
               className={styles.chart}
@@ -482,6 +515,12 @@ function Flow({
                     className={styles.col}
                     title={`${bucketLabel(date)} · ${fmt(sums[i])}`}
                   >
+                    {ghost && previous && (
+                      <span
+                        className={styles.ghost}
+                        style={{ height: `${(previous[i] / max) * 100}%` }}
+                      />
+                    )}
                     <div
                       className={styles.stackCol}
                       style={{ height: `${(sums[i] / max) * 100}%` }}
@@ -503,6 +542,12 @@ function Flow({
                   </div>
                 ) : (
                   <div key={date} className={styles.col}>
+                    {ghost && previous && (
+                      <span
+                        className={styles.ghost}
+                        style={{ height: `${(previous[i] / max) * 100}%` }}
+                      />
+                    )}
                     {series.map((s) => (
                       <Bar
                         key={s.key}
@@ -520,9 +565,31 @@ function Flow({
             </div>
           )}
           {overlay}
+          {goal !== null && goalEl?.label?.trim() && (
+            <span
+              className={`${styles.lineLabel} ${chart === "line" ? "" : styles.lineLabelCols}`}
+              style={{ "--y": yOf(goal), "--c": goalColor } as CSSProperties}
+            >
+              {goalName} {fmt(goal)}
+            </span>
+          )}
+          {average !== null && averageEl?.flag && (
+            <span
+              className={`${styles.lineLabel} ${chart === "line" ? "" : styles.lineLabelCols}`}
+              style={
+                {
+                  "--y": yOf(average),
+                  "--c": "var(--on-surface)",
+                } as CSSProperties
+              }
+            >
+              {t("averageShort")} {fmt(Math.round(average * 10) / 10)}
+            </span>
+          )}
         </div>
       )}
       {labels.axes && <TimeAxis keys={data.dates} label={bucketLabel} />}
+      {legendEl?.style === "bottom" && legend(legendEl.id)}
     </>
   );
 }
@@ -862,19 +929,36 @@ function Matrix({
   widget,
   data,
   labels,
+  activeElement,
 }: BodyProps & { data: Extract<Data, { type: "matrix" }> }) {
   const name = useSliceName();
   const t = useTranslations("widgets");
   const fmt = useMeasureFormat(widget.config.measure);
   if (data.rows.length === 0) return <Empty />;
-  const kinds = new Set(elementsOf(widget).map((e) => e.kind));
-  const heat = kinds.has("heatmap");
-  const percent = kinds.has("rowPercent");
+  const elements = shownElements(widget);
+  const find = (kind: (typeof elements)[number]["kind"]) =>
+    elements.find((e) => e.kind === kind);
+  const heatEl = find("heatmap");
+  const percent = !!find("rowPercent");
+  const rowTotalsEl = find("rowTotals");
+  const colTotalsEl = find("colTotals");
   const rowSums = data.cells.map((row) => row.reduce((a, v) => a + v, 0));
   const colSums = data.cols.map((_, j) =>
     data.cells.reduce((a, row) => a + row[j], 0),
   );
-  const extraCol = kinds.has("rowTotals");
+  const extraCol = !!rowTotalsEl;
+  const rowMax = data.cells.map((row) => Math.max(0, ...row));
+  /** How dark a cell is: against the whole matrix, or its own row. */
+  const shade = (i: number, j: number) =>
+    !heatEl
+      ? 0
+      : heatEl.style === "row"
+        ? rowMax[i]
+          ? data.cells[i][j] / rowMax[i]
+          : 0
+        : data.max
+          ? data.cells[i][j] / data.max
+          : 0;
   const cell = (v: number, rowSum: number) =>
     !labels.values
       ? ""
@@ -894,7 +978,14 @@ function Matrix({
           {labels.axes ? name(col, widget.config.groupBy2) : ""}
         </span>
       ))}
-      {extraCol && <span className={styles.mHead}>Σ</span>}
+      {rowTotalsEl && (
+        <span
+          className={styles.mHead}
+          {...marked(activeElement, rowTotalsEl.id)}
+        >
+          {rowTotalsEl.label?.trim() || "Σ"}
+        </span>
+      )}
       {data.rows.map((row, i) => [
         <span key={`${row.key}-h`} className={styles.mRow} title={name(row)}>
           {labels.axes ? name(row, widget.config.groupBy) : ""}
@@ -904,15 +995,7 @@ function Matrix({
             key={`${row.key}-${col.key}`}
             style={
               {
-                "--v": !heat
-                  ? 0
-                  : percent
-                    ? rowSums[i]
-                      ? data.cells[i][j] / rowSums[i]
-                      : 0
-                    : data.max
-                      ? data.cells[i][j] / data.max
-                      : 0,
+                "--v": shade(i, j),
               } as CSSProperties
             }
             title={`${name(row)} × ${name(col)}: ${data.cells[i][j]}`}
@@ -928,9 +1011,13 @@ function Matrix({
             ]
           : []),
       ])}
-      {kinds.has("colTotals") && [
-        <span key="sum-h" className={styles.mRow}>
-          {t("total")}
+      {colTotalsEl && [
+        <span
+          key="sum-h"
+          className={styles.mRow}
+          {...marked(activeElement, colTotalsEl.id)}
+        >
+          {colTotalsEl.label?.trim() || t("total")}
         </span>,
         ...colSums.map((sum, j) => (
           <span key={`sum-${data.cols[j].key}`} className={styles.mSum}>

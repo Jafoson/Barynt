@@ -273,31 +273,81 @@ export const ELEMENT_KINDS = [
 ] as const;
 export type ElementKind = (typeof ELEMENT_KINDS)[number];
 
+/** How an element draws — the choices `ELEMENT_OPTIONS` offers per kind. */
+export const ELEMENT_STYLES = [
+  "abs",
+  "pct",
+  "line",
+  "area",
+  "bars",
+  "ring",
+  "bar",
+  "number",
+  "percent",
+  "both",
+  "dashed",
+  "top",
+  "bottom",
+  "all",
+  "row",
+  "date",
+  "relative",
+  "only",
+  "beside",
+] as const;
+export type ElementStyle = (typeof ELEMENT_STYLES)[number];
+
+export const ELEMENT_SORTS = ["priority", "updated", "dueDate"] as const;
+export type ElementSort = (typeof ELEMENT_SORTS)[number];
+
+/** "Ab Größe sichtbar": the smallest size an element shows in. */
+export const ELEMENT_MIN_SIZES = ["S", "M", "L", "XL"] as const;
+export type ElementMinSize = (typeof ELEMENT_MIN_SIZES)[number];
+
 export interface WidgetElement {
   id: string;
   kind: ElementKind;
-  /** goal, goalLine, topN, miniList, rows: a number. */
+  /** goal, goalLine, topN, miniList, rows: a number; forecast: weeks. */
   value?: number;
   /** deadline: a day, `YYYY-MM-DD`. */
   date?: string;
   /** second: the extra condition the second number counts. */
   filter?: IssueFilter;
+  /** Its own words — "dringend", "Release 2.4", the link's text. */
+  label?: string;
+  style?: ElementStyle;
+  /** trend: colors turned round; topN: "Other" left out; average: labeled. */
+  flag?: boolean;
+  /** miniList: which issues come first. */
+  sort?: ElementSort;
+  color?: WidgetAccent;
+  minSize?: ElementMinSize;
 }
+
+/** One setting of an element, as the editor shows it. */
+export type ElementOption =
+  | { key: "value"; min: number; max: number }
+  | { key: "date" }
+  | { key: "filter" }
+  | { key: "label" }
+  | { key: "style"; choices: readonly ElementStyle[] }
+  | { key: "flag" }
+  | { key: "sort" }
+  | { key: "color" }
+  | { key: "weeks" };
 
 interface ElementDef {
   kind: ElementKind;
   icon: string;
-  /** The value the element carries, and its starting value. */
-  input?: "number" | "date" | "filter";
+  /** The starting value of `value`. */
   initial?: number;
 }
 
-const el = (
-  kind: ElementKind,
-  icon: string,
-  input?: ElementDef["input"],
-  initial?: number,
-): ElementDef => ({ kind, icon, input, initial });
+const el = (kind: ElementKind, icon: string, initial?: number): ElementDef => ({
+  kind,
+  icon,
+  initial,
+});
 
 const CHART_LABELS = [
   el("legend", "lucide:list"),
@@ -310,28 +360,28 @@ export const ELEMENTS: Partial<Record<WidgetType, ElementDef[]>> = {
   kpi: [
     el("trend", "lucide:trending-up"),
     el("spark", "lucide:activity"),
-    el("goal", "lucide:target", "number", 20),
-    el("second", "lucide:split", "filter"),
-    el("miniList", "lucide:list", "number", 3),
+    el("goal", "lucide:target", 20),
+    el("second", "lucide:split"),
+    el("miniList", "lucide:list", 3),
     el("link", "lucide:arrow-right"),
   ],
   progress: [
     el("breakdown", "lucide:chart-bar-stacked"),
-    el("deadline", "lucide:calendar", "date"),
+    el("deadline", "lucide:calendar"),
     el("forecast", "lucide:telescope"),
-    el("second", "lucide:split", "filter"),
+    el("second", "lucide:split"),
   ],
   distribution: [
     el("legend", "lucide:list"),
     el("values", "lucide:hash"),
     el("total", "lucide:sigma"),
     el("percent", "lucide:percent"),
-    el("topN", "lucide:list-ordered", "number", 5),
+    el("topN", "lucide:list-ordered", 5),
   ],
   flow: [
     ...CHART_LABELS,
     el("average", "lucide:minus"),
-    el("goalLine", "lucide:target", "number", 10),
+    el("goalLine", "lucide:target", 10),
     el("cumulative", "lucide:trending-up"),
     el("previous", "lucide:history"),
     el("sumRow", "lucide:sigma"),
@@ -345,7 +395,7 @@ export const ELEMENTS: Partial<Record<WidgetType, ElementDef[]>> = {
     el("rowPercent", "lucide:percent"),
   ],
   issues: [
-    el("rows", "lucide:rows-3", "number", 8),
+    el("rows", "lucide:rows-3", 8),
     el("col_status", "lucide:circle-dot"),
     el("col_assignee", "lucide:user"),
     el("col_priority", "lucide:signal-high"),
@@ -360,6 +410,106 @@ export const ELEMENTS: Partial<Record<WidgetType, ElementDef[]>> = {
   age: CHART_LABELS.filter((e) => e.kind !== "legend"),
   workload: CHART_LABELS,
 };
+
+/**
+ * What each element can set, per widget kind (the same element may set
+ * different things in different kinds — a link's text, the second number).
+ * Every element also has "Ab Größe sichtbar" (`minSize`).
+ */
+const SECOND_OPTIONS: ElementOption[] = [
+  { key: "label" },
+  { key: "filter" },
+  { key: "style", choices: ["number", "percent", "both"] },
+];
+const ELEMENT_OPTIONS: Partial<
+  Record<WidgetType, Partial<Record<ElementKind, ElementOption[]>>>
+> = {
+  kpi: {
+    trend: [{ key: "style", choices: ["abs", "pct"] }, { key: "flag" }],
+    spark: [{ key: "style", choices: ["line", "area", "bars"] }],
+    goal: [
+      { key: "value", min: 1, max: 1_000_000 },
+      { key: "style", choices: ["ring", "bar"] },
+    ],
+    second: SECOND_OPTIONS,
+    miniList: [{ key: "value", min: 1, max: 10 }, { key: "sort" }],
+    link: [{ key: "label" }],
+  },
+  progress: {
+    deadline: [{ key: "date" }, { key: "label" }],
+    forecast: [{ key: "weeks" }],
+    second: SECOND_OPTIONS,
+  },
+  distribution: {
+    total: [{ key: "label" }],
+    percent: [{ key: "style", choices: ["only", "beside"] }],
+    topN: [{ key: "value", min: 1, max: 20 }, { key: "flag" }],
+  },
+  flow: {
+    legend: [{ key: "style", choices: ["top", "bottom"] }],
+    average: [{ key: "flag" }],
+    goalLine: [
+      { key: "value", min: 0, max: 1_000_000 },
+      { key: "label" },
+      { key: "color" },
+    ],
+    previous: [{ key: "style", choices: ["dashed", "bars"] }],
+    sumRow: [{ key: "label" }],
+  },
+  matrix: {
+    heatmap: [{ key: "style", choices: ["all", "row"] }],
+    rowTotals: [{ key: "label" }],
+    colTotals: [{ key: "label" }],
+  },
+  issues: {
+    rows: [{ key: "value", min: 1, max: 30 }],
+    col_dueDate: [{ key: "style", choices: ["date", "relative"] }],
+    link: [{ key: "label" }],
+  },
+};
+
+/** The settings of an element in a kind — empty when it has none. */
+export function elementOptions(
+  type: WidgetType,
+  kind: ElementKind,
+): ElementOption[] {
+  return ELEMENT_OPTIONS[type]?.[kind] ?? [];
+}
+
+const MIN_SIZE_RANK: Record<WidgetSize, number> = {
+  S: 0,
+  M: 1,
+  W: 1,
+  L: 2,
+  T: 3,
+  XL: 3,
+};
+const MIN_SIZE_NEED: Record<ElementMinSize, number> = {
+  S: 0,
+  M: 1,
+  L: 2,
+  XL: 3,
+};
+
+/** Whether an element shows in the widget's size ("Ab Größe sichtbar"). */
+export function fitsSize(element: WidgetElement, size: WidgetSize): boolean {
+  return (
+    !element.minSize || MIN_SIZE_RANK[size] >= MIN_SIZE_NEED[element.minSize]
+  );
+}
+
+/** The elements a widget draws — its own, minus those too big for it. */
+export function shownElements(widget: Widget): WidgetElement[] {
+  return elementsOf(widget).filter((e) => fitsSize(e, widget.size));
+}
+
+/** The element of a kind, if the widget draws it in its size. */
+export function shownElement(
+  widget: Widget,
+  kind: ElementKind,
+): WidgetElement | undefined {
+  return shownElements(widget).find((e) => e.kind === kind);
+}
 
 /**
  * Elements that are blocks of their own and sit in the widget in the order
@@ -916,6 +1066,12 @@ const configSchema = z
               .regex(/^\d{4}-\d{2}-\d{2}$/)
               .optional(),
             filter: issueFilterSchema.optional(),
+            label: z.string().trim().max(40).optional(),
+            style: z.enum(ELEMENT_STYLES).optional(),
+            flag: z.boolean().optional(),
+            sort: z.enum(ELEMENT_SORTS).optional(),
+            color: z.enum(ACCENTS).optional(),
+            minSize: z.enum(ELEMENT_MIN_SIZES).optional(),
           })
           .strict(),
       )
@@ -1001,7 +1157,7 @@ export function normalizeWidget(widget: Widget): Widget {
 /** The labels a chart shows — stored or the default. */
 export function labelsOf(widget: Widget): ChartLabels {
   // Legend, axes and values are elements now — read through them.
-  const kinds = new Set(elementsOf(widget).map((e) => e.kind));
+  const kinds = new Set(shownElements(widget).map((e) => e.kind));
   return {
     legend: kinds.has("legend"),
     axes: kinds.has("axes"),

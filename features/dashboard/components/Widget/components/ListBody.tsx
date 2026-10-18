@@ -10,7 +10,7 @@ import type {
   DashboardIssue,
   WidgetData,
 } from "@/features/dashboard/types";
-import { elementsOf } from "@/features/dashboard/widgets";
+import { shownElements } from "@/features/dashboard/widgets";
 import { PriorityIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import { Link } from "@/i18n/navigation";
 import { useTimeAgo } from "@/lib/utils/useTimeAgo";
@@ -50,6 +50,7 @@ function Issues({
   widget,
   data,
   issueHref,
+  activeElement,
 }: BodyProps & { data: Extract<Data, { type: "attention" | "issues" }> }) {
   const t = useTranslations("widgets");
   const timeAgo = useTimeAgo();
@@ -80,12 +81,26 @@ function Issues({
     });
   // The list's columns are its elements, in their order (BARY-170); the
   // attention list keeps its reason pill.
-  const elements = attention ? [] : elementsOf(widget);
+  const elements = attention ? [] : shownElements(widget);
   const rows = elements.find((e) => e.kind === "rows")?.value;
   const columns = elements.flatMap((e) =>
     e.kind.startsWith("col_") ? [e.kind] : [],
   );
   const href = data.type === "issues" ? data.href : null;
+  const linkEl = elements.find((e) => e.kind === "link");
+  const relativeDue =
+    elements.find((e) => e.kind === "col_dueDate")?.style === "relative";
+  /** "heute", "in 3 T.", "vor 2 T." */
+  const dueFromNow = (ms: number) => {
+    const today = new Date();
+    const start = Date.UTC(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const days = Math.round((ms - start) / 86_400_000);
+    return days >= 0 ? t("dueIn", { days }) : t("dueAgo", { days: -days });
+  };
   const column = (kind: string, issue: DashboardIssue) => {
     switch (kind) {
       case "col_status":
@@ -105,7 +120,11 @@ function Issues({
       case "col_dueDate":
         return (
           <span key={kind} className={styles.pill}>
-            {issue.dueDate ? day(issue.dueDate) : "—"}
+            {issue.dueDate
+              ? relativeDue
+                ? dueFromNow(issue.dueDate)
+                : day(issue.dueDate)
+              : "—"}
           </span>
         );
       case "col_updated":
@@ -186,8 +205,12 @@ function Issues({
         ))}
       </div>
       {href && (
-        <Link href={href} className={`${styles.elLink} ${styles.noS}`}>
-          {t("openAsList")}
+        <Link
+          href={href}
+          className={`${styles.elLink} ${styles.noS}`}
+          data-active={(linkEl && activeElement === linkEl.id) || undefined}
+        >
+          {linkEl?.label?.trim() || t("openAsList")}
           <Icon icon="lucide:arrow-right" width={13} />
         </Link>
       )}

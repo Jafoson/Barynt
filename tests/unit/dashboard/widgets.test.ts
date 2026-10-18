@@ -3,8 +3,10 @@ import {
   defaultWidgets,
   ELEMENTS,
   elementOf,
+  elementOptions,
   elementsOf,
   fitSize,
+  fitsSize,
   labelsOf,
   layoutKey,
   moveWidgetTo,
@@ -14,6 +16,7 @@ import {
   parseWidgets,
   pickShortcuts,
   SIZE_SPAN,
+  shownElements,
   WIDGET_SIZES,
   WIDGET_TYPES,
   WIDGETS,
@@ -282,5 +285,62 @@ describe("Elements (BARY-170)", () => {
       const kinds = (defs ?? []).map((d) => d.kind);
       expect(new Set(kinds).size).toBe(kinds.length);
     }
+  });
+});
+
+describe("Element settings (BARY-170)", () => {
+  it("stores an element's own settings", () => {
+    const widget: Widget = {
+      id: "k",
+      type: "kpi",
+      size: "L",
+      config: {
+        elements: [
+          { id: "t", kind: "trend", style: "pct", flag: true },
+          { id: "m", kind: "miniList", value: 5, sort: "dueDate" },
+          { id: "s", kind: "second", label: "dringend", minSize: "L" },
+        ],
+      },
+    };
+    expect(parseWidgets([widget])).toEqual([widget]);
+  });
+
+  it("rejects an unknown style or a too long label", () => {
+    const kpi = (element: object) => ({
+      id: "k",
+      type: "kpi",
+      size: "S",
+      config: { elements: [{ id: "x", kind: "trend", ...element }] },
+    });
+    expect(parseWidgets([kpi({ style: "wavy" })])).toBeNull();
+    expect(parseWidgets([kpi({ label: "x".repeat(41) })])).toBeNull();
+  });
+
+  it("hides an element below its size", () => {
+    const second = { id: "s", kind: "second" as const, minSize: "L" as const };
+    expect(fitsSize(second, "M")).toBe(false);
+    expect(fitsSize(second, "W")).toBe(false);
+    expect(fitsSize(second, "L")).toBe(true);
+    expect(fitsSize(second, "XL")).toBe(true);
+    expect(fitsSize({ id: "t", kind: "trend" }, "S")).toBe(true);
+    const widget: Widget = {
+      id: "k",
+      type: "kpi",
+      size: "M",
+      config: { elements: [{ id: "t", kind: "trend" }, second] },
+    };
+    expect(shownElements(widget).map((e) => e.kind)).toEqual(["trend"]);
+  });
+
+  it("offers settings only where an element has some", () => {
+    expect(elementOptions("kpi", "trend").map((o) => o.key)).toEqual([
+      "style",
+      "flag",
+    ]);
+    expect(elementOptions("matrix", "axes")).toEqual([]);
+    // The same element, different settings per kind.
+    expect(elementOptions("issues", "link").map((o) => o.key)).toEqual([
+      "label",
+    ]);
   });
 });

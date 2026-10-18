@@ -66,6 +66,7 @@ function useLiveData(
   widget: WidgetModel | null,
 ): WidgetData | undefined {
   const [cache, setCache] = useState<Record<string, WidgetData>>({});
+  const [last, setLast] = useState<WidgetData | undefined>();
   const key = widget ? JSON.stringify([widget.type, widget.config]) : "";
   useEffect(() => {
     if (!widget || cache[key]) return;
@@ -73,7 +74,10 @@ function useLiveData(
     const timer = setTimeout(() => {
       void load([{ ...widget, id: "live" }]).then((data) => {
         const found = data?.live;
-        if (live && found) setCache((c) => ({ ...c, [key]: found }));
+        if (live && found) {
+          setCache((c) => ({ ...c, [key]: found }));
+          setLast(found);
+        }
       });
     }, 300);
     return () => {
@@ -81,7 +85,10 @@ function useLiveData(
       clearTimeout(timer);
     };
   }, [key, widget, cache, load]);
-  return widget ? cache[key] : undefined;
+  // While a change loads, the last numbers of the same kind stay up —
+  // typing a label shouldn't blank the preview.
+  if (!widget) return undefined;
+  return cache[key] ?? (last?.type === widget.type ? last : undefined);
 }
 
 const GROUPS = ["numbers", "charts", "lists", "team", "other"] as const;
@@ -133,6 +140,7 @@ export function WidgetGallery({
         ? custom.widget.type
         : draft.type;
   const customData = useLiveData(load, custom?.widget ?? null);
+  const [activeElement, setActiveElement] = useState<string | null>(null);
   const draftData = useLiveData(
     load,
     selection.mode === "build" ? draft : null,
@@ -402,6 +410,7 @@ export function WidgetGallery({
                 area={area}
                 sheet={sheet}
                 hideTitle
+                onActiveElement={setActiveElement}
               />
               <div className={styles.shareRow}>
                 <span>
@@ -433,6 +442,7 @@ export function WidgetGallery({
                         },
                       }}
                       data={draftData}
+                      activeElement={activeElement ?? undefined}
                       unit={unit}
                       issueBase={issueBase}
                       workspaceSlug={workspaceSlug}

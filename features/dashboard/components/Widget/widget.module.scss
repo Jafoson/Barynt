@@ -428,8 +428,75 @@
   height: calc(100% - 0.875rem);
 }
 
+/* A goal line's color — red unless the element picks one. */
+:is(.plot, .goalKey) {
+  --goal: var(--red);
+
+  &[data-goal="blue"] { --goal: var(--chart-1); }
+  &[data-goal="teal"] { --goal: var(--teal); }
+  &[data-goal="green"] { --goal: var(--green); }
+  &[data-goal="lime"] { --goal: var(--lime); }
+  &[data-goal="ochre"] { --goal: var(--chart-2); }
+  &[data-goal="amber"] { --goal: var(--amber); }
+  &[data-goal="orange"] { --goal: var(--orange); }
+  &[data-goal="pink"] { --goal: #e05aa8; }
+  &[data-goal="purple"] { --goal: var(--purple); }
+  &[data-goal="indigo"] { --goal: var(--indigo); }
+  &[data-goal="gray"] { --goal: #8a949a; }
+}
+
 .goalKey {
-  color: var(--red);
+  color: var(--goal);
+}
+
+/* A goal or average line's name, at its right end. */
+.lineLabel {
+  position: absolute;
+  right: 0;
+  bottom: calc((100 - var(--y)) * 1%);
+  padding: 0 0.25rem;
+  border-radius: 0.25rem;
+  background: var(--surface-container-low);
+  color: var(--c);
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1.3;
+  pointer-events: none;
+}
+
+/* Bars start below `.cols`' top padding — the label too. */
+.lineLabelCols {
+  bottom: calc((100 - var(--y)) * (100% - 0.875rem) / 100);
+}
+
+/* The range before, as a pale column behind the bars. */
+.ghost {
+  position: absolute;
+  inset: auto 0 0;
+  border-radius: 4px 4px 2px 2px;
+  background: color-mix(in srgb, var(--on-surface) 12%, transparent);
+  pointer-events: none;
+}
+
+/* The goal as a thin bar under the number. */
+.goalBar {
+  --p: 0;
+
+  display: block;
+  height: 0.375rem;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    to right,
+    var(--accent) calc(var(--p) * 100%),
+    var(--track) 0
+  );
+}
+
+/* The element being edited in the builder. */
+.widget [data-active] {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 0.375rem;
 }
 
 /* An issue row's columns, at its right end. */

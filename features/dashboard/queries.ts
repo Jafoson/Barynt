@@ -750,7 +750,15 @@ async function kpi(
       ? db.issue.findMany({
           where: counted,
           select: ISSUE_SELECT,
-          orderBy: [{ priority: "desc" }, { updated: "desc" }],
+          orderBy:
+            list.sort === "updated"
+              ? [{ updated: "desc" }]
+              : list.sort === "dueDate"
+                ? [
+                    { dueDate: { sort: "asc", nulls: "last" } },
+                    { priority: "desc" },
+                  ]
+                : [{ priority: "desc" }, { updated: "desc" }],
           take: Math.min(10, Math.max(1, list.value ?? 3)),
         })
       : Promise.resolve([]),
@@ -2215,27 +2223,30 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
       };
       const extra: [string, string][] = [["statusCategory.not", "canceled"]];
       const base = await progress(ctx, where, measure);
+      // Forecast: the pace of the last N weeks (its own setting) or of the
+      // range, applied to what's left.
+      const forecast = elementOf(widget, "forecast");
+      const paceTo = forecast?.value ? new Date() : ctx.window.to;
+      const paceFrom = forecast?.value
+        ? new Date(paceTo.getTime() - forecast.value * 7 * DAY)
+        : ctx.window.from;
       const [href, second, recent] = await Promise.all([
         boardHref(ctx, config.filter, extra),
         secondNumber(ctx, notCanceled, widget, extra, measure),
-        // Forecast: the pace of the range, applied to what's left.
-        elementOf(widget, "forecast")
+        forecast
           ? measureOf(
               {
                 AND: [
                   where,
                   { status: { in: ctx.completed } },
-                  { closedAt: { gte: ctx.window.from, lt: ctx.window.to } },
+                  { closedAt: { gte: paceFrom, lt: paceTo } },
                 ],
               },
               measure,
             )
           : Promise.resolve(0),
       ]);
-      const days = Math.max(
-        1,
-        (ctx.window.to.getTime() - ctx.window.from.getTime()) / DAY,
-      );
+      const days = Math.max(1, (paceTo.getTime() - paceFrom.getTime()) / DAY);
       const left =
         base.type === "progress" ? Math.max(0, base.total - base.done) : 0;
       return {
@@ -2243,9 +2254,7 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
         href,
         second,
         forecastDays:
-          elementOf(widget, "forecast") && recent > 0
-            ? Math.ceil(left / (recent / days))
-            : null,
+          forecast && recent > 0 ? Math.ceil(left / (recent / days)) : null,
       };
     }
     case "distribution":
