@@ -263,7 +263,7 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   kpi: {
     type: "kpi",
     icon: "lucide:hash",
-    sizes: ["S", "M"],
+    sizes: ["S", "M", "L", "T", "XL"],
     size: "S",
     accent: "blue",
     fill: true,
@@ -274,7 +274,7 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   progress: {
     type: "progress",
     icon: "lucide:target",
-    sizes: ["S", "M"],
+    sizes: ["S", "M", "L", "T", "XL"],
     size: "M",
     accent: "lime",
     fill: true,
@@ -285,7 +285,7 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   distribution: {
     type: "distribution",
     icon: "lucide:chart-pie",
-    sizes: ["S", "M", "L", "T"],
+    sizes: ["S", "M", "L", "T", "XL"],
     size: "L",
     accent: "indigo",
     chart: true,
@@ -296,7 +296,7 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   flow: {
     type: "flow",
     icon: "lucide:chart-column",
-    sizes: ["M", "L", "XL"],
+    sizes: ["S", "M", "L", "T", "XL"],
     size: "XL",
     accent: "blue",
     chart: true,
@@ -340,7 +340,7 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   matrix: {
     type: "matrix",
     icon: "lucide:grid-3x3",
-    sizes: ["L", "T", "XL"],
+    sizes: ["S", "M", "L", "T", "XL"],
     size: "L",
     accent: "indigo",
     issues: true,
@@ -360,7 +360,7 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   issues: {
     type: "issues",
     icon: "lucide:list",
-    sizes: ["M", "L", "T", "XL"],
+    sizes: ["S", "M", "L", "T", "XL"],
     size: "L",
     accent: "blue",
     issues: true,

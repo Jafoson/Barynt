@@ -93,8 +93,8 @@ describe("Reading stored widgets", () => {
   });
 
   it("brings a size the kind doesn't offer to the nearest one", () => {
-    expect(fitSize("kpi", "XL")).toBe("M");
-    expect(fitSize("matrix", "S")).toBe("L");
+    expect(fitSize("age", "XL")).toBe("L");
+    expect(fitSize("about", "S")).toBe("M");
     expect(fitSize("flow", "L")).toBe("L");
   });
 
