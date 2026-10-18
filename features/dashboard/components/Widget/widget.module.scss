@@ -492,6 +492,41 @@
   );
 }
 
+/* A custom widget's blocks, top to bottom. Charts and lists take the room
+   left; with numbers only, they sit at the bottom like a number widget. */
+.blocks {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  &:not(:has(> [data-grow])) {
+    justify-content: flex-end;
+  }
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  min-height: 0;
+
+  &[data-grow] {
+    flex: 1;
+  }
+
+  & + & {
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--rule);
+  }
+
+  /* Its own "bottom" is the block's, not the widget's. */
+  & > :is(.kpiStack, .progress) {
+    margin-top: 0;
+  }
+}
+
 /* The element being edited in the builder. */
 .widget [data-active] {
   outline: 2px solid var(--primary);

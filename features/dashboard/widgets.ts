@@ -51,6 +51,9 @@ export const WIDGET_TYPES = [
   "shortcuts",
   "activity",
   "note",
+  // A custom widget made of building blocks (BARY-170) — only the builder
+  // makes these; the gallery doesn't list the kind itself.
+  "blocks",
 ] as const;
 export type WidgetType = (typeof WIDGET_TYPES)[number];
 
@@ -222,6 +225,46 @@ export interface WidgetConfig {
   elements?: WidgetElement[];
   /** The shortcut tiles shown, in order; unset means every one offered. */
   shortcuts?: ShortcutKey[];
+  /** A custom widget's building blocks, top to bottom (`blocks` kind). */
+  blocks?: WidgetBlock[];
+}
+
+/** The kinds a custom widget is built from — the configurable ones. */
+export const BLOCK_TYPES = [
+  "kpi",
+  "progress",
+  "distribution",
+  "flow",
+  "matrix",
+  "issues",
+] as const satisfies readonly WidgetType[];
+export type BlockType = (typeof BLOCK_TYPES)[number];
+
+/** What a block sets itself — what it counts and how; the widget keeps
+ *  title, size, background and accent. Its filter adds to the widget's. */
+export type BlockConfig = Pick<
+  WidgetConfig,
+  | "filter"
+  | "metric"
+  | "groupBy"
+  | "groupBy2"
+  | "chart"
+  | "measure"
+  | "timeBy"
+  | "splitBy"
+  | "seriesChart"
+  | "openOnly"
+  | "sort"
+  | "labels"
+  | "elements"
+>;
+
+/** One building block of a custom widget, with its own extras
+ *  (`config.elements`). */
+export interface WidgetBlock {
+  id: string;
+  type: BlockType;
+  config: BlockConfig;
 }
 
 // ─── Elements ────────────────────────────────────────────────────────────────
@@ -681,6 +724,8 @@ export interface WidgetDef {
   group: "numbers" | "charts" | "lists" | "team" | "other";
   /** Only on these dashboards — a project has no projects or links. */
   kinds?: ("project" | "workspace" | "view")[];
+  /** Not listed in the gallery (made by the builder). */
+  hidden?: boolean;
   config: WidgetConfig;
 }
 
@@ -885,6 +930,17 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
     group: "other",
     config: { background: "tint" },
   },
+  blocks: {
+    type: "blocks",
+    icon: "lucide:blocks",
+    sizes: ["S", "M", "L", "T", "XL"],
+    size: "L",
+    accent: "blue",
+    issues: true,
+    group: "other",
+    hidden: true,
+    config: {},
+  },
   note: {
     type: "note",
     icon: "lucide:sticky-note",
@@ -898,15 +954,157 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   },
 };
 
-/** The kinds the builder ("New widget") offers — the configurable ones. */
+/** What the builder ("New widget") saves — widgets made of blocks. */
 export const BUILDER_TYPES = [
+  "blocks",
+] as const satisfies readonly WidgetType[];
+
+// ─── Blocks and templates (BARY-170) ─────────────────────────────────────────
+
+/** Both filters at once — the widget's and a block's own. */
+export function andFilters(
+  a: IssueFilter | undefined,
+  b: IssueFilter | undefined,
+): IssueFilter | undefined {
+  if (!a?.rules.length) return b?.rules.length ? b : undefined;
+  if (!b?.rules.length) return a;
+  return { op: "and", rules: [a, b] };
+}
+
+/** A block as a widget of its kind — for its data and its drawing. The
+ *  widget's size; the widget's filter and the block's together. */
+export function blockWidget(widget: Widget, block: WidgetBlock): Widget {
+  return {
+    id: block.id,
+    type: block.type,
+    size: widget.size,
+    config: {
+      ...block.config,
+      filter: andFilters(widget.config.filter, block.config.filter),
+      accent: widget.config.accent,
+    },
+  };
+}
+
+/** The blocks a widget draws: all of them from size L up; below, only the
+ *  first — there's no room for a second row. */
+export function shownBlocks(widget: Widget): WidgetBlock[] {
+  const blocks = widget.config.blocks ?? [];
+  return MIN_SIZE_RANK[widget.size] >= 2 ? blocks : blocks.slice(0, 1);
+}
+
+/** A fresh block of a kind, with its defaults. */
+export function newBlock(type: BlockType, id: string): WidgetBlock {
+  // A kind's defaults hold no title, background or accent — those are
+  // the widget's — so they carry over as they are.
+  return { id, type, config: { ...WIDGETS[type].config } as BlockConfig };
+}
+
+/** An older custom widget of one kind, as a widget of one block. */
+export function toBlocks(widget: Widget): Widget {
+  if (!(BLOCK_TYPES as readonly string[]).includes(widget.type)) return widget;
+  const { title, filter, background, accent, ...rest } = widget.config;
+  return {
+    id: widget.id,
+    type: "blocks",
+    size: widget.size,
+    config: {
+      title,
+      filter,
+      background: background === "fill" ? "tint" : background,
+      accent: accent ?? WIDGETS[widget.type].accent,
+      blocks: [
+        {
+          id: "b1",
+          type: widget.type as BlockType,
+          config: {
+            ...rest,
+            elements: rest.elements ?? elementsOf(widget),
+          },
+        },
+      ],
+    },
+  };
+}
+
+/** Templates — a starting set of blocks, freely changed afterwards. */
+export const TEMPLATES = [
   "kpi",
   "progress",
   "distribution",
   "flow",
   "matrix",
   "issues",
-] as const satisfies readonly WidgetType[];
+  "sprint",
+  "kpiList",
+  "empty",
+] as const;
+export type TemplateKey = (typeof TEMPLATES)[number];
+
+const ex = (
+  kind: ElementKind,
+  more: Partial<WidgetElement> = {},
+): WidgetElement => ({ id: kind, kind, ...more });
+
+/** The blocks a template starts with; `id` makes each block's id. */
+export function templateBlocks(
+  key: TemplateKey,
+  id: () => string,
+): WidgetBlock[] {
+  const block = (type: BlockType, config: BlockConfig = {}): WidgetBlock => {
+    const fresh = newBlock(type, id());
+    return { ...fresh, config: { ...fresh.config, ...config } };
+  };
+  switch (key) {
+    case "empty":
+      return [];
+    case "sprint":
+      return [
+        block("progress", { elements: [ex("breakdown"), ex("deadline")] }),
+        block("kpi", { metric: "closed", elements: [ex("trend")] }),
+        block("issues", {
+          sort: "priority",
+          elements: [ex("rows", { value: 3 }), ex("col_assignee")],
+        }),
+      ];
+    case "kpiList":
+      return [
+        block("kpi", { metric: "overdue", elements: [ex("trend")] }),
+        block("issues", {
+          sort: "dueDate",
+          filter: {
+            op: "and",
+            rules: [{ field: "dueDate", is: "before", value: "today" }],
+          },
+          elements: [
+            ex("rows", { value: 4 }),
+            ex("col_dueDate", { style: "relative" }),
+          ],
+        }),
+      ];
+    default:
+      return [block(key)];
+  }
+}
+
+/** A fresh custom widget from a template. */
+export function templateWidget(
+  key: TemplateKey,
+  id: () => string,
+  keep: WidgetConfig = {},
+): Widget {
+  return {
+    id: "draft",
+    type: "blocks",
+    size: WIDGETS.blocks.size,
+    config: {
+      filter: keep.filter,
+      accent: keep.accent,
+      background: keep.background,
+      blocks: templateBlocks(key, id),
+    },
+  };
+}
 
 /** A saved custom widget (BARY-170), as the gallery lists it. */
 export interface CustomWidgetEntry {
@@ -1074,6 +1272,7 @@ export function offeredOn(
   kind: "project" | "workspace" | "view",
 ): boolean {
   const kinds = WIDGETS[type].kinds;
+  if (WIDGETS[type].hidden) return false;
   return (
     (!kinds || kinds.includes(kind)) && !(kind === "view" && type === "about")
   );
@@ -1085,50 +1284,84 @@ const labelsSchema = z
   .object({ legend: z.boolean(), axes: z.boolean(), values: z.boolean() })
   .strict();
 
-const configSchema = z
+const baseConfigShape = z.object({
+  title: z.string().trim().max(80).optional(),
+  filter: issueFilterSchema.optional(),
+  metric: z.enum(KPI_METRICS).optional(),
+  groupBy: z.enum(GROUP_FIELDS).optional(),
+  groupBy2: z.enum(GROUP_FIELDS).optional(),
+  chart: z.enum(DISTRIBUTION_CHARTS).optional(),
+  measure: z.enum(MEASURES).optional(),
+  timeBy: z.enum(TIME_BY).optional(),
+  splitBy: z.enum(GROUP_FIELDS).optional(),
+  seriesChart: z.enum(SERIES_CHARTS).optional(),
+  openOnly: z.boolean().optional(),
+  sort: z.enum(ISSUE_SORTS).optional(),
+  labels: labelsSchema.optional(),
+  background: z.enum(BACKGROUNDS).optional(),
+  accent: z.enum(ACCENTS).optional(),
+  text: z.string().max(2000).optional(),
+  shortcuts: z.array(z.enum(SHORTCUT_KEYS)).max(20).optional(),
+  // Notes used to carry their text here; it's private now
+  // (`DashboardNote`) and dropped on read (`normalizeWidget`).
+  pages: z.unknown().optional(),
+  elements: z
+    .array(
+      z
+        .object({
+          id: z.string().min(1).max(40),
+          kind: z.enum(ELEMENT_KINDS),
+          value: z.number().min(0).max(1_000_000).optional(),
+          date: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/)
+            .optional(),
+          filter: issueFilterSchema.optional(),
+          label: z.string().trim().max(40).optional(),
+          style: z.enum(ELEMENT_STYLES).optional(),
+          flag: z.boolean().optional(),
+          sort: z.enum(ELEMENT_SORTS).optional(),
+          color: z.enum(ACCENTS).optional(),
+          minSize: z.enum(ELEMENT_MIN_SIZES).optional(),
+        })
+        .strict(),
+    )
+    .max(20)
+    .optional(),
+});
+
+const blockSchema = z
   .object({
-    title: z.string().trim().max(80).optional(),
-    filter: issueFilterSchema.optional(),
-    metric: z.enum(KPI_METRICS).optional(),
-    groupBy: z.enum(GROUP_FIELDS).optional(),
-    groupBy2: z.enum(GROUP_FIELDS).optional(),
-    chart: z.enum(DISTRIBUTION_CHARTS).optional(),
-    measure: z.enum(MEASURES).optional(),
-    timeBy: z.enum(TIME_BY).optional(),
-    splitBy: z.enum(GROUP_FIELDS).optional(),
-    seriesChart: z.enum(SERIES_CHARTS).optional(),
-    openOnly: z.boolean().optional(),
-    sort: z.enum(ISSUE_SORTS).optional(),
-    labels: labelsSchema.optional(),
-    background: z.enum(BACKGROUNDS).optional(),
-    accent: z.enum(ACCENTS).optional(),
-    text: z.string().max(2000).optional(),
-    shortcuts: z.array(z.enum(SHORTCUT_KEYS)).max(20).optional(),
-    // Notes used to carry their text here; it's private now
-    // (`DashboardNote`) and dropped on read (`normalizeWidget`).
-    pages: z.unknown().optional(),
-    elements: z
-      .array(
-        z
-          .object({
-            id: z.string().min(1).max(40),
-            kind: z.enum(ELEMENT_KINDS),
-            value: z.number().min(0).max(1_000_000).optional(),
-            date: z
-              .string()
-              .regex(/^\d{4}-\d{2}-\d{2}$/)
-              .optional(),
-            filter: issueFilterSchema.optional(),
-            label: z.string().trim().max(40).optional(),
-            style: z.enum(ELEMENT_STYLES).optional(),
-            flag: z.boolean().optional(),
-            sort: z.enum(ELEMENT_SORTS).optional(),
-            color: z.enum(ACCENTS).optional(),
-            minSize: z.enum(ELEMENT_MIN_SIZES).optional(),
-          })
-          .strict(),
-      )
-      .max(20)
+    id: z.string().min(1).max(40),
+    type: z.enum(BLOCK_TYPES),
+    config: baseConfigShape
+      .pick({
+        filter: true,
+        metric: true,
+        groupBy: true,
+        groupBy2: true,
+        chart: true,
+        measure: true,
+        timeBy: true,
+        splitBy: true,
+        seriesChart: true,
+        openOnly: true,
+        sort: true,
+        labels: true,
+        elements: true,
+      })
+      .strict(),
+  })
+  .strict();
+
+const configSchema = baseConfigShape
+  .extend({
+    blocks: z
+      .array(blockSchema)
+      .max(6)
+      .refine((list) => new Set(list.map((b) => b.id)).size === list.length, {
+        message: "Duplicate block id",
+      })
       .optional(),
   })
   .strict();

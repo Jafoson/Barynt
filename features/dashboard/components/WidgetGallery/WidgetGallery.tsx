@@ -17,10 +17,12 @@ import {
 } from "@/features/dashboard/actions";
 import type { WidgetData, WidgetDataMap } from "@/features/dashboard/types";
 import {
-  BUILDER_TYPES,
   type CustomWidgetEntry,
   newWidget,
   offeredOn,
+  TEMPLATES,
+  type TemplateKey,
+  templateWidget,
   WIDGET_TYPES,
   WIDGETS,
   type Widget as WidgetModel,
@@ -93,6 +95,9 @@ function useLiveData(
 
 const GROUPS = ["numbers", "charts", "lists", "team", "other"] as const;
 
+/** A fresh block id. */
+const newId = () => randomId().slice(0, 8);
+
 /**
  * "Add widget", like the widget gallery on iPhone and Mac: the kinds on
  * the left, the chosen one on the right in every size it offers — with this
@@ -125,7 +130,10 @@ export function WidgetGallery({
   const [customs, setCustoms] = useState(customWidgets);
   const [saving, startSaving] = useTransition();
   // The builder's draft.
-  const [draft, setDraft] = useState<WidgetModel>(newWidget("kpi", "draft"));
+  const [draft, setDraft] = useState<WidgetModel>(() =>
+    templateWidget("kpi", newId),
+  );
+  const [template, setTemplate] = useState<TemplateKey | null>("kpi");
   const [name, setName] = useState("");
   const [shared, setShared] = useState(false);
 
@@ -187,7 +195,9 @@ export function WidgetGallery({
   };
 
   const startBuilding = (editing: CustomWidgetEntry | null) => {
-    setDraft(editing ? editing.widget : newWidget("kpi", "draft"));
+    setDraft(editing ? editing.widget : templateWidget("kpi", newId));
+    setTemplate(editing ? null : "kpi");
+    setActiveElement(null);
     setName(editing?.name ?? "");
     setShared(editing?.shared ?? false);
     setSelection({ mode: "build", editing });
@@ -340,7 +350,15 @@ export function WidgetGallery({
                     WIDGETS[entry.widget.type].accent
                   }
                 >
-                  <Icon icon={WIDGETS[entry.widget.type].icon} width={14} />
+                  <Icon
+                    icon={
+                      WIDGETS[
+                        entry.widget.config.blocks?.[0]?.type ??
+                          entry.widget.type
+                      ].icon
+                    }
+                    width={14}
+                  />
                 </span>
                 <span className={styles.kindName}>{entry.name}</span>
                 {entry.shared && (
@@ -375,37 +393,31 @@ export function WidgetGallery({
                 maxLength={60}
                 onChange={(e) => setName(e.target.value)}
               />
-              <fieldset className={styles.kindPick}>
-                <legend>{t("customKind")}</legend>
-                {BUILDER_TYPES.map((x) => (
+              <fieldset className={styles.templates}>
+                <legend>{t("template")}</legend>
+                {TEMPLATES.map((key) => (
                   <button
-                    key={x}
+                    key={key}
                     type="button"
-                    aria-pressed={draft.type === x}
-                    onClick={() =>
-                      setDraft((d) =>
-                        d.type === x
-                          ? d
-                          : {
-                              ...newWidget(x, "draft"),
-                              config: {
-                                ...WIDGETS[x].config,
-                                filter: d.config.filter,
-                                accent: d.config.accent,
-                              },
-                            },
-                      )
-                    }
+                    aria-pressed={template === key}
+                    onClick={() => {
+                      setTemplate(key);
+                      setActiveElement(null);
+                      setDraft((d) => ({
+                        ...templateWidget(key, newId, d.config),
+                        size: d.size,
+                      }));
+                    }}
                   >
-                    <Icon icon={WIDGETS[x].icon} width={15} />
-                    {t(`type_${x}`)}
+                    {t(`template_${key}`)}
                   </button>
                 ))}
+                <span className={styles.templateHint}>{t("templateHint")}</span>
               </fieldset>
               <WidgetForm
                 widget={draft}
                 onChange={setDraft}
-                title={name || t(`type_${draft.type}`)}
+                title={name || t("type_blocks")}
                 lookups={lookups}
                 area={area}
                 sheet={sheet}

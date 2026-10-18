@@ -1,5 +1,5 @@
 import type { DashboardIssue, WidgetData } from "@/features/dashboard/types";
-import type { Widget } from "@/features/dashboard/widgets";
+import { blockWidget, type Widget } from "@/features/dashboard/widgets";
 import type { User } from "@/types";
 
 // Made-up numbers for the gallery's previews — every kind looks filled and
@@ -63,6 +63,16 @@ const KEYS = Array.from({ length: 12 }, (_, i) => {
 export function sampleData(widget: Widget, words: SampleWords): WidgetData {
   const by = widget.config.groupBy;
   switch (widget.type) {
+    case "blocks":
+      return {
+        type: "blocks",
+        blocks: Object.fromEntries(
+          (widget.config.blocks ?? []).map((block) => [
+            block.id,
+            sampleData(blockWidget(widget, block), words),
+          ]),
+        ),
+      };
     case "kpi":
       return {
         type: "kpi",

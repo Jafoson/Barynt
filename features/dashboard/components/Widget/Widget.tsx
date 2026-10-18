@@ -5,12 +5,14 @@ import { useFormatter, useTranslations } from "next-intl";
 import type { WidgetData } from "@/features/dashboard/types";
 import {
   accentOf,
+  blockWidget,
   labelsOf,
   WIDGETS,
   type Widget as WidgetModel,
 } from "@/features/dashboard/widgets";
 import { Link } from "@/i18n/navigation";
 import type { BucketUnit } from "@/lib/buckets";
+import { BlocksBody } from "./components/BlocksBody";
 import { ChartBody } from "./components/ChartBody";
 import { ListBody } from "./components/ListBody";
 import { NumberBody } from "./components/NumberBody";
@@ -33,7 +35,7 @@ interface Props {
 /** The title a widget shows: its own, else what it counts or groups by. */
 export function useWidgetTitle() {
   const t = useTranslations("widgets");
-  return (widget: WidgetModel) => {
+  const titleOf = (widget: WidgetModel): string => {
     const own = widget.config.title?.trim();
     if (own) return own;
     // What it adds up, when it isn't simply issues: "Offen · Story Points".
@@ -52,6 +54,11 @@ export function useWidgetTitle() {
       return t(`timeBy_${by}`) + split + measure;
     }
     if (widget.type === "progress") return t("type_progress") + measure;
+    // A custom widget without a name: its first block's.
+    if (widget.type === "blocks") {
+      const first = widget.config.blocks?.[0];
+      return first ? titleOf(blockWidget(widget, first)) : t("type_blocks");
+    }
     if (widget.type === "issues")
       return t(`issuesTitle_${widget.config.sort ?? "updated"}`);
     if (widget.type === "distribution")
@@ -63,6 +70,14 @@ export function useWidgetTitle() {
       });
     return t(`type_${widget.type}`);
   };
+  return titleOf;
+}
+
+/** The header's icon — a custom widget shows its first block's. */
+function iconOf(widget: WidgetModel): string {
+  const first =
+    widget.type === "blocks" ? widget.config.blocks?.[0]?.type : undefined;
+  return WIDGETS[first ?? widget.type].icon;
 }
 
 /**
@@ -81,7 +96,7 @@ export function Widget({
   const t = useTranslations("widgets");
   const format = useFormatter();
   const titleOf = useWidgetTitle();
-  const def = WIDGETS[widget.type];
+  const _def = WIDGETS[widget.type];
   const filters = widget.config.filter?.rules.length ?? 0;
 
   /** A bucket's start (`YYYY-MM-DD`, local) as a short label, pinned to UTC
@@ -115,7 +130,7 @@ export function Widget({
       aria-label={titleOf(widget)}
     >
       <header className={styles.head}>
-        <Icon icon={def.icon} width={14} />
+        <Icon icon={iconOf(widget)} width={14} />
         <span className={styles.title}>{titleOf(widget)}</span>
         {filters > 0 && (
           <span
@@ -132,6 +147,8 @@ export function Widget({
         <div className={styles.empty}>
           <Icon icon="lucide:loader-circle" width={18} />
         </div>
+      ) : data.type === "blocks" ? (
+        <BlocksBody {...body} data={data} />
       ) : data.type === "kpi" || data.type === "progress" ? (
         <NumberBody {...body} data={data} />
       ) : data.type === "members" ||

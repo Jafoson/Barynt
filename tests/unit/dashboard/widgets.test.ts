@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
+  andFilters,
+  BLOCK_TYPES,
+  blockWidget,
   defaultWidgets,
   ELEMENTS,
   elementOf,
@@ -14,10 +17,15 @@ import {
   newWidget,
   normalizeWidget,
   notePagesSchema,
+  offeredOn,
   parseWidgets,
   pickShortcuts,
   SIZE_SPAN,
+  shownBlocks,
   shownElements,
+  TEMPLATES,
+  templateBlocks,
+  toBlocks,
   WIDGET_SIZES,
   WIDGET_TYPES,
   WIDGETS,
@@ -354,5 +362,117 @@ describe("Element settings (BARY-170)", () => {
     expect(elementOptions("issues", "link").map((o) => o.key)).toEqual([
       "label",
     ]);
+  });
+});
+
+describe("Blocks and templates (BARY-170)", () => {
+  let n = 0;
+  const id = () => `b${++n}`;
+  const rule = (value: number) => ({
+    op: "and" as const,
+    rules: [{ field: "priority" as const, is: "gte" as const, value }],
+  });
+
+  it("every template validates as a custom widget", () => {
+    for (const key of TEMPLATES) {
+      const widget: Widget = {
+        id: "w",
+        type: "blocks",
+        size: "L",
+        config: { blocks: templateBlocks(key, id) },
+      };
+      expect(parseWidgets([widget])).not.toBeNull();
+    }
+    expect(templateBlocks("empty", id)).toEqual([]);
+    expect(templateBlocks("sprint", id).map((b) => b.type)).toEqual([
+      "progress",
+      "kpi",
+      "issues",
+    ]);
+  });
+
+  it("rejects a block of a kind that can't be one, or a widget's field", () => {
+    const blocks = (block: object) => [
+      { id: "w", type: "blocks", size: "L", config: { blocks: [block] } },
+    ];
+    expect(
+      parseWidgets(blocks({ id: "a", type: "members", config: {} })),
+    ).toBeNull();
+    expect(
+      parseWidgets(blocks({ id: "a", type: "kpi", config: { title: "x" } })),
+    ).toBeNull();
+  });
+
+  it("a block counts with the widget's filter and its own", () => {
+    const widget: Widget = {
+      id: "w",
+      type: "blocks",
+      size: "L",
+      config: { filter: rule(2), accent: "red" },
+    };
+    const block = {
+      id: "b",
+      type: "kpi" as const,
+      config: { metric: "open" as const, filter: rule(3) },
+    };
+    const as = blockWidget(widget, block);
+    expect(as.type).toBe("kpi");
+    expect(as.size).toBe("L");
+    expect(as.config.filter).toEqual({ op: "and", rules: [rule(2), rule(3)] });
+    expect(andFilters(undefined, rule(3))).toEqual(rule(3));
+    expect(andFilters(rule(2), { op: "and", rules: [] })).toEqual(rule(2));
+  });
+
+  it("draws only the first block below size L", () => {
+    const widget = (size: Widget["size"]): Widget => ({
+      id: "w",
+      type: "blocks",
+      size,
+      config: { blocks: templateBlocks("sprint", id) },
+    });
+    expect(shownBlocks(widget("M"))).toHaveLength(1);
+    expect(shownBlocks(widget("W"))).toHaveLength(1);
+    expect(shownBlocks(widget("L"))).toHaveLength(3);
+    expect(shownBlocks(widget("XL"))).toHaveLength(3);
+  });
+
+  it("turns an older one-kind custom widget into one block", () => {
+    const old: Widget = {
+      id: "c",
+      type: "kpi",
+      size: "M",
+      config: {
+        title: "Dringend",
+        metric: "urgent",
+        filter: rule(3),
+        background: "fill",
+        accent: "red",
+      },
+    };
+    const converted = toBlocks(old);
+    expect(converted.type).toBe("blocks");
+    expect(converted.config.title).toBe("Dringend");
+    expect(converted.config.filter).toEqual(rule(3));
+    // Blocks may hold charts — no `fill`.
+    expect(converted.config.background).toBe("tint");
+    expect(converted.config.blocks).toHaveLength(1);
+    const [block] = converted.config.blocks ?? [];
+    expect(block.type).toBe("kpi");
+    expect(block.config.metric).toBe("urgent");
+    // Its extras as they showed before.
+    expect(block.config.elements?.map((e) => e.kind)).toEqual([
+      "trend",
+      "spark",
+    ]);
+    expect(parseWidgets([converted])).not.toBeNull();
+    // Already blocks, or not a block kind: unchanged.
+    expect(toBlocks(converted)).toBe(converted);
+    const members: Widget = { id: "m", type: "members", size: "L", config: {} };
+    expect(toBlocks(members)).toBe(members);
+  });
+
+  it("the gallery doesn't list the blocks kind itself", () => {
+    expect(offeredOn("blocks", "project")).toBe(false);
+    expect(BLOCK_TYPES.every((type) => offeredOn(type, "project"))).toBe(true);
   });
 });

@@ -216,6 +216,11 @@ export type WidgetData =
     }
   | { type: "burnup"; points: BurnupPoint[] }
   | {
+      type: "blocks";
+      /** Each block's own data, by block id (BARY-170). */
+      blocks: Record<string, WidgetData>;
+    }
+  | {
       type: "cycle";
       avg: number | null;
       previous: number | null;

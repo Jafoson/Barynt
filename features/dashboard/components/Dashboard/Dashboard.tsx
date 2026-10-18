@@ -68,6 +68,8 @@ const DATA_KEYS = [
   "splitBy",
   // A second number, a mini list, a link — elements bring data of their own.
   "elements",
+  // A custom widget's blocks carry all of the above themselves.
+  "blocks",
 ] as const;
 
 const needsData = (a: WidgetModel, b: WidgetModel) =>

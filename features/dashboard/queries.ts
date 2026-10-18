@@ -23,6 +23,7 @@ import type {
   WorkloadRow,
 } from "@/features/dashboard/types";
 import {
+  blockWidget,
   type CustomWidgetEntry,
   defaultWidgets,
   elementOf,
@@ -32,6 +33,7 @@ import {
   type Measure,
   notePagesSchema,
   parseWidgets,
+  toBlocks,
   type Widget,
 } from "@/features/dashboard/widgets";
 import type { IssueFilter } from "@/features/issues/filter";
@@ -2206,6 +2208,20 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
   const { resolved } = ctx;
 
   switch (widget.type) {
+    case "blocks": {
+      // Every block as a widget of its kind — the widget's filter and the
+      // block's own together (`blockWidget`).
+      const entries = await Promise.all(
+        (config.blocks ?? []).map(
+          async (block) =>
+            [
+              block.id,
+              await widgetData(ctx, blockWidget(widget, block)),
+            ] as const,
+        ),
+      );
+      return { type: "blocks", blocks: Object.fromEntries(entries) };
+    }
     case "kpi":
       return kpi(
         ctx,
@@ -2415,9 +2431,11 @@ async function customWidgetsFor(
   return rows.flatMap((row) => {
     // Stored without an id (every placement gets its own) — the entry's
     // own id stands in while it's in the gallery.
-    const widget = parseWidgets([
+    // Older ones were a single kind — they read as one block now.
+    const parsed = parseWidgets([
       { ...(row.widget as Record<string, unknown>), id: row.id },
     ])?.[0];
+    const widget = parsed && toBlocks(parsed);
     return widget
       ? [
           {
