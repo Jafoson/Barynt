@@ -25,6 +25,7 @@ import type {
 import {
   type CustomWidgetEntry,
   defaultWidgets,
+  elementOf,
   type GroupField,
   type KpiMetric,
   layoutKey,
@@ -155,6 +156,8 @@ const ISSUE_SELECT = {
   updated: true,
   dueDate: true,
   projectId: true,
+  storyPoints: true,
+  labels: true,
   assignee: { select: USER_SELECT },
 } as const;
 
@@ -441,7 +444,66 @@ function mapIssue(ctx: Ctx, row: IssueRow): Promise<DashboardIssue> {
     assignee: row.assignee ? await mapUser(row.assignee) : null,
     updated: row.updated.getTime(),
     dueDate: row.dueDate?.getTime() ?? null,
+    storyPoints: row.storyPoints,
   }))();
+}
+
+/** The issues a number counts, as a `where` — for its "second number" and
+ *  its mini list (elements). */
+function metricWhere(ctx: Ctx, metric: KpiMetric): Where {
+  const open: Where = { status: { notIn: ctx.closed } };
+  const inWindow = { gte: ctx.window.from, lt: ctx.window.to };
+  switch (metric) {
+    case "open":
+      return open;
+    case "inProgress":
+      return { status: { in: ctx.started } };
+    case "inReview":
+      return { status: "in_review" };
+    case "created":
+      return { created: inWindow };
+    case "closed":
+    case "cycleTime":
+      return { closedAt: inWindow };
+    case "overdue":
+      return { ...open, dueDate: { lt: todayStart() } };
+    case "dueSoon":
+      return {
+        ...open,
+        dueDate: {
+          gte: todayStart(),
+          lt: new Date(todayStart().getTime() + 7 * DAY),
+        },
+      };
+    case "unassigned":
+      return { ...open, assigneeId: null };
+    case "urgent":
+      return { ...open, priority: { gte: 4 } };
+    case "total":
+      return {};
+  }
+}
+
+/** "Second number": the same set narrowed by an extra filter. */
+async function secondNumber(
+  ctx: Ctx,
+  base: Where,
+  widget: Widget,
+  extra: [string, string][],
+  measure: Measure,
+): Promise<{ value: number; href: string | null } | null> {
+  const second = elementOf(widget, "second");
+  if (!second?.filter?.rules.length) return null;
+  const narrow = await filterWhere(second.filter);
+  const own = widget.config.filter;
+  const both: IssueFilter = {
+    op: "and",
+    rules: [...(own?.rules ?? []), ...second.filter.rules],
+  };
+  return {
+    value: await measureOf({ AND: [base, narrow] }, measure),
+    href: await boardHref(ctx, both, extra),
+  };
 }
 
 /**
@@ -672,10 +734,33 @@ async function kpi(
   metric: KpiMetric,
   own: IssueFilter | undefined,
   measure: Measure,
+  widget: Widget,
 ): Promise<WidgetData> {
-  const href = await boardHref(ctx, own, metricParams(ctx, metric));
-  const data = await kpiValue(ctx, where, metric, measure);
-  return data.type === "kpi" ? { ...data, href } : data;
+  const params = metricParams(ctx, metric);
+  const [href, data] = await Promise.all([
+    boardHref(ctx, own, params),
+    kpiValue(ctx, where, metric, measure),
+  ]);
+  if (data.type !== "kpi") return data;
+  const counted: Where = { AND: [where, metricWhere(ctx, metric)] };
+  const list = elementOf(widget, "miniList");
+  const [second, rows] = await Promise.all([
+    secondNumber(ctx, counted, widget, params, measure),
+    list
+      ? db.issue.findMany({
+          where: counted,
+          select: ISSUE_SELECT,
+          orderBy: [{ priority: "desc" }, { updated: "desc" }],
+          take: Math.min(10, Math.max(1, list.value ?? 3)),
+        })
+      : Promise.resolve([]),
+  ]);
+  return {
+    ...data,
+    href,
+    second,
+    list: await Promise.all(rows.map((row) => mapIssue(ctx, row))),
+  };
 }
 
 async function kpiValue(
@@ -1096,6 +1181,7 @@ async function issues(
   where: Where,
   sort: Widget["config"]["sort"],
   openOnly: boolean,
+  widget: Widget,
 ): Promise<WidgetData> {
   const scoped = openOnly
     ? { AND: [where, { status: { notIn: ctx.closed } }] }
@@ -1113,14 +1199,45 @@ async function issues(
       where: scoped,
       select: ISSUE_SELECT,
       orderBy,
-      take: LIST_LIMIT,
+      take: Math.min(
+        30,
+        Math.max(1, elementOf(widget, "rows")?.value ?? LIST_LIMIT),
+      ),
     }),
     db.issue.count({ where: scoped }),
   ]);
+  // The labels column needs names and colors.
+  const labelIds = elementOf(widget, "col_labels")
+    ? [...new Set(rows.flatMap((r) => r.labels))]
+    : [];
+  const labels = labelIds.length
+    ? new Map(
+        (
+          await db.label.findMany({
+            where: { id: { in: labelIds } },
+            select: { id: true, name: true, color: true },
+          })
+        ).map((l) => [l.id, l]),
+      )
+    : null;
   return {
     type: "issues",
     total,
-    issues: await Promise.all(rows.map((row) => mapIssue(ctx, row))),
+    // "Open as list →" (element "link").
+    href: elementOf(widget, "link")
+      ? await boardHref(ctx, widget.config.filter, openOnly ? [OPEN_PARAM] : [])
+      : null,
+    issues: await Promise.all(
+      rows.map(async (row) => ({
+        ...(await mapIssue(ctx, row)),
+        ...(labels && {
+          labels: row.labels.flatMap((id) => {
+            const l = labels.get(id);
+            return l ? [{ name: l.name, color: l.color }] : [];
+          }),
+        }),
+      })),
+    ),
   };
 }
 
@@ -1190,14 +1307,27 @@ async function flow(
     ),
   });
 
+  // "Previous period": the main series a range earlier, bucket by bucket.
+  const previousOf = async (
+    column: "created" | "closedAt",
+  ): Promise<number[] | null> => {
+    if (!elementOf({ id: "", type: "flow", size: "XL", config }, "previous"))
+      return null;
+    const prev = ctx.previous;
+    const items = await datesIn(where, column, prev.from, prev.to, measure);
+    return bucketSums(items, prev);
+  };
+
   if (timeBy === "createdClosed") {
-    const [created, closed] = await Promise.all([
+    const [created, closed, previous] = await Promise.all([
       datesIn(where, "created", window.from, window.to, measure),
       datesIn(where, "closedAt", window.from, window.to, measure),
+      previousOf("created"),
     ]);
     return {
       type: "flow",
       dates: window.keys,
+      previous,
       timeBy,
       series: [
         await series(
@@ -1231,6 +1361,10 @@ async function flow(
     return {
       type: "flow",
       dates: window.keys,
+      previous:
+        timeBy === "due"
+          ? null
+          : await previousOf(timeBy === "created" ? "created" : "closedAt"),
       timeBy,
       series: [
         await series(
@@ -1286,7 +1420,13 @@ async function flow(
       hrefs: values.map(() => null),
     });
   }
-  return { type: "flow", dates: window.keys, timeBy, series: out };
+  return {
+    type: "flow",
+    dates: window.keys,
+    previous: null,
+    timeBy,
+    series: out,
+  };
 }
 
 async function burnup(ctx: Ctx, where: Where): Promise<WidgetData> {
@@ -2065,14 +2205,49 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
         config.metric ?? "open",
         config.filter,
         config.measure ?? "count",
+        widget,
       );
-    case "progress":
+    case "progress": {
+      const measure = config.measure ?? "count";
+      const canceled = ctx.closed.filter((id) => !ctx.completed.includes(id));
+      const notCanceled: Where = {
+        AND: [where, { status: { notIn: canceled } }],
+      };
+      const extra: [string, string][] = [["statusCategory.not", "canceled"]];
+      const base = await progress(ctx, where, measure);
+      const [href, second, recent] = await Promise.all([
+        boardHref(ctx, config.filter, extra),
+        secondNumber(ctx, notCanceled, widget, extra, measure),
+        // Forecast: the pace of the range, applied to what's left.
+        elementOf(widget, "forecast")
+          ? measureOf(
+              {
+                AND: [
+                  where,
+                  { status: { in: ctx.completed } },
+                  { closedAt: { gte: ctx.window.from, lt: ctx.window.to } },
+                ],
+              },
+              measure,
+            )
+          : Promise.resolve(0),
+      ]);
+      const days = Math.max(
+        1,
+        (ctx.window.to.getTime() - ctx.window.from.getTime()) / DAY,
+      );
+      const left =
+        base.type === "progress" ? Math.max(0, base.total - base.done) : 0;
       return {
-        ...(await progress(ctx, where, config.measure ?? "count")),
-        href: await boardHref(ctx, config.filter, [
-          ["statusCategory.not", "canceled"],
-        ]),
-      } as WidgetData;
+        ...(base as Extract<WidgetData, { type: "progress" }>),
+        href,
+        second,
+        forecastDays:
+          elementOf(widget, "forecast") && recent > 0
+            ? Math.ceil(left / (recent / days))
+            : null,
+      };
+    }
     case "distribution":
       return distribution(
         ctx,
@@ -2085,7 +2260,7 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
     case "attention":
       return attention(ctx, where);
     case "issues":
-      return issues(ctx, where, config.sort, config.openOnly ?? true);
+      return issues(ctx, where, config.sort, config.openOnly ?? true, widget);
     case "flow":
       return flow(ctx, where, config.filter, config);
     case "burnup":

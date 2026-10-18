@@ -217,8 +217,205 @@ export interface WidgetConfig {
   accent?: WidgetAccent;
   /** The note's text. */
   text?: string;
+  /** The widget's building blocks beyond its main part, in order
+   *  (BARY-170). Unset: the kind's defaults. */
+  elements?: WidgetElement[];
   /** The shortcut tiles shown, in order; unset means every one offered. */
   shortcuts?: ShortcutKey[];
+}
+
+// ─── Elements ────────────────────────────────────────────────────────────────
+//
+// Every kind has one fixed main part (the number, the ring, the bars …) and
+// a set of elements around it that can be added, ordered and removed —
+// some with a small value of their own (a goal, a second filter, a count).
+
+export const ELEMENT_KINDS = [
+  // Chart labels — what used to be the three switches.
+  "legend",
+  "axes",
+  "values",
+  // Number
+  "trend",
+  "spark",
+  "goal",
+  "second",
+  "miniList",
+  "link",
+  // Progress
+  "breakdown",
+  "deadline",
+  "forecast",
+  // Distribution
+  "total",
+  "percent",
+  "topN",
+  // Time series
+  "average",
+  "goalLine",
+  "cumulative",
+  "previous",
+  "sumRow",
+  // Matrix
+  "rowTotals",
+  "colTotals",
+  "heatmap",
+  "rowPercent",
+  // Issue list: its columns, and how many rows
+  "rows",
+  "col_status",
+  "col_assignee",
+  "col_priority",
+  "col_dueDate",
+  "col_updated",
+  "col_labels",
+  "col_storyPoints",
+] as const;
+export type ElementKind = (typeof ELEMENT_KINDS)[number];
+
+export interface WidgetElement {
+  id: string;
+  kind: ElementKind;
+  /** goal, goalLine, topN, miniList, rows: a number. */
+  value?: number;
+  /** deadline: a day, `YYYY-MM-DD`. */
+  date?: string;
+  /** second: the extra condition the second number counts. */
+  filter?: IssueFilter;
+}
+
+interface ElementDef {
+  kind: ElementKind;
+  icon: string;
+  /** The value the element carries, and its starting value. */
+  input?: "number" | "date" | "filter";
+  initial?: number;
+}
+
+const el = (
+  kind: ElementKind,
+  icon: string,
+  input?: ElementDef["input"],
+  initial?: number,
+): ElementDef => ({ kind, icon, input, initial });
+
+const CHART_LABELS = [
+  el("legend", "lucide:list"),
+  el("axes", "lucide:move-horizontal"),
+  el("values", "lucide:hash"),
+];
+
+/** What each kind can add, in the menu's order. */
+export const ELEMENTS: Partial<Record<WidgetType, ElementDef[]>> = {
+  kpi: [
+    el("trend", "lucide:trending-up"),
+    el("spark", "lucide:activity"),
+    el("goal", "lucide:target", "number", 20),
+    el("second", "lucide:split", "filter"),
+    el("miniList", "lucide:list", "number", 3),
+    el("link", "lucide:arrow-right"),
+  ],
+  progress: [
+    el("breakdown", "lucide:chart-bar-stacked"),
+    el("deadline", "lucide:calendar", "date"),
+    el("forecast", "lucide:telescope"),
+    el("second", "lucide:split", "filter"),
+  ],
+  distribution: [
+    el("legend", "lucide:list"),
+    el("values", "lucide:hash"),
+    el("total", "lucide:sigma"),
+    el("percent", "lucide:percent"),
+    el("topN", "lucide:list-ordered", "number", 5),
+  ],
+  flow: [
+    ...CHART_LABELS,
+    el("average", "lucide:minus"),
+    el("goalLine", "lucide:target", "number", 10),
+    el("cumulative", "lucide:trending-up"),
+    el("previous", "lucide:history"),
+    el("sumRow", "lucide:sigma"),
+  ],
+  matrix: [
+    el("axes", "lucide:move-horizontal"),
+    el("values", "lucide:hash"),
+    el("heatmap", "lucide:grid-3x3"),
+    el("rowTotals", "lucide:sigma"),
+    el("colTotals", "lucide:sigma"),
+    el("rowPercent", "lucide:percent"),
+  ],
+  issues: [
+    el("rows", "lucide:rows-3", "number", 8),
+    el("col_status", "lucide:circle-dot"),
+    el("col_assignee", "lucide:user"),
+    el("col_priority", "lucide:signal-high"),
+    el("col_dueDate", "lucide:calendar"),
+    el("col_updated", "lucide:clock"),
+    el("col_labels", "lucide:tag"),
+    el("col_storyPoints", "lucide:gauge"),
+    el("link", "lucide:arrow-right"),
+  ],
+  burnup: CHART_LABELS,
+  cycle: CHART_LABELS,
+  age: CHART_LABELS.filter((e) => e.kind !== "legend"),
+  workload: CHART_LABELS,
+};
+
+/** What a kind shows before anyone touches its elements — today's look. */
+const DEFAULT_ELEMENTS: Partial<Record<WidgetType, ElementKind[]>> = {
+  kpi: ["trend", "spark"],
+  progress: ["breakdown"],
+  distribution: ["legend", "values", "total"],
+  flow: ["legend", "axes", "values"],
+  matrix: ["axes", "values", "heatmap"],
+  issues: ["col_updated"],
+  burnup: ["legend", "axes", "values"],
+  cycle: ["legend", "axes", "values"],
+  age: ["axes", "values"],
+  workload: ["legend", "axes", "values"],
+};
+
+export function elementDef(type: WidgetType, kind: ElementKind) {
+  return ELEMENTS[type]?.find((d) => d.kind === kind);
+}
+
+/** A widget's elements — its own, or the defaults (honoring the older
+ *  label switches). Elements a kind doesn't offer drop out. */
+export function elementsOf(widget: Widget): WidgetElement[] {
+  const offered = ELEMENTS[widget.type] ?? [];
+  if (widget.config.elements) {
+    return widget.config.elements.filter((e) =>
+      offered.some((d) => d.kind === e.kind),
+    );
+  }
+  const labels = widget.config.labels;
+  // A list sorted by due date showed its due dates before there were columns.
+  const defaults =
+    widget.type === "issues" && widget.config.sort === "dueDate"
+      ? (["col_dueDate"] as ElementKind[])
+      : (DEFAULT_ELEMENTS[widget.type] ?? []);
+  return defaults
+    .filter(
+      (kind) =>
+        !labels ||
+        !(kind === "legend" || kind === "axes" || kind === "values") ||
+        labels[kind],
+    )
+    .map((kind) => ({
+      id: kind,
+      kind,
+      ...(elementDef(widget.type, kind)?.initial !== undefined && {
+        value: elementDef(widget.type, kind)?.initial,
+      }),
+    }));
+}
+
+/** The element of a kind, if the widget has it. */
+export function elementOf(
+  widget: Widget,
+  kind: ElementKind,
+): WidgetElement | undefined {
+  return elementsOf(widget).find((e) => e.kind === kind);
 }
 
 /** A page of a note — its text is private to whoever wrote it
@@ -682,6 +879,23 @@ const configSchema = z
     // Notes used to carry their text here; it's private now
     // (`DashboardNote`) and dropped on read (`normalizeWidget`).
     pages: z.unknown().optional(),
+    elements: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1).max(40),
+            kind: z.enum(ELEMENT_KINDS),
+            value: z.number().min(0).max(1_000_000).optional(),
+            date: z
+              .string()
+              .regex(/^\d{4}-\d{2}-\d{2}$/)
+              .optional(),
+            filter: issueFilterSchema.optional(),
+          })
+          .strict(),
+      )
+      .max(20)
+      .optional(),
   })
   .strict();
 
@@ -761,7 +975,13 @@ export function normalizeWidget(widget: Widget): Widget {
 
 /** The labels a chart shows — stored or the default. */
 export function labelsOf(widget: Widget): ChartLabels {
-  return widget.config.labels ?? DEFAULT_LABELS;
+  // Legend, axes and values are elements now — read through them.
+  const kinds = new Set(elementsOf(widget).map((e) => e.kind));
+  return {
+    legend: kinds.has("legend"),
+    axes: kinds.has("axes"),
+    values: kinds.has("values"),
+  };
 }
 
 /** The accent a widget is drawn in — its own or its kind's. */

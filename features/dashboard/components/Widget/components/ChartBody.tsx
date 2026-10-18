@@ -4,7 +4,11 @@ import { useFormatter, useTranslations } from "next-intl";
 import type { CSSProperties } from "react";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import type { Slice, WidgetData } from "@/features/dashboard/types";
-import type { Widget } from "@/features/dashboard/widgets";
+import {
+  elementOf,
+  elementsOf,
+  type Widget,
+} from "@/features/dashboard/widgets";
 import { Link, useRouter } from "@/i18n/navigation";
 import styles from "../widget.module.scss";
 import { type BodyProps, Spark, TimeAxis } from "./shared";
@@ -88,6 +92,32 @@ function Distribution({
   const fmt = useMeasureFormat(widget.config.measure);
   const field = widget.config.groupBy;
   if (data.total === 0) return <Empty />;
+  const kinds = new Set(elementsOf(widget).map((e) => e.kind));
+  const pct = (n: number) => `${Math.round((n / data.total) * 100)} %`;
+  // "Top N": the biggest N, the rest folded into "Weitere".
+  const topN = elementOf(widget, "topN")?.value;
+  const slices: Slice[] =
+    topN && data.slices.length > topN
+      ? [
+          ...data.slices.slice(0, topN),
+          {
+            key: "_other",
+            label: "",
+            color: "var(--outline)",
+            count: data.slices
+              .slice(topN)
+              .reduce((sum, slice) => sum + slice.count, 0),
+          },
+        ]
+      : data.slices;
+  /** The number beside a slice: its value, its share, or both. */
+  const shown = (count: number) =>
+    labels.values && kinds.has("percent")
+      ? `${fmt(count, false)} · ${pct(count)}`
+      : kinds.has("percent")
+        ? pct(count)
+        : fmt(count, false);
+  const showValue = labels.values || kinds.has("percent");
 
   if (widget.config.chart === "table") {
     return (
@@ -101,7 +131,7 @@ function Distribution({
             </tr>
           </thead>
           <tbody>
-            {data.slices.map((slice) => (
+            {slices.map((slice) => (
               <tr key={slice.key}>
                 <td>
                   <i style={{ background: slice.color }} />
@@ -112,20 +142,34 @@ function Distribution({
                   )}
                 </td>
                 <td>{fmt(slice.count, false)}</td>
-                <td>{Math.round((slice.count / data.total) * 100)} %</td>
+                <td>{pct(slice.count)}</td>
               </tr>
             ))}
           </tbody>
+          {kinds.has("total") && (
+            <tfoot>
+              <tr>
+                <td>{t("total")}</td>
+                <td>{fmt(data.total, false)}</td>
+                <td>100 %</td>
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
     );
   }
 
   if (widget.config.chart === "bars") {
-    const max = Math.max(1, ...data.slices.map((s) => s.count));
+    const max = Math.max(1, ...slices.map((s) => s.count));
     return (
       <div className={styles.bars}>
-        {data.slices.map((slice) => {
+        {kinds.has("total") && (
+          <div className={`${styles.sumRow} ${styles.noS}`}>
+            {t("total")} <b>{fmt(data.total)}</b>
+          </div>
+        )}
+        {slices.map((slice) => {
           const inner = (
             <>
               {labels.axes && (
@@ -139,7 +183,7 @@ function Distribution({
                   }}
                 />
               </span>
-              {labels.values && <span>{fmt(slice.count, false)}</span>}
+              {showValue && <span>{shown(slice.count)}</span>}
             </>
           );
           return slice.href ? (
@@ -169,7 +213,7 @@ function Distribution({
       <svg viewBox="0 0 42 42" role="img" aria-label={String(data.total)}>
         <g transform="rotate(-90 21 21)" fill="none" strokeWidth={6}>
           <circle cx={21} cy={21} r={15.915} stroke="var(--track)" />
-          {data.slices.map((slice) => {
+          {slices.map((slice) => {
             const part = (slice.count / data.total) * circumference;
             const el = (
               // biome-ignore lint/a11y/noStaticElementInteractions: a pointer shortcut — the legend beside it holds the same links for keyboard and screen readers
@@ -193,29 +237,27 @@ function Distribution({
             return el;
           })}
         </g>
-        <text
-          x={21}
-          y={23.6}
-          textAnchor="middle"
-          fill="currentColor"
-          fontSize={8}
-          fontWeight={750}
-        >
-          {fmt(data.total, false)}
-        </text>
+        {kinds.has("total") && (
+          <text
+            x={21}
+            y={23.6}
+            textAnchor="middle"
+            fill="currentColor"
+            fontSize={8}
+            fontWeight={750}
+          >
+            {fmt(data.total, false)}
+          </text>
+        )}
       </svg>
       {labels.legend && (
         <div className={`${styles.list} ${styles.noS}`}>
-          {data.slices.map((slice) => {
+          {slices.map((slice) => {
             const inner = (
               <>
                 <i style={{ background: slice.color }} />
                 <span className={styles.name}>{name(slice, field)}</span>
-                {labels.values ? (
-                  <span>{fmt(slice.count, false)}</span>
-                ) : (
-                  <span />
-                )}
+                {showValue ? <span>{shown(slice.count)}</span> : <span />}
               </>
             );
             return slice.href ? (
@@ -263,20 +305,107 @@ function Flow({
               { key: s.key, label: s.label, color: s.color, count: 0 },
               widget.config.splitBy,
             );
+  const kinds = new Set(elementsOf(widget).map((e) => e.kind));
   const n = data.dates.length;
+  // "Kumulativ": every bucket carries the ones before it.
+  const running = (values: number[]) => {
+    let sum = 0;
+    return values.map((v) => {
+      sum += v;
+      return sum;
+    });
+  };
+  const shape = (values: number[]) =>
+    kinds.has("cumulative") ? running(values) : values;
+  const series = data.series.map((s) => ({ ...s, values: shape(s.values) }));
+  const previous =
+    kinds.has("previous") && data.previous ? shape(data.previous) : null;
+  const goal = elementOf(widget, "goalLine")?.value ?? null;
   const sums = data.dates.map((_, i) =>
-    data.series.reduce((a, s) => a + s.values[i], 0),
+    series.reduce((a, s) => a + s.values[i], 0),
   );
+  // The average per bucket — of the stack's sums, or of the first series.
+  const averaged = chart === "stacked" ? sums : (series[0]?.values ?? []);
+  const average =
+    kinds.has("average") && n ? averaged.reduce((a, v) => a + v, 0) / n : null;
   const max = Math.max(
     1,
-    ...(chart === "stacked" ? sums : data.series.flatMap((s) => s.values)),
+    ...(chart === "stacked" ? sums : series.flatMap((s) => s.values)),
+    ...(previous ?? []),
+    goal ?? 0,
   );
   const showValues = labels.values && chart === "bars" && n <= 14;
   const all = data.series.every((s) => s.total === 0);
   const net = pair ? data.series[0].total - data.series[1].total : 0;
+  const total = data.series.reduce((a, s) => a + s.total, 0);
+  // Where a value sits, in the overlay's 0–100 box: bars fill the full
+  // height and sit in the middle of their column; the line leaves 6 % on top.
+  const yOf = (v: number) =>
+    chart === "line" ? 100 - (v / max) * 94 : 100 - (v / max) * 100;
+  const xOf = (i: number) =>
+    chart === "line"
+      ? n === 1
+        ? 50
+        : (i / (n - 1)) * 100
+      : ((i + 0.5) / n) * 100;
+  const overlay = (previous || average !== null || goal !== null) && (
+    <svg
+      className={`${styles.overlay} ${chart === "line" ? "" : styles.overlayCols}`}
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      {previous && (
+        <polyline
+          points={previous.map((v, i) => `${xOf(i)},${yOf(v)}`).join(" ")}
+          fill="none"
+          stroke="var(--muted)"
+          strokeWidth={1.5}
+          strokeDasharray="4 3"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+      {average !== null && (
+        <line
+          x1={0}
+          x2={100}
+          y1={yOf(average)}
+          y2={yOf(average)}
+          stroke="var(--on-surface)"
+          strokeWidth={1}
+          strokeDasharray="2 3"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+      {goal !== null && (
+        <line
+          x1={0}
+          x2={100}
+          y1={yOf(goal)}
+          y2={yOf(goal)}
+          stroke="var(--red)"
+          strokeWidth={1.5}
+          strokeDasharray="5 3"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+    </svg>
+  );
 
   return (
     <>
+      {kinds.has("sumRow") && (
+        <div className={styles.sumRow}>
+          {t("total")} <b>{fmt(total)}</b>
+          {average !== null && (
+            <span className={styles.noS}>
+              {" · "}
+              {t("averageShort")} <b>{fmt(Math.round(average * 10) / 10)}</b>
+            </span>
+          )}
+        </div>
+      )}
       {labels.legend && (
         <div className={`${styles.legend} ${styles.noShort}`}>
           {data.series.map((s) => (
@@ -293,82 +422,98 @@ function Flow({
               </b>
             </span>
           )}
+          {previous && <span>– – {t("previousRange")}</span>}
+          {average !== null && !kinds.has("sumRow") && (
+            <span>
+              ⋯ {t("averageShort")} <b>{fmt(Math.round(average * 10) / 10)}</b>
+            </span>
+          )}
+          {goal !== null && (
+            <span className={styles.goalKey}>
+              – – {t("goal")} <b>{fmt(goal)}</b>
+            </span>
+          )}
         </div>
       )}
       {all ? (
         <Empty />
-      ) : chart === "line" ? (
-        <svg
-          className={styles.chart}
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          role="img"
-          aria-label={data.series
-            .map((s) => `${nameOf(s)} ${s.total}`)
-            .join(", ")}
-        >
-          {data.series.map((s) => (
-            <polyline
-              key={s.key}
-              points={s.values
-                .map(
-                  (v, i) =>
-                    `${n === 1 ? 50 : (i / (n - 1)) * 100},${100 - (v / max) * 94}`,
-                )
-                .join(" ")}
-              fill="none"
-              stroke={s.color}
-              strokeWidth={2}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
-            />
-          ))}
-        </svg>
       ) : (
-        <div className={styles.cols}>
-          {data.dates.map((date, i) =>
-            chart === "stacked" ? (
-              <div
-                key={date}
-                className={styles.col}
-                title={`${bucketLabel(date)} · ${fmt(sums[i])}`}
-              >
-                <div
-                  className={styles.stackCol}
-                  style={{ height: `${(sums[i] / max) * 100}%` }}
-                >
-                  {data.series.map((s) =>
-                    s.values[i] ? (
+        <div className={styles.plot}>
+          {chart === "line" ? (
+            <svg
+              className={styles.chart}
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              role="img"
+              aria-label={data.series
+                .map((s) => `${nameOf(s)} ${s.total}`)
+                .join(", ")}
+            >
+              {series.map((s) => (
+                <polyline
+                  key={s.key}
+                  points={s.values
+                    .map(
+                      (v, i) =>
+                        `${n === 1 ? 50 : (i / (n - 1)) * 100},${100 - (v / max) * 94}`,
+                    )
+                    .join(" ")}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={2}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              ))}
+            </svg>
+          ) : (
+            <div className={styles.cols}>
+              {data.dates.map((date, i) =>
+                chart === "stacked" ? (
+                  <div
+                    key={date}
+                    className={styles.col}
+                    title={`${bucketLabel(date)} · ${fmt(sums[i])}`}
+                  >
+                    <div
+                      className={styles.stackCol}
+                      style={{ height: `${(sums[i] / max) * 100}%` }}
+                    >
+                      {series.map((s) =>
+                        s.values[i] ? (
+                          <Bar
+                            key={s.key}
+                            value={s.values[i]}
+                            max={sums[i] || 1}
+                            color={s.color}
+                            href={s.hrefs[i]}
+                            label={`${bucketLabel(date)} · ${nameOf(s)} ${fmt(s.values[i])}`}
+                            showValue={false}
+                          />
+                        ) : null,
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div key={date} className={styles.col}>
+                    {series.map((s) => (
                       <Bar
                         key={s.key}
                         value={s.values[i]}
-                        max={sums[i] || 1}
+                        max={max}
                         color={s.color}
                         href={s.hrefs[i]}
                         label={`${bucketLabel(date)} · ${nameOf(s)} ${fmt(s.values[i])}`}
-                        showValue={false}
+                        showValue={showValues}
                       />
-                    ) : null,
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div key={date} className={styles.col}>
-                {data.series.map((s) => (
-                  <Bar
-                    key={s.key}
-                    value={s.values[i]}
-                    max={max}
-                    color={s.color}
-                    href={s.hrefs[i]}
-                    label={`${bucketLabel(date)} · ${nameOf(s)} ${fmt(s.values[i])}`}
-                    showValue={showValues}
-                  />
-                ))}
-              </div>
-            ),
+                    ))}
+                  </div>
+                ),
+              )}
+            </div>
           )}
+          {overlay}
         </div>
       )}
       {labels.axes && <TimeAxis keys={data.dates} label={bucketLabel} />}
@@ -713,13 +858,28 @@ function Matrix({
   labels,
 }: BodyProps & { data: Extract<Data, { type: "matrix" }> }) {
   const name = useSliceName();
+  const t = useTranslations("widgets");
   const fmt = useMeasureFormat(widget.config.measure);
   if (data.rows.length === 0) return <Empty />;
+  const kinds = new Set(elementsOf(widget).map((e) => e.kind));
+  const heat = kinds.has("heatmap");
+  const percent = kinds.has("rowPercent");
+  const rowSums = data.cells.map((row) => row.reduce((a, v) => a + v, 0));
+  const colSums = data.cols.map((_, j) =>
+    data.cells.reduce((a, row) => a + row[j], 0),
+  );
+  const extraCol = kinds.has("rowTotals");
+  const cell = (v: number, rowSum: number) =>
+    !labels.values
+      ? ""
+      : percent
+        ? `${rowSum ? Math.round((v / rowSum) * 100) : 0} %`
+        : fmt(v, false);
   return (
     <div
       className={styles.matrix}
       style={{
-        gridTemplateColumns: `minmax(3rem, 1.4fr) repeat(${data.cols.length}, minmax(0, 1fr))`,
+        gridTemplateColumns: `minmax(3rem, 1.4fr) repeat(${data.cols.length + (extraCol ? 1 : 0)}, minmax(0, 1fr))`,
       }}
     >
       <span className={styles.mHead} />
@@ -728,6 +888,7 @@ function Matrix({
           {labels.axes ? name(col, widget.config.groupBy2) : ""}
         </span>
       ))}
+      {extraCol && <span className={styles.mHead}>Σ</span>}
       {data.rows.map((row, i) => [
         <span key={`${row.key}-h`} className={styles.mRow} title={name(row)}>
           {labels.axes ? name(row, widget.config.groupBy) : ""}
@@ -737,15 +898,50 @@ function Matrix({
             key={`${row.key}-${col.key}`}
             style={
               {
-                "--v": data.max ? data.cells[i][j] / data.max : 0,
+                "--v": !heat
+                  ? 0
+                  : percent
+                    ? rowSums[i]
+                      ? data.cells[i][j] / rowSums[i]
+                      : 0
+                    : data.max
+                      ? data.cells[i][j] / data.max
+                      : 0,
               } as CSSProperties
             }
             title={`${name(row)} × ${name(col)}: ${data.cells[i][j]}`}
           >
-            {labels.values ? fmt(data.cells[i][j], false) : ""}
+            {cell(data.cells[i][j], rowSums[i])}
           </span>
         )),
+        ...(extraCol
+          ? [
+              <span key={`${row.key}-sum`} className={styles.mSum}>
+                {fmt(rowSums[i], false)}
+              </span>,
+            ]
+          : []),
       ])}
+      {kinds.has("colTotals") && [
+        <span key="sum-h" className={styles.mRow}>
+          {t("total")}
+        </span>,
+        ...colSums.map((sum, j) => (
+          <span key={`sum-${data.cols[j].key}`} className={styles.mSum}>
+            {fmt(sum, false)}
+          </span>
+        )),
+        ...(extraCol
+          ? [
+              <span key="sum-all" className={styles.mSum}>
+                {fmt(
+                  rowSums.reduce((a, v) => a + v, 0),
+                  false,
+                )}
+              </span>,
+            ]
+          : []),
+      ]}
     </div>
   );
 }

@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import {
   defaultWidgets,
+  ELEMENTS,
+  elementOf,
+  elementsOf,
   fitSize,
+  labelsOf,
   layoutKey,
   moveWidgetTo,
   newWidget,
@@ -196,5 +200,87 @@ describe("Measures and time series (BARY-170)", () => {
         { id: "k", type: "kpi", size: "S", config: { measure: "money" } },
       ]),
     ).toBeNull();
+  });
+});
+
+describe("Elements (BARY-170)", () => {
+  const kpi = (config: Widget["config"] = {}): Widget => ({
+    id: "k",
+    type: "kpi",
+    size: "M",
+    config,
+  });
+
+  it("gives an untouched widget today's look", () => {
+    expect(elementsOf(kpi()).map((e) => e.kind)).toEqual(["trend", "spark"]);
+    expect(labelsOf({ id: "f", type: "flow", size: "XL", config: {} })).toEqual(
+      { legend: true, axes: true, values: true },
+    );
+  });
+
+  it("honors the older label switches", () => {
+    const flow: Widget = {
+      id: "f",
+      type: "flow",
+      size: "XL",
+      config: { labels: { legend: false, axes: true, values: false } },
+    };
+    expect(elementsOf(flow).map((e) => e.kind)).toEqual(["axes"]);
+  });
+
+  it("shows due dates for a list sorted by them", () => {
+    const list: Widget = {
+      id: "l",
+      type: "issues",
+      size: "L",
+      config: { sort: "dueDate" },
+    };
+    expect(elementsOf(list).map((e) => e.kind)).toEqual(["col_dueDate"]);
+  });
+
+  it("keeps the stored order and drops what the kind doesn't offer", () => {
+    const widget = kpi({
+      elements: [
+        { id: "a", kind: "goal", value: 25 },
+        { id: "b", kind: "heatmap" },
+        { id: "c", kind: "trend" },
+      ],
+    });
+    expect(elementsOf(widget).map((e) => e.kind)).toEqual(["goal", "trend"]);
+    expect(elementOf(widget, "goal")?.value).toBe(25);
+    expect(elementOf(widget, "spark")).toBeUndefined();
+  });
+
+  it("an empty list means no elements, not the defaults", () => {
+    expect(elementsOf(kpi({ elements: [] }))).toEqual([]);
+  });
+
+  it("stores elements with their values and rejects bad ones", () => {
+    const widget = kpi({
+      elements: [
+        { id: "g", kind: "goal", value: 20 },
+        {
+          id: "s",
+          kind: "second",
+          filter: { op: "and", rules: [] },
+        },
+      ],
+    });
+    expect(parseWidgets([widget])).toEqual([widget]);
+    expect(
+      parseWidgets([kpi({ elements: [{ id: "x", kind: "nope" as "goal" }] })]),
+    ).toBeNull();
+    expect(
+      parseWidgets([
+        kpi({ elements: [{ id: "d", kind: "goal", date: "18.10.2026" }] }),
+      ]),
+    ).toBeNull();
+  });
+
+  it("every offered element is a known kind, once per widget kind", () => {
+    for (const defs of Object.values(ELEMENTS)) {
+      const kinds = (defs ?? []).map((d) => d.kind);
+      expect(new Set(kinds).size).toBe(kinds.length);
+    }
   });
 });

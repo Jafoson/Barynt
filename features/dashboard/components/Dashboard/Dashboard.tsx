@@ -66,6 +66,8 @@ const DATA_KEYS = [
   "measure",
   "timeBy",
   "splitBy",
+  // A second number, a mini list, a link — elements bring data of their own.
+  "elements",
 ] as const;
 
 const needsData = (a: WidgetModel, b: WidgetModel) =>

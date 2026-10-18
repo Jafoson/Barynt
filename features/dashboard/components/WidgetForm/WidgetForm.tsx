@@ -14,13 +14,12 @@ import {
   ACCENTS,
   accentOf,
   BACKGROUNDS,
-  type ChartLabels,
   DISTRIBUTION_CHARTS,
+  ELEMENTS,
   GROUP_FIELDS,
   type GroupField,
   ISSUE_SORTS,
   KPI_METRICS,
-  labelsOf,
   MATRIX_FIELDS,
   MEASURES,
   type Measure,
@@ -34,10 +33,11 @@ import {
 } from "@/features/dashboard/widgets";
 import { FilterEditor } from "@/features/issues/components/Topbar/components/FilterEditor";
 import type { FilterLabelLookups } from "@/features/issues/components/Topbar/filterLabels";
-import { EMPTY_FILTER } from "@/features/issues/filter";
+import { EMPTY_FILTER, type IssueFilter } from "@/features/issues/filter";
 import { useModal } from "@/lib/context";
 import widgetStyles from "../Widget/widget.module.scss";
 import styles from "../WidgetSettings/widgetSettings.module.scss";
+import { ElementsEditor } from "./ElementsEditor";
 import { ShortcutPicker } from "./ShortcutPicker";
 
 interface Props {
@@ -77,12 +77,15 @@ export function WidgetForm({
   const apply = onChange;
   const set = (patch: Partial<WidgetConfig>) =>
     apply({ ...widget, config: { ...widget.config, ...patch } });
-  const setLabel = (key: keyof ChartLabels, on: boolean) =>
-    set({ labels: { ...labelsOf(widget), [key]: on } });
 
   const filterCount = config.filter?.rules.length ?? 0;
 
-  const editFilter = () =>
+  /** The filter editor in its own window — for the widget's filter and
+   *  for an element's (the second number). */
+  const openFilter = (
+    current: IssueFilter | undefined,
+    save: (filter: IssueFilter | undefined) => void,
+  ) =>
     openModal(
       ({ close: done }) => (
         <Modal width={640} variant={sheet ? "sheet" : "dialog"}>
@@ -94,9 +97,9 @@ export function WidgetForm({
           />
           <ModalBody>
             <FilterEditor
-              filter={widget.config.filter ?? EMPTY_FILTER}
+              filter={current ?? EMPTY_FILTER}
               onChange={(filter) =>
-                set({ filter: filter.rules.length ? filter : undefined })
+                save(filter.rules.length ? filter : undefined)
               }
               lookups={lookups}
               area={area}
@@ -107,6 +110,8 @@ export function WidgetForm({
       ),
       sheet ? { placement: "bottom" } : undefined,
     );
+  const editFilter = () =>
+    openFilter(config.filter, (filter) => set({ filter }));
 
   const fieldItems = (fields: readonly GroupField[]) =>
     fields.map((f) => ({ value: f, label: t(`group_${f}`) }));
@@ -339,24 +344,19 @@ export function WidgetForm({
         </div>
       )}
 
-      {/* ── How it looks ── */}
-      {def.chart && (
+      {/* ── What sits around it (BARY-170) ── */}
+      {ELEMENTS[widget.type] && (
         <div className={styles.field}>
-          <span className={styles.label}>{t("labels")}</span>
-          {(["legend", "axes", "values"] as const).map((key) => (
-            <div key={key} className={styles.row}>
-              <span>{t(`label_${key}`)}</span>
-              <Switch
-                checked={labelsOf(widget)[key]}
-                onChange={(on) => setLabel(key, on)}
-                label={t(`label_${key}`)}
-                labelHidden
-              />
-            </div>
-          ))}
+          <span className={styles.label}>{t("elements")}</span>
+          <ElementsEditor
+            widget={widget}
+            onChange={(elements) => set({ elements, labels: undefined })}
+            editFilter={openFilter}
+          />
         </div>
       )}
 
+      {/* ── How it looks ── */}
       <fieldset className={styles.field}>
         <legend className={styles.label}>{t("background")}</legend>
         <div className={styles.backgrounds}>

@@ -36,6 +36,9 @@ export interface DashboardIssue {
   updated: number;
   dueDate: number | null;
   reason?: AttentionReason;
+  storyPoints?: number | null;
+  /** Only when the list shows its labels column. */
+  labels?: { name: string; color: string }[];
 }
 
 /** One part of a distribution or one axis entry of a matrix. */
@@ -180,6 +183,9 @@ export type WidgetData =
       spark: number[] | null;
       /** The board filtered to what this number counts. */
       href: string | null;
+      /** Elements: the "second number", the mini list. */
+      second?: { value: number; href: string | null } | null;
+      list?: DashboardIssue[];
     }
   | {
       type: "progress";
@@ -187,16 +193,26 @@ export type WidgetData =
       inProgress: number;
       total: number;
       href: string | null;
+      second?: { value: number; href: string | null } | null;
+      /** Days until done at the range's pace; `null` without a pace. */
+      forecastDays?: number | null;
     }
   | { type: "distribution"; slices: Slice[]; total: number }
   | { type: "attention"; issues: DashboardIssue[]; total: number }
-  | { type: "issues"; issues: DashboardIssue[]; total: number }
+  | {
+      type: "issues";
+      issues: DashboardIssue[];
+      total: number;
+      href?: string | null;
+    }
   | {
       type: "flow";
       /** Bucket starts, `YYYY-MM-DD`. */
       dates: string[];
       timeBy: TimeBy;
       series: Series[];
+      /** The main series one range earlier (element "previous"). */
+      previous?: number[] | null;
     }
   | { type: "burnup"; points: BurnupPoint[] }
   | {
