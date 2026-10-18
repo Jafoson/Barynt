@@ -1967,7 +1967,7 @@
     "elOpt_color": "Farbe",
     "elOpt_weeks": "Tempo aus",
     "elOpt_minSize": "Ab Größe sichtbar",
-    "elOpt_minSize_any": "Immer",
+    "elOpt_minSize_any": "Sobald Platz ist",
     "elFlag_trend": "Farben umkehren",
     "elFlag_topN": "„Weitere“ weglassen",
     "elFlag_average": "Wert an der Linie",
@@ -1996,6 +1996,7 @@
     "elWeeks": "{weeks, plural, =0 {Zeitraum des Dashboards} one {letzter Woche} other {letzten # Wochen}}",
     "elLabelPlaceholder": "Standard",
     "elWeeksShort": "{weeks} Wo.",
-    "elRange": "Zeitraum"
+    "elRange": "Zeitraum",
+    "elHiddenFrom": "Ausgeblendet · erst ab {size}"
   }
 }

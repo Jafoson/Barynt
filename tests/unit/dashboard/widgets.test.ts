@@ -9,6 +9,7 @@ import {
   fitsSize,
   labelsOf,
   layoutKey,
+  minSizeChoices,
   moveWidgetTo,
   newWidget,
   normalizeWidget,
@@ -316,18 +317,29 @@ describe("Element settings (BARY-170)", () => {
     expect(parseWidgets([kpi({ label: "x".repeat(41) })])).toBeNull();
   });
 
-  it("hides an element below its size", () => {
-    const second = { id: "s", kind: "second" as const, minSize: "L" as const };
-    expect(fitsSize(second, "M")).toBe(false);
-    expect(fitsSize(second, "W")).toBe(false);
-    expect(fitsSize(second, "L")).toBe(true);
-    expect(fitsSize(second, "XL")).toBe(true);
-    expect(fitsSize({ id: "t", kind: "trend" }, "S")).toBe(true);
+  it("hides an element below the size it can show in", () => {
+    // By nature: a spark needs two columns, a mini list a second row.
+    expect(fitsSize("kpi", { kind: "spark" }, "S")).toBe(false);
+    expect(fitsSize("kpi", { kind: "spark" }, "M")).toBe(true);
+    expect(fitsSize("kpi", { kind: "miniList" }, "M")).toBe(false);
+    expect(fitsSize("kpi", { kind: "miniList" }, "W")).toBe(false);
+    expect(fitsSize("kpi", { kind: "miniList" }, "L")).toBe(true);
+    expect(fitsSize("kpi", { kind: "trend" }, "S")).toBe(true);
+    // By choice — only ever higher than by nature.
+    expect(fitsSize("kpi", { kind: "trend", minSize: "XL" }, "T")).toBe(true);
+    expect(fitsSize("kpi", { kind: "trend", minSize: "XL" }, "L")).toBe(false);
+    expect(fitsSize("kpi", { kind: "spark", minSize: "S" }, "S")).toBe(false);
+    expect(minSizeChoices("kpi", "spark")).toEqual(["M", "L", "XL"]);
     const widget: Widget = {
       id: "k",
       type: "kpi",
-      size: "M",
-      config: { elements: [{ id: "t", kind: "trend" }, second] },
+      size: "S",
+      config: {
+        elements: [
+          { id: "t", kind: "trend" },
+          { id: "s", kind: "spark" },
+        ],
+      },
     };
     expect(shownElements(widget).map((e) => e.kind)).toEqual(["trend"]);
   });

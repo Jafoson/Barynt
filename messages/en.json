@@ -1967,7 +1967,7 @@
     "elOpt_color": "Color",
     "elOpt_weeks": "Pace from",
     "elOpt_minSize": "Visible from size",
-    "elOpt_minSize_any": "Always",
+    "elOpt_minSize_any": "Once there's room",
     "elFlag_trend": "Swap colors",
     "elFlag_topN": "Leave out \"Other\"",
     "elFlag_average": "Value on the line",
@@ -1996,6 +1996,7 @@
     "elWeeks": "{weeks, plural, =0 {the dashboard's range} one {the last week} other {the last # weeks}}",
     "elLabelPlaceholder": "Default",
     "elWeeksShort": "{weeks} wk",
-    "elRange": "Range"
+    "elRange": "Range",
+    "elHiddenFrom": "Hidden · shows from {size}"
   }
 }

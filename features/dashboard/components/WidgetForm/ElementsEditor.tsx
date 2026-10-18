@@ -10,7 +10,6 @@ import { SelectMenu } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import {
   ACCENTS,
-  ELEMENT_MIN_SIZES,
   ELEMENT_SORTS,
   ELEMENTS,
   type ElementKind,
@@ -23,6 +22,8 @@ import {
   elementsOf,
   fitsSize,
   isPlaced,
+  minSizeChoices,
+  minSizeOf,
   type Widget,
   type WidgetElement,
 } from "@/features/dashboard/widgets";
@@ -340,7 +341,9 @@ export function ElementsEditor({
         const name = t(`el_${element.kind}`);
         const moves = movable && i < placed.length;
         const isOpen = open === element.id;
-        const hidden = !fitsSize(element, widget.size);
+        const hidden = !fitsSize(widget.type, element, widget.size);
+        const from = minSizeOf(widget.type, element);
+        const choices = minSizeChoices(widget.type, element.kind);
         const options = elementOptions(widget.type, element.kind);
         return (
           // biome-ignore lint/a11y/noStaticElementInteractions: dragging is the pointer shortcut — the arrow buttons in the row do the same for keyboard and touch
@@ -384,7 +387,11 @@ export function ElementsEditor({
                 </span>
                 <span className={styles.text}>
                   {name}
-                  <small>{hidden ? t("elHiddenHere") : summary(element)}</small>
+                  <small>
+                    {hidden
+                      ? t("elHiddenFrom", { size: t(`size_${from}`) })
+                      : summary(element)}
+                  </small>
                 </span>
                 <Icon
                   icon="lucide:chevron-down"
@@ -432,16 +439,19 @@ export function ElementsEditor({
                   <span className={settingsStyles.full}>
                     <SegmentedControl
                       variant="surface"
-                      value={element.minSize ?? "S"}
+                      value={from}
                       onChange={(v) =>
                         update(element.id, {
                           minSize:
-                            v === "S" ? undefined : (v as ElementMinSize),
+                            v === choices[0]
+                              ? undefined
+                              : (v as ElementMinSize),
                         })
                       }
-                      items={ELEMENT_MIN_SIZES.map((s) => ({
+                      items={choices.map((s, n) => ({
                         value: s,
-                        label: s === "S" ? t("elOpt_minSize_any") : s,
+                        label:
+                          n === 0 ? t("elOpt_minSize_any") : t(`size_${s}`),
                       }))}
                     />
                   </span>

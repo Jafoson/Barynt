@@ -491,16 +491,69 @@ const MIN_SIZE_NEED: Record<ElementMinSize, number> = {
   XL: 3,
 };
 
-/** Whether an element shows in the widget's size ("Ab Größe sichtbar"). */
-export function fitsSize(element: WidgetElement, size: WidgetSize): boolean {
-  return (
-    !element.minSize || MIN_SIZE_RANK[size] >= MIN_SIZE_NEED[element.minSize]
-  );
+/**
+ * The smallest size an element can be drawn in at all — below it there's
+ * no room (a spark next to the number needs two columns, a mini list a
+ * second row). Matches what the widget's CSS hides (`noS` → M, `noShort`
+ * → L); an element's own `minSize` can only raise it.
+ */
+const NATURAL_MIN: Partial<
+  Record<WidgetType, Partial<Record<ElementKind, ElementMinSize>>>
+> = {
+  kpi: { spark: "M", second: "L", miniList: "L", link: "L" },
+  progress: { deadline: "L", forecast: "L", second: "L" },
+  distribution: { legend: "M" },
+  flow: { legend: "L", axes: "L" },
+  issues: {
+    rows: "M",
+    link: "M",
+    col_status: "M",
+    col_assignee: "M",
+    col_priority: "M",
+    col_dueDate: "M",
+    col_updated: "M",
+    col_labels: "M",
+    col_storyPoints: "M",
+  },
+  burnup: { legend: "L", axes: "L", values: "L" },
+  cycle: { legend: "L", axes: "L", values: "L" },
+  workload: { legend: "L" },
+};
+
+/** The smallest size an element can show in — by nature, or by choice. */
+export function minSizeOf(
+  type: WidgetType,
+  element: Pick<WidgetElement, "kind" | "minSize">,
+): ElementMinSize {
+  const natural = NATURAL_MIN[type]?.[element.kind] ?? "S";
+  const own = element.minSize ?? "S";
+  return MIN_SIZE_NEED[own] > MIN_SIZE_NEED[natural] ? own : natural;
+}
+
+/** The sizes "Ab Größe sichtbar" offers — from the element's natural
+ *  smallest size up. */
+export function minSizeChoices(
+  type: WidgetType,
+  kind: ElementKind,
+): ElementMinSize[] {
+  const natural = MIN_SIZE_NEED[NATURAL_MIN[type]?.[kind] ?? "S"];
+  return ELEMENT_MIN_SIZES.filter((s) => MIN_SIZE_NEED[s] >= natural);
+}
+
+/** Whether an element shows in a widget size. */
+export function fitsSize(
+  type: WidgetType,
+  element: Pick<WidgetElement, "kind" | "minSize">,
+  size: WidgetSize,
+): boolean {
+  return MIN_SIZE_RANK[size] >= MIN_SIZE_NEED[minSizeOf(type, element)];
 }
 
 /** The elements a widget draws — its own, minus those too big for it. */
 export function shownElements(widget: Widget): WidgetElement[] {
-  return elementsOf(widget).filter((e) => fitsSize(e, widget.size));
+  return elementsOf(widget).filter((e) =>
+    fitsSize(widget.type, e, widget.size),
+  );
 }
 
 /** The element of a kind, if the widget draws it in its size. */
