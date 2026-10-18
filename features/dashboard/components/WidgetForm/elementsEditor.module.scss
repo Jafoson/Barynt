@@ -20,6 +20,11 @@
   &[data-dragging] {
     opacity: 0.5;
   }
+
+  /* Changes the main part — nothing to move. */
+  &[data-fixed] .grip {
+    visibility: hidden;
+  }
 }
 
 .grip {

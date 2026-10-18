@@ -361,6 +361,31 @@ export const ELEMENTS: Partial<Record<WidgetType, ElementDef[]>> = {
   workload: CHART_LABELS,
 };
 
+/**
+ * Elements that are blocks of their own and sit in the widget in the order
+ * they're listed. The rest change the main part (a goal ring, the chart's
+ * axes, the heatmap) and have no place to move to.
+ */
+const PLACED: Partial<Record<WidgetType, ElementKind[]>> = {
+  kpi: ["trend", "spark", "second", "miniList", "link"],
+  progress: ["deadline", "forecast", "second"],
+  flow: ["legend", "sumRow"],
+  issues: [
+    "col_status",
+    "col_assignee",
+    "col_priority",
+    "col_dueDate",
+    "col_updated",
+    "col_labels",
+    "col_storyPoints",
+  ],
+};
+
+/** Whether an element can be moved — a block of its own (`PLACED`). */
+export function isPlaced(type: WidgetType, kind: ElementKind): boolean {
+  return PLACED[type]?.includes(kind) ?? false;
+}
+
 /** What a kind shows before anyone touches its elements — today's look. */
 const DEFAULT_ELEMENTS: Partial<Record<WidgetType, ElementKind[]>> = {
   kpi: ["trend", "spark"],

@@ -10,6 +10,7 @@ import {
   type ElementKind,
   elementDef,
   elementsOf,
+  isPlaced,
   type Widget,
   type WidgetElement,
 } from "@/features/dashboard/widgets";
@@ -35,7 +36,13 @@ interface Props {
 export function ElementsEditor({ widget, onChange, editFilter }: Props) {
   const t = useTranslations("widgets");
   const offered = ELEMENTS[widget.type] ?? [];
-  const elements = elementsOf(widget);
+  const stored = elementsOf(widget);
+  // Blocks with a place of their own first, in their order; then the ones
+  // that change the main part and stay where they are.
+  const placed = stored.filter((e) => isPlaced(widget.type, e.kind));
+  const fixed = stored.filter((e) => !isPlaced(widget.type, e.kind));
+  const elements = [...placed, ...fixed];
+  const movable = placed.length > 1;
   const [dragging, setDragging] = useState<string | null>(null);
   if (offered.length === 0) return null;
 
@@ -46,7 +53,7 @@ export function ElementsEditor({ widget, onChange, editFilter }: Props) {
     onChange(elements.map((e) => (e.id === id ? { ...e, ...patch } : e)));
   const remove = (id: string) => onChange(elements.filter((e) => e.id !== id));
   const move = (from: number, to: number) => {
-    if (to < 0 || to >= elements.length || from === to) return;
+    if (to < 0 || to >= placed.length || from === to) return;
     const next = [...elements];
     const [item] = next.splice(from, 1);
     next.splice(to, 0, item);
@@ -70,12 +77,14 @@ export function ElementsEditor({ widget, onChange, editFilter }: Props) {
         const def = elementDef(widget.type, element.kind);
         const name = t(`el_${element.kind}`);
         const rules = element.filter?.rules.length ?? 0;
+        const moves = movable && i < placed.length;
         return (
           // biome-ignore lint/a11y/noStaticElementInteractions: dragging is the pointer shortcut — the arrow buttons in the row do the same for keyboard and touch
           <div
             key={element.id}
             className={styles.element}
-            draggable
+            draggable={moves}
+            data-fixed={!moves || undefined}
             data-dragging={dragging === element.id || undefined}
             onDragStart={(e) => {
               e.dataTransfer.effectAllowed = "move";
@@ -83,7 +92,7 @@ export function ElementsEditor({ widget, onChange, editFilter }: Props) {
             }}
             onDragEnd={() => setDragging(null)}
             onDragOver={(e) => {
-              if (!dragging || dragging === element.id) return;
+              if (!moves || !dragging || dragging === element.id) return;
               e.preventDefault();
               move(
                 elements.findIndex((x) => x.id === dragging),
@@ -95,6 +104,7 @@ export function ElementsEditor({ widget, onChange, editFilter }: Props) {
               icon="lucide:grip-vertical"
               width={14}
               className={styles.grip}
+              aria-hidden="true"
             />
             <span className={styles.icon}>
               <Icon icon={def?.icon ?? "lucide:square"} width={14} />
@@ -146,24 +156,26 @@ export function ElementsEditor({ widget, onChange, editFilter }: Props) {
                 {rules ? t("filterCount", { count: rules }) : t("filterAdd")}
               </button>
             )}
-            <span className={styles.arrows}>
-              <button
-                type="button"
-                aria-label={t("moveUp")}
-                disabled={i === 0}
-                onClick={() => move(i, i - 1)}
-              >
-                <Icon icon="lucide:chevron-up" width={14} />
-              </button>
-              <button
-                type="button"
-                aria-label={t("moveDown")}
-                disabled={i === elements.length - 1}
-                onClick={() => move(i, i + 1)}
-              >
-                <Icon icon="lucide:chevron-down" width={14} />
-              </button>
-            </span>
+            {moves && (
+              <span className={styles.arrows}>
+                <button
+                  type="button"
+                  aria-label={t("moveUp")}
+                  disabled={i === 0}
+                  onClick={() => move(i, i - 1)}
+                >
+                  <Icon icon="lucide:chevron-up" width={14} />
+                </button>
+                <button
+                  type="button"
+                  aria-label={t("moveDown")}
+                  disabled={i === placed.length - 1}
+                  onClick={() => move(i, i + 1)}
+                >
+                  <Icon icon="lucide:chevron-down" width={14} />
+                </button>
+              </span>
+            )}
             <button
               type="button"
               className={styles.remove}

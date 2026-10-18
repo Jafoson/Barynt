@@ -33,53 +33,67 @@ export function NumberBody({ widget, data }: BodyProps & { data: Data }) {
   const has = (kind: (typeof elements)[number]["kind"]) =>
     elements.some((e) => e.kind === kind);
 
-  /** The elements below the main part, in their order. */
-  const extras = (): ReactNode[] =>
-    elements.flatMap((e) => {
-      if (e.kind === "second" && data.second) {
-        return [
-          <Extra key={e.id} href={data.second.href}>
-            <span className={styles.secondLabel}>
-              {t("secondOf", { name: filterSummary(e.filter, t) })}
-            </span>
-            <b>
-              {num(data.second.value)}
-              {unit && <small> {unit}</small>}
-            </b>
-          </Extra>,
-        ];
-      }
-      if (e.kind === "miniList" && data.type === "kpi" && data.list?.length) {
-        return [<MiniList key={e.id} issues={data.list} />];
-      }
-      if (e.kind === "link" && data.href) {
-        return [
-          <Link key={e.id} href={data.href} className={styles.elLink}>
-            {t("seeAll")}
-            <Icon icon="lucide:arrow-right" width={13} />
-          </Link>,
-        ];
-      }
-      return [];
-    });
+  const second =
+    data.second &&
+    ((key: string, filter: { rules: unknown[] } | undefined) => (
+      <Extra key={key} href={data.second?.href ?? null}>
+        <span className={styles.secondLabel}>
+          {t("secondOf", { name: filterSummary(filter, t) })}
+        </span>
+        <b>
+          {num(data.second?.value ?? 0)}
+          {unit && <small> {unit}</small>}
+        </b>
+      </Extra>
+    ));
 
   if (data.type === "progress") {
     const share = data.total ? Math.round((data.done / data.total) * 100) : 0;
     const working = data.total ? (data.inProgress / data.total) * 100 : 0;
-    const deadline = elementOf(widget, "deadline")?.date;
-    const daysLeft = deadline
-      ? Math.ceil(
-          (new Date(`${deadline}T12:00:00Z`).getTime() - Date.now()) /
-            86_400_000,
-        )
-      : null;
-    const forecast =
-      has("forecast") && data.forecastDays != null
-        ? format.dateTime(
-            new Date(Date.now() + data.forecastDays * 86_400_000),
-            { day: "numeric", month: "short", timeZone: "UTC" },
-          )
-        : null;
+    const today = Date.now();
+    const day = (ms: number) =>
+      format.dateTime(new Date(ms), {
+        day: "numeric",
+        month: "short",
+        timeZone: "UTC",
+      });
+    // The elements under the bar, each its own line, in their order.
+    const blocks = elements.map((e) => {
+      if (e.kind === "deadline" && e.date) {
+        const left = Math.ceil(
+          (new Date(`${e.date}T12:00:00Z`).getTime() - today) / 86_400_000,
+        );
+        return (
+          <div key={e.id} className={`${styles.sub} ${styles.noShort}`}>
+            <Icon
+              icon="lucide:calendar"
+              width={12}
+              className={styles.subIcon}
+            />
+            {day(new Date(`${e.date}T12:00:00Z`).getTime())} ·{" "}
+            {left >= 0
+              ? t("daysLeft", { days: left })
+              : t("daysLate", { days: -left })}
+          </div>
+        );
+      }
+      if (e.kind === "forecast" && data.forecastDays != null) {
+        return (
+          <div key={e.id} className={`${styles.sub} ${styles.noShort}`}>
+            <Icon
+              icon="lucide:telescope"
+              width={12}
+              className={styles.subIcon}
+            />
+            {t("forecast", {
+              date: day(today + data.forecastDays * 86_400_000),
+            })}
+          </div>
+        );
+      }
+      if (e.kind === "second" && second) return second(e.id, e.filter);
+      return null;
+    });
     return (
       <div className={styles.progress}>
         <div className={styles.big}>
@@ -99,17 +113,7 @@ export function NumberBody({ widget, data }: BodyProps & { data: Data }) {
             </span>
           )}
         </div>
-        {(daysLeft !== null || forecast) && (
-          <div className={`${styles.sub} ${styles.noShort}`}>
-            {daysLeft !== null &&
-              (daysLeft >= 0
-                ? t("daysLeft", { days: daysLeft })
-                : t("daysLate", { days: -daysLeft }))}
-            {daysLeft !== null && forecast && " · "}
-            {forecast && t("forecast", { date: forecast })}
-          </div>
-        )}
-        {extras()}
+        {blocks}
       </div>
     );
   }
@@ -128,47 +132,75 @@ export function NumberBody({ widget, data }: BodyProps & { data: Data }) {
   const reached =
     goal && data.value !== null ? Math.min(1, data.value / goal) : null;
 
-  return (
-    <div className={styles.kpiStack}>
-      <div className={styles.kpi}>
-        <div className={styles.kpiMain}>
-          {reached !== null && (
-            <span
-              className={styles.goalRing}
-              style={{ "--p": reached } as CSSProperties}
-              aria-hidden="true"
-            />
-          )}
-          <div>
-            <div className={styles.big}>
-              {data.value === null ? "–" : num(data.value)}
-              {isDays && data.value !== null && <small>{t("daysUnit")}</small>}
-              {!isDays && unit && <small>{unit}</small>}
-              {goal !== undefined && <small> / {num(goal)}</small>}
-            </div>
-            <div className={styles.sub}>
-              {has("trend") && delta !== null && delta !== 0 ? (
-                <>
-                  <span className={good ? styles.good : styles.bad}>
-                    {delta > 0 ? "▲" : "▼"} {num(Math.abs(delta))}
-                  </span>{" "}
-                  {t("vsBefore")}
-                </>
-              ) : has("trend") && delta === 0 ? (
-                t("unchanged")
-              ) : (
-                t(`metricHint_${metric}`)
-              )}
-            </div>
+  // Under the number, each element is a block of its own, in its order.
+  const blocks = elements.map((e) => {
+    switch (e.kind) {
+      case "trend":
+        return (
+          <div key={e.id} className={styles.sub}>
+            {delta !== null && delta !== 0 ? (
+              <>
+                <span className={good ? styles.good : styles.bad}>
+                  {delta > 0 ? "▲" : "▼"} {num(Math.abs(delta))}
+                </span>{" "}
+                {t("vsBefore")}
+              </>
+            ) : delta === 0 ? (
+              t("unchanged")
+            ) : (
+              t(`metricHint_${metric}`)
+            )}
           </div>
-        </div>
-        {has("spark") && data.spark && (
-          <span className={`${styles.grow} ${styles.noS}`}>
+        );
+      case "spark":
+        return data.spark ? (
+          <span key={e.id} className={`${styles.sparkBlock} ${styles.noS}`}>
             <Spark values={data.spark} area={isDays} />
           </span>
+        ) : null;
+      case "second":
+        return second ? second(e.id, e.filter) : null;
+      case "miniList":
+        return data.list?.length ? (
+          <MiniList key={e.id} issues={data.list} />
+        ) : null;
+      case "link":
+        return data.href ? (
+          <Link
+            key={e.id}
+            href={data.href}
+            className={`${styles.elLink} ${styles.noShort}`}
+          >
+            {t("seeAll")}
+            <Icon icon="lucide:arrow-right" width={13} />
+          </Link>
+        ) : null;
+      default:
+        return null;
+    }
+  });
+
+  return (
+    <div className={styles.kpiStack}>
+      <div className={styles.kpiMain}>
+        {reached !== null && (
+          <span
+            className={styles.goalRing}
+            style={{ "--p": reached } as CSSProperties}
+            aria-hidden="true"
+          />
         )}
+        <div className={styles.big}>
+          {data.value === null ? "–" : num(data.value)}
+          {isDays && data.value !== null && <small>{t("daysUnit")}</small>}
+          {!isDays && unit && <small>{unit}</small>}
+          {goal !== undefined && <small> / {num(goal)}</small>}
+        </div>
       </div>
-      {extras()}
+      {!has("trend") && (
+        <div className={styles.sub}>{t(`metricHint_${metric}`)}</div>
+      )}
+      {blocks}
     </div>
   );
 }

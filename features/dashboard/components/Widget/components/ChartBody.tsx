@@ -305,7 +305,8 @@ function Flow({
               { key: s.key, label: s.label, color: s.color, count: 0 },
               widget.config.splitBy,
             );
-  const kinds = new Set(elementsOf(widget).map((e) => e.kind));
+  const elements = elementsOf(widget);
+  const kinds = new Set(elements.map((e) => e.kind));
   const n = data.dates.length;
   // "Kumulativ": every bucket carries the ones before it.
   const running = (values: number[]) => {
@@ -395,45 +396,50 @@ function Flow({
 
   return (
     <>
-      {kinds.has("sumRow") && (
-        <div className={styles.sumRow}>
-          {t("total")} <b>{fmt(total)}</b>
-          {average !== null && (
-            <span className={styles.noS}>
-              {" · "}
-              {t("averageShort")} <b>{fmt(Math.round(average * 10) / 10)}</b>
-            </span>
-          )}
-        </div>
-      )}
-      {labels.legend && (
-        <div className={`${styles.legend} ${styles.noShort}`}>
-          {data.series.map((s) => (
-            <span key={s.key}>
-              <i style={{ background: s.color }} />
-              {nameOf(s)} <b>{fmt(s.total)}</b>
-            </span>
-          ))}
-          {pair && (
-            <span>
-              {t("net")}{" "}
-              <b className={net > 0 ? styles.bad : net < 0 ? styles.good : ""}>
-                {net > 0 ? `+${fmt(net)}` : fmt(net)}
-              </b>
-            </span>
-          )}
-          {previous && <span>– – {t("previousRange")}</span>}
-          {average !== null && !kinds.has("sumRow") && (
-            <span>
-              ⋯ {t("averageShort")} <b>{fmt(Math.round(average * 10) / 10)}</b>
-            </span>
-          )}
-          {goal !== null && (
-            <span className={styles.goalKey}>
-              – – {t("goal")} <b>{fmt(goal)}</b>
-            </span>
-          )}
-        </div>
+      {/* Legend and total row above the chart, in their order. */}
+      {elements.map((e) =>
+        e.kind === "sumRow" ? (
+          <div key={e.id} className={styles.sumRow}>
+            {t("total")} <b>{fmt(total)}</b>
+            {average !== null && (
+              <span className={styles.noS}>
+                {" · "}
+                {t("averageShort")} <b>{fmt(Math.round(average * 10) / 10)}</b>
+              </span>
+            )}
+          </div>
+        ) : e.kind === "legend" ? (
+          <div key={e.id} className={`${styles.legend} ${styles.noShort}`}>
+            {data.series.map((s) => (
+              <span key={s.key}>
+                <i style={{ background: s.color }} />
+                {nameOf(s)} <b>{fmt(s.total)}</b>
+              </span>
+            ))}
+            {pair && (
+              <span>
+                {t("net")}{" "}
+                <b
+                  className={net > 0 ? styles.bad : net < 0 ? styles.good : ""}
+                >
+                  {net > 0 ? `+${fmt(net)}` : fmt(net)}
+                </b>
+              </span>
+            )}
+            {previous && <span>– – {t("previousRange")}</span>}
+            {average !== null && !kinds.has("sumRow") && (
+              <span>
+                ⋯ {t("averageShort")}{" "}
+                <b>{fmt(Math.round(average * 10) / 10)}</b>
+              </span>
+            )}
+            {goal !== null && (
+              <span className={styles.goalKey}>
+                – – {t("goal")} <b>{fmt(goal)}</b>
+              </span>
+            )}
+          </div>
+        ) : null,
       )}
       {all ? (
         <Empty />
