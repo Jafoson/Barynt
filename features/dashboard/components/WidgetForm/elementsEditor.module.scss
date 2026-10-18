@@ -133,11 +133,6 @@
 }
 
 .grip {
-    visibility: hidden;
-  }
-}
-
-.grip {
   flex: none;
   color: var(--on-surface-variant);
   cursor: grab;
