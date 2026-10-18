@@ -301,7 +301,7 @@
   display: grid;
   /* The form gets room to breathe; the preview takes the rest. */
   grid-template-columns: minmax(20rem, 26rem) minmax(0, 1fr);
-  gap: 1.5rem;
+  gap: 2.5rem;
   padding: 1.25rem 1.5rem;
   min-width: 0;
   overflow: auto;
@@ -332,11 +332,11 @@
   min-width: 0;
 
   & > .sizeChoice[data-size="T"] {
-    --k: 0.62;
+    --k: 0.55;
   }
 
   & > .sizeChoice[data-size="XL"] {
-    --k: 0.78;
+    --k: 0.64;
   }
 
   position: sticky;
@@ -346,6 +346,7 @@
   align-items: center;
   gap: 0.75rem;
   align-self: start;
+  padding: 0.75rem 1rem;
 
   @include bp.tablet-down {
     position: static;
