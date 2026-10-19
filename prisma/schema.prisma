@@ -47,6 +47,7 @@ model Workspace {
   members       WorkspaceMember[]
   projects      Project[]
   labels        Label[]
+  customFields  CustomField[]
   teams         Team[]
   invitations   Invitation[]
   statuses      WorkspaceStatus[]
@@ -421,6 +422,17 @@ model UserPreferences {
   /// "monday" | "sunday" — erster Tag im Kalender.
   weekStart String @default("monday")
 
+  /// Wie Datumswerte von Custom Feldern aussehen: "short" | "medium" |
+  /// "long" | "iso".
+  fieldDateFormat String @default("medium")
+
+  /// "24h" | "12h" — für Uhrzeiten in Custom Feldern.
+  fieldTimeFormat String @default("24h")
+
+  /// Was neben dem Wert eines Custom Feldes auf Karte und Zeile steht:
+  /// "icon" (das Icon, ohne Icon der Name) | "name" | "both".
+  fieldLabelMode String @default("icon")
+
   /// IANA-Zeitzone ("Europe/Berlin"); `null` = die des Browsers/Servers.
   timeZone String?
 
@@ -719,6 +731,7 @@ model Project {
   issues        Issue[]
   teams         TeamProject[]
   labels        Label[]
+  customFields  CustomField[]
   members       ProjectMember[]
   invitations   Invitation[]
   // Workspace-Labels, die in diesem Projekt nicht angeboten werden.
@@ -1056,6 +1069,146 @@ model ProjectHiddenLabel {
   @@index([labelId])
 }
 
+// ─── Benutzerdefinierte Felder ────────────────────────────────────────────────
+
+/// Welche Art Wert ein Feld trägt. Der Typ bestimmt, wie `IssueFieldValue.value`
+/// aussieht (siehe dort) und welches Eingabeelement die Oberfläche zeigt.
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  URL
+  USER
+}
+
+/// Was ein Datumsfeld enthält. Nach dem Anlegen fest, wie der Typ: ein
+/// gespeicherter Wert passt nur zu dem Modus, in dem er geschrieben wurde.
+///
+///   DATE      → "YYYY-MM-DD", ein Kalendertag ohne Zeitzone
+///   DATETIME  → "YYYY-MM-DDTHH:mm:00.000Z", ein Zeitpunkt in UTC; angezeigt
+///               und eingegeben wird in der Zeitzone der Person
+///   TIME      → "HH:mm", eine Uhrzeit ohne Datum und ohne Zeitzone
+enum CustomFieldDateMode {
+  DATE
+  DATETIME
+  TIME
+}
+
+/// Welche Zahlen ein Zahlenfeld annimmt. Anders als der Datum-Modus lässt sich
+/// das nachträglich ändern: es betrifft, was neu eingegeben wird, nicht wie
+/// ein gespeicherter Wert gelesen wird.
+///
+///   INTEGER   → nur ganze Zahlen
+///   DECIMAL   → Kommazahlen mit fester Zahl von Nachkommastellen
+///               (`numberDecimals`); eine Eingabe wird darauf gerundet
+///   FREE      → beides, die Person entscheidet bei jeder Eingabe
+enum CustomFieldNumberMode {
+  INTEGER
+  DECIMAL
+  FREE
+}
+
+/// Ein Feld, das ein Workspace oder ein Projekt an seinen Issues führt.
+///
+/// Wie bei `Label` entscheidet `projectId`, wo es gilt: leer heißt „in jedem
+/// Projekt des Workspace", gesetzt heißt „nur in diesem Projekt". Dieselbe
+/// Berechtigung (`customfield.manage`) greift auf beiden Ebenen, der Kontext
+/// sagt, welche.
+///
+/// `key` ist der stabile Name nach außen (API, MCP, Webhooks, Plugins) und
+/// ändert sich nicht, wenn jemand das Feld umbenennt. Er ist je Workspace
+/// eindeutig, damit ein Workspace-Feld und ein Projekt-Feld nie denselben
+/// Schlüssel tragen.
+///
+/// Archivieren blendet das Feld aus Auswahl und Anzeige aus, behält aber die
+/// Werte: wie bei den Labels gibt es hier keine Historie, ein Löschen wäre
+/// unwiederbringlich.
+model CustomField {
+  id          String          @id
+  workspaceId String
+  projectId   String?
+  key         String
+  name        String
+  description String          @default("")
+  type        CustomFieldType
+  /// Nur für SELECT und MULTI_SELECT: `[{ "id": "o_…", "label": "…", "color": "#…" }]`.
+  /// Die Id ist stabil, damit ein Umbenennen den gespeicherten Wert nicht trifft.
+  options     Json            @default("[]")
+  /// Optionales Icon aus `lib/custom-fields/icons.ts` ("lucide:user"). Ein
+  /// freier Name würde zur Laufzeit von der Iconify-API geladen, das Bundle
+  /// kennt nur, was im Code als Literal steht.
+  icon        String?
+  /// Nur für DATE.
+  dateMode    CustomFieldDateMode @default(DATE)
+  /// Nur für SELECT und MULTI_SELECT: wer ein Issue bearbeiten darf, darf
+  /// beim Ausfüllen eine neue Auswahl hinzufügen. Sie wird eine Auswahl des
+  /// Feldes, für alle.
+  allowCustomOptions Boolean      @default(false)
+  /// Nur für SELECT und MULTI_SELECT: was eine Auswahl tragen darf — "icon",
+  /// "image", "color". Leer heißt: nur den Namen. Beim Speichern werden
+  /// Angaben entfernt, die hier nicht (mehr) erlaubt sind.
+  optionVisuals String[]       @default([])
+  /// Nur für NUMBER.
+  numberMode  CustomFieldNumberMode @default(FREE)
+  /// Nur für NUMBER mit DECIMAL: Nachkommastellen, 1 bis 6.
+  numberDecimals Int?
+  /// Nur für NUMBER: ein Zusatz, der am Ende des Werts steht ("%", "$", "kg").
+  numberUnit  String?
+  /// Nur für URL: nur https zulassen (sonst auch http).
+  linkHttpsOnly Boolean       @default(false)
+  /// Nur für URL: erlaubte Seiten ("example.com" gilt auch für Subdomains).
+  /// Leer heißt: jede Seite.
+  linkHosts   String[]        @default([])
+  /// Nur für URL: das Icon der Seite neben dem Link zeigen — über den
+  /// eigenen Server geholt, nie direkt vom Browser der Person.
+  linkFavicon Boolean         @default(false)
+  /// Nur für URL: ohne eigenen Titel den Titel der Seite holen (über den
+  /// eigenen Server, wie das Icon).
+  linkFetchTitle Boolean      @default(true)
+  position    Int             @default(0)
+  archivedAt  DateTime?
+  created     DateTime        @default(now())
+  updated     DateTime        @updatedAt
+
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project   Project?          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  values    IssueFieldValue[]
+
+  @@unique([workspaceId, key])
+  @@index([workspaceId])
+  @@index([projectId])
+}
+
+/// Der Wert eines Feldes an einem Issue. `value` ist je nach Typ:
+///
+///   TEXT, URL     → string
+///   NUMBER        → number
+///   DATE          → "YYYY-MM-DD" (nur der Kalendertag, keine Zeitzone)
+///   SELECT        → Options-Id (string)
+///   MULTI_SELECT  → Options-Ids (string[])
+///   CHECKBOX      → boolean
+///   USER          → User-Id (string)
+///
+/// Geprüft wird das beim Schreiben (`lib/custom-fields`), nicht von der
+/// Datenbank — `Json` kennt keinen Typ.
+model IssueFieldValue {
+  issueId String
+  fieldId String
+  value   Json
+  /// Nur für URL: ein selbst gewählter Titel für den Link.
+  title   String?
+  updated DateTime @updatedAt
+
+  issue Issue       @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  field CustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@id([issueId, fieldId])
+  @@index([fieldId])
+}
+
 /// Wie ein Issue oder Kommentar entstanden ist — für die kleine Quelle-Badge
 /// neben Reporter/Autor in der UI (nach dem Vorbild von GitLabs Pipeline-
 /// Quellen wie „API"/„Web"). `APP` ist der Normalfall (die eigentliche
@@ -1181,6 +1334,10 @@ model Issue {
   /// Beziehungen, bei denen dieses Issue das Ziel ist — z. B. "wird von X
   /// blockiert".
   relationsTo   IssueRelation[] @relation("IssueRelationTarget")
+  /// Werte der benutzerdefinierten Felder (`CustomField`) — eine Zeile je
+  /// Feld, das an diesem Issue einen Wert hat. Fehlt die Zeile, ist das
+  /// Feld leer.
+  fieldValues   IssueFieldValue[]
 
   @@unique([projectId, key])
   @@index([projectId, status])

@@ -235,8 +235,32 @@ export const AUDIT_ACTION_META = {
     icon: "lucide:hourglass",
     message: "issueEstimateHoursChanged",
   },
+  "issue.field.changed": {
+    icon: "lucide:text-cursor-input",
+    message: "issueFieldChanged",
+  },
   "label.created": { icon: "lucide:tag", message: "labelCreated" },
   "label.deleted": { icon: "lucide:tag", message: "labelDeleted" },
+  "customfield.created": {
+    icon: "lucide:layout-list",
+    message: "customFieldCreated",
+  },
+  "customfield.updated": {
+    icon: "lucide:layout-list",
+    message: "customFieldUpdated",
+  },
+  "customfield.archived": {
+    icon: "lucide:archive",
+    message: "customFieldArchived",
+  },
+  "customfield.restored": {
+    icon: "lucide:archive-restore",
+    message: "customFieldRestored",
+  },
+  "customfield.deleted": {
+    icon: "lucide:layout-list",
+    message: "customFieldDeleted",
+  },
 } as const satisfies Record<
   AuditAction,
   { icon: string; message: string; loud?: boolean }

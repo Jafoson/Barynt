@@ -1,10 +1,12 @@
 import { Suspense } from "react";
+import { getWorkspaceCustomFields } from "@/features/custom-fields/queries";
 import {
   setIssueViewFieldVisibility,
   setIssueViewGroups,
   setMyIssuesViewFieldVisibility,
   setMyIssuesViewGroups,
 } from "@/features/issues/actions";
+import { isGroupableField } from "@/features/issues/group";
 import {
   getIssueViewGroups,
   getIssueViewPreference,
@@ -20,6 +22,7 @@ import {
   getWorkspaceProjects,
   getWorkspaceStatuses,
 } from "@/features/workspaces/queries";
+import { isFilterableField } from "@/lib/custom-fields/filter";
 import { TopbarClient } from "./TopbarClient";
 
 interface TopbarProps {
@@ -43,6 +46,7 @@ export async function Topbar({ count, view, projectId }: TopbarProps) {
     hiddenCardFields,
     groups,
     issueTypes,
+    allCustomFields,
   ] = await Promise.all([
     getCurrentWorkspace(),
     getWorkspaceProjects(),
@@ -57,9 +61,22 @@ export async function Topbar({ count, view, projectId }: TopbarProps) {
       ? getIssueViewGroups(projectId, view)
       : getMyIssuesViewGroups(view),
     getWorkspaceIssueTypes(),
+    getWorkspaceCustomFields(),
   ]);
 
   if (!workspace) return null;
+
+  // Only the fields that can be grouped by, and — inside one project — only
+  // the ones that apply there: the workspace's and that project's own.
+  const inScope = allCustomFields.filter((f) =>
+    projectId
+      ? (f.projectId === null || f.projectId === projectId) &&
+        !f.hiddenInProjects.includes(projectId)
+      : true,
+  );
+  const customFields = inScope.filter(isGroupableField);
+  // The ones that get a filter chip: a wider set than the groupable ones.
+  const filterFields = inScope.filter(isFilterableField);
 
   // Bound Server Actions, not closures — Client Components can only receive
   // props across the boundary that are themselves Server Actions; binding
@@ -86,6 +103,9 @@ export async function Topbar({ count, view, projectId }: TopbarProps) {
         labels={labels}
         hiddenCardFields={hiddenCardFields}
         issueTypes={issueTypes}
+        customFields={customFields}
+        filterFields={filterFields}
+        displayFields={inScope}
         hiddenGroups={groups.hiddenGroups}
         hideEmptyGroups={groups.hideEmptyGroups}
         showSubIssues={groups.showSubIssues}

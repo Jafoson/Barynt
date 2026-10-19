@@ -1,0 +1,123 @@
+.trigger {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: none;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2rem, 1fr));
+  gap: 0.25rem;
+  max-height: 11rem;
+  overflow-y: auto;
+}
+
+.cell {
+  display: grid;
+  place-items: center;
+  height: 2rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+
+  &[aria-pressed="true"] {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--on-surface-variant);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--error);
+}
+
+/* The same dashed box as the attachments of an issue: a drop target and a
+   button at once. */
+.dropzone {
+  border-radius: var(--radius);
+  border: 1px dashed var(--outline-variant);
+  background: color-mix(in oklab, var(--on-surface) 2%, transparent);
+  transition: border-color 0.12s, background 0.12s;
+
+  &[data-drag-over] {
+    border-color: var(--tertiary);
+    background: color-mix(in oklab, var(--tertiary) 8%, transparent);
+  }
+
+  &:has(.dropAction:focus-visible) {
+    border-color: var(--tertiary);
+  }
+}
+
+.dropAction {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  width: 100%;
+  padding: 1.125rem 0.625rem;
+  border: 0;
+  background: none;
+  color: var(--outline);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: center;
+  cursor: pointer;
+  transition: color 0.12s;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+}

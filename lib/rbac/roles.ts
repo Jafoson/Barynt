@@ -175,6 +175,7 @@ const WORKSPACE_ROLES: SystemRole[] = [
       "label.create",
       "label.update",
       "label.delete",
+      "customfield.manage",
     ],
     defaultProjectRoleKey: "project_admin",
   },

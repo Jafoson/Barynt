@@ -22,6 +22,9 @@ export default async function AccountAppearancePage({
         dateFormat: preferences.dateFormat,
         weekStart: preferences.weekStart,
         timeZone: preferences.timeZone,
+        fieldDateFormat: preferences.fieldDateFormat,
+        fieldTimeFormat: preferences.fieldTimeFormat,
+        fieldLabelMode: preferences.fieldLabelMode,
       }}
       timeZones={Intl.supportedValuesOf("timeZone")}
     />

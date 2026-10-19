@@ -37,6 +37,24 @@ export type ProjectOrder = (typeof PROJECT_ORDERS)[number];
 export const DATE_FORMATS = ["relative", "absolute"] as const;
 export type DateFormat = (typeof DATE_FORMATS)[number];
 
+/**
+ * How a date of a custom field reads: `short` 12.10.26, `medium` 12. Okt.
+ * 2026, `long` Montag, 12. Oktober 2026, `iso` 2026-10-12. The locale shapes
+ * the first three; `iso` is the same everywhere.
+ */
+export const FIELD_DATE_FORMATS = ["short", "medium", "long", "iso"] as const;
+export type FieldDateFormat = (typeof FIELD_DATE_FORMATS)[number];
+
+export const FIELD_TIME_FORMATS = ["24h", "12h"] as const;
+export type FieldTimeFormat = (typeof FIELD_TIME_FORMATS)[number];
+
+/**
+ * What stands next to a custom field's value on a card or a row: the icon
+ * (the name where the field has none), the name, or both.
+ */
+export const FIELD_LABEL_MODES = ["icon", "name", "both"] as const;
+export type FieldLabelMode = (typeof FIELD_LABEL_MODES)[number];
+
 export const WEEK_STARTS = ["monday", "sunday"] as const;
 export type WeekStart = (typeof WEEK_STARTS)[number];
 
@@ -80,6 +98,9 @@ export interface BehaviorPreferences {
   weekStart: WeekStart;
   /** `null` = the browser's own zone. */
   timeZone: string | null;
+  fieldDateFormat: FieldDateFormat;
+  fieldTimeFormat: FieldTimeFormat;
+  fieldLabelMode: FieldLabelMode;
   shortcutOverrides: ShortcutOverrides;
   confirmDestructive: boolean;
 }
@@ -97,6 +118,9 @@ export const DEFAULT_BEHAVIOR: BehaviorPreferences = {
   dateFormat: "relative",
   weekStart: "monday",
   timeZone: null,
+  fieldDateFormat: "medium",
+  fieldTimeFormat: "24h",
+  fieldLabelMode: "icon",
   shortcutOverrides: {},
   confirmDestructive: true,
 };
@@ -149,6 +173,21 @@ export function toBehavior(
       typeof row.timeZone === "string" && isTimeZone(row.timeZone)
         ? row.timeZone
         : null,
+    fieldDateFormat: oneOf(
+      FIELD_DATE_FORMATS,
+      row.fieldDateFormat,
+      d.fieldDateFormat,
+    ),
+    fieldTimeFormat: oneOf(
+      FIELD_TIME_FORMATS,
+      row.fieldTimeFormat,
+      d.fieldTimeFormat,
+    ),
+    fieldLabelMode: oneOf(
+      FIELD_LABEL_MODES,
+      row.fieldLabelMode,
+      d.fieldLabelMode,
+    ),
     shortcutOverrides: toShortcutOverrides(row.shortcutOverrides),
     confirmDestructive:
       typeof row.confirmDestructive === "boolean"

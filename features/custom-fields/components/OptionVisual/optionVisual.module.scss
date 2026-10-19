@@ -1,0 +1,20 @@
+.image {
+  display: inline-block;
+  flex: none;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  vertical-align: -0.2em;
+}
+
+.icon {
+  flex: none;
+  vertical-align: -0.2em;
+  color: var(--on-surface-variant);
+}
+
+.dot {
+  display: inline-block;
+  flex: none;
+  border-radius: 50%;
+  vertical-align: 0.05em;
+}

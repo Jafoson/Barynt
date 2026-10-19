@@ -1,6 +1,11 @@
 // Pure, no `server-only` — the key scheme is plain string logic.
 
-export type AvatarKind = "user" | "workspace" | "project";
+/**
+ * `fieldoption` is not an avatar but shares the bucket, the presigned upload
+ * and the key scheme: the image of a choice in a custom field, owned by the
+ * workspace the field lives in.
+ */
+export type AvatarKind = "user" | "workspace" | "project" | "fieldoption";
 
 /**
  * A random suffix per upload instead of a fixed name: "replace" therefore

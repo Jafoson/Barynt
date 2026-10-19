@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { getWorkspaceCustomFields } from "@/features/custom-fields/queries";
 import type {
   IssueComposerData,
   IssueEditorData,
@@ -35,6 +36,7 @@ export const getIssueEditorData = cache(
       statuses,
       priorities,
       searchIssues,
+      customFields,
     ] = await Promise.all([
       getCurrentWorkspace(),
       getMe(),
@@ -46,6 +48,7 @@ export const getIssueEditorData = cache(
       // For the `#` trigger. The command palette uses the same query, and
       // both share it via `cache()` within the same request.
       getWorkspaceSearchIssues(),
+      getWorkspaceCustomFields(),
     ]);
 
     if (!workspace || !me) return null;
@@ -58,6 +61,7 @@ export const getIssueEditorData = cache(
       statuses,
       priorities,
       searchIssues,
+      customFields,
     };
   },
 );

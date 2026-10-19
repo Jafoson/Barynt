@@ -1,4 +1,11 @@
 import "server-only";
+import {
+  type ApiCustomField,
+  type ApiFieldValue,
+  apiFieldValues,
+  fieldFiltersWhere,
+  toApiCustomField,
+} from "@/features/custom-fields/api";
 import { getUserWorkspaces } from "@/features/issues/queries";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
@@ -239,6 +246,14 @@ const issueSelect = {
     select: { id: true, type: true, issue: { select: issueRefSelect } },
     orderBy: { created: "asc" },
   },
+  fieldValues: {
+    select: {
+      value: true,
+      field: {
+        select: { key: true, type: true, options: true, archivedAt: true },
+      },
+    },
+  },
 } satisfies Prisma.IssueSelect;
 
 type IssueRow = Prisma.IssueGetPayload<{ select: typeof issueSelect }>;
@@ -275,6 +290,12 @@ export interface ApiIssue {
   children: ApiIssueRef[];
   /** Blocks/relates to/duplicates edges, both directions. */
   relations: ApiIssueRelation[];
+  /**
+   * Custom field values by field key (`GET …/custom-fields` lists the
+   * fields). A field without a value has no entry; a choice comes as
+   * `{ id, label }`.
+   */
+  customFields: Record<string, ApiFieldValue>;
 }
 
 async function mapApiIssue(
@@ -326,6 +347,7 @@ async function mapApiIssue(
     parent,
     children,
     relations,
+    customFields: apiFieldValues(row.fieldValues),
   };
 }
 
@@ -384,15 +406,34 @@ export async function listIssuesForUser(
      *  the same two fields the internal search (`getSearchIssues`) checks,
      *  without pulling in its ranking/highlighting machinery. */
     q?: string;
+    /** `field.<key>=<value>` filters on custom fields, by field key. */
+    fieldFilters?: Record<string, string>;
     cursor?: string;
     take: number;
   },
 ): Promise<{ rows: ApiIssue[]; hasMore: boolean } | null> {
   if (!(await can(userId, "project.view", { projectId }))) return null;
 
+  let fieldWhere: Prisma.IssueWhereInput[] = [];
+  if (options.fieldFilters && Object.keys(options.fieldFilters).length > 0) {
+    const project = await db.project.findUnique({
+      where: { id: projectId },
+      select: { workspaceId: true },
+    });
+    if (!project) return null;
+    const resolved = await fieldFiltersWhere(
+      { workspaceId: project.workspaceId, projectId },
+      options.fieldFilters,
+    );
+    // A filter on a field that doesn't exist here matches nothing.
+    if (resolved === null) return { rows: [], hasMore: false };
+    fieldWhere = resolved;
+  }
+
   const rows = await db.issue.findMany({
     where: {
       projectId,
+      ...(fieldWhere.length > 0 ? { AND: fieldWhere } : {}),
       ...(options.status ? { status: options.status } : {}),
       ...(options.assignee ? { assigneeId: options.assignee } : {}),
       ...(options.q
@@ -674,4 +715,52 @@ export async function listProjectMembersForUser(
     orderBy: [{ user: { firstName: "asc" } }, { user: { lastName: "asc" } }],
   });
   return rows.map(mapApiMember);
+}
+
+// ─── Custom fields ───────────────────────────────────────────────────────────
+
+/**
+ * The active custom fields of a workspace the caller can use: workspace-wide
+ * ones plus those of projects they can see — the same rule as labels. `null`
+ * if the workspace isn't visible to this user.
+ */
+export async function listCustomFieldsForUser(
+  userId: string,
+  workspaceId: string,
+): Promise<ApiCustomField[] | null> {
+  if (!(await canEnterWorkspace(userId, workspaceId))) return null;
+
+  const visible = await accessibleProjectIds(userId, workspaceId);
+  const rows = await db.customField.findMany({
+    where: {
+      workspaceId,
+      archivedAt: null,
+      OR: [{ projectId: null }, { projectId: { in: [...visible] } }],
+    },
+    orderBy: [{ position: "asc" }, { created: "asc" }],
+  });
+  return rows.map(toApiCustomField);
+}
+
+/** The fields that apply to one project: the workspace's and its own. */
+export async function listProjectCustomFieldsForUser(
+  userId: string,
+  projectId: string,
+): Promise<ApiCustomField[] | null> {
+  if (!(await can(userId, "project.view", { projectId }))) return null;
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+    select: { workspaceId: true },
+  });
+  if (!project) return null;
+
+  const rows = await db.customField.findMany({
+    where: {
+      workspaceId: project.workspaceId,
+      archivedAt: null,
+      OR: [{ projectId: null }, { projectId }],
+    },
+    orderBy: [{ position: "asc" }, { created: "asc" }],
+  });
+  return rows.map(toApiCustomField);
 }

@@ -31,7 +31,10 @@ interface BoardColumnProps {
   onColumnDragOver: (e: React.DragEvent) => void;
   onColumnDragLeave: (e: React.DragEvent) => void;
   onColumnDrop: (e: React.DragEvent) => void;
-  onCardDragStart: (issue: IssueDetail) => (e: React.DragEvent) => void;
+  onCardDragStart: (
+    issue: IssueDetail,
+    fromGroupId: string,
+  ) => (e: React.DragEvent) => void;
   onCardDragEnd: () => void;
   onCardDragOver: (cardId: string) => (e: React.DragEvent) => void;
   /** Whether this issue is currently shown in the side panel. */
@@ -43,7 +46,11 @@ interface BoardColumnProps {
   onCardOpenInNewTab: (issue: IssueDetail) => void;
   /** All columns of the board, for each card's "Move to…". */
   moveTargets?: GroupDef[];
-  onCardMoveTo?: (issue: IssueDetail, groupId: string) => void;
+  onCardMoveTo?: (
+    issue: IssueDetail,
+    groupId: string,
+    fromGroupId: string,
+  ) => void;
 }
 
 export function BoardColumn({
@@ -145,7 +152,7 @@ export function BoardColumn({
                 isDragging={dragging === issue.id}
                 isActive={isCardActive(issue)}
                 isFocused={isCardFocused(issue)}
-                onDragStart={onCardDragStart(issue)}
+                onDragStart={onCardDragStart(issue, group.id)}
                 onDragEnd={onCardDragEnd}
                 onDragOver={onCardDragOver(issue.id)}
                 onOpen={() => onCardOpen(issue)}
@@ -153,7 +160,8 @@ export function BoardColumn({
                 moveTargets={moveTargets}
                 currentGroupId={group.id}
                 onMoveTo={
-                  onCardMoveTo && ((groupId) => onCardMoveTo(issue, groupId))
+                  onCardMoveTo &&
+                  ((groupId) => onCardMoveTo(issue, groupId, group.id))
                 }
               />
               {isCardOver && !insertAbove && (

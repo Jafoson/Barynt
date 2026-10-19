@@ -1,12 +1,19 @@
 import { useOptimistic, useRef, useState, useTransition } from "react";
 import { reorderIssue, updateIssue } from "@/features/issues/actions";
-import { type GroupKey, groupIdOf, groupPatch } from "@/features/issues/group";
+import {
+  type GroupKey,
+  groupIdsOf,
+  groupMovePatch,
+  withMovePatch,
+} from "@/features/issues/group";
 import { rankBetween } from "@/features/issues/rank";
 import {
   type SortKey,
   type SortLookups,
   sortByKey,
 } from "@/features/issues/sort";
+import type { IssuePatch } from "@/features/issues/types";
+import type { FieldDefinition } from "@/lib/custom-fields";
 import { markLocalMutation } from "@/lib/realtime/localMutation";
 import type { Issue } from "@/types";
 
@@ -26,6 +33,8 @@ export function useBoardDnd<T extends Issue>(
   sortKey: SortKey,
   sortLookups: SortLookups,
   groupKey: GroupKey,
+  /** The field a custom grouping is by — needed to move between its values. */
+  groupField: FieldDefinition | null = null,
 ) {
   const [, startTransition] = useTransition();
 
@@ -37,6 +46,8 @@ export function useBoardDnd<T extends Issue>(
 
   // Refs for use inside event handlers — always up-to-date, no stale closure
   const dragIssueRef = useRef<T | null>(null);
+  /** The group the card was picked up in — which value a move gives up. */
+  const dragFromRef = useRef<string | null>(null);
   const dragOverCardRef = useRef<string | null>(null);
   const insertAboveRef = useRef(false);
 
@@ -44,30 +55,37 @@ export function useBoardDnd<T extends Issue>(
     issues,
     (
       state,
-      { id, patch, rank }: { id: string; patch: Partial<Issue>; rank: number },
-    ) => state.map((i) => (i.id === id ? { ...i, ...patch, rank } : i)),
+      { id, patch, rank }: { id: string; patch: IssuePatch; rank: number },
+    ) =>
+      state.map((i) =>
+        i.id === id ? { ...withMovePatch(i, patch), rank } : i,
+      ),
   );
 
   const getColumnIssues = (groupId: string) =>
     sortByKey(
-      optimisticIssues.filter((i) => groupIdOf(i, groupKey) === groupId),
+      // A multi-choice card is in the column of every value it has.
+      optimisticIssues.filter((i) => groupIdsOf(i, groupKey).includes(groupId)),
       sortKey,
       sortLookups,
     );
 
   const clearDragState = () => {
     dragIssueRef.current = null;
+    dragFromRef.current = null;
     dragOverCardRef.current = null;
     setDragging(null);
     setOverCol(null);
     setDragOverCard(null);
   };
 
-  const onDragStart = (issue: T) => (e: React.DragEvent) => {
-    dragIssueRef.current = issue;
-    setDragging(issue.id);
-    e.dataTransfer.effectAllowed = "move";
-  };
+  const onDragStart =
+    (issue: T, fromGroupId?: string) => (e: React.DragEvent) => {
+      dragIssueRef.current = issue;
+      dragFromRef.current = fromGroupId ?? null;
+      setDragging(issue.id);
+      e.dataTransfer.effectAllowed = "move";
+    };
 
   const onCardDragOver = (cardId: string) => (e: React.DragEvent) => {
     e.preventDefault();
@@ -103,8 +121,19 @@ export function useBoardDnd<T extends Issue>(
    * server. Shared by the drop and by "Move to…" (`moveIssue`), so both do
    * exactly the same thing.
    */
-  const commitMove = (issue: T, groupId: string, rank: number) => {
-    const patch = groupPatch(groupKey, groupId) as Partial<Issue>;
+  const commitMove = (
+    issue: T,
+    groupId: string,
+    rank: number,
+    fromGroupId: string | null,
+  ) => {
+    const patch = groupMovePatch(
+      issue,
+      groupKey,
+      fromGroupId,
+      groupId,
+      groupField,
+    );
 
     // No `router.refresh()` after the `await` — `reorderIssue` already
     // revalidates server-side (`revalidate()` in actions.ts), and Next
@@ -126,20 +155,20 @@ export function useBoardDnd<T extends Issue>(
       await reorderIssue(issue.id, patch.status ?? issue.status, rank);
       // Any other grouping changes a different field than the status —
       // `reorderIssue` only knows status and rank.
-      if (groupKey !== "status")
-        await updateIssue(issue.id, groupPatch(groupKey, groupId));
+      if (groupKey !== "status") await updateIssue(issue.id, patch);
       markLocalMutation();
     });
   };
 
   /** "Move to…": the end of the target group, no dragging involved. */
-  const moveIssue = (issue: T, groupId: string) => {
-    if (groupIdOf(issue, groupKey) === groupId) return;
+  const moveIssue = (issue: T, groupId: string, fromGroupId?: string) => {
+    if (groupIdsOf(issue, groupKey).includes(groupId)) return;
     const colIssues = getColumnIssues(groupId).filter((i) => i.id !== issue.id);
     commitMove(
       issue,
       groupId,
       rankBetween(colIssues[colIssues.length - 1] ?? null, null),
+      fromGroupId ?? null,
     );
   };
 
@@ -162,8 +191,9 @@ export function useBoardDnd<T extends Issue>(
       if (!issue) return;
 
       const rank = dropRank(groupId, issue.id);
+      const from = dragFromRef.current;
       clearDragState();
-      commitMove(issue, groupId, rank);
+      commitMove(issue, groupId, rank, from);
     },
   });
 

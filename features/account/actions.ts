@@ -6,6 +6,9 @@ import { unstable_update } from "@/auth";
 import {
   type BehaviorPreferences,
   DATE_FORMATS,
+  FIELD_DATE_FORMATS,
+  FIELD_LABEL_MODES,
+  FIELD_TIME_FORMATS,
   GROUP_KEYS,
   ISSUE_OPEN_MODES,
   ISSUE_PAGE_OPEN_MODES,
@@ -231,6 +234,9 @@ const BEHAVIOR_CHOICES: Partial<
   projectOrder: PROJECT_ORDERS,
   dateFormat: DATE_FORMATS,
   weekStart: WEEK_STARTS,
+  fieldDateFormat: FIELD_DATE_FORMATS,
+  fieldTimeFormat: FIELD_TIME_FORMATS,
+  fieldLabelMode: FIELD_LABEL_MODES,
 };
 
 const BEHAVIOR_FLAGS = [

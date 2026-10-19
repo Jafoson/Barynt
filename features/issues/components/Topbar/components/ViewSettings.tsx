@@ -13,15 +13,22 @@ import type { ViewGroupsPatch } from "@/features/issues/actions";
 import {
   CARD_FIELD_KEYS,
   type CardFieldKey,
+  customCardFieldEntry,
+  isCardFieldEntry,
   isCardFieldKey,
 } from "@/features/issues/card-fields";
 import { GroupIcon } from "@/features/issues/components/GroupIcon/GroupIcon";
 import {
+  type BuiltinGroupKey,
+  customFieldIdOf,
+  customGroupKey,
   GROUP_KEYS,
   type GroupDef,
   type GroupKey,
   type GroupLookups,
   groupDefs,
+  isCustomGroupKey,
+  isGroupableField,
 } from "@/features/issues/group";
 import {
   type GroupView,
@@ -35,6 +42,7 @@ import {
 } from "@/features/projects/detail-fields";
 import { useRouter } from "@/i18n/navigation";
 import { useModal } from "@/lib/context";
+import type { FieldDefinition } from "@/lib/custom-fields";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
 import { FilterOptions } from "./FilterPopup";
@@ -83,10 +91,21 @@ const GROUP_KEY_FIELD: Partial<Record<GroupKey, DetailFieldKey>> = {
   storyPoints: "storyPoints",
 };
 
+/** What a grouping is called: a built-in one by its field, a custom one by the field's name. */
+function groupName(
+  key: GroupKey,
+  customFields: FieldDefinition[] | undefined,
+  t: (key: (typeof GROUP_LABEL_KEY)[BuiltinGroupKey]) => string,
+): string {
+  if (!isCustomGroupKey(key)) return t(GROUP_LABEL_KEY[key]);
+  return customFields?.find((f) => f.id === customFieldIdOf(key))?.name ?? key;
+}
+
 /** What can be grouped / ordered by right now — depends on the shown fields. */
 function availableKeys(
   projectHiddenFields: string[],
-  hidden: Set<CardFieldKey>,
+  hidden: Set<string>,
+  customFields: FieldDefinition[] = [],
 ) {
   const projectVisible = visibleDetailFields(projectHiddenFields);
   const sortKeys = SORT_KEYS.filter((key) => {
@@ -94,13 +113,18 @@ function availableKeys(
     if (!field || !projectVisible.has(field)) return !field;
     return !(isCardFieldKey(field) && hidden.has(field));
   });
-  const groupKeys = GROUP_KEYS.filter((key) => {
+  const builtinKeys: GroupKey[] = GROUP_KEYS.filter((key) => {
     const field = GROUP_KEY_FIELD[key];
     if (!field) return true;
     return (
       projectVisible.has(field) && !(isCardFieldKey(field) && hidden.has(field))
     );
   });
+  // A custom field with a list of choices is a grouping too.
+  const customKeys: GroupKey[] = customFields
+    .filter(isGroupableField)
+    .map((f) => customGroupKey(f.id));
+  const groupKeys: GroupKey[] = [...builtinKeys, ...customKeys];
   return { sortKeys, groupKeys };
 }
 
@@ -112,6 +136,8 @@ interface ViewSettingsProps {
   sortKey: SortKey;
   onSortChange: (key: SortKey) => void;
   hiddenFields: string[];
+  /** Every custom field that applies here — each can be shown or hidden. */
+  displayFields: FieldDefinition[];
   onDisplayChange: (
     hidden: string[],
   ) => Promise<{ ok: true } | { error: string }>;
@@ -145,6 +171,7 @@ export function ViewSettings({
   sortKey,
   onSortChange,
   hiddenFields,
+  displayFields,
   onDisplayChange,
   groupLookups,
   view,
@@ -157,11 +184,11 @@ export function ViewSettings({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [hidden, setHidden] = useState(
-    () => new Set(hiddenFields.filter(isCardFieldKey)),
+    () => new Set(hiddenFields.filter(isCardFieldEntry)),
   );
 
   const { sortKeys: availableSortKeys, groupKeys: availableGroupKeys } =
-    availableKeys(projectHiddenFields, hidden);
+    availableKeys(projectHiddenFields, hidden, groupLookups.customFields);
   const activeGroupKey = availableGroupKeys.includes(groupKey)
     ? groupKey
     : "status";
@@ -169,7 +196,7 @@ export function ViewSettings({
     ? sortKey
     : "manual";
 
-  const save = (next: Set<CardFieldKey>) => {
+  const save = (next: Set<string>) => {
     setHidden(next);
     startTransition(async () => {
       await onDisplayChange([...next]);
@@ -204,7 +231,7 @@ export function ViewSettings({
 
   const toggleSubIssues = () => saveGroups({ showSubIssues: !subIssues });
 
-  const toggleField = (key: CardFieldKey) => {
+  const toggleField = (key: string) => {
     const next = new Set(hidden);
     if (next.has(key)) next.delete(key);
     else next.add(key);
@@ -237,6 +264,7 @@ export function ViewSettings({
     groupKey: activeGroupKey,
     sortKey: activeSortKey,
     hidden,
+    displayFields,
     projectHiddenFields,
     groupLookups,
     view,
@@ -255,6 +283,7 @@ export function ViewSettings({
     groupKey: activeGroupKey,
     sortKey: activeSortKey,
     hidden,
+    displayFields,
     projectHiddenFields,
     groupLookups,
     view,
@@ -309,6 +338,7 @@ export function ViewSettings({
               groupKey: activeGroupKey,
               sortKey: activeSortKey,
               hidden,
+              displayFields,
               projectHiddenFields,
               groupLookups,
               view,
@@ -337,7 +367,8 @@ export function ViewSettings({
 interface SheetSource {
   groupKey: GroupKey;
   sortKey: SortKey;
-  hidden: Set<CardFieldKey>;
+  hidden: Set<string>;
+  displayFields: FieldDefinition[];
   projectHiddenFields: string[];
   groupLookups: GroupLookups;
   view: GroupView;
@@ -349,7 +380,7 @@ interface SheetSource {
   toggleSubIssues: () => void;
   setGroup: (key: GroupKey) => void;
   setSort: (key: SortKey) => void;
-  toggleField: (key: CardFieldKey) => void;
+  toggleField: (key: string) => void;
   reset: () => void;
 }
 
@@ -358,7 +389,8 @@ type DisplayFacet = "group" | "sort" | "groups";
 export interface DisplayState {
   groupKey: GroupKey;
   sortKey: SortKey;
-  hidden: Set<CardFieldKey>;
+  hidden: Set<string>;
+  displayFields: FieldDefinition[];
   projectHiddenFields: string[];
   groupLookups: GroupLookups;
   view: GroupView;
@@ -395,6 +427,7 @@ function ViewSheet({
     groupKey,
     sortKey,
     hidden,
+    displayFields: latest.current.displayFields,
     projectHiddenFields: latest.current.projectHiddenFields,
     groupLookups: latest.current.groupLookups,
     view: latest.current.view,
@@ -488,7 +521,7 @@ interface DisplayPanelProps {
   state: DisplayState;
   onGroup: (key: GroupKey) => void;
   onSort: (key: SortKey) => void;
-  onToggleField: (key: CardFieldKey) => void;
+  onToggleField: (key: string) => void;
   onToggleGroup: (group: GroupDef) => void;
   onToggleHideEmpty: () => void;
   onToggleSubIssues: () => void;
@@ -528,6 +561,7 @@ export function DisplayPanel({
   const { sortKeys, groupKeys } = availableKeys(
     state.projectHiddenFields,
     state.hidden,
+    state.groupLookups.customFields,
   );
 
   // The groups of the active grouping (BARY-47) — for statuses all of them,
@@ -538,6 +572,7 @@ export function DisplayPanel({
     {
       unassigned: t("fields.unassigned"),
       noStoryPoints: t("fields.noStoryPoints"),
+      noValue: t("customFields.noValue"),
     },
     [],
   );
@@ -604,7 +639,7 @@ export function DisplayPanel({
             options: isGroup
               ? groupKeys.map((key) => ({
                   value: key,
-                  label: t(GROUP_LABEL_KEY[key]),
+                  label: groupName(key, state.groupLookups.customFields, t),
                 }))
               : sortKeys.map((key) => ({
                   value: key,
@@ -627,7 +662,7 @@ export function DisplayPanel({
     <>
       <ChoiceRow
         title={t("display.grouping")}
-        value={t(GROUP_LABEL_KEY[state.groupKey])}
+        value={groupName(state.groupKey, state.groupLookups.customFields, t)}
         onOpen={() => onFacetChange("group")}
       />
       <ChoiceRow
@@ -683,6 +718,17 @@ export function DisplayPanel({
               onClick={() => onToggleField(key)}
             >
               {t(FIELD_LABEL_KEY[key])}
+            </Chip>
+          ))}
+          {state.displayFields.map((field) => (
+            <Chip
+              key={field.id}
+              type="filter"
+              variant="text"
+              selected={!state.hidden.has(customCardFieldEntry(field.id))}
+              onClick={() => onToggleField(customCardFieldEntry(field.id))}
+            >
+              {field.name}
             </Chip>
           ))}
         </div>

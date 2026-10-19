@@ -20,7 +20,7 @@ import {
 import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import type { Label, Priority, Project, User } from "@/types";
 
-export type FilterKey =
+export type BuiltinFilterKey =
   | "status"
   | "priority"
   | "assignee"
@@ -29,7 +29,10 @@ export type FilterKey =
   | "storyPoints"
   | "dueDate";
 
-const FILTER_KEYS: FilterKey[] = [
+/** A built-in filter, or `cf.<fieldKey>` for one custom field. */
+export type FilterKey = BuiltinFilterKey | `cf.${string}`;
+
+const FILTER_KEYS: BuiltinFilterKey[] = [
   "status",
   "priority",
   "assignee",
@@ -62,6 +65,8 @@ export interface FilterState {
   storyPoints: number[];
   /** Due-date buckets: `overdue`, `today`, `week`, `none` (BARY-4). */
   dueDate: string[];
+  /** The answers picked per custom field, by field key. */
+  custom: Record<string, string[]>;
 }
 
 /** Keystrokes are cheap, navigations are not — wait for a pause before pushing. */
@@ -138,6 +143,11 @@ export function useTopbar({
       .map(Number)
       .filter((n) => Number.isFinite(n)),
     dueDate: parse("dueDate"),
+    custom: Object.fromEntries(
+      [...searchParams.keys()]
+        .filter((k) => k.startsWith("cf.") && k.length > 3)
+        .map((k) => [k.slice(3), parse(k as FilterKey)]),
+    ),
   };
 
   // The typed text belongs to the search box alone (see IssueSearch): it renders
@@ -161,7 +171,8 @@ export function useTopbar({
     filters.label.length +
     filters.project.length +
     filters.storyPoints.length +
-    filters.dueDate.length;
+    filters.dueDate.length +
+    Object.values(filters.custom).reduce((sum, v) => sum + v.length, 0);
 
   // Without `?sort=`/`?group=` the person's own defaults apply — the same
   // fallback the pages use, so the control shows what the view really does.
@@ -239,6 +250,7 @@ export function useTopbar({
   function clearAll() {
     pushParams((p) => {
       for (const key of FILTER_KEYS) p.delete(key);
+      for (const key of [...p.keys()]) if (key.startsWith("cf.")) p.delete(key);
     });
   }
 

@@ -327,12 +327,32 @@ export async function setProjectFieldVisibility(
   const guard = await requireProjectManage(projectId, "project.update");
   if ("error" in guard) return guard;
 
+  // `cf:<fieldId>` turns a custom field off for this project; only fields
+  // that apply here are kept.
+  const customIds = hidden
+    .filter((key) => key.startsWith("cf:"))
+    .map((key) => key.slice(3));
+  const known =
+    customIds.length > 0
+      ? await db.customField.findMany({
+          where: {
+            id: { in: customIds },
+            workspace: { projects: { some: { id: projectId } } },
+            OR: [{ projectId: null }, { projectId }],
+          },
+          select: { id: true },
+        })
+      : [];
+
   await db.project.update({
     where: { id: projectId },
     data: {
-      hiddenDetailFields: hidden.filter(
-        (key) => isDetailFieldKey(key) && !detailFieldDef(key).permanent,
-      ),
+      hiddenDetailFields: [
+        ...hidden.filter(
+          (key) => isDetailFieldKey(key) && !detailFieldDef(key).permanent,
+        ),
+        ...known.map((f) => `cf:${f.id}`),
+      ],
     },
   });
 
