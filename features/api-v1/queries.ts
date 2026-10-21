@@ -7,6 +7,7 @@ import {
   can,
   canEnterWorkspace,
 } from "@/lib/permissions";
+import type { StatusCategory } from "@/lib/status-category";
 import { fullName } from "@/lib/utils/string";
 
 // Read helpers for the public API (`app/api/v1`), explicitly parameterized
@@ -206,7 +207,7 @@ function makeProjectVisibility(
   };
 }
 
-const issueSelect = {
+export const issueSelect = {
   id: true,
   key: true,
   title: true,
@@ -249,6 +250,10 @@ export interface ApiIssue {
   ref: string;
   title: string;
   status: string;
+  /** The status's category (BARY-161): "backlog" | "unstarted" | "started"
+   *  | "completed" | "canceled" — stable across workspaces, unlike status
+   *  ids and names. `null` for a status that no longer exists. */
+  statusCategory: StatusCategory | null;
   priority: number;
   type: string;
   labels: ApiLabel[];
@@ -277,10 +282,24 @@ export interface ApiIssue {
   relations: ApiIssueRelation[];
 }
 
-async function mapApiIssue(
+/** The category of each status among `rows` — one query per response. */
+export async function statusCategories(
+  rows: { status: string }[],
+): Promise<Map<string, StatusCategory>> {
+  const ids = [...new Set(rows.map((row) => row.status))];
+  if (ids.length === 0) return new Map();
+  const statuses = await db.status.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, category: true },
+  });
+  return new Map(statuses.map((s) => [s.id, s.category]));
+}
+
+export async function mapApiIssue(
   row: IssueRow,
   labelMap: Map<string, ApiLabel>,
   canView: (projectId: string) => Promise<boolean>,
+  categories: Map<string, StatusCategory>,
 ): Promise<ApiIssue> {
   const [parent, children, relations] = await Promise.all([
     row.parent ? toApiIssueRef(row.parent, canView) : Promise.resolve(null),
@@ -308,6 +327,7 @@ async function mapApiIssue(
     ref: `${row.project.prefix}-${row.key}`,
     title: row.title,
     status: row.status,
+    statusCategory: categories.get(row.status) ?? null,
     priority: row.priority,
     type: row.type,
     labels: row.labels.map((id) => labelMap.get(id)).filter((l) => l != null),
@@ -327,6 +347,21 @@ async function mapApiIssue(
     children,
     relations,
   };
+}
+
+/** A page of rows as the API returns them, seen by `userId`. */
+export async function mapApiIssues(
+  userId: string,
+  rows: IssueRow[],
+): Promise<ApiIssue[]> {
+  const [labelMap, categories] = await Promise.all([
+    resolveLabels(rows.map((row) => row.labels)),
+    statusCategories(rows),
+  ]);
+  const canView = makeProjectVisibility(userId);
+  return Promise.all(
+    rows.map((row) => mapApiIssue(row, labelMap, canView, categories)),
+  );
 }
 
 /** "PREFIX-123", the same shorthand `getIssueForUser` also accepts instead
@@ -412,14 +447,7 @@ export async function listIssuesForUser(
 
   const hasMore = rows.length > options.take;
   const page = rows.slice(0, options.take);
-  const labelMap = await resolveLabels(page.map((row) => row.labels));
-  const canView = makeProjectVisibility(userId);
-  return {
-    rows: await Promise.all(
-      page.map((row) => mapApiIssue(row, labelMap, canView)),
-    ),
-    hasMore,
-  };
+  return { rows: await mapApiIssues(userId, page), hasMore };
 }
 
 /**
@@ -452,8 +480,11 @@ export async function getIssueForUser(
 
   const canView = makeProjectVisibility(userId);
   if (!(await canView(row.projectId))) return null;
-  const labelMap = await resolveLabels([row.labels]);
-  return mapApiIssue(row, labelMap, canView);
+  const [labelMap, categories] = await Promise.all([
+    resolveLabels([row.labels]),
+    statusCategories([row]),
+  ]);
+  return mapApiIssue(row, labelMap, canView, categories);
 }
 
 /**
@@ -473,8 +504,11 @@ export async function getIssueForUser(
 export async function getIssueUnchecked(id: string): Promise<ApiIssue | null> {
   const row = await db.issue.findUnique({ where: { id }, select: issueSelect });
   if (!row) return null;
-  const labelMap = await resolveLabels([row.labels]);
-  return mapApiIssue(row, labelMap, () => Promise.resolve(true));
+  const [labelMap, categories] = await Promise.all([
+    resolveLabels([row.labels]),
+    statusCategories([row]),
+  ]);
+  return mapApiIssue(row, labelMap, () => Promise.resolve(true), categories);
 }
 
 export interface ApiComment {

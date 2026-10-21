@@ -6,18 +6,22 @@ import { widgetsSchema } from "@/features/dashboard/widgets";
 import { isGroupKey } from "@/features/issues/group";
 import { resolveUrlFilter } from "@/features/issues/queries";
 import { isSortKey } from "@/features/issues/sort";
-import { recordAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { can, currentUserId } from "@/lib/permissions";
-import { slugify } from "@/lib/slug";
 import { uid } from "@/lib/utils/id";
+import { canEditView, canSeeView } from "./access";
 import {
-  canChangeVisibility,
-  canCreateView,
-  canEditView,
-  canSeeView,
-} from "./access";
+  createViewFor,
+  deleteViewFor,
+  fail,
+  include,
+  loadView,
+  nextPosition,
+  uniqueViewSlug,
+  updateViewFor,
+  type ViewResult,
+} from "./core";
 import {
   getVisibleViews,
   mapView,
@@ -26,129 +30,28 @@ import {
 } from "./queries";
 import {
   type CreateViewInput,
-  createViewSchema,
   type SavedView,
   type UpdateViewInput,
-  updateViewSchema,
   type ViewUserStateInput,
   viewUserStateSchema,
 } from "./schema";
 import { displayFromParams, layoutFromParam, pickViewState } from "./url";
 
 /**
- * Saved views (BARY-163). Like the label management, these don't throw but
- * report why something didn't happen — they're called from the tab bar and
- * its dialogs (V4), which show the reason instead of hitting an error
- * boundary. A view the caller may not see answers `notFound`, never
- * `forbidden`, so nobody learns that someone else's private view exists.
+ * Saved views (BARY-163) as server actions for the tab bar and its dialogs
+ * (V4), which show the reason a change didn't happen instead of hitting an
+ * error boundary. The rules live in `core.ts`, shared with the public API.
  */
-export type ViewResult<T> =
-  | { ok: true; data: T }
-  | {
-      ok: false;
-      error: "unauthenticated" | "invalid" | "notFound" | "forbidden";
-    };
-
-const fail = (
-  error: "unauthenticated" | "invalid" | "notFound" | "forbidden",
-) => ({ ok: false, error }) as const;
-
-const include = (userId: string) => ({ userStates: { where: { userId } } });
-
-/** A slug from the name that's still free in the workspace: `bugs`,
- *  `bugs-2`, … Same scheme as label slugs. */
-async function uniqueViewSlug(workspaceId: string, name: string) {
-  const base = slugify(name) || "view";
-  let slug = base;
-  let n = 1;
-  while (
-    await db.savedView.findUnique({
-      where: { workspaceId_slug: { workspaceId, slug } },
-      select: { id: true },
-    })
-  ) {
-    slug = `${base}-${++n}`;
-  }
-  return slug;
-}
-
-/** After the last tab of its scope. */
-async function nextPosition(workspaceId: string, projectId: string | null) {
-  const last = await db.savedView.aggregate({
-    where: { workspaceId, projectId },
-    _max: { position: true },
-  });
-  return (last._max.position ?? 0) + 1;
-}
-
-async function loadView(id: string, userId: string) {
-  const row = await db.savedView.findUnique({
-    where: { id },
-    include: include(userId),
-  });
-  if (!row) return null;
-  const facts = await viewAccessFacts(userId, {
-    workspaceId: row.workspaceId,
-    projectId: row.projectId,
-  });
-  return { row, facts };
-}
+export type { ViewResult } from "./core";
 
 export async function createView(
   input: CreateViewInput,
 ): Promise<ViewResult<SavedView>> {
   const userId = await currentUserId();
   if (!userId) return fail("unauthenticated");
-  const parsed = createViewSchema.safeParse(input);
-  if (!parsed.success) return fail("invalid");
-  const data = parsed.data;
-
-  // The workspace comes from the project, not from the call — same as for
-  // project labels: a foreign `workspaceId` can't place a view elsewhere.
-  let workspaceId = data.workspaceId;
-  if (data.projectId) {
-    const project = await db.project.findUnique({
-      where: { id: data.projectId },
-      select: { workspaceId: true },
-    });
-    if (!project) return fail("notFound");
-    workspaceId = project.workspaceId;
-  }
-
-  const scope = { workspaceId, projectId: data.projectId };
-  const facts = await viewAccessFacts(userId, scope);
-  if (!facts.canSeeScope) return fail("notFound");
-  if (!canCreateView(data.visibility, data.projectId, facts))
-    return fail("forbidden");
-
-  const row = await db.savedView.create({
-    data: {
-      id: uid("v"),
-      workspaceId,
-      projectId: data.projectId,
-      ownerId: userId,
-      visibility: data.visibility,
-      name: data.name,
-      slug: await uniqueViewSlug(workspaceId, data.name),
-      icon: data.icon ?? null,
-      color: data.color ?? null,
-      position: await nextPosition(workspaceId, data.projectId),
-      layout: data.layout,
-      filter: (data.filter ?? {
-        op: "and",
-        rules: [],
-      }) as Prisma.InputJsonValue,
-      groupBy: data.groupBy ?? null,
-      subGroupBy: data.subGroupBy ?? null,
-      sortBy: data.sortBy ?? "manual",
-      sortDir: data.sortDir ?? "asc",
-      display: (data.display ?? {}) as Prisma.InputJsonValue,
-    },
-    include: include(userId),
-  });
-
-  revalidatePath("/", "layout");
-  return { ok: true, data: mapView(row, facts) };
+  const result = await createViewFor(userId, input);
+  if (result.ok) revalidatePath("/", "layout");
+  return result;
 }
 
 export async function updateView(
@@ -157,44 +60,9 @@ export async function updateView(
 ): Promise<ViewResult<SavedView>> {
   const userId = await currentUserId();
   if (!userId) return fail("unauthenticated");
-  const parsed = updateViewSchema.safeParse(input);
-  if (!parsed.success) return fail("invalid");
-  const patch = parsed.data;
-
-  const loaded = await loadView(id, userId);
-  if (!loaded || !canSeeView(loaded.row, loaded.facts)) return fail("notFound");
-  const { row, facts } = loaded;
-  if (!canEditView(row, facts)) return fail("forbidden");
-  if (
-    patch.visibility !== undefined &&
-    !canChangeVisibility(row, patch.visibility, facts)
-  )
-    return fail("forbidden");
-
-  const updated = await db.savedView.update({
-    where: { id },
-    data: {
-      ...(patch.name !== undefined && { name: patch.name }),
-      ...(patch.icon !== undefined && { icon: patch.icon }),
-      ...(patch.color !== undefined && { color: patch.color }),
-      ...(patch.visibility !== undefined && { visibility: patch.visibility }),
-      ...(patch.layout !== undefined && { layout: patch.layout }),
-      ...(patch.filter !== undefined && {
-        filter: patch.filter as Prisma.InputJsonValue,
-      }),
-      ...(patch.groupBy !== undefined && { groupBy: patch.groupBy }),
-      ...(patch.subGroupBy !== undefined && { subGroupBy: patch.subGroupBy }),
-      ...(patch.sortBy !== undefined && { sortBy: patch.sortBy }),
-      ...(patch.sortDir !== undefined && { sortDir: patch.sortDir }),
-      ...(patch.display !== undefined && {
-        display: patch.display as Prisma.InputJsonValue,
-      }),
-    },
-    include: include(userId),
-  });
-
-  revalidatePath("/", "layout");
-  return { ok: true, data: mapView(updated, facts) };
+  const result = await updateViewFor(userId, id, input);
+  if (result.ok) revalidatePath("/", "layout");
+  return result;
 }
 
 /**
@@ -244,33 +112,13 @@ export async function duplicateView(
   return { ok: true, data: mapView(copy, loaded.facts) };
 }
 
-/**
- * Deletes a view. Deleting a shared one is logged — it disappears for
- * everyone, and the log is where "who removed our triage view?" gets
- * answered. A private view goes without a trace, like any personal setting.
- */
+/** Deletes a view (`deleteViewFor`). */
 export async function deleteView(id: string): Promise<ViewResult<null>> {
   const userId = await currentUserId();
   if (!userId) return fail("unauthenticated");
-  const loaded = await loadView(id, userId);
-  if (!loaded || !canSeeView(loaded.row, loaded.facts)) return fail("notFound");
-  const { row, facts } = loaded;
-  if (!canEditView(row, facts)) return fail("forbidden");
-
-  await db.savedView.delete({ where: { id } });
-
-  if (row.visibility !== "PRIVATE") {
-    await recordAudit({
-      action: "view.deleted",
-      actorId: userId,
-      target: { type: "view", id: row.id, label: row.name },
-      workspaceId: row.workspaceId,
-      projectId: row.projectId,
-    });
-  }
-
-  revalidatePath("/", "layout");
-  return { ok: true, data: null };
+  const result = await deleteViewFor(userId, id);
+  if (result.ok) revalidatePath("/", "layout");
+  return result;
 }
 
 /**

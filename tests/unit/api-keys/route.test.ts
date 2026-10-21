@@ -125,7 +125,12 @@ const db = {
   },
   // `createIssueForUser` asks whether the initial status closes the issue
   // (its category, BARY-161) — `null` = unknown id = open.
-  status: { findUnique: mock(async () => null) },
+  status: {
+    findUnique: mock(async () => null),
+    // `statusCategory` on every issue (BARY-172).
+    findMany: mock(async () => [{ id: "todo", category: "unstarted" }]),
+  },
+  issueStatusEvent: { create: mock(async () => ({})) },
   workspaceStatus: { createMany: mockWorkspaceStatusCreateMany },
   workspacePriority: { createMany: mockWorkspacePriorityCreateMany },
   workspaceIssueType: { createMany: mockWorkspaceIssueTypeCreateMany },

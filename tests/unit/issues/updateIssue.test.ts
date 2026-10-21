@@ -30,7 +30,13 @@ mock.module("@/lib/db", () => ({
     issue: { findUnique: mockIssueFindUnique, update: mockIssueUpdate },
     user: { findUnique: mockUserFindUnique },
     auditLog: { create: mockAuditCreate },
-    status: { findUnique: mockStatusFindUnique },
+    status: {
+      findUnique: mockStatusFindUnique,
+      // The webhook payload's `statusCategory` (BARY-172) and the flow
+      // metrics' record (BARY-171); unknown ids just come back empty.
+      findMany: mock(async () => []),
+    },
+    issueStatusEvent: { create: mock(async () => ({})) },
     priority: { findUnique: mockPriorityFindUnique },
     issueType: { findUnique: mockIssueTypeFindUnique },
     label: { findMany: mockLabelFindMany },
