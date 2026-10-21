@@ -73,6 +73,29 @@ export interface BurnupPoint {
   total: number;
   /** Of those, closed by then. */
   done: number;
+  /** New in this bucket — the burndown marks when work came in. */
+  added?: number;
+}
+
+/** One band of a cumulative flow chart (BARY-171): a category or a status,
+ *  how many issues sat there at each bucket's end. */
+export interface FlowBand {
+  key: string;
+  /** A status's name; empty for a category (the client names those). */
+  label: string;
+  color: string;
+  values: number[];
+}
+
+/** How long issues stayed in one status or category, on average. */
+export interface StatusStay {
+  key: string;
+  label: string;
+  color: string;
+  /** Average stay in days. */
+  days: number;
+  /** Stays that ended in the range. */
+  count: number;
 }
 
 export interface CyclePoint {
@@ -230,7 +253,19 @@ export type WidgetData =
       points: CyclePoint[];
       /** Average per bucket, `null` where nothing closed. */
       spark: (number | null)[];
+      /** Measured from the first start (cycle) or from creation (lead). */
+      by?: "cycle" | "lead";
+      /** Closed in the range but never started — not in a cycle time. */
+      unstarted?: number;
     }
+  | {
+      type: "cfd";
+      /** Bucket starts, `YYYY-MM-DD`. */
+      dates: string[];
+      /** Bottom to top. */
+      bands: FlowBand[];
+    }
+  | { type: "timeInStatus"; rows: StatusStay[] }
   | { type: "workload"; rows: WorkloadRow[] }
   | {
       type: "matrix";

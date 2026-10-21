@@ -1,11 +1,16 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Input } from "@/components/ui/atoms/Input/Input";
 import { NativeSelect } from "@/components/ui/atoms/NativeSelect/NativeSelect";
 import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import {
+  BURN_VIEWS,
+  CYCLE_BY,
+  CYCLE_VIEWS,
   DISTRIBUTION_CHARTS,
+  FLOW_BY,
   GROUP_FIELDS,
   type GroupField,
   ISSUE_SORTS,
@@ -198,6 +203,98 @@ export function KindFields({
           />
         </div>
       )}
+
+      {/* ── Flow metrics (BARY-171) ── */}
+      {widget.type === "burnup" && (
+        <>
+          <Segments
+            label={t("burnView")}
+            value={config.burn ?? "up"}
+            onChange={(v) => set({ burn: v === "up" ? undefined : v })}
+            items={BURN_VIEWS.map((v) => ({ value: v, label: t(`burn_${v}`) }))}
+          />
+          {config.burn === "down" && (
+            <Input
+              variant="date"
+              label={t("targetDate")}
+              hint={t("targetDateHint")}
+              value={config.targetDate ?? ""}
+              onChange={(e) => set({ targetDate: e.target.value || undefined })}
+            />
+          )}
+        </>
+      )}
+
+      {widget.type === "cycle" && (
+        <>
+          <Segments
+            label={t("cycleBy")}
+            value={config.cycleBy ?? "lead"}
+            onChange={(v) => set({ cycleBy: v === "lead" ? undefined : v })}
+            items={CYCLE_BY.map((v) => ({
+              value: v,
+              label: t(`cycleBy_${v}`),
+            }))}
+          />
+          <Segments
+            label={t("chart")}
+            value={config.cycleView ?? "points"}
+            onChange={(v) => set({ cycleView: v === "points" ? undefined : v })}
+            items={CYCLE_VIEWS.map((v) => ({
+              value: v,
+              label: t(`cycleView_${v}`),
+            }))}
+          />
+        </>
+      )}
+
+      {(widget.type === "cfd" || widget.type === "timeInStatus") && (
+        <Segments
+          label={t("flowBy")}
+          value={config.flowBy ?? "category"}
+          onChange={(v) => set({ flowBy: v === "category" ? undefined : v })}
+          items={FLOW_BY.map((v) => ({ value: v, label: t(`flowBy_${v}`) }))}
+        />
+      )}
+
+      {widget.type === "cfd" && (
+        <div className={styles.row}>
+          <span>{t("showDone")}</span>
+          <Switch
+            checked={!config.hideDone}
+            onChange={(on) => set({ hideDone: on ? undefined : true })}
+            label={t("showDone")}
+            labelHidden
+          />
+        </div>
+      )}
     </>
+  );
+}
+
+/** A labeled segmented control across the panel's width. */
+function Segments<T extends string>({
+  label,
+  value,
+  onChange,
+  items,
+}: {
+  label: string;
+  value: T;
+  onChange: (value: T) => void;
+  items: { value: T; label: string }[];
+}) {
+  return (
+    <div className={styles.field}>
+      <span className={styles.label}>{label}</span>
+      <span className={styles.full}>
+        <SegmentedControl
+          variant="surface"
+          value={value}
+          onChange={(v) => onChange(v as T)}
+          items={items}
+        />
+      </span>
+    </div>
   );
 }

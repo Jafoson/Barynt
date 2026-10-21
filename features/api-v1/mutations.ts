@@ -32,6 +32,7 @@ import { recordAudit } from "@/lib/audit";
 import type { RelationChangeMeta } from "@/lib/audit/actions";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
+import { recordStatusEvent } from "@/lib/issue-status-events";
 import { notify } from "@/lib/notify";
 import { can } from "@/lib/permissions";
 import { enrollMember, enrollWorkspaceMembers } from "@/lib/project-membership";
@@ -296,6 +297,7 @@ export async function createIssueForUser(
         input.estimateHours != null ? (estimateUnit ?? "hours") : null,
     },
   });
+  await recordStatusEvent(id, null, status);
 
   // Re-fetched via the shared, permission-free resolver rather than mapped
   // by hand here — that's the one place that resolves `assignee`/`reporter`

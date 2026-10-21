@@ -33,6 +33,7 @@ import {
   issueShareUrl,
   newIssueShareToken,
 } from "@/lib/issue-share";
+import { recordStatusEvent } from "@/lib/issue-status-events";
 import { sendIssueShareLinkEmail } from "@/lib/mail";
 import { notify } from "@/lib/notify";
 import {
@@ -794,6 +795,7 @@ export async function createIssue(data: {
         data.estimateHours != null ? (data.estimateUnit ?? "hours") : null,
     },
   });
+  await recordStatusEvent(id, null, data.status);
 
   if (data.assignee && data.assignee !== userId) {
     await notify({

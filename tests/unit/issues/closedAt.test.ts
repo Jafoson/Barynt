@@ -25,7 +25,14 @@ mock.module("@/lib/db", () => ({
         const category = STATUS_CATEGORY[where.id];
         return category ? { name: where.id, category } : null;
       }),
+      // The flow metrics' record of every change (BARY-171).
+      findMany: mock(async ({ where }: { where: { id: { in: string[] } } }) =>
+        where.id.in.flatMap((id) =>
+          STATUS_CATEGORY[id] ? [{ id, category: STATUS_CATEGORY[id] }] : [],
+        ),
+      ),
     },
+    issueStatusEvent: { create: mock(async () => ({})) },
     // Not the subject of this file — `moveIssue`/`updateIssue` look up names
     // for these when priority/type/labels change (audit trail,
     // `recordIssueAudit` & co.). `null` is a valid result (unknown id), in
@@ -110,6 +117,22 @@ describe("Closing", () => {
 
     expect(written().status).toBe("done");
     expect(written().closedAt).toBeInstanceOf(Date);
+  });
+
+  it("records the change for the flow metrics", async () => {
+    const created = db.issueStatusEvent.create as ReturnType<typeof mock>;
+    created.mockClear();
+    mockFindUnique.mockResolvedValue(issue("in_progress", null));
+    await moveIssue("i1", "done");
+
+    expect(created).toHaveBeenCalledTimes(1);
+    expect(created.mock.calls[0][0].data).toMatchObject({
+      issueId: "i1",
+      fromStatus: "in_progress",
+      toStatus: "done",
+      fromCategory: "started",
+      toCategory: "completed",
+    });
   });
 
   it("counts discarding as a close too", async () => {

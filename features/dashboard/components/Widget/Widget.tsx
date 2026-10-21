@@ -54,6 +54,11 @@ export function useWidgetTitle() {
       return t(`timeBy_${by}`) + split + measure;
     }
     if (widget.type === "progress") return t("type_progress") + measure;
+    // Flow metrics (BARY-171): what's measured is the name.
+    if (widget.type === "cycle" && widget.config.cycleBy === "cycle")
+      return t("cycleTitle");
+    if (widget.type === "burnup" && widget.config.burn === "down")
+      return t("burn_down");
     // A custom widget without a name: its first block's.
     if (widget.type === "blocks") {
       const first = widget.config.blocks?.[0];

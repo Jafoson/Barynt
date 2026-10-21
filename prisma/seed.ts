@@ -1219,6 +1219,7 @@ async function main() {
         projectId: ref(realProjectId, localProject, "issue project"),
       },
     });
+    await seedStatusEvents(issueId, issue.status, issue.created, issue.updated);
     for (const c of issue.comments) {
       await db.comment.upsert({
         where: { id: ref(realCommentId, c.id, "comment") },
@@ -1252,3 +1253,53 @@ main()
     process.exit(1);
   })
   .finally(() => db.$disconnect());
+
+/**
+ * A believable status history for a seeded issue (BARY-171), so the flow
+ * metrics have something to show after `db:reset`: created in Todo (or
+ * its own backlog/todo status), started 40 % of the way to its last update
+ * if it got that far, done or canceled at that update. Fixed ids — a
+ * second seed run adds nothing.
+ */
+async function seedStatusEvents(
+  issueId: string,
+  status: string,
+  created: Date,
+  updated: Date,
+) {
+  const categoryOf = (id: string) =>
+    DEFAULT_STATUSES.find((s) => s.id === id)?.category;
+  const firstOf = (category: string) =>
+    DEFAULT_STATUSES.find((s) => s.category === category)?.id;
+  const category = categoryOf(status);
+  if (!category) return;
+  const start =
+    category === "backlog" || category === "unstarted"
+      ? status
+      : (firstOf("unstarted") ?? status);
+  const path: { to: string; at: Date }[] = [{ to: start, at: created }];
+  const between = (share: number) =>
+    new Date(
+      created.getTime() + (updated.getTime() - created.getTime()) * share,
+    );
+  if (category === "started") path.push({ to: status, at: between(0.4) });
+  if (category === "completed") {
+    const started = firstOf("started");
+    if (started) path.push({ to: started, at: between(0.4) });
+    path.push({ to: status, at: updated });
+  }
+  if (category === "canceled") path.push({ to: status, at: updated });
+
+  await db.issueStatusEvent.createMany({
+    data: path.map((step, i) => ({
+      id: `${issueId}_se${i}`,
+      issueId,
+      fromStatus: i ? path[i - 1].to : null,
+      toStatus: step.to,
+      fromCategory: i ? (categoryOf(path[i - 1].to) ?? null) : null,
+      toCategory: categoryOf(step.to) ?? "unstarted",
+      at: step.at,
+    })),
+    skipDuplicates: true,
+  });
+}

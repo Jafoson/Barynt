@@ -476,3 +476,50 @@ describe("Blocks and templates (BARY-170)", () => {
     expect(BLOCK_TYPES.every((type) => offeredOn(type, "project"))).toBe(true);
   });
 });
+
+describe("Flow metrics (BARY-171)", () => {
+  it("stores the flow widgets' settings", () => {
+    const widgets = [
+      {
+        id: "b",
+        type: "burnup",
+        size: "XL",
+        config: { burn: "down", targetDate: "2026-10-31" },
+      },
+      {
+        id: "c",
+        type: "cycle",
+        size: "L",
+        config: { cycleBy: "cycle", cycleView: "histogram" },
+      },
+      {
+        id: "f",
+        type: "cfd",
+        size: "XL",
+        config: { flowBy: "status", hideDone: true },
+      },
+      { id: "t", type: "timeInStatus", size: "L", config: {} },
+    ];
+    expect(parseWidgets(widgets)).toEqual(widgets as Widget[]);
+  });
+
+  it("rejects a target date that isn't a day", () => {
+    expect(
+      parseWidgets([
+        {
+          id: "b",
+          type: "burnup",
+          size: "XL",
+          config: { burn: "down", targetDate: "31.10.2026" },
+        },
+      ]),
+    ).toBeNull();
+  });
+
+  it("the new kinds are offered on every dashboard", () => {
+    for (const kind of ["project", "workspace", "view"] as const) {
+      expect(offeredOn("cfd", kind)).toBe(true);
+      expect(offeredOn("timeInStatus", kind)).toBe(true);
+    }
+  });
+});
