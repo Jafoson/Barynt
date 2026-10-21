@@ -12,7 +12,8 @@
 // as a two-column grid in exactly this order — read/write pairs of the same
 // resource stay next to each other. `members:read` has no write half: the
 // public API has no endpoint that adds or removes a member, only invite
-// flows already in the app.
+// flows already in the app. The views pair comes last so `members:read`
+// keeps its place in the grid.
 
 export const API_SCOPES = [
   "issues:read",
@@ -26,6 +27,10 @@ export const API_SCOPES = [
   "workspaces:read",
   "workspaces:write",
   "members:read",
+  // Saved views (BARY-172). A view's issues need `issues:read` as well —
+  // `views:read` alone never reads an issue.
+  "views:read",
+  "views:write",
 ] as const;
 
 export type ApiScope = (typeof API_SCOPES)[number];

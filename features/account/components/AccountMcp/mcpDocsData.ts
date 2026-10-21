@@ -15,7 +15,8 @@ export type McpToolGroupId =
   | "issues"
   | "comments"
   | "labels"
-  | "members";
+  | "members"
+  | "views";
 
 export interface McpToolDoc {
   name: string;
@@ -85,7 +86,7 @@ export const MCP_TOOL_GROUPS: McpToolGroup[] = [
       {
         name: "list_issues",
         scope: "issues:read",
-        desc: "List issues in a project, optionally filtered by status, assignee, or a text search over title and description.",
+        desc: "List issues in a project, optionally filtered by status, assignee, a text search or a filter tree (`filter`). With `viewId`, the issues a saved view shows (needs views:read too); `@me` means you.",
       },
       {
         name: "create_issue",
@@ -166,6 +167,41 @@ export const MCP_TOOL_GROUPS: McpToolGroup[] = [
         name: "list_project_members",
         scope: "members:read",
         desc: "List every member of a project, with id, name, email, and handle (for @mentions).",
+      },
+    ],
+  },
+  {
+    id: "views",
+    tools: [
+      {
+        name: "list_views",
+        scope: "views:read",
+        desc: "List the saved views you can see — a project's (projectId) or a workspace's cross-project views (workspaceId), built-in ones included.",
+      },
+      {
+        name: "get_view",
+        scope: "views:read",
+        desc: "Fetch one view: filter tree, layout, grouping, sort. Use list_issues with viewId for its issues.",
+      },
+      {
+        name: "create_view",
+        scope: "views:write",
+        desc: "Save a view in a project or as a cross-project view. Private unless visibility says otherwise.",
+      },
+      {
+        name: "update_view",
+        scope: "views:write",
+        desc: "Change a view — only what you pass. Same rights as in the app.",
+      },
+      {
+        name: "delete_view",
+        scope: "views:write",
+        desc: "Delete a view. Built-in views can't be deleted.",
+      },
+      {
+        name: "list_statuses",
+        scope: "workspaces:read",
+        desc: "A workspace's statuses in board order, each with its category (backlog, unstarted, started, completed, canceled).",
       },
     ],
   },

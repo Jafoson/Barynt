@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { slugify } from "@/lib/slug";
 import { uid } from "@/lib/utils/id";
+import { fireWebhookEvent } from "@/lib/webhooks/deliver";
 import {
   canChangeVisibility,
   canCreateView,
@@ -39,6 +40,40 @@ export type ViewResult<T> =
 export const fail = (
   error: "unauthenticated" | "invalid" | "notFound" | "forbidden",
 ) => ({ ok: false, error }) as const;
+
+/** What a webhook hears about a shared view — the stored fields, no
+ *  per-viewer state. */
+function viewPayload(row: {
+  id: string;
+  name: string;
+  slug: string;
+  workspaceId: string;
+  projectId: string | null;
+  ownerId: string | null;
+  visibility: string;
+  layout: string;
+  filter: unknown;
+  groupBy: string | null;
+  sortBy: string;
+  sortDir: string;
+  updatedAt: Date;
+}) {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    workspaceId: row.workspaceId,
+    projectId: row.projectId,
+    ownerId: row.ownerId,
+    visibility: row.visibility,
+    layout: row.layout,
+    filter: row.filter,
+    groupBy: row.groupBy,
+    sortBy: row.sortBy,
+    sortDir: row.sortDir,
+    updatedAt: row.updatedAt,
+  };
+}
 
 export const include = (userId: string) => ({
   userStates: { where: { userId } },
@@ -138,6 +173,9 @@ export async function createViewFor(
     include: include(userId),
   });
 
+  if (row.visibility !== "PRIVATE") {
+    fireWebhookEvent(workspaceId, "view.created", viewPayload(row));
+  }
   return { ok: true, data: mapView(row, facts) };
 }
 
@@ -182,6 +220,11 @@ export async function updateViewFor(
     include: include(userId),
   });
 
+  // Shared before or after: a view that just went private is news too —
+  // the payload's `visibility` says so.
+  if (row.visibility !== "PRIVATE" || updated.visibility !== "PRIVATE") {
+    fireWebhookEvent(row.workspaceId, "view.updated", viewPayload(updated));
+  }
   return { ok: true, data: mapView(updated, facts) };
 }
 
@@ -200,6 +243,14 @@ export async function deleteViewFor(
   if (!canEditView(row, facts)) return fail("forbidden");
 
   await db.savedView.delete({ where: { id } });
+  if (row.visibility !== "PRIVATE") {
+    fireWebhookEvent(row.workspaceId, "view.deleted", {
+      id: row.id,
+      name: row.name,
+      workspaceId: row.workspaceId,
+      projectId: row.projectId,
+    });
+  }
 
   if (row.visibility !== "PRIVATE") {
     await recordAudit({

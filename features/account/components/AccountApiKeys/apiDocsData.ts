@@ -41,7 +41,8 @@ export type ApiDocGroupId =
   | "issues"
   | "comments"
   | "labels"
-  | "members";
+  | "members"
+  | "views";
 
 export interface ApiDocGroup {
   id: ApiDocGroupId;
@@ -137,6 +138,35 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
         pathParams: [idParam("workspace")],
         response: `{
   "data": { "id": "acme" }
+}`,
+      },
+      {
+        method: "GET",
+        path: "/api/v1/workspaces/{id}/statuses",
+        scope: "workspaces:read",
+        desc: "List a workspace's statuses in board order, each with its category — backlog, unstarted, started, completed or canceled. Categories are the same in every workspace; status ids and names are not.",
+        pathParams: [idParam("workspace")],
+        response: `{
+  "data": [
+    {
+      "id": "todo",
+      "name": "Todo",
+      "short": "Todo",
+      "color": "#b8bcc4",
+      "category": "unstarted",
+      "isColumn": true,
+      "position": 1
+    },
+    {
+      "id": "in_progress",
+      "name": "In Progress",
+      "short": "Doing",
+      "color": "#e0992b",
+      "category": "started",
+      "isColumn": true,
+      "position": 2
+    }
+  ]
 }`,
       },
     ],
@@ -264,6 +294,11 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
             desc: "Case-insensitive substring match against title and description.",
           },
           {
+            name: "filter",
+            type: "string (JSON)",
+            desc: 'A filter tree, the shape views store: {"op":"and","rules":[{"field":"priority","is":"gte","value":3},{"op":"or","rules":[…]}]}. "@me" means you. URL-encode it. 422 invalid_filter if it isn\'t a valid tree.',
+          },
+          {
             name: "fields",
             type: "string",
             desc: 'Comma-separated allowlist, e.g. "id,title,status" — trims the response to just those keys ("id" always included).',
@@ -286,6 +321,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
       "ref": "WEB-42",
       "title": "Fix broken checkout flow",
       "status": "in_progress",
+      "statusCategory": "started",
       "priority": 2,
       "type": "bug",
       "labels": [
@@ -510,6 +546,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
   "title": "Fix broken checkout flow",
   "description": "Checkout fails on Safari when the discount code field is empty.",
   "status": "in_progress",
+  "statusCategory": "started",
   "priority": 2,
   "assignee": "u_7h3j2k",
   "labels": ["l_9f2a1b"],
@@ -780,6 +817,298 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
       },
     ],
   },
+  {
+    id: "views",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/v1/projects/{id}/views",
+        scope: "views:read",
+        desc: "List a project's saved views you can see — shared ones and your own private ones, in tab order.",
+        pathParams: [idParam("project")],
+        response: `{
+  "data": [
+    {
+      "id": "v_3c9d1e",
+      "name": "Urgent bugs",
+      "slug": "urgent-bugs",
+      "systemKey": null,
+      "workspaceId": "ws_1a2b3c",
+      "project": { "id": "proj_9f8e7d", "name": "Website Relaunch" },
+      "owner": { "id": "u_7h3j2k", "name": "Priya Shah", "handle": "priya" },
+      "visibility": "PROJECT",
+      "layout": "list",
+      "icon": null,
+      "color": "#e05252",
+      "filter": {
+        "op": "and",
+        "rules": [
+          { "field": "type", "is": "any", "value": ["bug"] },
+          { "field": "priority", "is": "gte", "value": 3 },
+          { "field": "assignee", "is": "any", "value": ["@me"] }
+        ]
+      },
+      "groupBy": "status",
+      "subGroupBy": null,
+      "sortBy": "priority",
+      "sortDir": "desc",
+      "createdAt": "2026-10-01T09:00:00.000Z",
+      "updatedAt": "2026-10-12T14:20:00.000Z",
+      "canEdit": true
+    }
+  ]
+}`,
+      },
+      {
+        method: "GET",
+        path: "/api/v1/workspaces/{id}/views",
+        scope: "views:read",
+        desc: 'List a workspace\'s cross-project views you can see, including the built-in "My issues" and "Created by me" (systemKey set; they can\'t be changed).',
+        pathParams: [idParam("workspace")],
+        response: `{
+  "data": [
+    {
+      "id": "v_8a1b2c",
+      "name": "My issues",
+      "slug": "my-issues",
+      "systemKey": "my-issues",
+      "project": null,
+      "owner": null,
+      "visibility": "WORKSPACE",
+      "layout": "list",
+      "filter": { "op": "and", "rules": [] },
+      "canEdit": false
+    }
+  ]
+}`,
+      },
+      {
+        method: "GET",
+        path: "/api/v1/views/{id}",
+        scope: "views:read",
+        desc: 'Fetch one view: its filter tree, layout, grouping and sort. "@me" in the filter stays as written — it means whoever asks.',
+        pathParams: [idParam("view")],
+        response: `{
+  "data": {
+    "id": "v_3c9d1e",
+    "name": "Urgent bugs",
+    "slug": "urgent-bugs",
+    "systemKey": null,
+    "workspaceId": "ws_1a2b3c",
+    "project": { "id": "proj_9f8e7d", "name": "Website Relaunch" },
+    "owner": { "id": "u_7h3j2k", "name": "Priya Shah", "handle": "priya" },
+    "visibility": "PROJECT",
+    "layout": "list",
+    "icon": null,
+    "color": "#e05252",
+    "filter": {
+      "op": "and",
+      "rules": [
+        { "field": "type", "is": "any", "value": ["bug"] },
+        { "field": "priority", "is": "gte", "value": 3 },
+        { "field": "assignee", "is": "any", "value": ["@me"] }
+      ]
+    },
+    "groupBy": "status",
+    "subGroupBy": null,
+    "sortBy": "priority",
+    "sortDir": "desc",
+    "createdAt": "2026-10-01T09:00:00.000Z",
+    "updatedAt": "2026-10-12T14:20:00.000Z",
+    "canEdit": true
+  }
+}`,
+      },
+      {
+        method: "GET",
+        path: "/api/v1/views/{id}/issues",
+        scope: "views:read",
+        desc: "The issues a view shows, as you'd see them in the app: its filter with your @me, its project (or your visible projects for a cross-project view), and a built-in view's fixed condition. Newest first, cursor-paginated. Needs issues:read as well.",
+        pathParams: [idParam("view")],
+        queryParams: [
+          {
+            name: "fields",
+            type: "string",
+            desc: "Comma-separated allowlist of fields to return.",
+          },
+          {
+            name: "cursor",
+            type: "string",
+            desc: "From the previous page's `nextCursor`.",
+          },
+          {
+            name: "limit",
+            type: "integer",
+            desc: "Page size, 1–100. Default 25.",
+          },
+        ],
+        response: `{
+  "data": [
+    { "id": "i_4k2n1x", "ref": "WEB-42", "title": "Fix broken checkout flow", "status": "in_progress", "statusCategory": "started" }
+  ],
+  "nextCursor": null
+}`,
+      },
+      {
+        method: "POST",
+        path: "/api/v1/projects/{id}/views",
+        scope: "views:write",
+        desc: "Save a view in a project. Private unless visibility says otherwise.",
+        pathParams: [idParam("project")],
+        bodyParams: [
+          {
+            name: "name",
+            type: "string",
+            required: true,
+            desc: "Up to 80 characters.",
+          },
+          {
+            name: "layout",
+            type: '"board" | "list" | "dashboard"',
+            required: true,
+            desc: "",
+          },
+          {
+            name: "visibility",
+            type: '"PRIVATE" | "PROJECT" | "WORKSPACE"',
+            desc: "Default PRIVATE (only you). PROJECT for a project view, WORKSPACE for a cross-project view — sharing needs the view.share permission.",
+          },
+          {
+            name: "filter",
+            type: "object",
+            desc: "A filter tree (see the issues list's filter parameter).",
+          },
+          {
+            name: "groupBy",
+            type: "string | null",
+            desc: "status, priority, assignee, type, label, project …",
+          },
+          {
+            name: "sortBy",
+            type: "string",
+            desc: "manual, priority, created, updated, dueDate …",
+          },
+          { name: "sortDir", type: '"asc" | "desc"', desc: "" },
+          { name: "icon", type: "string | null", desc: "" },
+          { name: "color", type: "string | null", desc: "A hex color." },
+        ],
+        requestExample: `{
+  "name": "Urgent bugs",
+  "layout": "list",
+  "visibility": "PROJECT",
+  "filter": {
+    "op": "and",
+    "rules": [{ "field": "priority", "is": "gte", "value": 3 }]
+  },
+  "sortBy": "priority",
+  "sortDir": "desc"
+}`,
+        response: `// 201 Created
+{
+  "data": { "id": "v_3c9d1e", "name": "Urgent bugs", "…": "…" }
+}`,
+      },
+      {
+        method: "POST",
+        path: "/api/v1/workspaces/{id}/views",
+        scope: "views:write",
+        desc: "Save a cross-project view in a workspace. Same body as for a project; visibility is PRIVATE or WORKSPACE.",
+        pathParams: [idParam("workspace")],
+        bodyParams: [
+          {
+            name: "name",
+            type: "string",
+            required: true,
+            desc: "Up to 80 characters.",
+          },
+          {
+            name: "layout",
+            type: '"board" | "list" | "dashboard"',
+            required: true,
+            desc: "",
+          },
+          {
+            name: "visibility",
+            type: '"PRIVATE" | "PROJECT" | "WORKSPACE"',
+            desc: "Default PRIVATE (only you). PROJECT for a project view, WORKSPACE for a cross-project view — sharing needs the view.share permission.",
+          },
+          {
+            name: "filter",
+            type: "object",
+            desc: "A filter tree (see the issues list's filter parameter).",
+          },
+          {
+            name: "groupBy",
+            type: "string | null",
+            desc: "status, priority, assignee, type, label, project …",
+          },
+          {
+            name: "sortBy",
+            type: "string",
+            desc: "manual, priority, created, updated, dueDate …",
+          },
+          { name: "sortDir", type: '"asc" | "desc"', desc: "" },
+          { name: "icon", type: "string | null", desc: "" },
+          { name: "color", type: "string | null", desc: "A hex color." },
+        ],
+        requestExample: `{
+  "name": "Urgent bugs",
+  "layout": "list",
+  "visibility": "WORKSPACE",
+  "filter": {
+    "op": "and",
+    "rules": [{ "field": "priority", "is": "gte", "value": 3 }]
+  },
+  "sortBy": "priority",
+  "sortDir": "desc"
+}`,
+        response: `// 201 Created
+{
+  "data": { "id": "v_5e7f8a", "name": "Urgent bugs", "…": "…" }
+}`,
+      },
+      {
+        method: "PATCH",
+        path: "/api/v1/views/{id}",
+        scope: "views:write",
+        desc: "Change a view — only the fields you send. Private views: their owner. Shared views: their creator while they hold view.share, or anyone with view.manage; otherwise 403. Only the creator can make a shared view private again.",
+        pathParams: [idParam("view")],
+        bodyParams: [
+          { name: "name", type: "string", desc: "" },
+          {
+            name: "visibility",
+            type: '"PRIVATE" | "PROJECT" | "WORKSPACE"',
+            desc: "",
+          },
+          { name: "filter", type: "object", desc: "Replaces the whole tree." },
+          { name: "layout", type: "string", desc: "" },
+          { name: "groupBy", type: "string | null", desc: "" },
+          { name: "sortBy", type: "string", desc: "" },
+          { name: "sortDir", type: '"asc" | "desc"', desc: "" },
+        ],
+        requestExample: `{
+  "name": "Urgent bugs (P1+)",
+  "filter": {
+    "op": "and",
+    "rules": [{ "field": "priority", "is": "gte", "value": 4 }]
+  }
+}`,
+        response: `{
+  "data": { "id": "v_3c9d1e", "name": "Urgent bugs (P1+)", "…": "…" }
+}`,
+      },
+      {
+        method: "DELETE",
+        path: "/api/v1/views/{id}",
+        scope: "views:write",
+        desc: "Delete a view — same rights as changing it. Built-in views can't be deleted.",
+        pathParams: [idParam("view")],
+        response: `{
+  "data": { "id": "v_3c9d1e" }
+}`,
+      },
+    ],
+  },
 ];
 
 export interface ApiDocError {
@@ -890,6 +1219,72 @@ export const API_DOC_WEBHOOK_EVENTS: ApiDocWebhookEvent[] = [
     "body": "Confirmed on Safari 17.",
     "created": "2026-03-02T10:05:00.000Z",
     "updated": null
+  }
+}`,
+  },
+  {
+    event: "view.created",
+    desc: "A shared view (project or workspace) was saved. Private views never send events.",
+    payload: `{
+  "event": "view.created",
+  "timestamp": 1772870400000,
+  "data": {
+    "id": "v_3c9d1e",
+    "name": "Urgent bugs",
+    "slug": "urgent-bugs",
+    "workspaceId": "ws_1a2b3c",
+    "projectId": "proj_9f8e7d",
+    "ownerId": "u_7h3j2k",
+    "visibility": "PROJECT",
+    "layout": "list",
+    "filter": {
+      "op": "and",
+      "rules": [{ "field": "priority", "is": "gte", "value": 3 }]
+    },
+    "groupBy": "status",
+    "sortBy": "priority",
+    "sortDir": "desc",
+    "updatedAt": "2026-10-12T14:20:00.000Z"
+  }
+}`,
+  },
+  {
+    event: "view.updated",
+    desc: "A shared view changed — the full stored view. Also sent when a shared view goes private; visibility then says PRIVATE.",
+    payload: `{
+  "event": "view.updated",
+  "timestamp": 1772870400000,
+  "data": {
+    "id": "v_3c9d1e",
+    "name": "Urgent bugs (P1+)",
+    "slug": "urgent-bugs",
+    "workspaceId": "ws_1a2b3c",
+    "projectId": "proj_9f8e7d",
+    "ownerId": "u_7h3j2k",
+    "visibility": "PROJECT",
+    "layout": "list",
+    "filter": {
+      "op": "and",
+      "rules": [{ "field": "priority", "is": "gte", "value": 3 }]
+    },
+    "groupBy": "status",
+    "sortBy": "priority",
+    "sortDir": "desc",
+    "updatedAt": "2026-10-12T14:20:00.000Z"
+  }
+}`,
+  },
+  {
+    event: "view.deleted",
+    desc: "A shared view was deleted — a minimal snapshot.",
+    payload: `{
+  "event": "view.deleted",
+  "timestamp": 1772870400000,
+  "data": {
+    "id": "v_3c9d1e",
+    "name": "Urgent bugs",
+    "workspaceId": "ws_1a2b3c",
+    "projectId": "proj_9f8e7d"
   }
 }`,
   },

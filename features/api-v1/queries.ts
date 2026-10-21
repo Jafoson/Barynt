@@ -1,5 +1,7 @@
 import "server-only";
-import { getUserWorkspaces } from "@/features/issues/queries";
+import type { IssueFilter } from "@/features/issues/filter";
+import { toIssueWhere } from "@/features/issues/filter-where";
+import { filterContext, getUserWorkspaces } from "@/features/issues/queries";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import {
@@ -67,7 +69,7 @@ const userRefSelect = {
   handle: true,
 } satisfies Prisma.UserSelect;
 
-function mapUserRef(user: {
+export function mapUserRef(user: {
   id: string;
   firstName: string;
   lastName: string;
@@ -419,6 +421,9 @@ export async function listIssuesForUser(
      *  the same two fields the internal search (`getSearchIssues`) checks,
      *  without pulling in its ranking/highlighting machinery. */
     q?: string;
+    /** A filter tree, as a view stores it (BARY-172) — `@me` is the
+     *  caller. */
+    filter?: IssueFilter;
     cursor?: string;
     take: number;
   },
@@ -427,6 +432,9 @@ export async function listIssuesForUser(
 
   const rows = await db.issue.findMany({
     where: {
+      ...(options.filter
+        ? await toIssueWhere(options.filter, await filterContext(userId))
+        : {}),
       projectId,
       ...(options.status ? { status: options.status } : {}),
       ...(options.assignee ? { assigneeId: options.assignee } : {}),

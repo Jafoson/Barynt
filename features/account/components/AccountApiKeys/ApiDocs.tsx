@@ -221,6 +221,7 @@ export function ApiDocs() {
           { value: "comments", label: t("apiKeys.docsTabComments") },
           { value: "labels", label: t("apiKeys.docsTabLabels") },
           { value: "members", label: t("apiKeys.docsTabMembers") },
+          { value: "views", label: t("apiKeys.docsTabViews") },
           { value: "webhooks", label: t("apiKeys.docsTabWebhooks") },
         ]}
         value={tab}
