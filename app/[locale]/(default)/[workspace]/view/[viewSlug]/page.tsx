@@ -5,9 +5,10 @@ import { IssuePeek } from "@/features/issues/components/IssuePeek/IssuePeek";
 import { ListView } from "@/features/issues/components/ListView/ListView";
 import { Topbar } from "@/features/issues/components/Topbar/Topbar";
 import { getIssueComposerData } from "@/features/issues/editor-data";
-import { groupKeyFromParam } from "@/features/issues/group";
+import { groupKeyFromParam, laneKeyFromParam } from "@/features/issues/group";
 import { getWorkspaceIssues } from "@/features/issues/queries";
 import { sortKeyFromParam } from "@/features/issues/sort";
+import { setViewCollapsedLanes } from "@/features/views/actions";
 import { BoardOrPhoneList } from "@/features/views/components/BoardOrPhoneList/BoardOrPhoneList";
 import { getViewBySlug } from "@/features/views/queries";
 import { ensureSystemViews } from "@/features/views/system";
@@ -147,6 +148,10 @@ export default async function WorkspaceViewPage({
               displayInUrl
               sortKey={sortKey}
               groupKey={groupKey}
+              laneKey={laneKeyFromParam(filters.lanes, groupKey)}
+              hideEmptyLanes={display.hideEmptyLanes}
+              collapsedLanes={view.collapsedGroups}
+              onCollapsedLanesChange={setViewCollapsedLanes.bind(null, view.id)}
             />
           }
           list={list}

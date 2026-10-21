@@ -124,6 +124,7 @@ export async function Topbar({
         hideEmptyGroups={groups.hideEmptyGroups}
         showSubIssues={groups.showSubIssues}
         groupOrder={groups.groupOrder}
+        hideEmptyLanes={groups.hideEmptyLanes}
         onDisplayChange={onDisplayChange}
         onGroupsChange={onGroupsChange}
         views={views}

@@ -27,7 +27,8 @@ import type { SavedView, ViewDisplay, ViewLayout } from "./schema";
  * The display settings are part of it too (BARY-165): hidden and reordered
  * columns, hidden card fields, empty groups, sub-issues — as `hide`, `order`,
  * `fields`, `empty` and `sub`, so they're saved, discarded and shared exactly
- * like the filters.
+ * like the filters. So are swimlanes (BARY-173): `lanes` (the second
+ * grouping, stored as `subGroupBy`) and `emptylanes`.
  */
 
 /**
@@ -44,6 +45,8 @@ export const VIEW_SETTING_KEYS = [
   "fields",
   "empty",
   "sub",
+  "lanes",
+  "emptylanes",
 ] as const;
 
 /** Missing `group`/`sort` mean these — on a view page they don't fall back
@@ -59,7 +62,10 @@ export function viewParams(
   view: Pick<
     SavedView,
     "filter" | "groupBy" | "sortBy" | "layout" | "display"
-  > & { systemKey?: SavedView["systemKey"] },
+  > & {
+    systemKey?: SavedView["systemKey"];
+    subGroupBy?: SavedView["subGroupBy"];
+  },
   lookups: SlugLookups,
 ): URLSearchParams {
   // A system view's own condition stays off the address (`SYSTEM_VIEW_BASE`).
@@ -71,6 +77,7 @@ export function viewParams(
   if (view.groupBy && view.groupBy !== VIEW_DEFAULT_GROUP)
     params.set("group", view.groupBy);
   if (view.sortBy !== VIEW_DEFAULT_SORT) params.set("sort", view.sortBy);
+  if (view.subGroupBy) params.set("lanes", view.subGroupBy);
   params.set("layout", view.layout);
   const { display } = view;
   if (display.hiddenGroups?.length)
@@ -81,6 +88,7 @@ export function viewParams(
     params.set("fields", display.hiddenFields.join(","));
   if (display.hideEmptyGroups) params.set("empty", "1");
   if (display.showSubIssues) params.set("sub", "1");
+  if (display.hideEmptyLanes) params.set("emptylanes", "1");
   return params;
 }
 
@@ -110,7 +118,8 @@ function normalized(source: ParamSource, key: string): string {
   if (key === "group") return raw || VIEW_DEFAULT_GROUP;
   if (key === "sort") return raw || VIEW_DEFAULT_SORT;
   if (key === "layout") return layoutFromParam(raw);
-  if (key === "empty" || key === "sub") return raw === "1" ? "1" : "0";
+  if (key === "empty" || key === "sub" || key === "emptylanes")
+    return raw === "1" ? "1" : "0";
   // The order of columns is the point of `order` — don't sort it away.
   if (key === "order") return raw.split(",").filter(Boolean).join(",");
   return raw.split(",").filter(Boolean).sort().join(",");
@@ -198,5 +207,6 @@ export function displayFromParams(
     hiddenFields: list("fields").filter(isCardFieldKey),
     hideEmptyGroups: read(source, "empty") === "1",
     showSubIssues: read(source, "sub") === "1",
+    hideEmptyLanes: read(source, "emptylanes") === "1",
   };
 }

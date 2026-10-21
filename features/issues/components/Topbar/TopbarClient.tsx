@@ -58,6 +58,8 @@ interface TopbarClientProps {
   showSubIssues: boolean;
   /** Own order of the groups (BARY-165). */
   groupOrder: string[];
+  /** Swimlanes without an issue hide themselves (BARY-173). */
+  hideEmptyLanes: boolean;
   /** This person's hidden board-card/list-row fields for this view (BARY-33). */
   hiddenCardFields: string[];
   onDisplayChange: (
@@ -108,6 +110,7 @@ export function TopbarClient({
   hideEmptyGroups,
   showSubIssues,
   groupOrder,
+  hideEmptyLanes,
   hiddenCardFields,
   onDisplayChange,
   onGroupsChange,
@@ -129,6 +132,7 @@ export function TopbarClient({
     searchValue,
     sortKey,
     groupKey,
+    laneKey,
     view,
     toggleFilter,
     setNegated,
@@ -138,6 +142,7 @@ export function TopbarClient({
     search,
     setSort,
     setGroup,
+    setLanes,
     setView,
     setViewDisplay,
   } = useTopbar({
@@ -200,6 +205,7 @@ export function TopbarClient({
     groupOrder,
     hideEmptyGroups,
     showSubIssues,
+    hideEmptyLanes,
   };
   const saveDisplay = urlDisplay
     ? async (hidden: string[]) => {
@@ -362,6 +368,9 @@ export function TopbarClient({
               onSortChange={setSort}
               groupKey={groupKey}
               onGroupChange={setGroup}
+              laneKey={laneKey}
+              onLaneChange={setLanes}
+              hideEmptyLanes={display.hideEmptyLanes}
               hiddenFields={display.hiddenFields}
               onDisplayChange={saveDisplay}
               groupLookups={{

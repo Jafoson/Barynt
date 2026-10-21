@@ -1254,6 +1254,10 @@ export interface ViewGroupPreference {
   showSubIssues: boolean;
   /** Own order of the groups (BARY-165), `group-order.ts` entries. */
   groupOrder: string[];
+  /** Swimlanes without an issue hide themselves (BARY-173). */
+  hideEmptyLanes: boolean;
+  /** Lanes this person folded, "<laneKey>:<laneId>" (BARY-173). */
+  collapsedLanes: string[];
 }
 
 const NO_GROUP_PREFERENCE: ViewGroupPreference = {
@@ -1261,6 +1265,8 @@ const NO_GROUP_PREFERENCE: ViewGroupPreference = {
   hideEmptyGroups: false,
   showSubIssues: false,
   groupOrder: [],
+  hideEmptyLanes: false,
+  collapsedLanes: [],
 };
 
 /**
@@ -1294,6 +1300,8 @@ export const getIssueViewGroups = cache(
         hideEmptyGroups: true,
         showSubIssues: true,
         groupOrder: true,
+        hideEmptyLanes: true,
+        collapsedLanes: true,
       },
     });
     return pref ?? (await groupDefaults(userId));
@@ -1313,6 +1321,8 @@ export const getMyIssuesViewGroups = cache(
         hideEmptyGroups: true,
         showSubIssues: true,
         groupOrder: true,
+        hideEmptyLanes: true,
+        collapsedLanes: true,
       },
     });
     return pref ?? (await groupDefaults(userId));

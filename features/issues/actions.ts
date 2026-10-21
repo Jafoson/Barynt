@@ -1862,6 +1862,10 @@ export interface ViewGroupsPatch {
   showSubIssues?: boolean;
   /** Own order of the groups (BARY-165). */
   groupOrder?: string[];
+  /** Swimlanes without an issue hide themselves (BARY-173). */
+  hideEmptyLanes?: boolean;
+  /** Lanes this person folded, "<laneKey>:<laneId>" (BARY-173). */
+  collapsedLanes?: string[];
 }
 
 function groupsData(patch: ViewGroupsPatch) {
@@ -1877,6 +1881,12 @@ function groupsData(patch: ViewGroupsPatch) {
     }),
     ...(patch.groupOrder !== undefined && {
       groupOrder: sanitizeGroupOrder(patch.groupOrder),
+    }),
+    ...(patch.hideEmptyLanes !== undefined && {
+      hideEmptyLanes: patch.hideEmptyLanes === true,
+    }),
+    ...(patch.collapsedLanes !== undefined && {
+      collapsedLanes: sanitizeGroupOrder(patch.collapsedLanes),
     }),
   };
 }

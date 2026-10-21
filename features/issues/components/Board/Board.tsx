@@ -1,14 +1,18 @@
 "use client";
+import { Icon } from "@iconify/react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import type { ViewGroupsPatch } from "@/features/issues/actions";
 import { BoardColumn } from "@/features/issues/components/BoardColumn/BoardColumn";
 import { BoardColumnSwitcher } from "@/features/issues/components/BoardColumnSwitcher/BoardColumnSwitcher";
+import { GroupIcon } from "@/features/issues/components/GroupIcon/GroupIcon";
 import {
   type GroupDef,
   type GroupKey,
   groupDefs,
+  laneEntry,
   visibleGroups,
 } from "@/features/issues/group";
 import { groupOrderEntries, orderGroups } from "@/features/issues/group-order";
@@ -25,10 +29,14 @@ import type { IssueDetail, Status } from "@/types";
 import styles from "./board.module.scss";
 import { useBoardDnd } from "./useBoardDnd";
 
-/** Left edge of a column inside the scroll container, minus its padding. */
+/** Left edge of a column inside the scroll container, minus its padding —
+ *  measured on screen, so it holds whatever the column sits in (with
+ *  swimlanes, a sticky row of column heads). */
 function columnStart(column: HTMLElement, container: HTMLElement) {
   return (
-    column.offsetLeft -
+    column.getBoundingClientRect().left -
+    container.getBoundingClientRect().left +
+    container.scrollLeft -
     (Number.parseFloat(getComputedStyle(container).paddingLeft) || 0)
   );
 }
@@ -67,6 +75,14 @@ interface BoardProps {
     patch: ViewGroupsPatch,
   ) => Promise<{ ok: true } | { error: string }>;
   displayInUrl?: boolean;
+  /** Swimlanes (BARY-173): a second grouping as horizontal lanes. */
+  laneKey?: GroupKey | null;
+  /** Lanes without an issue hide themselves. */
+  hideEmptyLanes?: boolean;
+  /** Lanes this person folded, "<laneKey>:<laneId>". */
+  collapsedLanes?: string[];
+  /** Stores the folded lanes — personal, wherever the board lives. */
+  onCollapsedLanesChange?: (entries: string[]) => void;
 }
 
 export function Board({
@@ -82,6 +98,10 @@ export function Board({
   groupOrder = [],
   onGroupsChange,
   displayInUrl = false,
+  laneKey = null,
+  hideEmptyLanes = false,
+  collapsedLanes = [],
+  onCollapsedLanesChange,
 }: BoardProps) {
   const lookups: IssueLookups = {
     projects: composer.projects,
@@ -103,6 +123,7 @@ export function Board({
       members: composer.members,
     },
     groupKey,
+    laneKey,
   );
   // Shift + wheel scrolls the columns horizontally, no matter where the pointer is.
   const scrollSetter = useShiftScroll();
@@ -180,6 +201,64 @@ export function Board({
     group,
     issues: board.getColumnIssues(group.id),
   }));
+
+  // ── Swimlanes (BARY-173) ──
+  // A lane per value of the second grouping: the ones with cards in the
+  // drawn columns, plus those that always show (a workflow status, "no
+  // assignee") — unless empty lanes hide themselves.
+  const laneCount = (laneId: string) =>
+    groups.reduce(
+      (sum, g) => sum + board.getColumnIssues(g.id, laneId).length,
+      0,
+    );
+  const lanes = laneKey
+    ? groupDefs(
+        laneKey,
+        {
+          statuses,
+          priorities: composer.priorities,
+          issueTypes: composer.issueTypes,
+          members: composer.members,
+          projects: composer.projects,
+        },
+        {
+          unassigned: t("fields.unassigned"),
+          noStoryPoints: t("fields.noStoryPoints"),
+        },
+        issues,
+      ).filter((lane) => {
+        const count = laneCount(lane.id);
+        return hideEmptyLanes ? count > 0 : count > 0 || lane.alwaysShow;
+      })
+    : [];
+  // Folding is personal and shows at once; the stored list catches up.
+  const [folded, setFolded] = useState(() => new Set(collapsedLanes));
+  const foldedKey = collapsedLanes.join(",");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resync on a new stored list only
+  useEffect(() => setFolded(new Set(collapsedLanes)), [foldedKey]);
+  const isFolded = (lane: GroupDef) =>
+    laneKey !== null && folded.has(laneEntry(laneKey, lane.id));
+  const toggleLane = (lane: GroupDef) => {
+    if (!laneKey) return;
+    const entry = laneEntry(laneKey, lane.id);
+    const next = new Set(folded);
+    if (next.has(entry)) next.delete(entry);
+    else next.add(entry);
+    setFolded(next);
+    // A view stores it with the person's own view state; the plain board
+    // with its other personal settings.
+    if (onCollapsedLanesChange) onCollapsedLanesChange([...next]);
+    else void onGroupsChange?.({ collapsedLanes: [...next] });
+  };
+
+  // What the keyboard walks through: per open lane (or the whole board
+  // without lanes), the cards of each column.
+  const navLanes: (GroupDef | null)[] = laneKey
+    ? lanes.filter((lane) => !isFolded(lane))
+    : [null];
+  const grid = navLanes.map((lane) =>
+    groups.map((g) => board.getColumnIssues(g.id, lane?.id)),
+  );
 
   // ── Column switcher (narrow screens) ──
   // Shown only when the columns don't all fit next to each other; CSS hides
@@ -356,72 +435,100 @@ export function Board({
     const targetId =
       focusedId ??
       (issueOpen.openIssue
-        ? (columns
-            .flatMap((c) => c.issues)
-            .find((i) => identifier(i) === issueOpen.openIssue)?.id ?? null)
+        ? (grid.flat(2).find((i) => identifier(i) === issueOpen.openIssue)
+            ?.id ?? null)
         : null);
     if (!targetId) return null;
-    for (let col = 0; col < columns.length; col++) {
-      const row = columns[col].issues.findIndex((i) => i.id === targetId);
-      if (row !== -1) return { col, row };
+    for (let lane = 0; lane < grid.length; lane++) {
+      for (let col = 0; col < grid[lane].length; col++) {
+        const row = grid[lane][col].findIndex((i) => i.id === targetId);
+        if (row !== -1) return { lane, col, row };
+      }
     }
     return null;
   };
 
-  /** Nearest column with at least one card, walking from `fromCol` in
-   *  `direction` (±1) — skips empty ones instead of landing on nothing. */
-  const nextNonEmptyColumn = (fromCol: number, direction: 1 | -1) => {
+  /** Nearest column with at least one card in `lane`, walking from
+   *  `fromCol` in `direction` (±1) — skips empty ones instead of landing
+   *  on nothing. */
+  const nextNonEmptyColumn = (
+    lane: number,
+    fromCol: number,
+    direction: 1 | -1,
+  ) => {
+    const cells = grid[lane];
     let col = fromCol + direction;
-    while (
-      col >= 0 &&
-      col < columns.length &&
-      columns[col].issues.length === 0
-    ) {
+    while (col >= 0 && col < cells.length && cells[col].length === 0) {
       col += direction;
     }
-    return col >= 0 && col < columns.length ? col : null;
+    return col >= 0 && col < cells.length ? col : null;
+  };
+
+  /** The nearest lane with cards in column `col`, walking from `fromLane`
+   *  in `direction` — down from a lane's last card goes on into the next. */
+  const nextNonEmptyLane = (
+    fromLane: number,
+    col: number,
+    direction: 1 | -1,
+  ) => {
+    let lane = fromLane + direction;
+    while (lane >= 0 && lane < grid.length && grid[lane][col].length === 0) {
+      lane += direction;
+    }
+    return lane >= 0 && lane < grid.length ? lane : null;
   };
 
   /** `dCol`/`dRow` are mutually exclusive — one call moves along one axis. */
   const move = (dCol: number, dRow: number) => {
     const pos = findPosition();
     if (!pos) {
-      const col = columns.findIndex((c) => c.issues.length > 0);
-      if (col !== -1) focus(columns[col].issues[0]);
+      for (const cells of grid) {
+        const first = cells.find((c) => c.length > 0);
+        if (first) {
+          focus(first[0]);
+          return;
+        }
+      }
       return;
     }
 
     if (dRow !== 0) {
-      const { issues: colIssues } = columns[pos.col];
+      const cell = grid[pos.lane][pos.col];
       const nextRow = pos.row + dRow;
-      if (nextRow >= 0 && nextRow < colIssues.length) {
-        focus(colIssues[nextRow]);
+      if (nextRow >= 0 && nextRow < cell.length) {
+        focus(cell[nextRow]);
         return;
       }
-      // Off the column's edge: continue into the adjacent one instead of
-      // stopping — down from the last card lands on the next column's
-      // first, up from the first lands on the previous column's last.
-      const col = nextNonEmptyColumn(pos.col, dRow > 0 ? 1 : -1);
+      const down = dRow > 0;
+      // Off the cell's edge: on into the same column of the next lane…
+      const lane = nextNonEmptyLane(pos.lane, pos.col, down ? 1 : -1);
+      if (lane !== null) {
+        const target = grid[lane][pos.col];
+        focus(down ? target[0] : target[target.length - 1]);
+        return;
+      }
+      // …or, past the last lane (and on a board without lanes), into the
+      // adjacent column — down from the last card lands on the next
+      // column's first, up from the first on the previous column's last.
+      const col = nextNonEmptyColumn(pos.lane, pos.col, down ? 1 : -1);
       if (col === null) return;
-      const target = columns[col];
-      focus(
-        dRow > 0 ? target.issues[0] : target.issues[target.issues.length - 1],
-      );
+      const target = grid[pos.lane][col];
+      focus(down ? target[0] : target[target.length - 1]);
       return;
     }
 
-    // Across columns: skip empty ones in the same direction rather than
-    // landing on a column with nothing to focus.
-    const col = nextNonEmptyColumn(pos.col, dCol > 0 ? 1 : -1);
+    // Across columns, within the lane: skip empty ones in the same
+    // direction rather than landing on a column with nothing to focus.
+    const col = nextNonEmptyColumn(pos.lane, pos.col, dCol > 0 ? 1 : -1);
     if (col === null) return;
-    const target = columns[col];
-    focus(target.issues[Math.min(pos.row, target.issues.length - 1)]);
+    const target = grid[pos.lane][col];
+    focus(target[Math.min(pos.row, target.length - 1)]);
   };
 
   const openFocused = () => {
     const pos = findPosition();
     if (!pos) return;
-    issueOpen.open(identifier(columns[pos.col].issues[pos.row]));
+    issueOpen.open(identifier(grid[pos.lane][pos.col][pos.row]));
   };
 
   // j/k always move the board cursor, even with a panel open — that's the
@@ -442,6 +549,69 @@ export function Board({
   useShortcut("enter", openFocused, { enabled: noPanelOpen && !!focusedId });
   useShortcut("o", openFocused, { enabled: noPanelOpen && !!focusedId });
 
+  /** One column — whole, as a lane's cell, or as the head above the lanes. */
+  const renderColumn = (
+    group: GroupDef,
+    columnIssues: IssueDetail[],
+    variant: "column" | "head" | "cell" = "column",
+    laneId?: string,
+  ) => {
+    const cardHandlers = board.columnHandlers(group.id, laneId);
+    const { onDragOver, onDragLeave, onDrop } = draggedColumn
+      ? columnDropHandlers(group)
+      : variant === "head"
+        ? // The head takes no cards — they land in a lane's cell.
+          { onDragOver: () => {}, onDragLeave: () => {}, onDrop: () => {} }
+        : cardHandlers;
+    const isOver = !draggedColumn && variant !== "head" && cardHandlers.isOver;
+    return (
+      <BoardColumn
+        key={laneId === undefined ? group.id : `${laneId}:${group.id}`}
+        variant={variant}
+        group={group}
+        issues={columnIssues}
+        projectId={projectId}
+        // Without a fixed project the cards come from various ones — so
+        // each one states which.
+        showProject={projectId === undefined}
+        lookups={lookups}
+        composer={composer}
+        hiddenCardFields={hiddenCardFields}
+        newIssueLabel={t("actions.newIssue")}
+        isOver={isOver}
+        dragging={board.dragging}
+        dragOverCard={board.dragOverCard}
+        insertAbove={board.insertAbove}
+        onColumnDragOver={onDragOver}
+        onColumnDragLeave={onDragLeave}
+        onColumnDrop={onDrop}
+        onCardDragStart={board.onDragStart}
+        onCardDragEnd={board.onDragEnd}
+        onCardDragOver={board.onCardDragOver}
+        isCardActive={(issue) => identifier(issue) === issueOpen.openIssue}
+        isCardFocused={(issue) => issue.id === focusedId}
+        onCardOpen={(issue) => issueOpen.open(identifier(issue))}
+        onCardOpenInNewTab={(issue) =>
+          issueOpen.openPageInNewTab(identifier(issue))
+        }
+        moveTargets={groups}
+        onCardMoveTo={moveCard}
+        columnDrag={
+          canMoveColumns && variant !== "cell"
+            ? {
+                label: t("issues.moveColumn", { group: group.label }),
+                dragging: draggedColumn === group.id,
+                onStart: startColumnDrag(group),
+                onEnd: () => {
+                  if (!dropped.current) endColumnDrag();
+                },
+              }
+            : undefined
+        }
+      />
+    );
+  };
+
   return (
     <div className={styles.wrap}>
       {overflowing && columns.length > 1 && (
@@ -457,67 +627,84 @@ export function Board({
       )}
       <div
         ref={setContainer}
-        className={styles.board}
+        className={`${styles.board}${laneKey ? ` ${styles.laned}` : ""}`}
         onScroll={() => {
           // Once per frame is plenty for a highlight.
           cancelAnimationFrame(scrollFrame.current);
           scrollFrame.current = requestAnimationFrame(syncActive);
         }}
       >
-        {columns.map(({ group, issues: columnIssues }) => {
-          const cardHandlers = board.columnHandlers(group.id);
-          const { onDragOver, onDragLeave, onDrop } = draggedColumn
-            ? columnDropHandlers(group)
-            : cardHandlers;
-          const isOver = !draggedColumn && cardHandlers.isOver;
-          return (
-            <BoardColumn
-              key={group.id}
-              group={group}
-              issues={columnIssues}
-              projectId={projectId}
-              // Without a fixed project the cards come from various ones — so
-              // each one states which.
-              showProject={projectId === undefined}
-              lookups={lookups}
-              composer={composer}
-              hiddenCardFields={hiddenCardFields}
-              newIssueLabel={t("actions.newIssue")}
-              isOver={isOver}
-              dragging={board.dragging}
-              dragOverCard={board.dragOverCard}
-              insertAbove={board.insertAbove}
-              onColumnDragOver={onDragOver}
-              onColumnDragLeave={onDragLeave}
-              onColumnDrop={onDrop}
-              onCardDragStart={board.onDragStart}
-              onCardDragEnd={board.onDragEnd}
-              onCardDragOver={board.onCardDragOver}
-              isCardActive={(issue) =>
-                identifier(issue) === issueOpen.openIssue
-              }
-              isCardFocused={(issue) => issue.id === focusedId}
-              onCardOpen={(issue) => issueOpen.open(identifier(issue))}
-              onCardOpenInNewTab={(issue) =>
-                issueOpen.openPageInNewTab(identifier(issue))
-              }
-              moveTargets={groups}
-              onCardMoveTo={moveCard}
-              columnDrag={
-                canMoveColumns
-                  ? {
-                      label: t("issues.moveColumn", { group: group.label }),
-                      dragging: draggedColumn === group.id,
-                      onStart: startColumnDrag(group),
-                      onEnd: () => {
-                        if (!dropped.current) endColumnDrag();
-                      },
-                    }
-                  : undefined
-              }
-            />
-          );
-        })}
+        {laneKey ? (
+          // Swimlanes (BARY-173): the column heads once, sticky on top; then
+          // a lane per value — its head sticky on the left, its cells below.
+          <div className={styles.lanes}>
+            <div className={styles.laneHeads}>
+              {columns.map(({ group, issues: columnIssues }) =>
+                renderColumn(group, columnIssues, "head"),
+              )}
+            </div>
+            {lanes.map((lane) => {
+              const folded = isFolded(lane);
+              const count = laneCount(lane.id);
+              return (
+                <section
+                  key={lane.id}
+                  className={styles.lane}
+                  data-folded={folded || undefined}
+                  aria-label={lane.label}
+                >
+                  <button
+                    type="button"
+                    className={styles.laneHead}
+                    aria-expanded={!folded}
+                    title={t(
+                      folded ? "actions.expandGroup" : "actions.collapseGroup",
+                    )}
+                    onClick={() => toggleLane(lane)}
+                  >
+                    <Icon
+                      icon="lucide:chevron-down"
+                      width={15}
+                      className={styles.laneChevron}
+                    />
+                    <GroupIcon group={lane} size={18} />
+                    <span className={styles.laneTitle}>{lane.label}</span>
+                    <Badge mono>{count}</Badge>
+                    {/* Folded, the lane still says what it holds. */}
+                    {folded && (
+                      <span className={styles.laneCounts}>
+                        {groups.map((g) => {
+                          const n = board.getColumnIssues(g.id, lane.id).length;
+                          return n > 0 ? (
+                            <span key={g.id}>
+                              {g.label} {n}
+                            </span>
+                          ) : null;
+                        })}
+                      </span>
+                    )}
+                  </button>
+                  {!folded && (
+                    <div className={styles.laneCells}>
+                      {groups.map((g) =>
+                        renderColumn(
+                          g,
+                          board.getColumnIssues(g.id, lane.id),
+                          "cell",
+                          lane.id,
+                        ),
+                      )}
+                    </div>
+                  )}
+                </section>
+              );
+            })}
+          </div>
+        ) : (
+          columns.map(({ group, issues: columnIssues }) =>
+            renderColumn(group, columnIssues),
+          )
+        )}
       </div>
     </div>
   );

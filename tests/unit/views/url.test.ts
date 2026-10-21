@@ -200,6 +200,7 @@ describe("display in the address (BARY-165)", () => {
       hiddenFields: ["labels"],
       hideEmptyGroups: true,
       showSubIssues: false,
+      hideEmptyLanes: false,
     });
   });
 
@@ -298,5 +299,54 @@ describe("the full filter form in a view (BARY-166)", () => {
         layout: "list",
       }),
     ).toEqual({ "status.not": "done", or: "label:bug", layout: "list" });
+  });
+});
+
+describe("Swimlanes in the address (BARY-173)", () => {
+  it("writes the lanes and hiding empty ones", () => {
+    const params = viewParams(
+      {
+        filter: { op: "and", rules: [] },
+        groupBy: "status",
+        subGroupBy: "assignee",
+        sortBy: "manual",
+        layout: "board",
+        display: { hideEmptyLanes: true },
+      },
+      lookups,
+    );
+    expect(params.get("lanes")).toBe("assignee");
+    expect(params.get("emptylanes")).toBe("1");
+  });
+
+  it("no lanes, nothing in the address", () => {
+    const params = viewParams(
+      {
+        filter: { op: "and", rules: [] },
+        groupBy: "status",
+        subGroupBy: null,
+        sortBy: "manual",
+        layout: "board",
+        display: {},
+      },
+      lookups,
+    );
+    expect(params.has("lanes")).toBe(false);
+    expect(params.has("emptylanes")).toBe(false);
+  });
+
+  it("other lanes count as an unsaved change", () => {
+    expect(
+      sameViewState(
+        new URLSearchParams("layout=board&lanes=assignee"),
+        new URLSearchParams("layout=board&lanes=priority"),
+      ),
+    ).toBe(false);
+    expect(
+      sameViewState(
+        new URLSearchParams("layout=board&emptylanes=0"),
+        new URLSearchParams("layout=board"),
+      ),
+    ).toBe(true);
   });
 });

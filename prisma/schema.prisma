@@ -623,6 +623,11 @@ model IssueViewPreference {
   /// Vorgabe (`features/issues/group-order.ts`).
   groupOrder String[] @default([])
 
+  /// Swimlanes (BARY-173): Bahnen ohne Aufgabe ausblenden.
+  hideEmptyLanes Boolean  @default(false)
+  /// Eingeklappte Bahnen dieser Person, Einträge "<laneKey>:<laneId>".
+  collapsedLanes String[] @default([])
+
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
@@ -650,6 +655,11 @@ model MyIssuesViewPreference {
   /// Eigene Reihenfolge der Spalten/Gruppen (BARY-165), wie
   /// `IssueViewPreference.groupOrder`.
   groupOrder String[] @default([])
+
+  /// Swimlanes (BARY-173): Bahnen ohne Aufgabe ausblenden.
+  hideEmptyLanes Boolean  @default(false)
+  /// Eingeklappte Bahnen dieser Person, Einträge "<laneKey>:<laneId>".
+  collapsedLanes String[] @default([])
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)

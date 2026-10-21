@@ -189,7 +189,11 @@
     "resetOrder": "Reset order",
     "moveGroup": "Move “{group}” (Alt+↑/↓)",
     "moveUp": "Move “{group}” up",
-    "moveDown": "Move “{group}” down"
+    "moveDown": "Move “{group}” down",
+    "columns": "Columns",
+    "lanes": "Swimlanes",
+    "lanesNone": "None",
+    "hideEmptyLanes": "Hide empty lanes"
   },
   "settings": {
     "title": "Settings",
