@@ -16,8 +16,9 @@ import {
   type ApiDocParam,
   type HttpMethod,
 } from "./apiDocsData";
+import { FilterDocs } from "./FilterDocs";
 
-type DocTab = ApiDocGroupId | "webhooks";
+type DocTab = ApiDocGroupId | "filter" | "webhooks";
 
 const METHOD_CLASS: Record<HttpMethod, string> = {
   GET: styles.methodGet,
@@ -222,6 +223,7 @@ export function ApiDocs() {
           { value: "labels", label: t("apiKeys.docsTabLabels") },
           { value: "members", label: t("apiKeys.docsTabMembers") },
           { value: "views", label: t("apiKeys.docsTabViews") },
+          { value: "filter", label: t("apiKeys.docsTabFilter") },
           { value: "webhooks", label: t("apiKeys.docsTabWebhooks") },
         ]}
         value={tab}
@@ -237,6 +239,8 @@ export function ApiDocs() {
             />
           ))}
         </div>
+      ) : tab === "filter" ? (
+        <FilterDocs />
       ) : (
         <WebhookDocs />
       )}

@@ -296,7 +296,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           {
             name: "filter",
             type: "string (JSON)",
-            desc: 'A filter tree, the shape views store: {"op":"and","rules":[{"field":"priority","is":"gte","value":3},{"op":"or","rules":[…]}]}. "@me" means you. URL-encode it. 422 invalid_filter if it isn\'t a valid tree.',
+            desc: 'A filter tree as JSON, URL-encoded — e.g. {"op":"and","rules":[{"field":"priority","is":"gte","value":3}]}. "@me" means you. How it works: see the Filter tab. 422 invalid_filter if it isn\'t a valid tree.',
           },
           {
             name: "fields",
@@ -976,7 +976,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           {
             name: "filter",
             type: "object",
-            desc: "A filter tree (see the issues list's filter parameter).",
+            desc: "A filter tree — see the Filter tab.",
           },
           {
             name: "groupBy",
@@ -1035,7 +1035,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           {
             name: "filter",
             type: "object",
-            desc: "A filter tree (see the issues list's filter parameter).",
+            desc: "A filter tree — see the Filter tab.",
           },
           {
             name: "groupBy",

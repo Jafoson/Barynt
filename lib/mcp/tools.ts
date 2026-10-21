@@ -514,7 +514,7 @@ export function registerBaryntTools(server: McpServer): void {
           .unknown()
           .optional()
           .describe(
-            'A filter tree, as views store it: { "op": "and"|"or", "rules": [ { "field": "priority", "is": "gte", "value": 3 }, { "op": "or", "rules": [...] } ] }. Values like "@me" resolve to you. Ignored with viewId.',
+            'A filter tree, as views store it: { "op": "and"|"or", "rules": [ { "field": "priority", "is": "gte", "value": 3 }, { "op": "or", "rules": [...] } ] }. Values like "@me" resolve to you; values are ids, not names. Fields: status, statusCategory, priority, type, assignee, reporter, label, project, storyPoints, estimate, dueDate, created, updated, parent, text. Ignored with viewId.',
           ),
         status: z.string().optional(),
         assignee: z.string().optional().describe("User id."),
