@@ -21,9 +21,13 @@ import {
 } from "@/features/views/schema";
 import {
   displayFromParams,
+  displayParams,
   pickViewState,
   sameViewState,
+  VIEW_DEFAULT_GROUP,
+  VIEW_DEFAULT_SORT,
 } from "@/features/views/url";
+import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import type {
   IssueType,
   Label,
@@ -119,6 +123,7 @@ export function TopbarClient({
 }: TopbarClientProps) {
   const t = useTranslations();
   const searchParams = useSearchParams();
+  const preferences = usePreferences();
   const activeView = views?.active ?? null;
   const {
     isPending,
@@ -184,17 +189,6 @@ export function TopbarClient({
   const dirty =
     activeView !== null &&
     !sameViewState(searchParams, new URLSearchParams(activeView.canonical));
-  // What "New view"/"Save" take over: the view state of the address, with the
-  // layout spelled out (the plain board/list keep theirs in the path).
-  // A system view's fixed condition isn't in the address (V8); "save as new
-  // view" takes it along as an ordinary filter.
-  const currentParams = {
-    ...(views?.active?.systemKey
-      ? SYSTEM_VIEW_BASE[views.active.systemKey]
-      : {}),
-    ...pickViewState(searchParams),
-    layout: view,
-  };
 
   // A saved view's display settings come from — and go to — its address
   // (BARY-165); the plain board and list keep the person's own preference.
@@ -207,6 +201,37 @@ export function TopbarClient({
     showSubIssues,
     hideEmptyLanes,
   };
+  // The plain board and list keep their grouping, order and display in the
+  // person's own settings, not the address. What sets them apart from a
+  // fresh board goes along into "Save as new view" — and like filters, it
+  // makes the button say so (BARY-173): another grouping, order or lanes,
+  // moved or hidden columns, any display switch.
+  const plainState: Record<string, string> = activeView
+    ? {}
+    : {
+        ...(groupKey !== VIEW_DEFAULT_GROUP && { group: groupKey }),
+        ...(sortKey !== VIEW_DEFAULT_SORT && { sort: sortKey }),
+        ...Object.fromEntries(displayParams(display)),
+      };
+  const plainChanged =
+    !activeView &&
+    (laneKey !== null ||
+      groupKey !== preferences.defaultGrouping ||
+      sortKey !== preferences.defaultSort ||
+      displayParams(display).size > 0);
+  // What "New view"/"Save" take over: the view state of the address, with the
+  // layout spelled out (the plain board/list keep theirs in the path).
+  // A system view's fixed condition isn't in the address (V8); "save as new
+  // view" takes it along as an ordinary filter.
+  const currentParams = {
+    ...(views?.active?.systemKey
+      ? SYSTEM_VIEW_BASE[views.active.systemKey]
+      : {}),
+    ...plainState,
+    ...pickViewState(searchParams),
+    layout: view,
+  };
+
   const saveDisplay = urlDisplay
     ? async (hidden: string[]) => {
         setViewDisplay({ hiddenFields: hidden });
@@ -281,7 +306,7 @@ export function TopbarClient({
             canShare={views.canShare}
             layout={view}
             currentParams={currentParams}
-            filterCount={filterCount}
+            changed={filterCount > 0 || plainChanged}
           />
           {mode !== "dashboard" && (
             <div className={styles.trailing}>

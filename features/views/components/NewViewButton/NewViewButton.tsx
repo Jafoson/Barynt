@@ -18,9 +18,10 @@ interface NewViewButtonProps {
   layout: ViewLayout;
   /** The address's view state right now — taken over unless unticked. */
   currentParams: Record<string, string>;
-  /** Active filter chips. With any set the button says "Save as new view",
-   *  so it's clear the filters come along. */
-  filterCount: number;
+  /** Whether the board differs from a fresh one — filters, grouping, order,
+   *  lanes, display. Then the button says "Save as new view", so it's clear
+   *  all that comes along. */
+  changed: boolean;
 }
 
 /**
@@ -40,11 +41,11 @@ export function NewViewButton({
   canShare,
   layout,
   currentParams,
-  filterCount,
+  changed,
 }: NewViewButtonProps) {
   const t = useTranslations();
   const openViewModal = useOpenViewModal();
-  const label = filterCount > 0 ? t("views.saveAsNew") : t("views.newView");
+  const label = changed ? t("views.saveAsNew") : t("views.newView");
 
   const open = () =>
     openViewModal({

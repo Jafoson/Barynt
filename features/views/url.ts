@@ -79,7 +79,15 @@ export function viewParams(
   if (view.sortBy !== VIEW_DEFAULT_SORT) params.set("sort", view.sortBy);
   if (view.subGroupBy) params.set("lanes", view.subGroupBy);
   params.set("layout", view.layout);
-  const { display } = view;
+  for (const [key, value] of displayParams(view.display))
+    params.set(key, value);
+  return params;
+}
+
+/** A view's display settings as address parameters — only what differs
+ *  from a fresh board. */
+export function displayParams(display: SavedView["display"]): URLSearchParams {
+  const params = new URLSearchParams();
   if (display.hiddenGroups?.length)
     params.set("hide", display.hiddenGroups.join(","));
   if (display.groupOrder?.length)
