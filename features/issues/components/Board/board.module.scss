@@ -69,6 +69,12 @@
     border-top: 1px solid var(--outline-variant);
   }
 
+  /* An empty lane only needs room to drop a card into (the cell reads
+     `--lane-cell-min`). */
+  &[data-empty] {
+    --lane-cell-min: 1.75rem;
+  }
+
   &[data-folded] .laneChevron {
     rotate: -90deg;
   }

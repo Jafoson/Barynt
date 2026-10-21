@@ -652,6 +652,7 @@ export function Board({
                   key={lane.id}
                   className={styles.lane}
                   data-folded={folded || undefined}
+                  data-empty={count === 0 || undefined}
                   aria-label={lane.label}
                 >
                   <button
