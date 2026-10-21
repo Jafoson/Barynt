@@ -229,37 +229,8 @@ export function useBoardDnd<T extends Issue>(
     },
   });
 
-  /** A folded lane's head as a drop target: the card goes into that lane,
-   *  staying in its own column, at the end of the cell. */
-  const laneHandlers = (laneId: string) => ({
-    isOver: overCol === cellKey("", laneId),
-    onDragOver: (e: React.DragEvent) => {
-      e.preventDefault();
-      setOverCol(cellKey("", laneId));
-    },
-    onDragLeave: (e: React.DragEvent) => {
-      if (!e.currentTarget.contains(e.relatedTarget as Node)) setOverCol(null);
-    },
-    onDrop: (e: React.DragEvent) => {
-      e.preventDefault();
-      const issue = dragIssueRef.current;
-      if (!issue || !laneKey) return;
-      clearDragState();
-      if (groupIdOf(issue, laneKey) === laneId) return;
-      const groupId = groupIdOf(issue, groupKey);
-      const cell = getColumnIssues(groupId, laneId);
-      commitMove(
-        issue,
-        groupId,
-        rankBetween(cell[cell.length - 1] ?? null, null),
-        laneId,
-      );
-    },
-  });
-
   return {
     getColumnIssues,
-    laneHandlers,
     dragging,
     dragOverCard,
     insertAbove,

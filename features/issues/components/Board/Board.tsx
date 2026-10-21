@@ -245,23 +245,13 @@ export function Board({
     (laneCount(lane.id) === 0
       ? !openedEmpty.has(lane.id)
       : folded.has(laneEntry(laneKey, lane.id)));
-  // Dragging a card over a folded lane opens it after a moment, so the card
-  // can go into a column of its choice there; the lane folds again once the
-  // drag is over. Dropped right away, the card keeps its column.
-  const [springLane, setSpringLane] = useState<string | null>(null);
-  const springTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const springHandlers = (laneId: string) => ({
-    onDragEnter: () => {
-      clearTimeout(springTimer.current);
-      springTimer.current = setTimeout(() => setSpringLane(laneId), 450);
-    },
-    onDragLeave: (e: React.DragEvent) => {
-      if (!e.currentTarget.contains(e.relatedTarget as Node))
-        clearTimeout(springTimer.current);
-    },
-  });
+  // Dragging a card over a folded lane opens it, so the card can go into
+  // a column of its choice there. Every lane opened this way stays open
+  // until the drag is over — one closing above the pointer would shift
+  // the board under it.
+  const [springLanes, setSpringLanes] = useState<Set<string>>(() => new Set());
   const sprung = (lane: GroupDef) =>
-    board.dragging !== null && springLane === lane.id;
+    board.dragging !== null && springLanes.has(lane.id);
 
   const toggleLane = (lane: GroupDef) => {
     if (!laneKey) return;
@@ -621,7 +611,7 @@ export function Board({
         onCardDragStart={(issue) => {
           const start = board.onDragStart(issue);
           return (e: React.DragEvent) => {
-            setSpringLane(null);
+            setSpringLanes(new Set());
             start(e);
           };
         }}
@@ -685,30 +675,18 @@ export function Board({
             {lanes.map((lane) => {
               const folded = isFolded(lane) && !sprung(lane);
               const count = laneCount(lane.id);
-              // Folded, the whole lane is one drop target: the card moves
-              // into it and keeps its column.
-              const { isOver, ...dropHandlers } = board.laneHandlers(lane.id);
               return (
                 <section
                   key={lane.id}
                   className={styles.lane}
                   data-folded={folded || undefined}
                   data-empty={count === 0 || undefined}
-                  data-drop-over={(folded && isOver) || undefined}
-                  {...(folded && board.dragging
-                    ? {
-                        ...dropHandlers,
-                        onDragEnter: springHandlers(lane.id).onDragEnter,
-                        onDragLeave: (e: React.DragEvent) => {
-                          springHandlers(lane.id).onDragLeave(e);
-                          dropHandlers.onDragLeave(e);
-                        },
-                        onDrop: (e: React.DragEvent) => {
-                          clearTimeout(springTimer.current);
-                          dropHandlers.onDrop(e);
-                        },
-                      }
-                    : {})}
+                  onDragEnter={
+                    folded && board.dragging
+                      ? () =>
+                          setSpringLanes((open) => new Set(open).add(lane.id))
+                      : undefined
+                  }
                   aria-label={lane.label}
                 >
                   <button
