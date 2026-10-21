@@ -44,9 +44,6 @@ interface BoardColumnProps {
   /** All columns of the board, for each card's "Move to…". */
   moveTargets?: GroupDef[];
   onCardMoveTo?: (issue: IssueDetail, groupId: string) => void;
-  /** With swimlanes: the lane this cell belongs to — a new issue created
-   *  here starts with its value too (BARY-173). */
-  lane?: GroupDef;
   /**
    * With swimlanes (BARY-173) a column splits: its `head` sits once above
    * every lane, and each lane draws a `cell` — only the cards of that
@@ -89,7 +86,6 @@ export function BoardColumn({
   moveTargets,
   onCardMoveTo,
   variant = "column",
-  lane,
   columnDrag,
 }: BoardColumnProps) {
   const { openModal } = useModal();
@@ -98,25 +94,16 @@ export function BoardColumn({
   // column header nor the row at the end of the column. The server has already
   // decided this (`creatableProjectIds`), it's just not rendered here. Without
   // a project the question doesn't even arise — across projects (V8) a
-  // column or lane grouped by project names one.
+  // column grouped by project names one.
   const createProjectId =
-    projectId ??
-    (group.key === "project"
-      ? group.id
-      : lane?.key === "project"
-        ? lane.id
-        : undefined);
+    projectId ?? (group.key === "project" ? group.id : undefined);
   const canCreate =
     createProjectId !== undefined &&
     composer.creatableProjectIds.includes(createProjectId);
-  // A new issue starts where it's created: the column's value and, in a
-  // swimlane, the lane's too — "In Progress" in Lena's lane is status In
-  // Progress, assigned to Lena (BARY-173). Without a status among them it
-  // starts in the workspace's first workflow status, as the composer would.
-  const { status, ...initialValues } = {
-    ...groupPatch(group.key, group.id),
-    ...(lane ? groupPatch(lane.key, lane.id) : {}),
-  };
+  // A new issue starts in the column it's created in — a priority column
+  // presets the priority. Without a status column it starts in the
+  // workspace's first workflow status, as the composer would.
+  const { status, ...initialValues } = groupPatch(group.key, group.id);
   const initialStatus =
     status ??
     composer.statuses.find((s) => s.isColumn)?.id ??
@@ -218,8 +205,10 @@ export function BoardColumn({
             );
           })}
           {/* Right after the last card, so it follows the column's content
-            instead of floating over the cards. */}
-          {canCreate && (
+            instead of floating over the cards. Not in a swimlane cell — a
+            row in every cell is a grid of dashed boxes; the column head's
+            plus is there (BARY-173). */}
+          {canCreate && variant === "column" && (
             <div className={styles.addSlot}>
               <button
                 type="button"

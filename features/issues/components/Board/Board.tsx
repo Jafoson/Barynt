@@ -569,7 +569,6 @@ export function Board({
       <BoardColumn
         key={laneId === undefined ? group.id : `${laneId}:${group.id}`}
         variant={variant}
-        lane={lane}
         group={group}
         issues={columnIssues}
         projectId={projectId}
