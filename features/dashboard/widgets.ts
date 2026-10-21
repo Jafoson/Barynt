@@ -733,7 +733,8 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   kpi: {
     type: "kpi",
     icon: "lucide:hash",
-    sizes: ["S", "M", "L", "T", "XL"],
+    // One number — beyond L there's only more empty space.
+    sizes: ["S", "M", "L"],
     size: "S",
     accent: "blue",
     fill: true,
