@@ -1059,6 +1059,29 @@ model Status {
   workspaces WorkspaceStatus[]
 }
 
+/// Ein Statuswechsel eines Issues (BARY-171), auch der erste bei der Anlage
+/// (`fromStatus` leer). Schmal gehalten und nur angehängt, nie geändert: die
+/// Flussmetriken (Cumulative Flow, Cycle Time, Burndown) lesen daraus, wo
+/// ein Issue zu jedem Zeitpunkt stand. Die Kategorien sind zum Zeitpunkt des
+/// Wechsels eingefroren — eine später umgehängte Status-Kategorie schreibt
+/// die Vergangenheit nicht um, und die Metriken hängen nicht an Namen.
+model IssueStatusEvent {
+  id           String          @id @default(cuid())
+  issueId      String
+  fromStatus   String?
+  toStatus     String
+  fromCategory StatusCategory?
+  toCategory   StatusCategory
+  at           DateTime        @default(now())
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  /// Der Verlauf eines Issues, in Reihenfolge.
+  @@index([issueId, at])
+  /// „Was ist im Zeitraum passiert" — Cumulative Flow, Cycle Time.
+  @@index([at])
+}
+
 model WorkspaceStatus {
   workspaceId String
   statusId    String
@@ -1365,6 +1388,9 @@ model Issue {
   /// Beziehungen, bei denen dieses Issue das Ziel ist — z. B. "wird von X
   /// blockiert".
   relationsTo   IssueRelation[] @relation("IssueRelationTarget")
+  /// Jeder Statuswechsel, ab der Anlage (BARY-171) — Grundlage der
+  /// Flussmetriken.
+  statusEvents  IssueStatusEvent[]
 
   @@unique([projectId, key])
   @@index([projectId, status])
