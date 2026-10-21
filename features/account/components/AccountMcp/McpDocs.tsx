@@ -10,6 +10,7 @@ import { useDocText } from "../AccountApiKeys/docText";
 import styles from "./mcpDocs.module.scss";
 import {
   MCP_CLIENT_GUIDES,
+  MCP_OAUTH_STEPS,
   MCP_TOOL_GROUPS,
   type McpClientId,
   type McpToolGroupId,
@@ -33,8 +34,9 @@ function CodeBlock({ code }: { code: string }) {
 }
 
 /**
- * The two reference panels below the connection details (`AccountMcp.tsx`):
- * copy-paste client setup snippets, and the tool list every client sees via
+ * The reference below the connection details (`AccountMcp.tsx`): how to
+ * connect each common AI app (OAuth first, a key as the fallback), what
+ * happens when one signs in, and the tool list every client sees via
  * `tools/list`. Split into its own component the same way `ApiDocs` is
  * split from `AccountApiKeys` — pure rendering over static data
  * (`mcpDocsData.ts`), no data fetching of its own.
@@ -42,20 +44,16 @@ function CodeBlock({ code }: { code: string }) {
 export function McpDocs({ mcpUrl }: { mcpUrl: string }) {
   const t = useTranslations();
   const doc = useDocText();
-  const [client, setClient] = useState<McpClientId>("claude-code");
+  const [client, setClient] = useState<McpClientId>("claude");
   const [group, setGroup] = useState<McpToolGroupId>("workspaces");
 
   const guide = MCP_CLIENT_GUIDES.find((g) => g.id === client);
   const activeGroup = MCP_TOOL_GROUPS.find((g) => g.id === group);
 
-  const introKey: Record<McpClientId, string> = {
-    "claude-code": t("mcp.setupClaudeCodeIntro"),
-    direct: t("mcp.setupDirectIntro"),
-    desktop: t("mcp.setupDesktopIntro"),
-  };
-
   return (
     <div className={styles.root}>
+      {/* Connecting an AI app: OAuth first (only the URL), a key as the
+          fallback — one tab per common app (BARY-172). */}
       <div className={styles.section}>
         <div className={styles.head}>
           <h2 className={styles.title}>{t("mcp.setupTitle")}</h2>
@@ -63,21 +61,41 @@ export function McpDocs({ mcpUrl }: { mcpUrl: string }) {
         </div>
 
         <SegmentedControl
-          items={[
-            { value: "claude-code", label: t("mcp.setupTabClaudeCode") },
-            { value: "direct", label: t("mcp.setupTabDirect") },
-            { value: "desktop", label: t("mcp.setupTabDesktop") },
-          ]}
+          items={MCP_CLIENT_GUIDES.map((g) => ({
+            value: g.id,
+            label: doc(g.label),
+          }))}
           value={client}
           onChange={(value) => setClient(value as McpClientId)}
         />
 
         {guide && (
           <>
-            <p className={styles.guideIntro}>{introKey[client]}</p>
-            <CodeBlock code={guide.snippet(mcpUrl)} />
+            <ol className={styles.steps}>
+              {guide.steps.map((step) => (
+                <li key={doc(step.text)}>
+                  <span>{doc(step.text)}</span>
+                  {step.code && <CodeBlock code={step.code(mcpUrl)} />}
+                </li>
+              ))}
+            </ol>
+            {guide.note && <p className={styles.note}>{doc(guide.note)}</p>}
           </>
         )}
+      </div>
+
+      <div className={styles.section}>
+        <div className={styles.head}>
+          <h2 className={styles.title}>{t("mcp.oauthTitle")}</h2>
+          <p className={styles.desc}>{t("mcp.oauthDesc")}</p>
+        </div>
+        <ol className={styles.steps}>
+          {MCP_OAUTH_STEPS.map((step) => (
+            <li key={doc(step)}>
+              <span>{doc(step)}</span>
+            </li>
+          ))}
+        </ol>
       </div>
 
       <div className={styles.section}>

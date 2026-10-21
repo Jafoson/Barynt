@@ -28,11 +28,10 @@ interface Props {
  * How to connect an AI assistant to this workspace over MCP
  * (`app/api/mcp`) — the remote-tools counterpart to `AccountApiKeys`.
  *
- * Pure documentation, no data of its own to manage: unlike API keys there's
- * nothing here to create or revoke — a key made on the API keys page is
- * reused as-is (`lib/mcp/auth.ts` authenticates MCP requests exactly like
- * REST ones), so this page only explains the endpoint and links there for
- * the actual key.
+ * Pure documentation, no data of its own to manage. Apps sign in with
+ * OAuth on their own (discovery, self-registration, consent page — BARY-172),
+ * so the page leads with that; a key made on the API keys page is the
+ * fallback (`lib/mcp/auth.ts` accepts both).
  */
 export function AccountMcp({ apiKeysHref, mcpUrl }: Props) {
   const t = useTranslations();

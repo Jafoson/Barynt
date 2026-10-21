@@ -291,45 +291,250 @@ export const MCP_TOOL_GROUPS: McpToolGroup[] = [
   },
 ];
 
-export type McpClientId = "claude-code" | "direct" | "desktop";
+export type McpClientId =
+  | "claude"
+  | "claude-code"
+  | "chatgpt"
+  | "cursor"
+  | "vscode"
+  | "api-key";
+
+/** One step of a client's setup — text, and maybe something to copy. */
+export interface McpSetupStep {
+  text: DocText;
+  /** Built from the page's own MCP URL (`appUrl("/api/mcp")`). */
+  code?: (mcpUrl: string) => string;
+}
 
 export interface McpClientGuide {
   id: McpClientId;
-  snippetLang: "bash" | "json" | "text";
-  /** Built lazily from the page's own origin (`appUrl("/api/mcp")`) — there's
-   *  no fixed placeholder to bake in ahead of time. */
-  snippet: (mcpUrl: string) => string;
+  /** Product names stay as they are; "With an API key" is translated. */
+  label: DocText;
+  steps: McpSetupStep[];
+  note?: DocText;
 }
 
+/** Cloud apps (Claude, ChatGPT) connect from their own servers. */
+const PUBLIC_URL_NOTE: DocText = {
+  en: "These apps connect from the provider's cloud, so Barynt must be reachable from the internet over HTTPS — a localhost address won't work.",
+  de: "Diese Apps verbinden sich aus der Cloud des Anbieters. Barynt muss dafür über HTTPS aus dem Internet erreichbar sein — eine localhost-Adresse funktioniert nicht.",
+};
+
+/**
+ * How to connect the common AI apps (BARY-172). OAuth first, as the MCP
+ * authorization spec intends: the app gets only the URL, discovers the
+ * sign-in itself (`/.well-known/oauth-protected-resource`,
+ * `/.well-known/oauth-authorization-server`), registers itself
+ * (`/api/oauth/register`) and opens Barynt's consent page. An API key is
+ * the fallback for scripts, CI and apps without a browser sign-in.
+ */
 export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
   {
-    id: "claude-code",
-    snippetLang: "bash",
-    snippet: (mcpUrl) =>
-      `claude mcp add --transport http barynt ${mcpUrl} \\\n  --header "Authorization: Bearer <YOUR_API_KEY>"`,
+    id: "claude",
+    label: "Claude",
+    steps: [
+      {
+        text: {
+          en: "In Claude (web or desktop app), open Settings → Connectors and choose Add custom connector.",
+          de: "In Claude (Web oder Desktop-App) Einstellungen → Connectors öffnen und „Add custom connector“ wählen.",
+        },
+      },
+      {
+        text: {
+          en: "Paste the server URL and add the connector. Leave the advanced OAuth fields empty.",
+          de: "Die Server-URL einfügen und den Connector hinzufügen. Die erweiterten OAuth-Felder leer lassen.",
+        },
+        code: (url) => url,
+      },
+      {
+        text: {
+          en: "Click Connect. Barynt opens in the browser — sign in and allow access.",
+          de: "Auf „Connect“ klicken. Barynt öffnet sich im Browser — anmelden und den Zugriff erlauben.",
+        },
+      },
+    ],
+    note: {
+      en: "On Team and Enterprise plans an owner adds the connector under Admin settings → Connectors; each member then clicks Connect and signs in as themselves. These apps connect from the provider's cloud, so Barynt must be reachable from the internet over HTTPS.",
+      de: "Bei Team- und Enterprise-Plänen fügt ein Owner den Connector unter Admin-Einstellungen → Connectors hinzu; danach klickt jedes Mitglied auf „Connect“ und meldet sich selbst an. Diese Apps verbinden sich aus der Cloud des Anbieters, Barynt muss also über HTTPS aus dem Internet erreichbar sein.",
+    },
   },
   {
-    id: "direct",
-    snippetLang: "json",
-    snippet: (mcpUrl) =>
-      `{
+    id: "claude-code",
+    label: "Claude Code",
+    steps: [
+      {
+        text: {
+          en: "Add the server. With --scope user it's available in all your projects.",
+          de: "Den Server hinzufügen. Mit --scope user steht er in all deinen Projekten bereit.",
+        },
+        code: (url) =>
+          `claude mcp add --transport http --scope user barynt ${url}`,
+      },
+      {
+        text: {
+          en: "Sign in — a browser window opens. Or, inside a session, run /mcp and choose Authenticate.",
+          de: "Anmelden — ein Browserfenster öffnet sich. Alternativ in einer Sitzung /mcp ausführen und „Authenticate“ wählen.",
+        },
+        code: () => "claude mcp login barynt",
+      },
+      {
+        text: {
+          en: "Check it: barynt should show as connected.",
+          de: "Prüfen: barynt sollte als verbunden erscheinen.",
+        },
+        code: () => "claude mcp list",
+      },
+    ],
+    note: {
+      en: "Tokens are stored by Claude Code and refreshed on their own. claude mcp logout barynt signs out again.",
+      de: "Claude Code speichert die Tokens und erneuert sie selbst. Mit claude mcp logout barynt meldest du dich wieder ab.",
+    },
+  },
+  {
+    id: "chatgpt",
+    label: "ChatGPT",
+    steps: [
+      {
+        text: {
+          en: "In ChatGPT, open Settings → Apps & Connectors → Advanced settings and turn on Developer mode.",
+          de: "In ChatGPT Einstellungen → Apps & Connectors → Erweiterte Einstellungen öffnen und den Entwicklermodus einschalten.",
+        },
+      },
+      {
+        text: {
+          en: "Create a new connector: paste the server URL and choose OAuth as authentication.",
+          de: "Einen neuen Connector anlegen: die Server-URL einfügen und als Authentifizierung OAuth wählen.",
+        },
+        code: (url) => url,
+      },
+      {
+        text: {
+          en: "Sign in to Barynt in the window that opens and allow access.",
+          de: "Im sich öffnenden Fenster bei Barynt anmelden und den Zugriff erlauben.",
+        },
+      },
+    ],
+    note: PUBLIC_URL_NOTE,
+  },
+  {
+    id: "cursor",
+    label: "Cursor",
+    steps: [
+      {
+        text: {
+          en: "Open Cursor Settings → MCP and add the server to mcp.json — just the URL, no key.",
+          de: "In Cursor Einstellungen → MCP öffnen und den Server in mcp.json eintragen — nur die URL, kein Schlüssel.",
+        },
+        code: (url) => `{
+  "mcpServers": {
+    "barynt": {
+      "url": "${url}"
+    }
+  }
+}`,
+      },
+      {
+        text: {
+          en: "Back in the MCP settings, click the sign-in button next to barynt and allow access in the browser.",
+          de: "Zurück in den MCP-Einstellungen neben barynt auf Anmelden klicken und im Browser den Zugriff erlauben.",
+        },
+      },
+      {
+        text: {
+          en: "Start a new chat — tools added later don't show up in a running one.",
+          de: "Einen neuen Chat beginnen — später hinzugefügte Tools erscheinen in einem laufenden Chat nicht.",
+        },
+      },
+    ],
+  },
+  {
+    id: "vscode",
+    label: "VS Code",
+    steps: [
+      {
+        text: {
+          en: "Add the server to .vscode/mcp.json (this workspace) or to your user's mcp.json (everywhere).",
+          de: "Den Server in .vscode/mcp.json (dieser Workspace) oder in die mcp.json deines Benutzerprofils (überall) eintragen.",
+        },
+        code: (url) => `{
+  "servers": {
+    "barynt": {
+      "type": "http",
+      "url": "${url}"
+    }
+  }
+}`,
+      },
+      {
+        text: {
+          en: "Start the server (Start above the entry, or MCP: List Servers). VS Code asks you to sign in — allow access in the browser.",
+          de: "Den Server starten („Start“ über dem Eintrag oder „MCP: List Servers“). VS Code fragt nach der Anmeldung — im Browser den Zugriff erlauben.",
+        },
+      },
+    ],
+  },
+  {
+    id: "api-key",
+    label: { en: "With an API key", de: "Mit API-Key" },
+    steps: [
+      {
+        text: {
+          en: "Only where a browser sign-in isn't possible — scripts, CI, or an app without OAuth. Create a key on the API keys page with just the scopes the tools need.",
+          de: "Nur, wo keine Anmeldung im Browser möglich ist — Skripte, CI oder eine App ohne OAuth. Leg auf der Seite API-Schlüssel einen Key an, mit genau den Scopes, die die Tools brauchen.",
+        },
+      },
+      {
+        text: {
+          en: "Keep the key in an environment variable, not in a file you share or commit.",
+          de: "Den Key in einer Umgebungsvariable halten, nicht in einer Datei, die du teilst oder committest.",
+        },
+        code: () => "export BARYNT_API_KEY=bry_…",
+      },
+      {
+        text: {
+          en: "Claude Code: send it as a header (then Claude Code won't try OAuth for this server).",
+          de: "Claude Code: als Header mitschicken (Claude Code versucht dann für diesen Server kein OAuth).",
+        },
+        code: (url) =>
+          `claude mcp add --transport http barynt ${url} \\\n  --header "Authorization: Bearer $BARYNT_API_KEY"`,
+      },
+      {
+        text: {
+          en: "Other apps: point at the URL with an Authorization header that reads the variable.",
+          de: "Andere Apps: auf die URL zeigen, mit einem Authorization-Header, der die Variable liest.",
+        },
+        code: (url) => `{
   "mcpServers": {
     "barynt": {
       "type": "http",
-      "url": "${mcpUrl}",
+      "url": "${url}",
       "headers": {
-        "Authorization": "Bearer <YOUR_API_KEY>"
+        "Authorization": "Bearer \${BARYNT_API_KEY}"
       }
     }
   }
 }`,
+      },
+    ],
+  },
+];
+
+/** What happens when an app signs in with OAuth — in order. */
+export const MCP_OAUTH_STEPS: DocText[] = [
+  {
+    en: "The app calls the server URL without a token and is told where to sign in (OAuth discovery).",
+    de: "Die App ruft die Server-URL ohne Token auf und erfährt, wo die Anmeldung läuft (OAuth-Discovery).",
   },
   {
-    id: "desktop",
-    snippetLang: "text",
-    // No JSON, no bridge process, no key to paste — the connector picker
-    // takes just this URL and drives the OAuth flow itself
-    // (`/.well-known/oauth-authorization-server`, `/oauth/authorize`).
-    snippet: (mcpUrl) => mcpUrl,
+    en: "It registers itself with Barynt — nothing for you to set up — and opens Barynt's consent page in your browser.",
+    de: "Sie registriert sich selbst bei Barynt — du musst nichts einrichten — und öffnet die Zustimmungsseite von Barynt im Browser.",
+  },
+  {
+    en: "You sign in and see what the app may do. After Allow, it gets a short-lived token and renews it on its own.",
+    de: "Du meldest dich an und siehst, was die App darf. Nach „Erlauben“ bekommt sie ein kurzlebiges Token und erneuert es selbst.",
+  },
+  {
+    en: "The app acts as you: it can never do more than your roles allow — on top of the scopes it was granted.",
+    de: "Die App handelt als du: Sie darf nie mehr, als deine Rollen erlauben — und nur im Rahmen der gewährten Scopes.",
   },
 ];
