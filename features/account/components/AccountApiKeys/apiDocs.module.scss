@@ -231,7 +231,8 @@
 
 .errorRow {
   display: grid;
-  grid-template-columns: 4rem 8.75rem minmax(0, 1fr);
+  /* Room for two codes ("insufficient_scope / forbidden"), wrapping. */
+  grid-template-columns: 4rem minmax(8.75rem, 13rem) minmax(0, 1fr);
   gap: 0.75rem;
 
   @include bp.phone {
@@ -254,6 +255,7 @@
   code {
     font-family: var(--font-mono);
     color: var(--on-surface);
+    overflow-wrap: anywhere;
   }
 
   span {

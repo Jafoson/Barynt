@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { CopyButton } from "@/components/ui/layout/CopyButton/CopyButton";
-import { FilterDocs } from "../AccountApiKeys/FilterDocs";
+import { DocGuides } from "../AccountApiKeys/DocGuides";
 import styles from "./mcpDocs.module.scss";
 import {
   MCP_CLIENT_GUIDES,
@@ -41,7 +41,7 @@ function CodeBlock({ code }: { code: string }) {
 export function McpDocs({ mcpUrl }: { mcpUrl: string }) {
   const t = useTranslations();
   const [client, setClient] = useState<McpClientId>("claude-code");
-  const [group, setGroup] = useState<McpToolGroupId | "filter">("workspaces");
+  const [group, setGroup] = useState<McpToolGroupId>("workspaces");
 
   const guide = MCP_CLIENT_GUIDES.find((g) => g.id === client);
   const activeGroup = MCP_TOOL_GROUPS.find((g) => g.id === group);
@@ -84,6 +84,9 @@ export function McpDocs({ mcpUrl }: { mcpUrl: string }) {
           <p className={styles.desc}>{t("mcp.toolsDesc")}</p>
         </div>
 
+        {/* What applies across tools — the tabs below group the tools. */}
+        <DocGuides guides={["filter"]} />
+
         <SegmentedControl
           items={[
             { value: "workspaces", label: t("apiKeys.docsTabWorkspaces") },
@@ -93,15 +96,10 @@ export function McpDocs({ mcpUrl }: { mcpUrl: string }) {
             { value: "labels", label: t("apiKeys.docsTabLabels") },
             { value: "members", label: t("apiKeys.docsTabMembers") },
             { value: "views", label: t("apiKeys.docsTabViews") },
-            { value: "filter", label: t("apiKeys.docsTabFilter") },
           ]}
           value={group}
-          onChange={(value) => setGroup(value as McpToolGroupId | "filter")}
+          onChange={(value) => setGroup(value as McpToolGroupId)}
         />
-
-        {/* The filter tree list_issues and the view tools take — the same
-            guide as in the REST docs. */}
-        {group === "filter" && <FilterDocs />}
 
         {activeGroup && (
           <div className={styles.toolGroups}>

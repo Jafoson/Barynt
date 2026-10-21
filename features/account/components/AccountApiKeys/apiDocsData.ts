@@ -296,7 +296,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           {
             name: "filter",
             type: "string (JSON)",
-            desc: 'A filter tree as JSON, URL-encoded — e.g. {"op":"and","rules":[{"field":"priority","is":"gte","value":3}]}. "@me" means you. How it works: see the Filter tab. 422 invalid_filter if it isn\'t a valid tree.',
+            desc: 'A filter tree as JSON, URL-encoded — e.g. {"op":"and","rules":[{"field":"priority","is":"gte","value":3}]}. "@me" means you. How it works: Basics → Filter, above. 422 invalid_filter if it isn\'t a valid tree.',
           },
           {
             name: "fields",
@@ -976,7 +976,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           {
             name: "filter",
             type: "object",
-            desc: "A filter tree — see the Filter tab.",
+            desc: "A filter tree — see Basics → Filter, above.",
           },
           {
             name: "groupBy",
@@ -1035,7 +1035,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
           {
             name: "filter",
             type: "object",
-            desc: "A filter tree — see the Filter tab.",
+            desc: "A filter tree — see Basics → Filter, above.",
           },
           {
             name: "groupBy",
@@ -1118,9 +1118,9 @@ export interface ApiDocError {
 
 export const API_DOC_ERRORS: ApiDocError[] = [
   { status: 401, code: "unauthorized" },
-  { status: 403, code: "insufficient_scope" },
+  { status: 403, code: "insufficient_scope / forbidden" },
   { status: 404, code: null },
-  { status: 422, code: "invalid_body" },
+  { status: 422, code: "invalid_body / invalid_filter" },
   { status: 429, code: "rate_limited" },
 ];
 

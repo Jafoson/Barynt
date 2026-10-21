@@ -16,9 +16,9 @@ import {
   type ApiDocParam,
   type HttpMethod,
 } from "./apiDocsData";
-import { FilterDocs } from "./FilterDocs";
+import { DocGuides } from "./DocGuides";
 
-type DocTab = ApiDocGroupId | "filter" | "webhooks";
+type DocTab = ApiDocGroupId | "webhooks";
 
 const METHOD_CLASS: Record<HttpMethod, string> = {
   GET: styles.methodGet,
@@ -214,6 +214,9 @@ export function ApiDocs() {
         <p className={styles.desc}>{t("apiKeys.docsDesc")}</p>
       </div>
 
+      {/* What applies across endpoints — the tabs below are for endpoints. */}
+      <DocGuides guides={["auth", "paging", "filter"]} />
+
       <SegmentedControl
         items={[
           { value: "workspaces", label: t("apiKeys.docsTabWorkspaces") },
@@ -223,7 +226,6 @@ export function ApiDocs() {
           { value: "labels", label: t("apiKeys.docsTabLabels") },
           { value: "members", label: t("apiKeys.docsTabMembers") },
           { value: "views", label: t("apiKeys.docsTabViews") },
-          { value: "filter", label: t("apiKeys.docsTabFilter") },
           { value: "webhooks", label: t("apiKeys.docsTabWebhooks") },
         ]}
         value={tab}
@@ -239,8 +241,6 @@ export function ApiDocs() {
             />
           ))}
         </div>
-      ) : tab === "filter" ? (
-        <FilterDocs />
       ) : (
         <WebhookDocs />
       )}
