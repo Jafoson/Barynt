@@ -250,6 +250,28 @@ export function Board({
   // until the drag is over — one closing above the pointer would shift
   // the board under it.
   const [springLanes, setSpringLanes] = useState<Set<string>>(() => new Set());
+  // A lane's head row belongs to the cells below it: dragged over it, the
+  // card targets the column under the pointer, as if over that cell.
+  const headRowHandlers = (laneId: string) => {
+    const target = (e: React.DragEvent) => {
+      const el = e.target as HTMLElement;
+      if (el.closest('[data-variant="cell"]')) return null;
+      const cells = e.currentTarget.querySelectorAll('[data-variant="cell"]');
+      const idx = [...cells].findIndex((cell) => {
+        const r = cell.getBoundingClientRect();
+        return e.clientX >= r.left && e.clientX < r.right;
+      });
+      const group = groups[idx];
+      return group ? board.columnHandlers(group.id, laneId) : null;
+    };
+    return {
+      onDragOver: (e: React.DragEvent) => target(e)?.onDragOver(e),
+      onDrop: (e: React.DragEvent) => target(e)?.onDrop(e),
+      // Out of the lane altogether: no cell is the target any more.
+      onDragLeave: (e: React.DragEvent) =>
+        board.columnHandlers("", laneId).onDragLeave(e),
+    };
+  };
   const sprung = (lane: GroupDef) =>
     board.dragging !== null && springLanes.has(lane.id);
 
@@ -680,13 +702,15 @@ export function Board({
                   key={lane.id}
                   className={styles.lane}
                   data-folded={folded || undefined}
-                  data-empty={count === 0 || undefined}
                   onDragEnter={
                     folded && board.dragging
                       ? () =>
                           setSpringLanes((open) => new Set(open).add(lane.id))
                       : undefined
                   }
+                  {...(!folded && board.dragging
+                    ? headRowHandlers(lane.id)
+                    : {})}
                   aria-label={lane.label}
                 >
                   <button

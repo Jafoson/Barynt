@@ -202,7 +202,7 @@
   .cards {
     flex: none;
     overflow: visible;
-    min-height: var(--lane-cell-min, 3rem);
+    min-height: 4.5rem;
     padding-top: 0.5rem;
   }
 }
