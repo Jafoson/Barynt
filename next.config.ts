@@ -23,6 +23,13 @@ const nextConfig: NextConfig = {
   ...(process.env.CODESPACES === "true" && {
     experimental: {
       serverActions: { allowedOrigins: ["localhost:3000"] },
+      // A Codespace has little memory and a slow loop-mounted disk. With
+      // the dev filesystem cache on, Turbopack evicts its in-memory copy
+      // under memory pressure and reads it back from disk on demand — on
+      // this box that churned through gigabytes of reads and left every
+      // compile waiting on IO. Kept in memory only, a restart compiles
+      // from scratch but nothing thrashes.
+      turbopackFileSystemCacheForDev: false,
     },
   }),
   images: {
