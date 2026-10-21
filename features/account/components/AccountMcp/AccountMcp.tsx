@@ -1,6 +1,5 @@
 "use client";
 
-import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { CopyButton } from "@/components/ui/layout/CopyButton/CopyButton";
 import { PageHeader } from "@/components/ui/layout/PageHeader/PageHeader";
@@ -9,7 +8,6 @@ import {
   SettingsList,
   type SettingsRow,
 } from "@/components/ui/layout/SettingsList/SettingsList";
-import { Link } from "@/i18n/navigation";
 import styles from "./accountMcp.module.scss";
 import { McpDocs } from "./McpDocs";
 
@@ -28,11 +26,10 @@ interface Props {
  * How to connect an AI assistant to this workspace over MCP
  * (`app/api/mcp`) — the remote-tools counterpart to `AccountApiKeys`.
  *
- * Pure documentation, no data of its own to manage: unlike API keys there's
- * nothing here to create or revoke — a key made on the API keys page is
- * reused as-is (`lib/mcp/auth.ts` authenticates MCP requests exactly like
- * REST ones), so this page only explains the endpoint and links there for
- * the actual key.
+ * Pure documentation, no data of its own to manage. Apps sign in with
+ * OAuth on their own (discovery, self-registration, consent page — BARY-172),
+ * so the page leads with that; a key made on the API keys page is the
+ * fallback (`lib/mcp/auth.ts` accepts both).
  */
 export function AccountMcp({ apiKeysHref, mcpUrl }: Props) {
   const t = useTranslations();
@@ -56,12 +53,22 @@ export function AccountMcp({ apiKeysHref, mcpUrl }: Props) {
     {
       id: "auth",
       label: t("mcp.authLabel"),
-      desc: t("mcp.authDesc"),
-      control: (
-        <Link href={apiKeysHref} className={styles.link}>
-          {t("mcp.manageKeys")}
-          <Icon icon="lucide:arrow-right" width={14} />
-        </Link>
+      // Two equal ways in — OAuth first. No key link here: a key is the
+      // exception, its tab below has the link where it's needed.
+      desc: (
+        <span className={styles.authWays}>
+          <span className={styles.authWay}>
+            <b>{t("mcp.authOauth")}</b>
+            <span className={styles.recommended}>
+              {t("mcp.authRecommended")}
+            </span>
+            <span>{t("mcp.authOauthDesc")}</span>
+          </span>
+          <span className={styles.authWay}>
+            <b>{t("mcp.authKey")}</b>
+            <span>{t("mcp.authKeyDesc")}</span>
+          </span>
+        </span>
       ),
     },
     {
@@ -85,7 +92,7 @@ export function AccountMcp({ apiKeysHref, mcpUrl }: Props) {
 
       <SettingsBody>
         <SettingsList title={t("mcp.connectionTitle")} rows={connectionRows} />
-        <McpDocs mcpUrl={mcpUrl} />
+        <McpDocs mcpUrl={mcpUrl} apiKeysHref={apiKeysHref} />
       </SettingsBody>
     </>
   );

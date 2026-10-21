@@ -3,6 +3,10 @@ export const WEBHOOK_EVENTS = [
   "issue.updated",
   "issue.deleted",
   "comment.created",
+  // Shared views only (BARY-172) — a private view is nobody else's news.
+  "view.created",
+  "view.updated",
+  "view.deleted",
 ] as const;
 
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];

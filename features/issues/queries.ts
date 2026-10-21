@@ -558,9 +558,11 @@ export async function resolveUrlFilter(
 
 /** The live lookups `toIssueWhere` needs: the viewer for `@me`, statuses by
  *  category, full-text search. */
-export async function filterContext(): Promise<FilterContext> {
+/** How filters resolve — `@me` is the signed-in person, or `userId` when
+ *  someone else's request is answered (the public API, BARY-172). */
+export async function filterContext(userId?: string): Promise<FilterContext> {
   return {
-    userId: await currentUserId(),
+    userId: userId ?? (await currentUserId()),
     now: new Date(),
     statusIdsIn: async (categories) =>
       (

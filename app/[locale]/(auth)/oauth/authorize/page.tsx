@@ -111,6 +111,8 @@ export default async function OAuthAuthorizePage({
     "workspaces:read": t("apiKeys.descWorkspacesRead"),
     "workspaces:write": t("apiKeys.descWorkspacesWrite"),
     "members:read": t("apiKeys.descMembersRead"),
+    "views:read": t("apiKeys.descViewsRead"),
+    "views:write": t("apiKeys.descViewsWrite"),
   };
   const grantedScopes = resolveRequestedScopes(req.scope);
   const scopeDescriptions = API_SCOPES.filter((s) =>

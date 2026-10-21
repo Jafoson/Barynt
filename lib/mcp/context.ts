@@ -88,6 +88,11 @@ export const workspaceCreationDisabledResult = (): CallToolResult =>
     "Workspace creation is currently disabled by the administrator.",
   );
 
+/** Visible, but the caller may not change it (a shared view someone else
+ *  made, BARY-172). */
+export const forbiddenResult = (): CallToolResult =>
+  errorResult("forbidden", "You may see this, but not change it.");
+
 export function jsonResult(data: unknown): CallToolResult {
   return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
 }
