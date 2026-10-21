@@ -661,12 +661,17 @@ export function Board({
             {lanes.map((lane) => {
               const folded = isFolded(lane);
               const count = laneCount(lane.id);
+              // Folded, the whole lane is one drop target: the card moves
+              // into it and keeps its column.
+              const { isOver, ...dropHandlers } = board.laneHandlers(lane.id);
               return (
                 <section
                   key={lane.id}
                   className={styles.lane}
                   data-folded={folded || undefined}
                   data-empty={count === 0 || undefined}
+                  data-drop-over={(folded && isOver) || undefined}
+                  {...(folded && board.dragging ? dropHandlers : {})}
                   aria-label={lane.label}
                 >
                   <button

@@ -75,6 +75,13 @@
     --lane-cell-min: 1.75rem;
   }
 
+  &[data-drop-over] {
+    border-radius: var(--radius);
+    outline: 2px dashed var(--primary);
+    outline-offset: -2px;
+    background: rgb(from var(--primary) r g b / 0.08);
+  }
+
   &[data-folded] .laneChevron {
     rotate: -90deg;
   }
