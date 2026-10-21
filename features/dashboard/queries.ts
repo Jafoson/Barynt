@@ -4,6 +4,7 @@ import {
   getProjectActivity,
   getWorkspaceActivity,
 } from "@/features/audit/queries";
+import { sumStays, tallyFlow } from "@/features/dashboard/flow";
 import {
   type DashboardScope,
   toDashboardScope,
@@ -25,8 +26,10 @@ import type {
 import {
   blockWidget,
   type CustomWidgetEntry,
+  type CycleBy,
   defaultWidgets,
   elementOf,
+  type FlowBy,
   type GroupField,
   type KpiMetric,
   layoutKey,
@@ -1460,17 +1463,23 @@ async function burnup(ctx: Ctx, where: Where): Promise<WidgetData> {
     points: window.keys.map((date, i) => {
       total += c[i];
       done += d[i];
-      return { date, total, done };
+      return { date, total, done, added: c[i] };
     }),
   };
 }
 
-async function cycle(ctx: Ctx, where: Where): Promise<WidgetData> {
+async function cycle(ctx: Ctx, where: Where, by: CycleBy): Promise<WidgetData> {
   const { window, previous } = ctx;
-  const [now, before] = await Promise.all([
+  const [leadNow, leadBefore] = await Promise.all([
     cyclesIn(where, window.from, window.to),
     cyclesIn(where, previous.from, previous.to),
   ]);
+  // Cycle time: from the first start instead of creation. Issues closed
+  // without ever being started have no cycle time — they're counted aside.
+  const [now, before] =
+    by === "cycle"
+      ? await Promise.all([fromStart(leadNow), fromStart(leadBefore)])
+      : [leadNow, leadBefore];
   const sorted = now.map((x) => x.days).sort((a, b) => a - b);
   return {
     type: "cycle",
@@ -1487,6 +1496,154 @@ async function cycle(ctx: Ctx, where: Where): Promise<WidgetData> {
       days: Math.round(row.days * 10) / 10,
     })),
     spark: cycleSpark(now, window),
+    by,
+    unstarted: leadNow.length - now.length,
+  };
+}
+
+/** Closed issues measured from their first start (BARY-171) — the first
+ *  move into a "started" status. Never started: left out. */
+async function fromStart<
+  T extends { id: string; closedAt: Date; days: number },
+>(rows: T[]): Promise<T[]> {
+  if (rows.length === 0) return rows;
+  const starts = await db.issueStatusEvent.findMany({
+    where: { issueId: { in: rows.map((r) => r.id) }, toCategory: "started" },
+    select: { issueId: true, at: true },
+    orderBy: { at: "asc" },
+    distinct: ["issueId"],
+  });
+  const startOf = new Map(starts.map((s) => [s.issueId, s.at]));
+  return rows.flatMap((row) => {
+    const start = startOf.get(row.id);
+    if (!start || start > row.closedAt) return [];
+    return [
+      {
+        ...row,
+        days: (row.closedAt.getTime() - start.getTime()) / DAY,
+      },
+    ];
+  });
+}
+
+// ─── Flow metrics from the status history (BARY-171) ────────────────────────
+
+/** The order bands stack in, bottom to top: done first, so it grows
+ *  under everything else. Canceled issues aren't part of the flow. */
+const FLOW_CATEGORIES = ["completed", "started", "unstarted", "backlog"];
+
+/** Every status change of the issues in `where` before `until`, oldest
+ *  first — where each issue stood at any moment up to then. */
+async function statusEventsUntil(where: Where, until: Date) {
+  return db.issueStatusEvent.findMany({
+    where: { at: { lt: until }, issue: where },
+    select: { issueId: true, toStatus: true, toCategory: true, at: true },
+    orderBy: { at: "asc" },
+    take: 100_000,
+  });
+}
+
+/** The end of each bucket (the next one's start, the range's end for the
+ *  last) — but never later than now. */
+function bucketEnds(window: Window): number[] {
+  const now = Date.now();
+  return window.keys.map((_, i) => {
+    const next = window.keys[i + 1];
+    const end = next ? localDay(next).getTime() : window.to.getTime();
+    return Math.min(end, now);
+  });
+}
+
+/** `YYYY-MM-DD` as local midnight — the way bucket keys are made. */
+function localDay(key: string): Date {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** How a flow chart groups: the category's ladder, or each status. */
+function flowGroups(ctx: Ctx, by: FlowBy) {
+  if (by === "category") {
+    return FLOW_CATEGORIES.map((key) => ({
+      key,
+      label: "",
+      color: CATEGORY_COLORS[key],
+      category: key,
+    }));
+  }
+  return FLOW_CATEGORIES.flatMap((category) =>
+    ctx.statuses
+      .filter((s) => s.category === category)
+      .reverse()
+      .map((s) => ({ key: s.id, label: s.name, color: s.color, category })),
+  );
+}
+
+/** Cumulative flow: how many issues sat in each category (or status) at
+ *  the end of every bucket. */
+async function cfd(
+  ctx: Ctx,
+  where: Where,
+  by: FlowBy,
+  hideDone: boolean,
+): Promise<WidgetData> {
+  const { window } = ctx;
+  const events = await statusEventsUntil(where, window.to);
+  const groups = flowGroups(ctx, by).filter(
+    (g) => !(hideDone && g.category === "completed"),
+  );
+  const values = tallyFlow(
+    events,
+    bucketEnds(window),
+    groups.map((g) => g.key),
+    (e) => (by === "category" ? e.toCategory : e.toStatus),
+  );
+  return {
+    type: "cfd",
+    dates: window.keys,
+    bands: groups.map((g, i) => ({
+      key: g.key,
+      label: g.label,
+      color: g.color,
+      values: values[i],
+    })),
+  };
+}
+
+/** Time in status: how long a stay lasted, on average, for stays that
+ *  ended in the range. Done and canceled never end — they're left out. */
+async function timeInStatus(
+  ctx: Ctx,
+  where: Where,
+  by: FlowBy,
+): Promise<WidgetData> {
+  const { window } = ctx;
+  const events = await statusEventsUntil(where, window.to);
+  const open = flowGroups(ctx, by).filter(
+    (g) => g.category !== "completed" && g.category !== "canceled",
+  );
+  const sums = sumStays(
+    events,
+    window.from.getTime(),
+    open.map((g) => g.key),
+    (e) => (by === "category" ? e.toCategory : e.toStatus),
+  );
+  return {
+    type: "timeInStatus",
+    // The ladder's order, top to bottom: backlog first.
+    rows: [...open].reverse().flatMap((g) => {
+      const sum = sums.get(g.key);
+      return sum?.count
+        ? [
+            {
+              key: g.key,
+              label: g.label,
+              color: g.color,
+              days: round1(sum.ms / sum.count / DAY),
+              count: sum.count,
+            },
+          ]
+        : [];
+    }),
   };
 }
 
@@ -2291,7 +2448,11 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
     case "burnup":
       return burnup(ctx, where);
     case "cycle":
-      return cycle(ctx, where);
+      return cycle(ctx, where, config.cycleBy ?? "lead");
+    case "cfd":
+      return cfd(ctx, where, config.flowBy ?? "category", !!config.hideDone);
+    case "timeInStatus":
+      return timeInStatus(ctx, where, config.flowBy ?? "category");
     case "workload":
       return workload(ctx, where, config.filter);
     case "matrix":

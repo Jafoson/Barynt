@@ -51,6 +51,9 @@ export const WIDGET_TYPES = [
   "shortcuts",
   "activity",
   "note",
+  // Flow metrics (BARY-171), read from the status history.
+  "cfd",
+  "timeInStatus",
   // A custom widget made of building blocks (BARY-170) — only the builder
   // makes these; the gallery doesn't list the kind itself.
   "blocks",
@@ -227,7 +230,28 @@ export interface WidgetConfig {
   shortcuts?: ShortcutKey[];
   /** A custom widget's building blocks, top to bottom (`blocks` kind). */
   blocks?: WidgetBlock[];
+  /** Burnup: done against everything, or what's left counting down. */
+  burn?: BurnView;
+  /** Burndown: the day it should reach zero, `YYYY-MM-DD`. */
+  targetDate?: string;
+  /** Cycle widget: first start → done, or created → done. */
+  cycleBy?: CycleBy;
+  /** Cycle widget: each issue as a dot, or how many took how long. */
+  cycleView?: CycleView;
+  /** Cumulative flow and time in status: by category or by status. */
+  flowBy?: FlowBy;
+  /** Cumulative flow: leave out the done band (it only ever grows). */
+  hideDone?: boolean;
 }
+
+export const BURN_VIEWS = ["up", "down"] as const;
+export type BurnView = (typeof BURN_VIEWS)[number];
+export const CYCLE_BY = ["cycle", "lead"] as const;
+export type CycleBy = (typeof CYCLE_BY)[number];
+export const CYCLE_VIEWS = ["points", "histogram"] as const;
+export type CycleView = (typeof CYCLE_VIEWS)[number];
+export const FLOW_BY = ["category", "status"] as const;
+export type FlowBy = (typeof FLOW_BY)[number];
 
 /** The kinds a custom widget is built from — the configurable ones. */
 export const BLOCK_TYPES = [
@@ -450,6 +474,8 @@ export const ELEMENTS: Partial<Record<WidgetType, ElementDef[]>> = {
   ],
   burnup: CHART_LABELS,
   cycle: CHART_LABELS,
+  cfd: CHART_LABELS,
+  timeInStatus: CHART_LABELS.filter((e) => e.kind !== "legend"),
   age: CHART_LABELS.filter((e) => e.kind !== "legend"),
   workload: CHART_LABELS,
 };
@@ -559,6 +585,7 @@ const NATURAL_MIN: Partial<
     col_storyPoints: "M",
   },
   burnup: { legend: "L", axes: "L", values: "L" },
+  cfd: { legend: "L", axes: "L" },
   cycle: { legend: "L", axes: "L", values: "L" },
   workload: { legend: "L" },
 };
@@ -642,6 +669,8 @@ const DEFAULT_ELEMENTS: Partial<Record<WidgetType, ElementKind[]>> = {
   issues: ["col_updated"],
   burnup: ["legend", "axes", "values"],
   cycle: ["legend", "axes", "values"],
+  cfd: ["legend", "axes"],
+  timeInStatus: ["axes", "values"],
   age: ["axes", "values"],
   workload: ["legend", "axes", "values"],
 };
@@ -803,6 +832,28 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
     sizes: ["M", "L"],
     size: "M",
     accent: "orange",
+    chart: true,
+    issues: true,
+    group: "charts",
+    config: {},
+  },
+  cfd: {
+    type: "cfd",
+    icon: "lucide:layers",
+    sizes: ["M", "L", "T", "XL"],
+    size: "XL",
+    accent: "teal",
+    chart: true,
+    issues: true,
+    group: "charts",
+    config: {},
+  },
+  timeInStatus: {
+    type: "timeInStatus",
+    icon: "lucide:clock-3",
+    sizes: ["M", "L", "T"],
+    size: "L",
+    accent: "amber",
     chart: true,
     issues: true,
     group: "charts",
@@ -1303,6 +1354,15 @@ const baseConfigShape = z.object({
   accent: z.enum(ACCENTS).optional(),
   text: z.string().max(2000).optional(),
   shortcuts: z.array(z.enum(SHORTCUT_KEYS)).max(20).optional(),
+  burn: z.enum(BURN_VIEWS).optional(),
+  targetDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  cycleBy: z.enum(CYCLE_BY).optional(),
+  cycleView: z.enum(CYCLE_VIEWS).optional(),
+  flowBy: z.enum(FLOW_BY).optional(),
+  hideDone: z.boolean().optional(),
   // Notes used to carry their text here; it's private now
   // (`DashboardNote`) and dropped on read (`normalizeWidget`).
   pages: z.unknown().optional(),

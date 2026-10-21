@@ -162,8 +162,42 @@ export function sampleData(widget: Widget, words: SampleWords): WidgetData {
         points: KEYS.map((date, i) => ({
           date,
           total: 30 + i * 3 + (i > 6 ? 4 : 0),
-          done: 8 + i * 3,
+          done: 8 + Math.round(i * 4.2),
+          added: i === 0 ? 0 : 3 + (i === 7 ? 4 : 0),
         })),
+      };
+    case "cfd": {
+      const band = (key: string, color: string, at: (i: number) => number) => ({
+        key,
+        label: "",
+        color,
+        values: KEYS.map((_, i) => at(i)),
+      });
+      return {
+        type: "cfd",
+        dates: KEYS,
+        bands: [
+          band("completed", "#5ab98a", (i) => 4 + i * 2),
+          band("started", "#e0992b", (i) => 5 + (i % 3)),
+          band("unstarted", "#b8bcc4", (i) => 9 - Math.floor(i / 4)),
+          band("backlog", "#8a9099", (i) => 14 - Math.floor(i / 3)),
+        ].filter((b) => !(widget.config.hideDone && b.key === "completed")),
+      };
+    }
+    case "timeInStatus":
+      return {
+        type: "timeInStatus",
+        rows: [
+          { key: "backlog", label: "", color: "#8a9099", days: 9.1, count: 12 },
+          {
+            key: "unstarted",
+            label: "",
+            color: "#b8bcc4",
+            days: 3.8,
+            count: 18,
+          },
+          { key: "started", label: "", color: "#e0992b", days: 2.6, count: 15 },
+        ],
       };
     case "cycle": {
       const days = [
@@ -172,6 +206,7 @@ export function sampleData(widget: Widget, words: SampleWords): WidgetData {
       const now = Date.now();
       return {
         type: "cycle",
+        by: widget.config.cycleBy ?? "lead",
         avg: 9.6,
         previous: 11.2,
         p50: 8,

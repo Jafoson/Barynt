@@ -1161,6 +1161,45 @@
   &[data-step="3"] { opacity: 0.9; }
 }
 
+/* Cycle time as a histogram (BARY-171): one column per bin, the slow
+   ones amber and red like the dots; the median as a dashed line. */
+.histogram {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 6%;
+  padding-top: 0.875rem;
+
+  & .col > i {
+    background: var(--teal);
+
+    &[data-tone="amber"] { background: var(--amber); }
+    &[data-tone="red"] { background: var(--red); }
+  }
+}
+
+.medianLine {
+  position: absolute;
+  top: 0.875rem;
+  bottom: 0;
+  width: 0;
+  border-left: 1.5px dashed var(--on-surface);
+  pointer-events: none;
+}
+
+/* One label under each bin, centered on it. */
+.binAxis {
+  & > span {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+  }
+}
+
 /* ── Overview widgets: people, teams, labels, projects, links ─────────── */
 
 .more {
