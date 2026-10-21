@@ -22,6 +22,7 @@ import {
   layoutFromParam,
   VIEW_DEFAULT_GROUP,
   VIEW_DEFAULT_SORT,
+  VIEW_SETTING_KEYS,
 } from "@/features/views/url";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { usePreferences } from "@/lib/preferences/PreferencesContext";
@@ -317,6 +318,19 @@ export function useTopbar({
     pushParams((p) => (key ? p.set("lanes", key) : p.delete("lanes")));
   }
 
+  /** Back to a fresh board or list: no filter, no grouping, order or lanes
+   *  of its own in the address — the search stays. */
+  function clearViewState() {
+    pushParams((p) => {
+      for (const key of [...p.keys()])
+        if (
+          (key !== "q" && isFilterParam(key)) ||
+          (VIEW_SETTING_KEYS as readonly string[]).includes(key)
+        )
+          p.delete(key);
+    });
+  }
+
   function setSort(key: SortKey) {
     pushParams((p) => p.set("sort", key));
   }
@@ -399,5 +413,6 @@ export function useTopbar({
     setLanes,
     setView,
     setViewDisplay,
+    clearViewState,
   };
 }

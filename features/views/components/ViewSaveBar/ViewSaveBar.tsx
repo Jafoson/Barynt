@@ -32,6 +32,8 @@ interface ViewSaveBarProps {
   layout: ViewLayout;
   /** The address's view state right now (`pickViewState`). */
   currentParams: Record<string, string>;
+  /** On the plain board/list: back to a fresh one. */
+  onDiscardPlain?: () => Promise<void>;
 }
 
 /**
@@ -40,6 +42,9 @@ interface ViewSaveBarProps {
  * their own), and Save where the person may change the view. Someone else's
  * shared view says whose it is instead of offering Save. Creating a view from
  * scratch is the button next to the search (`NewViewButton`).
+ *
+ * The plain board/list shows it too once it differs from a fresh one —
+ * "Unsaved", Discard and New view; there's nothing to save into.
  *
  * On a phone it floats above the list (CSS) rather than squeezing into the
  * filter row.
@@ -53,6 +58,7 @@ export function ViewSaveBar({
   dirty,
   layout,
   currentParams,
+  onDiscardPlain,
 }: ViewSaveBarProps) {
   const t = useTranslations();
   const router = useRouter();
@@ -82,7 +88,27 @@ export function ViewSaveBar({
     </Button>
   );
 
-  if (!activeView || !dirty) return null;
+  if (!dirty) return null;
+
+  if (!activeView)
+    return (
+      <div className={styles.bar}>
+        <span className={styles.badge}>{t("views.unsaved")}</span>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={isPending}
+          onClick={() =>
+            startTransition(async () => {
+              await onDiscardPlain?.();
+            })
+          }
+        >
+          {t("views.discard")}
+        </Button>
+        {newButton}
+      </div>
+    );
 
   const save = () =>
     startTransition(async () => {

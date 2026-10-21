@@ -150,6 +150,7 @@ export function TopbarClient({
     setLanes,
     setView,
     setViewDisplay,
+    clearViewState,
   } = useTopbar({
     workspaceId,
     projects,
@@ -186,7 +187,7 @@ export function TopbarClient({
         : t("nav.board");
 
   // "Unsaved": the address no longer shows the view's stored state.
-  const dirty =
+  const viewDirty =
     activeView !== null &&
     !sameViewState(searchParams, new URLSearchParams(activeView.canonical));
 
@@ -219,6 +220,23 @@ export function TopbarClient({
       groupKey !== preferences.defaultGrouping ||
       sortKey !== preferences.defaultSort ||
       displayParams(display).size > 0);
+  // The plain board/list is "unsaved" too once it differs from a fresh one:
+  // filters or display — there's no view to save into, only a new one.
+  const dirty = activeView ? viewDirty : filterCount > 0 || plainChanged;
+  // Discarding there resets the person's own display settings as well.
+  const discardPlain = async () => {
+    await Promise.all([
+      onGroupsChange({
+        hiddenGroups: [],
+        groupOrder: [],
+        hideEmptyGroups: false,
+        showSubIssues: false,
+        hideEmptyLanes: false,
+      }),
+      onDisplayChange([]),
+    ]);
+    clearViewState();
+  };
   // What "New view"/"Save" take over: the view state of the address, with the
   // layout spelled out (the plain board/list keep theirs in the path).
   // A system view's fixed condition isn't in the address (V8); "save as new
@@ -306,7 +324,7 @@ export function TopbarClient({
             canShare={views.canShare}
             layout={view}
             currentParams={currentParams}
-            changed={filterCount > 0 || plainChanged}
+            changed={dirty}
           />
           {mode !== "dashboard" && (
             <div className={styles.trailing}>
@@ -385,6 +403,7 @@ export function TopbarClient({
                 dirty={dirty}
                 layout={view}
                 currentParams={currentParams}
+                onDiscardPlain={discardPlain}
               />
             )}
             <ViewSettings
