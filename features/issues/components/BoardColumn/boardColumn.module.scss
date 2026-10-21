@@ -205,4 +205,26 @@
     min-height: 3rem;
     padding-top: 0.5rem;
   }
+
+  /* With lanes there's a "New task" row in every cell — all of them at
+     once are a grid of dashed boxes. Only the cell under the pointer shows
+     its own; the space stays, so nothing jumps. Keyboard focus and
+     devices without hover still see it. */
+  .addCard:not(:focus-visible) {
+    opacity: 0;
+  }
+
+  &:hover .addCard {
+    opacity: .55;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  @include bp.no-hover {
+    .addCard:not(:focus-visible) {
+      opacity: .55;
+    }
+  }
 }
