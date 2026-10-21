@@ -236,10 +236,24 @@ export function Board({
   const foldedKey = collapsedLanes.join(",");
   // biome-ignore lint/correctness/useExhaustiveDependencies: resync on a new stored list only
   useEffect(() => setFolded(new Set(collapsedLanes)), [foldedKey]);
+  // An empty lane starts folded — there's nothing to see in it. Opened
+  // (to drop a card into it), it stays open for this visit only; once it
+  // holds cards, the stored list decides as for any other lane.
+  const [openedEmpty, setOpenedEmpty] = useState<Set<string>>(() => new Set());
   const isFolded = (lane: GroupDef) =>
-    laneKey !== null && folded.has(laneEntry(laneKey, lane.id));
+    laneKey !== null &&
+    (laneCount(lane.id) === 0
+      ? !openedEmpty.has(lane.id)
+      : folded.has(laneEntry(laneKey, lane.id)));
   const toggleLane = (lane: GroupDef) => {
     if (!laneKey) return;
+    if (laneCount(lane.id) === 0) {
+      const next = new Set(openedEmpty);
+      if (next.has(lane.id)) next.delete(lane.id);
+      else next.add(lane.id);
+      setOpenedEmpty(next);
+      return;
+    }
     const entry = laneEntry(laneKey, lane.id);
     const next = new Set(folded);
     if (next.has(entry)) next.delete(entry);
