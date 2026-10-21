@@ -22,6 +22,7 @@ import {
   PAGING_DOC_PARAMS,
 } from "./basicsDocsData";
 import styles from "./docGuides.module.scss";
+import { useDocText } from "./docText";
 import { FilterDocs } from "./FilterDocs";
 import { GuideCard, GuideRows, GuideSplit } from "./GuideParts";
 
@@ -149,6 +150,7 @@ function GuideModal({
 
 function AuthGuide() {
   const t = useTranslations();
+  const doc = useDocText();
   return (
     <div className={styles.root}>
       <GuideCard title={t("apiKeys.guideAuthKey")}>
@@ -157,14 +159,14 @@ function AuthGuide() {
       <GuideCard title={t("apiKeys.guideAuthScopes")}>
         <ul className={styles.pitfalls}>
           {AUTH_DOC_SCOPES.map((line) => (
-            <li key={line}>{line}</li>
+            <li key={doc(line)}>{doc(line)}</li>
           ))}
         </ul>
       </GuideCard>
       <GuideCard title={t("apiKeys.guideAuthRate")}>
         <GuideRows rows={AUTH_DOC_RATE} />
       </GuideCard>
-      <p className={styles.footnote}>{AUTH_DOC_MCP}</p>
+      <p className={styles.footnote}>{doc(AUTH_DOC_MCP)}</p>
     </div>
   );
 }

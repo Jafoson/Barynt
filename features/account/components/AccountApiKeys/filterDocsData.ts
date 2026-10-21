@@ -6,11 +6,13 @@ import {
   NULLABLE_FIELDS,
   RELATIVE_DATES,
 } from "@/features/issues/filter";
+import type { DocText } from "./docText";
+import type { GuideRow } from "./GuideParts";
 
 // The filter guide in the API and MCP docs (BARY-172) — how a filter tree
 // is built, in the order a newcomer needs it: the idea, one rule, the
-// fields, the operators, special values, recipes. English, like the rest
-// of the docs content (the wire format is the contract).
+// fields, the operators, special values, recipes. In both languages
+// (`DocText`); the JSON itself stays as it's sent.
 //
 // The field table is built from `FILTER_FIELDS` itself: which operators a
 // field takes can't drift from what the server accepts, and a new field
@@ -25,10 +27,19 @@ export const FILTER_DOC_FIRST_EXAMPLE = `{
   ]
 }`;
 
-export const FILTER_DOC_INTRO = [
-  'A filter is a list of rules. An issue matches when every rule matches — that\'s what "op": "and" at the top means.',
-  "Each rule names a field, how to compare (is), and a value. The example reads: assigned to me, and priority high or urgent.",
-  'Need "either … or …"? Put the rules in a group with "op": "or". Groups go anywhere a rule can, and can hold further groups.',
+export const FILTER_DOC_INTRO: DocText[] = [
+  {
+    en: 'A filter is a list of rules. An issue matches when every rule matches — that\'s what "op": "and" at the top means.',
+    de: 'Ein Filter ist eine Liste von Regeln. Ein Issue passt, wenn jede Regel passt — das bedeutet "op": "and" ganz oben.',
+  },
+  {
+    en: "Each rule names a field, how to compare (is), and a value. The example reads: assigned to me, and priority high or urgent.",
+    de: "Jede Regel nennt ein Feld, wie verglichen wird (is) und einen Wert. Das Beispiel heißt: mir zugewiesen und Priorität hoch oder dringend.",
+  },
+  {
+    en: 'Need "either … or …"? Put the rules in a group with "op": "or". Groups go anywhere a rule can, and can hold further groups.',
+    de: 'Du brauchst „entweder … oder …“? Pack die Regeln in eine Gruppe mit "op": "or". Gruppen stehen überall, wo eine Regel stehen kann, und können weitere Gruppen enthalten.',
+  },
 ];
 
 export const FILTER_DOC_GROUP_EXAMPLE = `{
@@ -45,102 +56,165 @@ export const FILTER_DOC_GROUP_EXAMPLE = `{
   ]
 }`;
 
-export const FILTER_DOC_GROUP_TEXT =
-  "Bugs that are urgent or overdue: the top-level rules are AND-ed, the group's rules are OR-ed.";
+export const FILTER_DOC_GROUP_TEXT: DocText = {
+  en: "Bugs that are urgent or overdue: the top-level rules are AND-ed, the group's rules are OR-ed.",
+  de: "Bugs, die dringend oder überfällig sind: Die Regeln oben gelten alle (UND), die in der Gruppe reicht eine (ODER).",
+};
 
 /** One rule's three keys. */
-export const FILTER_DOC_RULE_KEYS = [
+export const FILTER_DOC_RULE_KEYS: GuideRow[] = [
   {
     name: "field",
     type: "string",
-    desc: "What to look at — see Fields below.",
+    desc: {
+      en: "What to look at — see Fields below.",
+      de: "Worauf geschaut wird — siehe Felder unten.",
+    },
   },
   {
     name: "is",
     type: "string",
-    desc: "How to compare — see Operators below. Each field allows only some.",
+    desc: {
+      en: "How to compare — see Comparisons below. Each field allows only some.",
+      de: "Wie verglichen wird — siehe Vergleiche unten. Jedes Feld erlaubt nur bestimmte.",
+    },
   },
   {
     name: "value",
     type: "list | number | string",
-    desc: 'Depends on "is": a list for any/none/all, a number for gte/lte, a date for before/after, a range name for within, text for contains — and no value at all for empty/notEmpty.',
+    desc: {
+      en: 'Depends on "is": a list for any/none/all, a number for gte/lte, a date for before/after, a range name for within, text for contains — and no value at all for empty/notEmpty.',
+      de: 'Hängt von "is" ab: eine Liste bei any/none/all, eine Zahl bei gte/lte, ein Datum bei before/after, ein Zeitraum-Name bei within, Text bei contains — und gar kein Wert bei empty/notEmpty.',
+    },
   },
 ];
 
 /** What each field holds and where its values come from. */
-const FIELD_INFO: Record<FilterField, { what: string; values: string }> = {
+const FIELD_INFO: Record<FilterField, { what: DocText; values: DocText }> = {
   status: {
-    what: "The issue's status.",
-    values:
-      "Status ids from GET /api/v1/workspaces/{id}/statuses (list_statuses).",
+    what: { en: "The issue's status.", de: "Der Status des Issues." },
+    values: {
+      en: "Status ids from GET /api/v1/workspaces/{id}/statuses (list_statuses).",
+      de: "Status-IDs aus GET /api/v1/workspaces/{id}/statuses (list_statuses).",
+    },
   },
   statusCategory: {
-    what: "The status's phase — the same in every workspace, whatever the statuses are called.",
+    what: {
+      en: "The status's phase — the same in every workspace, whatever the statuses are called.",
+      de: "Die Phase des Status — in jedem Workspace gleich, egal wie die Status heißen.",
+    },
     values: '"backlog", "unstarted", "started", "completed", "canceled".',
   },
   priority: {
-    what: "The priority.",
-    values: "0 none, 1 low, 2 medium, 3 high, 4 urgent.",
+    what: { en: "The priority.", de: "Die Priorität." },
+    values: {
+      en: "0 none, 1 low, 2 medium, 3 high, 4 urgent.",
+      de: "0 keine, 1 niedrig, 2 mittel, 3 hoch, 4 dringend.",
+    },
   },
   type: {
-    what: "The issue type.",
-    values:
-      'Type ids as issues show them in "type", e.g. "bug", "feature", "task".',
+    what: { en: "The issue type.", de: "Der Issue-Typ." },
+    values: {
+      en: 'Type ids as issues show them in "type", e.g. "bug", "feature", "task".',
+      de: 'Typ-IDs, wie Issues sie in "type" zeigen, z. B. "bug", "feature", "task".',
+    },
   },
   assignee: {
-    what: "Who it's assigned to.",
-    values:
-      'User ids from GET /api/v1/workspaces/{id}/members, "@me", or "_none" for unassigned.',
+    what: { en: "Who it's assigned to.", de: "Wem es zugewiesen ist." },
+    values: {
+      en: 'User ids from GET /api/v1/workspaces/{id}/members, "@me", or "_none" for unassigned.',
+      de: 'User-IDs aus GET /api/v1/workspaces/{id}/members, "@me", oder "_none" für nicht zugewiesen.',
+    },
   },
   reporter: {
-    what: "Who created it.",
-    values: 'User ids, or "@me".',
+    what: { en: "Who created it.", de: "Wer es angelegt hat." },
+    values: { en: 'User ids, or "@me".', de: 'User-IDs oder "@me".' },
   },
   label: {
-    what: "Its labels. any = has one of them, all = has every one, none = has none of them.",
-    values:
-      'Label ids from GET /api/v1/workspaces/{id}/labels, or "_none" for no label.',
+    what: {
+      en: "Its labels. any = has one of them, all = has every one, none = has none of them.",
+      de: "Seine Labels. any = hat eines davon, all = hat alle, none = hat keines davon.",
+    },
+    values: {
+      en: 'Label ids from GET /api/v1/workspaces/{id}/labels, or "_none" for no label.',
+      de: 'Label-IDs aus GET /api/v1/workspaces/{id}/labels, oder "_none" für kein Label.',
+    },
   },
   project: {
-    what: "Its project — useful in cross-project views and workspace-wide queries.",
-    values: "Project ids from GET /api/v1/workspaces/{id}/projects.",
+    what: {
+      en: "Its project — useful in cross-project views and workspace-wide queries.",
+      de: "Sein Projekt — nützlich in projektübergreifenden Views und Abfragen über den Workspace.",
+    },
+    values: {
+      en: "Project ids from GET /api/v1/workspaces/{id}/projects.",
+      de: "Projekt-IDs aus GET /api/v1/workspaces/{id}/projects.",
+    },
   },
   storyPoints: {
-    what: "Story points.",
-    values: 'Numbers; "_none" in a list for issues without points.',
+    what: { en: "Story points.", de: "Story Points." },
+    values: {
+      en: 'Numbers; "_none" in a list for issues without points.',
+      de: 'Zahlen; "_none" in einer Liste für Issues ohne Punkte.',
+    },
   },
   estimate: {
-    what: "The time estimate, always in hours.",
-    values: "A number of hours, e.g. 2.5.",
+    what: {
+      en: "The time estimate, always in hours.",
+      de: "Die Zeitschätzung, immer in Stunden.",
+    },
+    values: {
+      en: "A number of hours, e.g. 2.5.",
+      de: "Eine Stundenzahl, z. B. 2.5.",
+    },
   },
   dueDate: {
-    what: "The due date.",
-    values:
-      'A day "YYYY-MM-DD" or "today"; for within, a range name (see Special values).',
+    what: { en: "The due date.", de: "Das Fälligkeitsdatum." },
+    values: {
+      en: 'A day "YYYY-MM-DD" or "today"; for within, a range name (see Special values).',
+      de: 'Ein Tag "YYYY-MM-DD" oder "today"; bei within ein Zeitraum-Name (siehe Besondere Werte).',
+    },
   },
   created: {
-    what: "When it was created.",
-    values: 'A day "YYYY-MM-DD" or "today"; for within, a range name.',
+    what: { en: "When it was created.", de: "Wann es angelegt wurde." },
+    values: {
+      en: 'A day "YYYY-MM-DD" or "today"; for within, a range name.',
+      de: 'Ein Tag "YYYY-MM-DD" oder "today"; bei within ein Zeitraum-Name.',
+    },
   },
   updated: {
-    what: "When it last changed.",
-    values: 'A day "YYYY-MM-DD" or "today"; for within, a range name.',
+    what: {
+      en: "When it last changed.",
+      de: "Wann es zuletzt geändert wurde.",
+    },
+    values: {
+      en: 'A day "YYYY-MM-DD" or "today"; for within, a range name.',
+      de: 'Ein Tag "YYYY-MM-DD" oder "today"; bei within ein Zeitraum-Name.',
+    },
   },
   parent: {
-    what: "Its parent issue. empty = top-level issues only, notEmpty = sub-issues only.",
-    values: 'Issue ids (the internal id, not "WEB-42").',
+    what: {
+      en: "Its parent issue. empty = top-level issues only, notEmpty = sub-issues only.",
+      de: "Sein übergeordnetes Issue. empty = nur Issues ganz oben, notEmpty = nur Sub-Issues.",
+    },
+    values: {
+      en: 'Issue ids (the internal id, not "WEB-42").',
+      de: 'Issue-IDs (die interne ID, nicht "WEB-42").',
+    },
   },
   text: {
-    what: 'A search in title and description; a number or "WEB-42" also finds that issue.',
-    values: "Any text.",
+    what: {
+      en: 'A search in title and description; a number or "WEB-42" also finds that issue.',
+      de: 'Eine Suche in Titel und Beschreibung; eine Nummer oder "WEB-42" findet auch genau dieses Issue.',
+    },
+    values: { en: "Any text.", de: "Beliebiger Text." },
   },
 };
 
 export interface FilterDocField {
   field: FilterField;
   ops: readonly FilterOp[];
-  what: string;
-  values: string;
+  what: DocText;
+  values: DocText;
   /** Takes "_none" in its lists. */
   nullable: boolean;
 }
@@ -157,60 +231,109 @@ export const FILTER_DOC_FIELDS: FilterDocField[] = FILTER_FIELD_KEYS.map(
 /** Every operator: what it means, what value it takes. */
 export const FILTER_DOC_OPS: Record<
   FilterOp,
-  { means: string; value: string }
+  { means: DocText; value: string }
 > = {
-  any: { means: "is one of", value: '["a", "b"]' },
-  none: {
-    means: "is none of (issues without a value still match)",
+  any: {
+    means: { en: "is one of", de: "ist eines davon" },
     value: '["a", "b"]',
   },
-  all: { means: "has all of (labels only)", value: '["a", "b"]' },
-  empty: { means: "is not set", value: "— (leave value out)" },
-  notEmpty: { means: "is set", value: "— (leave value out)" },
-  gte: { means: "is at least", value: "3" },
-  lte: { means: "is at most", value: "3" },
+  none: {
+    means: {
+      en: "is none of (issues without a value still match)",
+      de: "ist keines davon (Issues ohne Wert passen trotzdem)",
+    },
+    value: '["a", "b"]',
+  },
+  all: {
+    means: {
+      en: "has all of (labels only)",
+      de: "hat alle davon (nur Labels)",
+    },
+    value: '["a", "b"]',
+  },
+  empty: { means: { en: "is not set", de: "ist nicht gesetzt" }, value: "—" },
+  notEmpty: { means: { en: "is set", de: "ist gesetzt" }, value: "—" },
+  gte: { means: { en: "is at least", de: "ist mindestens" }, value: "3" },
+  lte: { means: { en: "is at most", de: "ist höchstens" }, value: "3" },
   before: {
-    means: "is before that day (the day itself doesn't count)",
-    value: '"2026-10-31" or "today"',
+    means: {
+      en: "is before that day (the day itself doesn't count)",
+      de: "liegt vor diesem Tag (der Tag selbst zählt nicht)",
+    },
+    value: '"2026-10-31" | "today"',
   },
   after: {
-    means: "is after that day (the day itself doesn't count)",
-    value: '"2026-10-31" or "today"',
+    means: {
+      en: "is after that day (the day itself doesn't count)",
+      de: "liegt nach diesem Tag (der Tag selbst zählt nicht)",
+    },
+    value: '"2026-10-31" | "today"',
   },
-  within: { means: "falls in a named range", value: '"next_7_days"' },
-  contains: { means: "matches the text", value: '"checkout"' },
+  within: {
+    means: {
+      en: "falls in a named range",
+      de: "liegt in einem benannten Zeitraum",
+    },
+    value: '"next_7_days"',
+  },
+  contains: {
+    means: { en: "matches the text", de: "passt zum Text" },
+    value: '"checkout"',
+  },
 };
 
+const RANGE_TEXT: Record<(typeof RELATIVE_DATES)[number], DocText> = {
+  overdue: { en: "For within: before today.", de: "Bei within: vor heute." },
+  today: { en: "For within: today.", de: "Bei within: heute." },
+  next_7_days: {
+    en: "For within: today and the 6 days after.",
+    de: "Bei within: heute und die 6 Tage danach.",
+  },
+  last_7_days: {
+    en: "For within: today and the 6 days before.",
+    de: "Bei within: heute und die 6 Tage davor.",
+  },
+  last_30_days: {
+    en: "For within: today and the 29 days before.",
+    de: "Bei within: heute und die 29 Tage davor.",
+  },
+};
+
+const nullable = [...NULLABLE_FIELDS].join(", ");
+
 /** "@me", "_none", "today" and the ranges for `within`. */
-export const FILTER_DOC_SPECIAL = [
+export const FILTER_DOC_SPECIAL: GuideRow[] = [
   {
-    value: '"@me"',
-    desc: "Whoever is asking — the owner of the API key or OAuth token. A shared view with @me shows each person their own issues.",
+    name: '"@me"',
+    desc: {
+      en: "Whoever is asking — the owner of the API key or OAuth token. A shared view with @me shows each person their own issues.",
+      de: "Wer gerade fragt — der Besitzer des API-Keys oder OAuth-Tokens. Eine geteilte View mit @me zeigt jeder Person ihre eigenen Issues.",
+    },
   },
   {
-    value: '"_none"',
-    desc: `"Not set", as one entry in an any/none list: ["@me", "_none"] = assigned to me or to nobody. For ${[...NULLABLE_FIELDS].join(", ")}.`,
+    name: '"_none"',
+    desc: {
+      en: `"Not set", as one entry in an any/none list: ["@me", "_none"] = assigned to me or to nobody. For ${nullable}.`,
+      de: `„Nicht gesetzt“, als Eintrag in einer any/none-Liste: ["@me", "_none"] = mir oder niemandem zugewiesen. Für ${nullable}.`,
+    },
   },
   {
-    value: '"today"',
-    desc: "For before/after: the start of today, when the request runs.",
+    name: '"today"',
+    desc: {
+      en: "For before/after: the start of today, when the request runs.",
+      de: "Bei before/after: der Beginn des heutigen Tages, wenn die Anfrage läuft.",
+    },
   },
   ...RELATIVE_DATES.map((range) => ({
-    value: `"${range}"`,
-    desc: {
-      overdue: "For within: before today.",
-      today: "For within: today.",
-      next_7_days: "For within: today and the 6 days after.",
-      last_7_days: "For within: today and the 6 days before.",
-      last_30_days: "For within: today and the 29 days before.",
-    }[range],
+    name: `"${range}"`,
+    desc: RANGE_TEXT[range],
   })),
 ];
 
 /** Copy-paste starting points. */
-export const FILTER_DOC_RECIPES = [
+export const FILTER_DOC_RECIPES: { title: DocText; code: string }[] = [
   {
-    title: "My open issues",
+    title: { en: "My open issues", de: "Meine offenen Issues" },
     code: `{
   "op": "and",
   "rules": [
@@ -220,7 +343,10 @@ export const FILTER_DOC_RECIPES = [
 }`,
   },
   {
-    title: "Due this week, not done",
+    title: {
+      en: "Due this week, not done",
+      de: "Diese Woche fällig, nicht erledigt",
+    },
     code: `{
   "op": "and",
   "rules": [
@@ -230,7 +356,10 @@ export const FILTER_DOC_RECIPES = [
 }`,
   },
   {
-    title: "Unassigned or mine, high priority and up",
+    title: {
+      en: "Unassigned or mine, high priority and up",
+      de: "Nicht zugewiesen oder meine, ab Priorität hoch",
+    },
     code: `{
   "op": "and",
   "rules": [
@@ -240,7 +369,10 @@ export const FILTER_DOC_RECIPES = [
 }`,
   },
   {
-    title: "In progress, unchanged since a given day",
+    title: {
+      en: "In progress, unchanged since a given day",
+      de: "In Arbeit, seit einem bestimmten Tag unverändert",
+    },
     code: `{
   "op": "and",
   "rules": [
@@ -250,7 +382,10 @@ export const FILTER_DOC_RECIPES = [
 }`,
   },
   {
-    title: "Top-level issues without an estimate",
+    title: {
+      en: "Top-level issues without an estimate",
+      de: "Issues ganz oben ohne Schätzung",
+    },
     code: `{
   "op": "and",
   "rules": [
@@ -262,27 +397,54 @@ export const FILTER_DOC_RECIPES = [
 ];
 
 /** Where a filter goes. */
-export const FILTER_DOC_USAGE = [
+export const FILTER_DOC_USAGE: GuideRow[] = [
   {
-    where: "GET /api/v1/projects/{id}/issues?filter=…",
-    how: "As JSON, URL-encoded (encodeURIComponent(JSON.stringify(filter))). Combines with status, assignee and q.",
+    name: "GET /api/v1/projects/{id}/issues?filter=…",
+    desc: {
+      en: "As JSON, URL-encoded (encodeURIComponent(JSON.stringify(filter))). Combines with status, assignee and q.",
+      de: "Als JSON, URL-kodiert (encodeURIComponent(JSON.stringify(filter))). Lässt sich mit status, assignee und q kombinieren.",
+    },
   },
   {
-    where: "POST /api/v1/projects/{id}/views, PATCH /api/v1/views/{id}",
-    how: 'As "filter" in the JSON body. Saved with the view; GET /api/v1/views/{id}/issues applies it.',
+    name: "POST /api/v1/projects/{id}/views, PATCH /api/v1/views/{id}",
+    desc: {
+      en: 'As "filter" in the JSON body. Saved with the view; GET /api/v1/views/{id}/issues applies it.',
+      de: 'Als "filter" im JSON-Body. Wird mit der View gespeichert; GET /api/v1/views/{id}/issues wendet ihn an.',
+    },
   },
   {
-    where: "MCP list_issues, create_view, update_view",
-    how: 'As the "filter" argument — a plain object, not a string.',
+    name: "MCP list_issues, create_view, update_view",
+    desc: {
+      en: 'As the "filter" argument — a plain object, not a string.',
+      de: 'Als Argument "filter" — ein normales Objekt, kein String.',
+    },
   },
 ];
 
 /** What usually goes wrong. */
-export const FILTER_DOC_PITFALLS = [
-  'The top level is always "op": "and". For OR, use a group inside it.',
-  'Values are ids, not names: a label is "l_9f2a1b", not "frontend"; a status is "in_progress", not "In Progress".',
-  'any, none and all take a list, even for one value: ["bug"], not "bug".',
-  "An operator a field doesn't allow, or a value of the wrong kind, is rejected with 422 invalid_filter (MCP: invalid_input).",
-  "A rule whose ids no longer exist (a deleted label) drops out instead of matching nothing — the rest of the filter still applies.",
-  "Lists hold up to 50 rules each; groups can nest as deep as needed.",
+export const FILTER_DOC_PITFALLS: DocText[] = [
+  {
+    en: 'The top level is always "op": "and". For OR, use a group inside it.',
+    de: 'Ganz oben steht immer "op": "and". Für ODER nimm eine Gruppe darin.',
+  },
+  {
+    en: 'Values are ids, not names: a label is "l_9f2a1b", not "frontend"; a status is "in_progress", not "In Progress".',
+    de: 'Werte sind IDs, keine Namen: ein Label ist "l_9f2a1b", nicht "frontend"; ein Status ist "in_progress", nicht "In Progress".',
+  },
+  {
+    en: 'any, none and all take a list, even for one value: ["bug"], not "bug".',
+    de: 'any, none und all nehmen eine Liste, auch bei einem einzigen Wert: ["bug"], nicht "bug".',
+  },
+  {
+    en: "An operator a field doesn't allow, or a value of the wrong kind, is rejected with 422 invalid_filter (MCP: invalid_input).",
+    de: "Ein Vergleich, den ein Feld nicht erlaubt, oder ein Wert der falschen Art wird mit 422 invalid_filter abgelehnt (MCP: invalid_input).",
+  },
+  {
+    en: "A rule whose ids no longer exist (a deleted label) drops out instead of matching nothing — the rest of the filter still applies.",
+    de: "Eine Regel, deren IDs es nicht mehr gibt (ein gelöschtes Label), fällt weg, statt nichts zu finden — der Rest des Filters gilt weiter.",
+  },
+  {
+    en: "Lists hold up to 50 rules each; groups can nest as deep as needed.",
+    de: "Jede Liste fasst bis zu 50 Regeln; Gruppen lassen sich beliebig tief verschachteln.",
+  },
 ];

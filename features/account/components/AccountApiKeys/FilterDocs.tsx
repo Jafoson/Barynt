@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import styles from "./docGuides.module.scss";
+import { useDocText } from "./docText";
 import {
   FILTER_DOC_FIELDS,
   FILTER_DOC_FIRST_EXAMPLE,
@@ -21,11 +22,12 @@ import { GuideCard, GuideCode, GuideRows, GuideSplit } from "./GuideParts";
  * How a filter tree works (BARY-172) — one of the docs' "Basics", since
  * `?filter=`, view bodies and the MCP tools all take the same tree. Simple
  * first (the idea, one example), the full reference after (fields,
- * operators, special values), then recipes. Headings are translated; the
- * content is English like the rest of the docs (`filterDocsData.ts`).
+ * operators, special values), then recipes. Texts in both languages
+ * (`filterDocsData.ts`); the JSON stays as it's sent.
  */
 export function FilterDocs() {
   const t = useTranslations();
+  const doc = useDocText();
   return (
     <div className={styles.root}>
       <GuideCard title={t("apiKeys.filterDocIdea")}>
@@ -56,8 +58,8 @@ export function FilterDocs() {
                 ))}
               </span>
               <span className={styles.desc}>
-                {field.what}
-                <small>{field.values}</small>
+                {doc(field.what)}
+                <small>{doc(field.values)}</small>
               </span>
             </div>
           ))}
@@ -75,19 +77,14 @@ export function FilterDocs() {
       </GuideCard>
 
       <GuideCard title={t("apiKeys.filterDocSpecial")}>
-        <GuideRows
-          rows={FILTER_DOC_SPECIAL.map((item) => ({
-            name: item.value,
-            desc: item.desc,
-          }))}
-        />
+        <GuideRows rows={FILTER_DOC_SPECIAL} />
       </GuideCard>
 
       <GuideCard title={t("apiKeys.filterDocRecipes")}>
         <div className={styles.recipes}>
           {FILTER_DOC_RECIPES.map((recipe) => (
-            <div key={recipe.title} className={styles.recipe}>
-              <span className={styles.recipeTitle}>{recipe.title}</span>
+            <div key={recipe.code} className={styles.recipe}>
+              <span className={styles.recipeTitle}>{doc(recipe.title)}</span>
               <GuideCode code={recipe.code} />
             </div>
           ))}
@@ -95,18 +92,13 @@ export function FilterDocs() {
       </GuideCard>
 
       <GuideCard title={t("apiKeys.filterDocUsage")}>
-        <GuideRows
-          rows={FILTER_DOC_USAGE.map((use) => ({
-            name: use.where,
-            desc: use.how,
-          }))}
-        />
+        <GuideRows rows={FILTER_DOC_USAGE} />
       </GuideCard>
 
       <GuideCard title={t("apiKeys.filterDocPitfalls")}>
         <ul className={styles.pitfalls}>
           {FILTER_DOC_PITFALLS.map((line) => (
-            <li key={line}>{line}</li>
+            <li key={doc(line)}>{doc(line)}</li>
           ))}
         </ul>
       </GuideCard>

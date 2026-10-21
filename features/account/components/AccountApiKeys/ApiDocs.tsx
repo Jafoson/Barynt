@@ -17,6 +17,7 @@ import {
   type HttpMethod,
 } from "./apiDocsData";
 import { DocGuides } from "./DocGuides";
+import { useDocText } from "./docText";
 
 type DocTab = ApiDocGroupId | "webhooks";
 
@@ -35,6 +36,7 @@ function ParamList({
   params: ApiDocParam[];
 }) {
   const t = useTranslations();
+  const doc = useDocText();
   return (
     <div className={styles.section}>
       <span className={styles.sectionTitle}>{title}</span>
@@ -49,7 +51,7 @@ function ParamList({
               </Badge>
             )}
             {param.desc && (
-              <span className={styles.paramDesc}>{param.desc}</span>
+              <span className={styles.paramDesc}>{doc(param.desc)}</span>
             )}
           </div>
         ))}
@@ -77,6 +79,7 @@ function CodeBlock({ code }: { code: string }) {
 
 function Endpoint({ endpoint }: { endpoint: ApiDocEndpoint }) {
   const t = useTranslations();
+  const doc = useDocText();
   return (
     <article className={styles.endpoint}>
       <header className={styles.endpointHead}>
@@ -98,7 +101,7 @@ function Endpoint({ endpoint }: { endpoint: ApiDocEndpoint }) {
         </span>
       </header>
 
-      <p className={styles.endpointDesc}>{endpoint.desc}</p>
+      <p className={styles.endpointDesc}>{doc(endpoint.desc)}</p>
 
       {endpoint.pathParams && (
         <ParamList
@@ -143,6 +146,7 @@ function Endpoint({ endpoint }: { endpoint: ApiDocEndpoint }) {
  */
 function WebhookDocs() {
   const t = useTranslations();
+  const doc = useDocText();
   return (
     <div className={styles.endpoints}>
       <article className={styles.endpoint}>
@@ -156,7 +160,7 @@ function WebhookDocs() {
             {API_DOC_WEBHOOK_SIGNATURE.headers.map((header) => (
               <div key={header.name} className={styles.paramRow}>
                 <code className={styles.paramName}>{header.name}</code>
-                <span className={styles.paramDesc}>{header.desc}</span>
+                <span className={styles.paramDesc}>{doc(header.desc)}</span>
               </div>
             ))}
           </div>
@@ -170,7 +174,7 @@ function WebhookDocs() {
           <header className={styles.endpointHead}>
             <code className={styles.path}>{event.event}</code>
           </header>
-          <p className={styles.endpointDesc}>{event.desc}</p>
+          <p className={styles.endpointDesc}>{doc(event.desc)}</p>
           <div className={styles.section}>
             <span className={styles.sectionTitle}>
               {t("apiKeys.docsPayloadExample")}
@@ -188,10 +192,9 @@ function WebhookDocs() {
  * the routes themselves are — workspaces, projects, issues, comments,
  * labels.
  *
- * Endpoint text stays in English regardless of the UI locale, same
- * convention as GitHub/Stripe/Jira: the wire format is the actual
- * contract, only the surrounding chrome is translated. Content lives in
- * `apiDocsData.ts`, kept in sync by hand with the real route handlers.
+ * Descriptions follow the UI language (`DocText`); paths, JSON and codes
+ * stay as they're sent. Content lives in `apiDocsData.ts`, kept in sync by
+ * hand with the real route handlers.
  */
 export function ApiDocs() {
   const t = useTranslations();

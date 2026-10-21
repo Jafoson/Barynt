@@ -3,9 +3,10 @@
 import { useTranslations } from "next-intl";
 import { CopyButton } from "@/components/ui/layout/CopyButton/CopyButton";
 import styles from "./docGuides.module.scss";
+import { type DocText, useDocText } from "./docText";
 
 // The pieces every guide in the docs' "Basics" is made of (BARY-172): a
-// card per step, code with a copy button, rows of name · type · meaning.
+// card per step, code with a copy button, rows of name · meaning · type.
 
 export function GuideCode({ code }: { code: string }) {
   const t = useTranslations();
@@ -45,16 +46,17 @@ export function GuideCard({
 export interface GuideRow {
   name: string;
   type?: string;
-  desc: string;
+  desc: DocText;
 }
 
 export function GuideRows({ rows }: { rows: GuideRow[] }) {
+  const doc = useDocText();
   return (
     <div className={styles.rows}>
       {rows.map((row) => (
         <div key={row.name} className={styles.row}>
           <code className={styles.name}>{row.name}</code>
-          <span className={styles.desc}>{row.desc}</span>
+          <span className={styles.desc}>{doc(row.desc)}</span>
           {row.type && <code className={styles.type}>{row.type}</code>}
         </div>
       ))}
@@ -63,12 +65,19 @@ export function GuideRows({ rows }: { rows: GuideRow[] }) {
 }
 
 /** Text beside its example; stacked on narrow screens. */
-export function GuideSplit({ lines, code }: { lines: string[]; code: string }) {
+export function GuideSplit({
+  lines,
+  code,
+}: {
+  lines: DocText[];
+  code: string;
+}) {
+  const doc = useDocText();
   return (
     <div className={styles.split}>
       <div className={styles.prose}>
         {lines.map((line) => (
-          <p key={line}>{line}</p>
+          <p key={doc(line)}>{doc(line)}</p>
         ))}
       </div>
       <GuideCode code={code} />

@@ -20,7 +20,10 @@ describe("Filter docs", () => {
   const examples = [
     ["first example", FILTER_DOC_FIRST_EXAMPLE],
     ["group example", FILTER_DOC_GROUP_EXAMPLE],
-    ...FILTER_DOC_RECIPES.map((r) => [r.title, r.code]),
+    ...FILTER_DOC_RECIPES.map((r) => [
+      typeof r.title === "string" ? r.title : r.title.en,
+      r.code,
+    ]),
   ] as const;
 
   for (const [name, code] of examples) {
@@ -34,5 +37,34 @@ describe("Filter docs", () => {
       ...FILTER_FIELD_KEYS,
     ]);
     expect(Object.keys(FILTER_DOC_OPS).sort()).toEqual([...FILTER_OPS].sort());
+  });
+});
+
+describe("API docs translations", () => {
+  /** Every `{ en, de }` text anywhere in a docs data value. */
+  function texts(value: unknown, out: { en: string; de: string }[] = []) {
+    if (Array.isArray(value)) for (const v of value) texts(v, out);
+    else if (value && typeof value === "object") {
+      const o = value as Record<string, unknown>;
+      if (typeof o.en === "string" && typeof o.de === "string") {
+        out.push(o as { en: string; de: string });
+      } else for (const v of Object.values(o)) texts(v, out);
+    }
+    return out;
+  }
+
+  it("every text has an English and a German version", async () => {
+    const modules = await Promise.all([
+      import("@/features/account/components/AccountApiKeys/apiDocsData"),
+      import("@/features/account/components/AccountMcp/mcpDocsData"),
+      import("@/features/account/components/AccountApiKeys/filterDocsData"),
+      import("@/features/account/components/AccountApiKeys/basicsDocsData"),
+    ]);
+    const all = modules.flatMap((m) => texts(Object.values(m)));
+    expect(all.length).toBeGreaterThan(150);
+    for (const text of all) {
+      expect(text.en.trim()).not.toBe("");
+      expect(text.de.trim()).not.toBe("");
+    }
   });
 });

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { CopyButton } from "@/components/ui/layout/CopyButton/CopyButton";
 import { DocGuides } from "../AccountApiKeys/DocGuides";
+import { useDocText } from "../AccountApiKeys/docText";
 import styles from "./mcpDocs.module.scss";
 import {
   MCP_CLIENT_GUIDES,
@@ -40,6 +41,7 @@ function CodeBlock({ code }: { code: string }) {
  */
 export function McpDocs({ mcpUrl }: { mcpUrl: string }) {
   const t = useTranslations();
+  const doc = useDocText();
   const [client, setClient] = useState<McpClientId>("claude-code");
   const [group, setGroup] = useState<McpToolGroupId>("workspaces");
 
@@ -110,7 +112,7 @@ export function McpDocs({ mcpUrl }: { mcpUrl: string }) {
                   {t("apiKeys.docsScopeLabel")}{" "}
                   <Badge className={styles.chipRoomy}>{tool.scope}</Badge>
                 </span>
-                <span className={styles.toolDesc}>{tool.desc}</span>
+                <span className={styles.toolDesc}>{doc(tool.desc)}</span>
               </div>
             ))}
           </div>
