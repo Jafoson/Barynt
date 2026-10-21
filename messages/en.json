@@ -1225,7 +1225,6 @@
     "filterDocRecipes": "Examples to copy",
     "filterDocUsage": "Where a filter goes",
     "filterDocPitfalls": "Common mistakes",
-    "docsTabWebhooks": "Webhooks",
     "guidesTitle": "Basics",
     "guideAuth": "Signing in",
     "guideAuthDesc": "Key, scopes and rate limit",
@@ -1257,7 +1256,10 @@
     "docsErr403": "The token doesn't carry the scope this route requires (insufficient_scope) — or you can see the resource but may not change it, e.g. someone else's shared view (forbidden).",
     "docsErr404": "The resource doesn't exist, or you can't see it — deliberately indistinguishable, so a missing permission never confirms something exists.",
     "docsErr422": "The request body is missing or malformed (invalid_body), or ?filter= isn't a valid filter (invalid_filter).",
-    "docsErr429": "The key's per-minute budget is used up — check Retry-After."
+    "docsErr429": "The key's per-minute budget is used up — check Retry-After.",
+    "guideWebhooks": "Webhooks",
+    "guideWebhooksDesc": "Events, payloads and signature",
+    "guideWebhooksEvents": "Events"
   },
   "mcp": {
     "title": "MCP",

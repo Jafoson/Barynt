@@ -9,8 +9,6 @@ import styles from "./apiDocs.module.scss";
 import {
   API_DOC_ERRORS,
   API_DOC_GROUPS,
-  API_DOC_WEBHOOK_EVENTS,
-  API_DOC_WEBHOOK_SIGNATURE,
   type ApiDocEndpoint,
   type ApiDocGroupId,
   type ApiDocParam,
@@ -19,7 +17,7 @@ import {
 import { DocGuides } from "./DocGuides";
 import { useDocText } from "./docText";
 
-type DocTab = ApiDocGroupId | "webhooks";
+type DocTab = ApiDocGroupId;
 
 const METHOD_CLASS: Record<HttpMethod, string> = {
   GET: styles.methodGet,
@@ -140,54 +138,6 @@ function Endpoint({ endpoint }: { endpoint: ApiDocEndpoint }) {
 }
 
 /**
- * Not a request/response endpoint — an outbound push. Documents the
- * signature instead of a path, and one example payload per event type
- * (`API_DOC_WEBHOOK_EVENTS`, `lib/webhooks/deliver.ts`).
- */
-function WebhookDocs() {
-  const t = useTranslations();
-  const doc = useDocText();
-  return (
-    <div className={styles.endpoints}>
-      <article className={styles.endpoint}>
-        <p className={styles.endpointDesc}>{t("apiKeys.docsWebhookDesc")}</p>
-
-        <div className={styles.section}>
-          <span className={styles.sectionTitle}>
-            {t("apiKeys.docsSignature")}
-          </span>
-          <div className={styles.paramList}>
-            {API_DOC_WEBHOOK_SIGNATURE.headers.map((header) => (
-              <div key={header.name} className={styles.paramRow}>
-                <code className={styles.paramName}>{header.name}</code>
-                <span className={styles.paramDesc}>{doc(header.desc)}</span>
-              </div>
-            ))}
-          </div>
-          <CodeBlock code={API_DOC_WEBHOOK_SIGNATURE.formula} />
-          <CodeBlock code={API_DOC_WEBHOOK_SIGNATURE.verify} />
-        </div>
-      </article>
-
-      {API_DOC_WEBHOOK_EVENTS.map((event) => (
-        <article key={event.event} className={styles.endpoint}>
-          <header className={styles.endpointHead}>
-            <code className={styles.path}>{event.event}</code>
-          </header>
-          <p className={styles.endpointDesc}>{doc(event.desc)}</p>
-          <div className={styles.section}>
-            <span className={styles.sectionTitle}>
-              {t("apiKeys.docsPayloadExample")}
-            </span>
-            <CodeBlock code={event.payload} />
-          </div>
-        </article>
-      ))}
-    </div>
-  );
-}
-
-/**
  * Reference for the public REST API (`app/api/v1`), grouped the same way
  * the routes themselves are — workspaces, projects, issues, comments,
  * labels.
@@ -218,7 +168,7 @@ export function ApiDocs() {
       </div>
 
       {/* What applies across endpoints — the tabs below are for endpoints. */}
-      <DocGuides guides={["auth", "paging", "filter"]} />
+      <DocGuides guides={["auth", "paging", "filter", "webhooks"]} />
 
       <SegmentedControl
         items={[
@@ -229,13 +179,12 @@ export function ApiDocs() {
           { value: "labels", label: t("apiKeys.docsTabLabels") },
           { value: "members", label: t("apiKeys.docsTabMembers") },
           { value: "views", label: t("apiKeys.docsTabViews") },
-          { value: "webhooks", label: t("apiKeys.docsTabWebhooks") },
         ]}
         value={tab}
         onChange={(value) => setTab(value as DocTab)}
       />
 
-      {active ? (
+      {active && (
         <div className={styles.endpoints}>
           {active.endpoints.map((endpoint) => (
             <Endpoint
@@ -244,8 +193,6 @@ export function ApiDocs() {
             />
           ))}
         </div>
-      ) : (
-        <WebhookDocs />
       )}
 
       <div className={styles.errors}>

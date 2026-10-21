@@ -330,3 +330,24 @@
   font-size: var(--text-sm);
   color: var(--on-surface-variant);
 }
+
+/* Webhook events: name, what it means, an example payload. */
+.events {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.event {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--outline-variant);
+
+  &:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+}

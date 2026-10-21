@@ -1225,7 +1225,6 @@
     "filterDocRecipes": "Beispiele zum Kopieren",
     "filterDocUsage": "Wo du einen Filter übergibst",
     "filterDocPitfalls": "Häufige Fehler",
-    "docsTabWebhooks": "Webhooks",
     "guidesTitle": "Grundlagen",
     "guideAuth": "Anmeldung",
     "guideAuthDesc": "Key, Scopes und Rate-Limit",
@@ -1257,7 +1256,10 @@
     "docsErr403": "Das Token trägt nicht den Scope, den diese Route benötigt (insufficient_scope) — oder du siehst die Ressource, darfst sie aber nicht ändern, etwa eine geteilte View von jemand anderem (forbidden).",
     "docsErr404": "Die Ressource existiert nicht oder ist nicht sichtbar — beides absichtlich ununterscheidbar, damit eine fehlende Berechtigung nie verrät, dass etwas existiert.",
     "docsErr422": "Der Request-Body fehlt oder ist fehlerhaft (invalid_body), oder ?filter= ist kein gültiger Filter (invalid_filter).",
-    "docsErr429": "Das Minutenbudget des Schlüssels ist aufgebraucht — Retry-After beachten."
+    "docsErr429": "Das Minutenbudget des Schlüssels ist aufgebraucht — Retry-After beachten.",
+    "guideWebhooks": "Webhooks",
+    "guideWebhooksDesc": "Events, Payloads und Signatur",
+    "guideWebhooksEvents": "Events"
   },
   "mcp": {
     "title": "MCP",

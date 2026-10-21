@@ -25,13 +25,15 @@ import styles from "./docGuides.module.scss";
 import { useDocText } from "./docText";
 import { FilterDocs } from "./FilterDocs";
 import { GuideCard, GuideRows, GuideSplit } from "./GuideParts";
+import { WebhookDocs } from "./WebhookDocs";
 
-export type DocGuideId = "auth" | "paging" | "filter";
+export type DocGuideId = "auth" | "paging" | "filter" | "webhooks";
 
 const GUIDE_ICON: Record<DocGuideId, string> = {
   auth: "lucide:key-round",
   paging: "lucide:list-ordered",
   filter: "lucide:filter",
+  webhooks: "lucide:webhook",
 };
 
 /**
@@ -54,6 +56,10 @@ export function DocGuides({ guides }: { guides: DocGuideId[] }) {
     filter: {
       title: t("apiKeys.guideFilter"),
       desc: t("apiKeys.guideFilterDesc"),
+    },
+    webhooks: {
+      title: t("apiKeys.guideWebhooks"),
+      desc: t("apiKeys.guideWebhooksDesc"),
     },
   };
 
@@ -140,6 +146,8 @@ function GuideModal({
           <AuthGuide />
         ) : id === "paging" ? (
           <PagingGuide />
+        ) : id === "webhooks" ? (
+          <WebhookDocs />
         ) : (
           <FilterDocs />
         )}
