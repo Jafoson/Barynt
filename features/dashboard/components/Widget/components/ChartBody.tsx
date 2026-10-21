@@ -4,9 +4,14 @@ import { useFormatter, useTranslations } from "next-intl";
 import type { CSSProperties } from "react";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import type { Slice, WidgetData } from "@/features/dashboard/types";
+import {
+  shownElement,
+  shownElements,
+  type Widget,
+} from "@/features/dashboard/widgets";
 import { Link, useRouter } from "@/i18n/navigation";
 import styles from "../widget.module.scss";
-import { type BodyProps, Spark, TimeAxis } from "./shared";
+import { type BodyProps, marked, Spark, TimeAxis } from "./shared";
 
 type Data = Extract<
   WidgetData,
@@ -53,30 +58,129 @@ function Empty() {
 function useSliceName() {
   const t = useTranslations("widgets");
   return (slice: Slice, field?: string) =>
-    slice.key === "_other"
-      ? t("other")
-      : slice.key === "_none"
-        ? field === "label"
-          ? t("noneLabel")
-          : t("noneAssignee")
-        : slice.label;
+    field === "statusCategory" && !slice.label && slice.key !== "_other"
+      ? t(`category_${slice.key as "backlog"}`)
+      : slice.key === "_other"
+        ? t("other")
+        : slice.key === "_none"
+          ? field === "label"
+            ? t("noneLabel")
+            : t("noneAssignee")
+          : slice.label;
+}
+
+/** A value in the widget's measure — "12", "34 SP", "6,5 h". */
+function useMeasureFormat(measure: Widget["config"]["measure"]) {
+  const t = useTranslations("widgets");
+  const format = useFormatter();
+  return (n: number, unit = true) => {
+    const v = format.number(n, { maximumFractionDigits: 1 });
+    return unit && measure && measure !== "count"
+      ? `${v} ${t(`unit_${measure}`)}`
+      : v;
+  };
 }
 
 function Distribution({
   widget,
   data,
   labels,
+  activeElement,
 }: BodyProps & { data: Extract<Data, { type: "distribution" }> }) {
   const name = useSliceName();
   const router = useRouter();
+  const t = useTranslations("widgets");
+  const fmt = useMeasureFormat(widget.config.measure);
   const field = widget.config.groupBy;
   if (data.total === 0) return <Empty />;
+  const pct = (n: number) => `${Math.round((n / data.total) * 100)} %`;
+  // "Top N": the biggest N, the rest folded into "Weitere" — or left out.
+  const topEl = shownElement(widget, "topN");
+  const topN = topEl?.value;
+  const slices: Slice[] =
+    topN && data.slices.length > topN
+      ? [
+          ...data.slices.slice(0, topN),
+          ...(topEl?.flag
+            ? []
+            : [
+                {
+                  key: "_other",
+                  label: "",
+                  color: "var(--outline)",
+                  count: data.slices
+                    .slice(topN)
+                    .reduce((sum, slice) => sum + slice.count, 0),
+                },
+              ]),
+        ]
+      : data.slices;
+  const totalEl = shownElement(widget, "total");
+  const totalName = totalEl?.label?.trim() || t("total");
+  const percentEl = shownElement(widget, "percent");
+  /** The number beside a slice: its value, its share, or both. */
+  const shown = (count: number) =>
+    percentEl && percentEl.style !== "only" && labels.values
+      ? `${fmt(count, false)} · ${pct(count)}`
+      : percentEl
+        ? pct(count)
+        : fmt(count, false);
+  const showValue = labels.values || !!percentEl;
+
+  if (widget.config.chart === "table") {
+    return (
+      <div className={styles.tableWrap}>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>{t(`group_${field ?? "status"}`)}</th>
+              <th>{t(`measure_${widget.config.measure ?? "count"}`)}</th>
+              <th>{t("share")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {slices.map((slice) => (
+              <tr key={slice.key}>
+                <td>
+                  <i style={{ background: slice.color }} />
+                  {slice.href ? (
+                    <Link href={slice.href}>{name(slice, field)}</Link>
+                  ) : (
+                    name(slice, field)
+                  )}
+                </td>
+                <td>{fmt(slice.count, false)}</td>
+                <td>{pct(slice.count)}</td>
+              </tr>
+            ))}
+          </tbody>
+          {totalEl && (
+            <tfoot {...marked(activeElement, totalEl.id)}>
+              <tr>
+                <td>{totalName}</td>
+                <td>{fmt(data.total, false)}</td>
+                <td>100 %</td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    );
+  }
 
   if (widget.config.chart === "bars") {
-    const max = Math.max(1, ...data.slices.map((s) => s.count));
+    const max = Math.max(1, ...slices.map((s) => s.count));
     return (
       <div className={styles.bars}>
-        {data.slices.map((slice) => {
+        {totalEl && (
+          <div
+            className={`${styles.sumRow} ${styles.noS}`}
+            {...marked(activeElement, totalEl.id)}
+          >
+            {totalName} <b>{fmt(data.total)}</b>
+          </div>
+        )}
+        {slices.map((slice) => {
           const inner = (
             <>
               {labels.axes && (
@@ -90,7 +194,7 @@ function Distribution({
                   }}
                 />
               </span>
-              {labels.values && <span>{slice.count}</span>}
+              {showValue && <span>{shown(slice.count)}</span>}
             </>
           );
           return slice.href ? (
@@ -120,7 +224,7 @@ function Distribution({
       <svg viewBox="0 0 42 42" role="img" aria-label={String(data.total)}>
         <g transform="rotate(-90 21 21)" fill="none" strokeWidth={6}>
           <circle cx={21} cy={21} r={15.915} stroke="var(--track)" />
-          {data.slices.map((slice) => {
+          {slices.map((slice) => {
             const part = (slice.count / data.total) * circumference;
             const el = (
               // biome-ignore lint/a11y/noStaticElementInteractions: a pointer shortcut — the legend beside it holds the same links for keyboard and screen readers
@@ -144,25 +248,27 @@ function Distribution({
             return el;
           })}
         </g>
-        <text
-          x={21}
-          y={23.6}
-          textAnchor="middle"
-          fill="currentColor"
-          fontSize={8}
-          fontWeight={750}
-        >
-          {data.total}
-        </text>
+        {totalEl && (
+          <text
+            x={21}
+            y={23.6}
+            textAnchor="middle"
+            fill="currentColor"
+            fontSize={8}
+            fontWeight={750}
+          >
+            {fmt(data.total, false)}
+          </text>
+        )}
       </svg>
       {labels.legend && (
         <div className={`${styles.list} ${styles.noS}`}>
-          {data.slices.map((slice) => {
+          {slices.map((slice) => {
             const inner = (
               <>
                 <i style={{ background: slice.color }} />
                 <span className={styles.name}>{name(slice, field)}</span>
-                {labels.values ? <span>{slice.count}</span> : <span />}
+                {showValue ? <span>{shown(slice.count)}</span> : <span />}
               </>
             );
             return slice.href ? (
@@ -186,63 +292,304 @@ function Distribution({
 }
 
 function Flow({
+  widget,
   data,
   labels,
   bucketLabel,
+  activeElement,
 }: BodyProps & { data: Extract<Data, { type: "flow" }> }) {
   const t = useTranslations("widgets");
-  const max = Math.max(1, ...data.points.flatMap((p) => [p.created, p.closed]));
-  const net = data.created - data.closed;
-  const showValues = labels.values && data.points.length <= 14;
+  const fmt = useMeasureFormat(widget.config.measure);
+  const sliceName = useSliceName();
+  const pair = data.timeBy === "createdClosed";
+  const chart =
+    widget.config.seriesChart === "stacked" && data.series.length < 2
+      ? "bars"
+      : (widget.config.seriesChart ?? "bars");
+  const nameOf = (s: (typeof data.series)[number]) =>
+    s.key === "created"
+      ? t("created")
+      : s.key === "closed"
+        ? t("closed")
+        : s.key === "all"
+          ? t(`timeBy_${data.timeBy}`)
+          : sliceName(
+              { key: s.key, label: s.label, color: s.color, count: 0 },
+              widget.config.splitBy,
+            );
+  const elements = shownElements(widget);
+  const kinds = new Set(elements.map((e) => e.kind));
+  const find = (kind: (typeof elements)[number]["kind"]) =>
+    elements.find((e) => e.kind === kind);
+  const n = data.dates.length;
+  // "Kumulativ": every bucket carries the ones before it.
+  const running = (values: number[]) => {
+    let sum = 0;
+    return values.map((v) => {
+      sum += v;
+      return sum;
+    });
+  };
+  const shape = (values: number[]) =>
+    kinds.has("cumulative") ? running(values) : values;
+  const series = data.series.map((s) => ({ ...s, values: shape(s.values) }));
+  const previousEl = find("previous");
+  const previous = previousEl && data.previous ? shape(data.previous) : null;
+  // The range before as pale columns behind the bars (not on a line chart).
+  const ghost = previousEl?.style === "bars" && chart !== "line";
+  const goalEl = find("goalLine");
+  const goal = goalEl?.value ?? null;
+  const goalName = goalEl?.label?.trim() || t("goal");
+  // Its color comes from CSS (`[data-goal]`), red by default.
+  const goalColor = "var(--goal)";
+  const averageEl = find("average");
+  const sums = data.dates.map((_, i) =>
+    series.reduce((a, s) => a + s.values[i], 0),
+  );
+  // The average per bucket — of the stack's sums, or of the first series.
+  const averaged = chart === "stacked" ? sums : (series[0]?.values ?? []);
+  const average =
+    kinds.has("average") && n ? averaged.reduce((a, v) => a + v, 0) / n : null;
+  const max = Math.max(
+    1,
+    ...(chart === "stacked" ? sums : series.flatMap((s) => s.values)),
+    ...(previous ?? []),
+    goal ?? 0,
+  );
+  const showValues = labels.values && chart === "bars" && n <= 14;
+  const all = data.series.every((s) => s.total === 0);
+  const net = pair ? data.series[0].total - data.series[1].total : 0;
+  const total = data.series.reduce((a, s) => a + s.total, 0);
+  // Where a value sits, in the overlay's 0–100 box: bars fill the full
+  // height and sit in the middle of their column; the line leaves 6 % on top.
+  const yOf = (v: number) =>
+    chart === "line" ? 100 - (v / max) * 94 : 100 - (v / max) * 100;
+  const xOf = (i: number) =>
+    chart === "line"
+      ? n === 1
+        ? 50
+        : (i / (n - 1)) * 100
+      : ((i + 0.5) / n) * 100;
+  const overlay = ((previous && !ghost) ||
+    average !== null ||
+    goal !== null) && (
+    <svg
+      className={`${styles.overlay} ${chart === "line" ? "" : styles.overlayCols}`}
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      {previous && !ghost && (
+        <polyline
+          points={previous.map((v, i) => `${xOf(i)},${yOf(v)}`).join(" ")}
+          fill="none"
+          stroke="var(--muted)"
+          strokeWidth={1.5}
+          strokeDasharray="4 3"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+      {average !== null && (
+        <line
+          x1={0}
+          x2={100}
+          y1={yOf(average)}
+          y2={yOf(average)}
+          stroke="var(--on-surface)"
+          strokeWidth={1}
+          strokeDasharray="2 3"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+      {goal !== null && (
+        <line
+          x1={0}
+          x2={100}
+          y1={yOf(goal)}
+          y2={yOf(goal)}
+          stroke={goalColor}
+          strokeWidth={1.5}
+          strokeDasharray="5 3"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+    </svg>
+  );
+
+  const legend = (id: string) => (
+    <div
+      key={id}
+      className={`${styles.legend} ${styles.noShort}`}
+      {...marked(activeElement, id)}
+    >
+      {data.series.map((s) => (
+        <span key={s.key}>
+          <i style={{ background: s.color }} />
+          {nameOf(s)} <b>{fmt(s.total)}</b>
+        </span>
+      ))}
+      {pair && (
+        <span>
+          {t("net")}{" "}
+          <b className={net > 0 ? styles.bad : net < 0 ? styles.good : ""}>
+            {net > 0 ? `+${fmt(net)}` : fmt(net)}
+          </b>
+        </span>
+      )}
+      {previous && <span>– – {t("previousRange")}</span>}
+      {average !== null && !kinds.has("sumRow") && (
+        <span>
+          ⋯ {t("averageShort")} <b>{fmt(Math.round(average * 10) / 10)}</b>
+        </span>
+      )}
+      {goal !== null && (
+        <span className={styles.goalKey} data-goal={goalEl?.color}>
+          – – {goalName} <b>{fmt(goal)}</b>
+        </span>
+      )}
+    </div>
+  );
+  const legendEl = find("legend");
+
   return (
     <>
-      {labels.legend && (
-        <div className={`${styles.legend} ${styles.noShort}`}>
-          <span>
-            <i style={{ background: "var(--chart-1)" }} />
-            {t("created")} <b>{data.created}</b>
-          </span>
-          <span>
-            <i style={{ background: "var(--chart-3)" }} />
-            {t("closed")} <b>{data.closed}</b>
-          </span>
-          <span>
-            {t("net")}{" "}
-            <b className={net > 0 ? styles.bad : net < 0 ? styles.good : ""}>
-              {net > 0 ? `+${net}` : net}
-            </b>
-          </span>
+      {/* Legend and total row above the chart, in their order. */}
+      {elements.map((e) =>
+        e.kind === "sumRow" ? (
+          <div
+            key={e.id}
+            className={styles.sumRow}
+            {...marked(activeElement, e.id)}
+          >
+            {e.label?.trim() || t("total")} <b>{fmt(total)}</b>
+            {average !== null && (
+              <span className={styles.noS}>
+                {" · "}
+                {t("averageShort")} <b>{fmt(Math.round(average * 10) / 10)}</b>
+              </span>
+            )}
+          </div>
+        ) : e.kind === "legend" && e.style !== "bottom" ? (
+          legend(e.id)
+        ) : null,
+      )}
+      {all ? (
+        <Empty />
+      ) : (
+        <div className={styles.plot} data-goal={goalEl?.color}>
+          {chart === "line" ? (
+            <svg
+              className={styles.chart}
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              role="img"
+              aria-label={data.series
+                .map((s) => `${nameOf(s)} ${s.total}`)
+                .join(", ")}
+            >
+              {series.map((s) => (
+                <polyline
+                  key={s.key}
+                  points={s.values
+                    .map(
+                      (v, i) =>
+                        `${n === 1 ? 50 : (i / (n - 1)) * 100},${100 - (v / max) * 94}`,
+                    )
+                    .join(" ")}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={2}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              ))}
+            </svg>
+          ) : (
+            <div className={styles.cols}>
+              {data.dates.map((date, i) =>
+                chart === "stacked" ? (
+                  <div
+                    key={date}
+                    className={styles.col}
+                    title={`${bucketLabel(date)} · ${fmt(sums[i])}`}
+                  >
+                    {ghost && previous && (
+                      <span
+                        className={styles.ghost}
+                        style={{ height: `${(previous[i] / max) * 100}%` }}
+                      />
+                    )}
+                    <div
+                      className={styles.stackCol}
+                      style={{ height: `${(sums[i] / max) * 100}%` }}
+                    >
+                      {series.map((s) =>
+                        s.values[i] ? (
+                          <Bar
+                            key={s.key}
+                            value={s.values[i]}
+                            max={sums[i] || 1}
+                            color={s.color}
+                            href={s.hrefs[i]}
+                            label={`${bucketLabel(date)} · ${nameOf(s)} ${fmt(s.values[i])}`}
+                            showValue={false}
+                          />
+                        ) : null,
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div key={date} className={styles.col}>
+                    {ghost && previous && (
+                      <span
+                        className={styles.ghost}
+                        style={{ height: `${(previous[i] / max) * 100}%` }}
+                      />
+                    )}
+                    {series.map((s) => (
+                      <Bar
+                        key={s.key}
+                        value={s.values[i]}
+                        max={max}
+                        color={s.color}
+                        href={s.hrefs[i]}
+                        label={`${bucketLabel(date)} · ${nameOf(s)} ${fmt(s.values[i])}`}
+                        showValue={showValues}
+                      />
+                    ))}
+                  </div>
+                ),
+              )}
+            </div>
+          )}
+          {overlay}
+          {goal !== null && goalEl?.label?.trim() && (
+            <span
+              className={`${styles.lineLabel} ${chart === "line" ? "" : styles.lineLabelCols}`}
+              style={{ "--y": yOf(goal), "--c": goalColor } as CSSProperties}
+            >
+              {goalName} {fmt(goal)}
+            </span>
+          )}
+          {average !== null && averageEl?.flag && (
+            <span
+              className={`${styles.lineLabel} ${chart === "line" ? "" : styles.lineLabelCols}`}
+              style={
+                {
+                  "--y": yOf(average),
+                  "--c": "var(--on-surface)",
+                } as CSSProperties
+              }
+            >
+              {t("averageShort")} {fmt(Math.round(average * 10) / 10)}
+            </span>
+          )}
         </div>
       )}
-      <div className={styles.cols}>
-        {data.points.map((p) => (
-          <div
-            key={p.date}
-            className={styles.col}
-            title={`${bucketLabel(p.date)} · ${t("created")} ${p.created} · ${t("closed")} ${p.closed}`}
-          >
-            <Bar
-              value={p.created}
-              max={max}
-              color="var(--chart-1)"
-              href={p.createdHref}
-              label={`${bucketLabel(p.date)} · ${t("created")} ${p.created}`}
-              showValue={showValues}
-            />
-            <Bar
-              value={p.closed}
-              max={max}
-              color="var(--chart-3)"
-              href={p.closedHref}
-              label={`${bucketLabel(p.date)} · ${t("closed")} ${p.closed}`}
-              showValue={showValues}
-            />
-          </div>
-        ))}
-      </div>
-      {labels.axes && (
-        <TimeAxis keys={data.points.map((p) => p.date)} label={bucketLabel} />
-      )}
+      {labels.axes && <TimeAxis keys={data.dates} label={bucketLabel} />}
+      {legendEl?.style === "bottom" && legend(legendEl.id)}
     </>
   );
 }
@@ -582,14 +929,47 @@ function Matrix({
   widget,
   data,
   labels,
+  activeElement,
 }: BodyProps & { data: Extract<Data, { type: "matrix" }> }) {
   const name = useSliceName();
+  const t = useTranslations("widgets");
+  const fmt = useMeasureFormat(widget.config.measure);
   if (data.rows.length === 0) return <Empty />;
+  const elements = shownElements(widget);
+  const find = (kind: (typeof elements)[number]["kind"]) =>
+    elements.find((e) => e.kind === kind);
+  const heatEl = find("heatmap");
+  const percent = !!find("rowPercent");
+  const rowTotalsEl = find("rowTotals");
+  const colTotalsEl = find("colTotals");
+  const rowSums = data.cells.map((row) => row.reduce((a, v) => a + v, 0));
+  const colSums = data.cols.map((_, j) =>
+    data.cells.reduce((a, row) => a + row[j], 0),
+  );
+  const extraCol = !!rowTotalsEl;
+  const rowMax = data.cells.map((row) => Math.max(0, ...row));
+  /** How dark a cell is: against the whole matrix, or its own row. */
+  const shade = (i: number, j: number) =>
+    !heatEl
+      ? 0
+      : heatEl.style === "row"
+        ? rowMax[i]
+          ? data.cells[i][j] / rowMax[i]
+          : 0
+        : data.max
+          ? data.cells[i][j] / data.max
+          : 0;
+  const cell = (v: number, rowSum: number) =>
+    !labels.values
+      ? ""
+      : percent
+        ? `${rowSum ? Math.round((v / rowSum) * 100) : 0} %`
+        : fmt(v, false);
   return (
     <div
       className={styles.matrix}
       style={{
-        gridTemplateColumns: `minmax(3rem, 1.4fr) repeat(${data.cols.length}, minmax(0, 1fr))`,
+        gridTemplateColumns: `minmax(3rem, 1.4fr) repeat(${data.cols.length + (extraCol ? 1 : 0)}, minmax(0, 1fr))`,
       }}
     >
       <span className={styles.mHead} />
@@ -598,6 +978,14 @@ function Matrix({
           {labels.axes ? name(col, widget.config.groupBy2) : ""}
         </span>
       ))}
+      {rowTotalsEl && (
+        <span
+          className={styles.mHead}
+          {...marked(activeElement, rowTotalsEl.id)}
+        >
+          {rowTotalsEl.label?.trim() || "Σ"}
+        </span>
+      )}
       {data.rows.map((row, i) => [
         <span key={`${row.key}-h`} className={styles.mRow} title={name(row)}>
           {labels.axes ? name(row, widget.config.groupBy) : ""}
@@ -607,15 +995,46 @@ function Matrix({
             key={`${row.key}-${col.key}`}
             style={
               {
-                "--v": data.max ? data.cells[i][j] / data.max : 0,
+                "--v": shade(i, j),
               } as CSSProperties
             }
             title={`${name(row)} × ${name(col)}: ${data.cells[i][j]}`}
           >
-            {labels.values ? data.cells[i][j] : ""}
+            {cell(data.cells[i][j], rowSums[i])}
           </span>
         )),
+        ...(extraCol
+          ? [
+              <span key={`${row.key}-sum`} className={styles.mSum}>
+                {fmt(rowSums[i], false)}
+              </span>,
+            ]
+          : []),
       ])}
+      {colTotalsEl && [
+        <span
+          key="sum-h"
+          className={styles.mRow}
+          {...marked(activeElement, colTotalsEl.id)}
+        >
+          {colTotalsEl.label?.trim() || t("total")}
+        </span>,
+        ...colSums.map((sum, j) => (
+          <span key={`sum-${data.cols[j].key}`} className={styles.mSum}>
+            {fmt(sum, false)}
+          </span>
+        )),
+        ...(extraCol
+          ? [
+              <span key="sum-all" className={styles.mSum}>
+                {fmt(
+                  rowSums.reduce((a, v) => a + v, 0),
+                  false,
+                )}
+              </span>,
+            ]
+          : []),
+      ]}
     </div>
   );
 }

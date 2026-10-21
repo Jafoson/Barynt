@@ -51,6 +51,9 @@ export const WIDGET_TYPES = [
   "shortcuts",
   "activity",
   "note",
+  // A custom widget made of building blocks (BARY-170) — only the builder
+  // makes these; the gallery doesn't list the kind itself.
+  "blocks",
 ] as const;
 export type WidgetType = (typeof WIDGET_TYPES)[number];
 
@@ -90,6 +93,7 @@ export const METRIC_MORE_IS_GOOD: Record<KpiMetric, boolean> = {
  *  matrix cell. */
 export const GROUP_FIELDS = [
   "status",
+  "statusCategory",
   "priority",
   "type",
   "assignee",
@@ -138,8 +142,22 @@ export const ISSUE_SORTS = [
 ] as const;
 export type IssueSort = (typeof ISSUE_SORTS)[number];
 
-/** How a distribution draws: a ring with a legend, or bars. */
-export const DISTRIBUTION_CHARTS = ["ring", "bars"] as const;
+/** What a widget adds up (BARY-170): issues, or their story points or
+ *  estimated hours. Custom number fields join here later (BARY-129). */
+export const MEASURES = ["count", "storyPoints", "estimate"] as const;
+export type Measure = (typeof MEASURES)[number];
+
+/** The time axis of a time series: created and closed side by side (the
+ *  classic), or one date alone — created, closed or due. */
+export const TIME_BY = ["createdClosed", "created", "closed", "due"] as const;
+export type TimeBy = (typeof TIME_BY)[number];
+
+/** How a time series draws. */
+export const SERIES_CHARTS = ["bars", "stacked", "line"] as const;
+export type SeriesChart = (typeof SERIES_CHARTS)[number];
+
+/** How a distribution draws: a ring with a legend, bars, or a table. */
+export const DISTRIBUTION_CHARTS = ["ring", "bars", "table"] as const;
 export type DistributionChart = (typeof DISTRIBUTION_CHARTS)[number];
 
 /** The four backgrounds, each in the widget's accent. `fill` only where the
@@ -188,6 +206,12 @@ export interface WidgetConfig {
   /** The matrix's second axis (columns). */
   groupBy2?: GroupField;
   chart?: DistributionChart;
+  /** What is added up — issues by default. */
+  measure?: Measure;
+  /** Time series: which date, and split by what. */
+  timeBy?: TimeBy;
+  splitBy?: GroupField;
+  seriesChart?: SeriesChart;
   /** Only issues that are still open. */
   openOnly?: boolean;
   sort?: IssueSort;
@@ -196,8 +220,473 @@ export interface WidgetConfig {
   accent?: WidgetAccent;
   /** The note's text. */
   text?: string;
+  /** The widget's building blocks beyond its main part, in order
+   *  (BARY-170). Unset: the kind's defaults. */
+  elements?: WidgetElement[];
   /** The shortcut tiles shown, in order; unset means every one offered. */
   shortcuts?: ShortcutKey[];
+  /** A custom widget's building blocks, top to bottom (`blocks` kind). */
+  blocks?: WidgetBlock[];
+}
+
+/** The kinds a custom widget is built from — the configurable ones. */
+export const BLOCK_TYPES = [
+  "kpi",
+  "progress",
+  "distribution",
+  "flow",
+  "matrix",
+  "issues",
+] as const satisfies readonly WidgetType[];
+export type BlockType = (typeof BLOCK_TYPES)[number];
+
+/** What a block sets itself — what it counts and how; the widget keeps
+ *  title, size, background and accent. Its filter adds to the widget's. */
+export type BlockConfig = Pick<
+  WidgetConfig,
+  | "filter"
+  | "metric"
+  | "groupBy"
+  | "groupBy2"
+  | "chart"
+  | "measure"
+  | "timeBy"
+  | "splitBy"
+  | "seriesChart"
+  | "openOnly"
+  | "sort"
+  | "labels"
+  | "elements"
+>;
+
+/** One building block of a custom widget, with its own extras
+ *  (`config.elements`). */
+export interface WidgetBlock {
+  id: string;
+  type: BlockType;
+  config: BlockConfig;
+}
+
+// ─── Elements ────────────────────────────────────────────────────────────────
+//
+// Every kind has one fixed main part (the number, the ring, the bars …) and
+// a set of elements around it that can be added, ordered and removed —
+// some with a small value of their own (a goal, a second filter, a count).
+
+export const ELEMENT_KINDS = [
+  // Chart labels — what used to be the three switches.
+  "legend",
+  "axes",
+  "values",
+  // Number
+  "trend",
+  "spark",
+  "goal",
+  "second",
+  "miniList",
+  "link",
+  // Progress
+  "breakdown",
+  "deadline",
+  "forecast",
+  // Distribution
+  "total",
+  "percent",
+  "topN",
+  // Time series
+  "average",
+  "goalLine",
+  "cumulative",
+  "previous",
+  "sumRow",
+  // Matrix
+  "rowTotals",
+  "colTotals",
+  "heatmap",
+  "rowPercent",
+  // Issue list: its columns, and how many rows
+  "rows",
+  "col_status",
+  "col_assignee",
+  "col_priority",
+  "col_dueDate",
+  "col_updated",
+  "col_labels",
+  "col_storyPoints",
+] as const;
+export type ElementKind = (typeof ELEMENT_KINDS)[number];
+
+/** How an element draws — the choices `ELEMENT_OPTIONS` offers per kind. */
+export const ELEMENT_STYLES = [
+  "abs",
+  "pct",
+  "line",
+  "area",
+  "bars",
+  "ring",
+  "bar",
+  "number",
+  "percent",
+  "both",
+  "dashed",
+  "top",
+  "bottom",
+  "all",
+  "row",
+  "date",
+  "relative",
+  "only",
+  "beside",
+] as const;
+export type ElementStyle = (typeof ELEMENT_STYLES)[number];
+
+export const ELEMENT_SORTS = ["priority", "updated", "dueDate"] as const;
+export type ElementSort = (typeof ELEMENT_SORTS)[number];
+
+/** "Ab Größe sichtbar": the smallest size an element shows in. */
+export const ELEMENT_MIN_SIZES = ["S", "M", "L", "XL"] as const;
+export type ElementMinSize = (typeof ELEMENT_MIN_SIZES)[number];
+
+export interface WidgetElement {
+  id: string;
+  kind: ElementKind;
+  /** goal, goalLine, topN, miniList, rows: a number; forecast: weeks. */
+  value?: number;
+  /** deadline: a day, `YYYY-MM-DD`. */
+  date?: string;
+  /** second: the extra condition the second number counts. */
+  filter?: IssueFilter;
+  /** Its own words — "dringend", "Release 2.4", the link's text. */
+  label?: string;
+  style?: ElementStyle;
+  /** trend: colors turned round; topN: "Other" left out; average: labeled. */
+  flag?: boolean;
+  /** miniList: which issues come first. */
+  sort?: ElementSort;
+  color?: WidgetAccent;
+  minSize?: ElementMinSize;
+}
+
+/** One setting of an element, as the editor shows it. */
+export type ElementOption =
+  | { key: "value"; min: number; max: number }
+  | { key: "date" }
+  | { key: "filter" }
+  | { key: "label" }
+  | { key: "style"; choices: readonly ElementStyle[] }
+  | { key: "flag" }
+  | { key: "sort" }
+  | { key: "color" }
+  | { key: "weeks" };
+
+interface ElementDef {
+  kind: ElementKind;
+  icon: string;
+  /** The starting value of `value`. */
+  initial?: number;
+}
+
+const el = (kind: ElementKind, icon: string, initial?: number): ElementDef => ({
+  kind,
+  icon,
+  initial,
+});
+
+const CHART_LABELS = [
+  el("legend", "lucide:list"),
+  el("axes", "lucide:move-horizontal"),
+  el("values", "lucide:hash"),
+];
+
+/** What each kind can add, in the menu's order. */
+export const ELEMENTS: Partial<Record<WidgetType, ElementDef[]>> = {
+  kpi: [
+    el("trend", "lucide:trending-up"),
+    el("spark", "lucide:activity"),
+    el("goal", "lucide:target", 20),
+    el("second", "lucide:split"),
+    el("miniList", "lucide:list", 3),
+    el("link", "lucide:arrow-right"),
+  ],
+  progress: [
+    el("breakdown", "lucide:chart-bar-stacked"),
+    el("deadline", "lucide:calendar"),
+    el("forecast", "lucide:telescope"),
+    el("second", "lucide:split"),
+  ],
+  distribution: [
+    el("legend", "lucide:list"),
+    el("values", "lucide:hash"),
+    el("total", "lucide:sigma"),
+    el("percent", "lucide:percent"),
+    el("topN", "lucide:list-ordered", 5),
+  ],
+  flow: [
+    ...CHART_LABELS,
+    el("average", "lucide:minus"),
+    el("goalLine", "lucide:target", 10),
+    el("cumulative", "lucide:trending-up"),
+    el("previous", "lucide:history"),
+    el("sumRow", "lucide:sigma"),
+  ],
+  matrix: [
+    el("axes", "lucide:move-horizontal"),
+    el("values", "lucide:hash"),
+    el("heatmap", "lucide:grid-3x3"),
+    el("rowTotals", "lucide:sigma"),
+    el("colTotals", "lucide:sigma"),
+    el("rowPercent", "lucide:percent"),
+  ],
+  issues: [
+    el("rows", "lucide:rows-3", 8),
+    el("col_status", "lucide:circle-dot"),
+    el("col_assignee", "lucide:user"),
+    el("col_priority", "lucide:signal-high"),
+    el("col_dueDate", "lucide:calendar"),
+    el("col_updated", "lucide:clock"),
+    el("col_labels", "lucide:tag"),
+    el("col_storyPoints", "lucide:gauge"),
+    el("link", "lucide:arrow-right"),
+  ],
+  burnup: CHART_LABELS,
+  cycle: CHART_LABELS,
+  age: CHART_LABELS.filter((e) => e.kind !== "legend"),
+  workload: CHART_LABELS,
+};
+
+/**
+ * What each element can set, per widget kind (the same element may set
+ * different things in different kinds — a link's text, the second number).
+ * Every element also has "Ab Größe sichtbar" (`minSize`).
+ */
+const SECOND_OPTIONS: ElementOption[] = [
+  { key: "label" },
+  { key: "filter" },
+  { key: "style", choices: ["number", "percent", "both"] },
+];
+const ELEMENT_OPTIONS: Partial<
+  Record<WidgetType, Partial<Record<ElementKind, ElementOption[]>>>
+> = {
+  kpi: {
+    trend: [{ key: "style", choices: ["abs", "pct"] }, { key: "flag" }],
+    spark: [{ key: "style", choices: ["line", "area", "bars"] }],
+    goal: [
+      { key: "value", min: 1, max: 1_000_000 },
+      { key: "style", choices: ["ring", "bar"] },
+    ],
+    second: SECOND_OPTIONS,
+    miniList: [{ key: "value", min: 1, max: 10 }, { key: "sort" }],
+    link: [{ key: "label" }],
+  },
+  progress: {
+    deadline: [{ key: "date" }, { key: "label" }],
+    forecast: [{ key: "weeks" }],
+    second: SECOND_OPTIONS,
+  },
+  distribution: {
+    total: [{ key: "label" }],
+    percent: [{ key: "style", choices: ["only", "beside"] }],
+    topN: [{ key: "value", min: 1, max: 20 }, { key: "flag" }],
+  },
+  flow: {
+    legend: [{ key: "style", choices: ["top", "bottom"] }],
+    average: [{ key: "flag" }],
+    goalLine: [
+      { key: "value", min: 0, max: 1_000_000 },
+      { key: "label" },
+      { key: "color" },
+    ],
+    previous: [{ key: "style", choices: ["dashed", "bars"] }],
+    sumRow: [{ key: "label" }],
+  },
+  matrix: {
+    heatmap: [{ key: "style", choices: ["all", "row"] }],
+    rowTotals: [{ key: "label" }],
+    colTotals: [{ key: "label" }],
+  },
+  issues: {
+    rows: [{ key: "value", min: 1, max: 30 }],
+    col_dueDate: [{ key: "style", choices: ["date", "relative"] }],
+    link: [{ key: "label" }],
+  },
+};
+
+/** The settings of an element in a kind — empty when it has none. */
+export function elementOptions(
+  type: WidgetType,
+  kind: ElementKind,
+): ElementOption[] {
+  return ELEMENT_OPTIONS[type]?.[kind] ?? [];
+}
+
+const MIN_SIZE_RANK: Record<WidgetSize, number> = {
+  S: 0,
+  M: 1,
+  W: 1,
+  L: 2,
+  T: 3,
+  XL: 3,
+};
+const MIN_SIZE_NEED: Record<ElementMinSize, number> = {
+  S: 0,
+  M: 1,
+  L: 2,
+  XL: 3,
+};
+
+/**
+ * The smallest size an element can be drawn in at all — below it there's
+ * no room (a spark next to the number needs two columns, a mini list a
+ * second row). Matches what the widget's CSS hides (`noS` → M, `noShort`
+ * → L); an element's own `minSize` can only raise it.
+ */
+const NATURAL_MIN: Partial<
+  Record<WidgetType, Partial<Record<ElementKind, ElementMinSize>>>
+> = {
+  kpi: { spark: "M", second: "L", miniList: "L", link: "L" },
+  progress: { deadline: "L", forecast: "L", second: "L" },
+  distribution: { legend: "M" },
+  flow: { legend: "L", axes: "L" },
+  issues: {
+    rows: "M",
+    link: "M",
+    col_status: "M",
+    col_assignee: "M",
+    col_priority: "M",
+    col_dueDate: "M",
+    col_updated: "M",
+    col_labels: "M",
+    col_storyPoints: "M",
+  },
+  burnup: { legend: "L", axes: "L", values: "L" },
+  cycle: { legend: "L", axes: "L", values: "L" },
+  workload: { legend: "L" },
+};
+
+/** The smallest size an element can show in — by nature, or by choice. */
+export function minSizeOf(
+  type: WidgetType,
+  element: Pick<WidgetElement, "kind" | "minSize">,
+): ElementMinSize {
+  const natural = NATURAL_MIN[type]?.[element.kind] ?? "S";
+  const own = element.minSize ?? "S";
+  return MIN_SIZE_NEED[own] > MIN_SIZE_NEED[natural] ? own : natural;
+}
+
+/** The sizes "Ab Größe sichtbar" offers — from the element's natural
+ *  smallest size up. */
+export function minSizeChoices(
+  type: WidgetType,
+  kind: ElementKind,
+): ElementMinSize[] {
+  const natural = MIN_SIZE_NEED[NATURAL_MIN[type]?.[kind] ?? "S"];
+  return ELEMENT_MIN_SIZES.filter((s) => MIN_SIZE_NEED[s] >= natural);
+}
+
+/** Whether an element shows in a widget size. */
+export function fitsSize(
+  type: WidgetType,
+  element: Pick<WidgetElement, "kind" | "minSize">,
+  size: WidgetSize,
+): boolean {
+  return MIN_SIZE_RANK[size] >= MIN_SIZE_NEED[minSizeOf(type, element)];
+}
+
+/** The elements a widget draws — its own, minus those too big for it. */
+export function shownElements(widget: Widget): WidgetElement[] {
+  return elementsOf(widget).filter((e) =>
+    fitsSize(widget.type, e, widget.size),
+  );
+}
+
+/** The element of a kind, if the widget draws it in its size. */
+export function shownElement(
+  widget: Widget,
+  kind: ElementKind,
+): WidgetElement | undefined {
+  return shownElements(widget).find((e) => e.kind === kind);
+}
+
+/**
+ * Elements that are blocks of their own and sit in the widget in the order
+ * they're listed. The rest change the main part (a goal ring, the chart's
+ * axes, the heatmap) and have no place to move to.
+ */
+const PLACED: Partial<Record<WidgetType, ElementKind[]>> = {
+  kpi: ["trend", "spark", "second", "miniList", "link"],
+  progress: ["deadline", "forecast", "second"],
+  flow: ["legend", "sumRow"],
+  issues: [
+    "col_status",
+    "col_assignee",
+    "col_priority",
+    "col_dueDate",
+    "col_updated",
+    "col_labels",
+    "col_storyPoints",
+  ],
+};
+
+/** Whether an element can be moved — a block of its own (`PLACED`). */
+export function isPlaced(type: WidgetType, kind: ElementKind): boolean {
+  return PLACED[type]?.includes(kind) ?? false;
+}
+
+/** What a kind shows before anyone touches its elements — today's look. */
+const DEFAULT_ELEMENTS: Partial<Record<WidgetType, ElementKind[]>> = {
+  kpi: ["trend", "spark"],
+  progress: ["breakdown"],
+  distribution: ["legend", "values", "total"],
+  flow: ["legend", "axes", "values"],
+  matrix: ["axes", "values", "heatmap"],
+  issues: ["col_updated"],
+  burnup: ["legend", "axes", "values"],
+  cycle: ["legend", "axes", "values"],
+  age: ["axes", "values"],
+  workload: ["legend", "axes", "values"],
+};
+
+export function elementDef(type: WidgetType, kind: ElementKind) {
+  return ELEMENTS[type]?.find((d) => d.kind === kind);
+}
+
+/** A widget's elements — its own, or the defaults (honoring the older
+ *  label switches). Elements a kind doesn't offer drop out. */
+export function elementsOf(widget: Widget): WidgetElement[] {
+  const offered = ELEMENTS[widget.type] ?? [];
+  if (widget.config.elements) {
+    return widget.config.elements.filter((e) =>
+      offered.some((d) => d.kind === e.kind),
+    );
+  }
+  const labels = widget.config.labels;
+  // A list sorted by due date showed its due dates before there were columns.
+  const defaults =
+    widget.type === "issues" && widget.config.sort === "dueDate"
+      ? (["col_dueDate"] as ElementKind[])
+      : (DEFAULT_ELEMENTS[widget.type] ?? []);
+  return defaults
+    .filter(
+      (kind) =>
+        !labels ||
+        !(kind === "legend" || kind === "axes" || kind === "values") ||
+        labels[kind],
+    )
+    .map((kind) => ({
+      id: kind,
+      kind,
+      ...(elementDef(widget.type, kind)?.initial !== undefined && {
+        value: elementDef(widget.type, kind)?.initial,
+      }),
+    }));
+}
+
+/** The element of a kind, if the widget has it. */
+export function elementOf(
+  widget: Widget,
+  kind: ElementKind,
+): WidgetElement | undefined {
+  return elementsOf(widget).find((e) => e.kind === kind);
 }
 
 /** A page of a note — its text is private to whoever wrote it
@@ -235,6 +724,8 @@ export interface WidgetDef {
   group: "numbers" | "charts" | "lists" | "team" | "other";
   /** Only on these dashboards — a project has no projects or links. */
   kinds?: ("project" | "workspace" | "view")[];
+  /** Not listed in the gallery (made by the builder). */
+  hidden?: boolean;
   config: WidgetConfig;
 }
 
@@ -242,7 +733,8 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   kpi: {
     type: "kpi",
     icon: "lucide:hash",
-    sizes: ["S", "M"],
+    // One number — beyond L there's only more empty space.
+    sizes: ["S", "M", "L"],
     size: "S",
     accent: "blue",
     fill: true,
@@ -253,7 +745,7 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   progress: {
     type: "progress",
     icon: "lucide:target",
-    sizes: ["S", "M"],
+    sizes: ["S", "M", "L", "T", "XL"],
     size: "M",
     accent: "lime",
     fill: true,
@@ -264,7 +756,7 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   distribution: {
     type: "distribution",
     icon: "lucide:chart-pie",
-    sizes: ["S", "M", "L", "T"],
+    sizes: ["S", "M", "L", "T", "XL"],
     size: "L",
     accent: "indigo",
     chart: true,
@@ -275,7 +767,7 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   flow: {
     type: "flow",
     icon: "lucide:chart-column",
-    sizes: ["M", "L", "XL"],
+    sizes: ["S", "M", "L", "T", "XL"],
     size: "XL",
     accent: "blue",
     chart: true,
@@ -319,7 +811,7 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   matrix: {
     type: "matrix",
     icon: "lucide:grid-3x3",
-    sizes: ["L", "T", "XL"],
+    sizes: ["S", "M", "L", "T", "XL"],
     size: "L",
     accent: "indigo",
     issues: true,
@@ -339,7 +831,7 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
   issues: {
     type: "issues",
     icon: "lucide:list",
-    sizes: ["M", "L", "T", "XL"],
+    sizes: ["S", "M", "L", "T", "XL"],
     size: "L",
     accent: "blue",
     issues: true,
@@ -439,6 +931,17 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
     group: "other",
     config: { background: "tint" },
   },
+  blocks: {
+    type: "blocks",
+    icon: "lucide:blocks",
+    sizes: ["S", "M", "L", "T", "XL"],
+    size: "L",
+    accent: "blue",
+    issues: true,
+    group: "other",
+    hidden: true,
+    config: {},
+  },
   note: {
     type: "note",
     icon: "lucide:sticky-note",
@@ -451,6 +954,168 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
     config: { background: "fill" },
   },
 };
+
+/** What the builder ("New widget") saves — widgets made of blocks. */
+export const BUILDER_TYPES = [
+  "blocks",
+] as const satisfies readonly WidgetType[];
+
+// ─── Blocks and templates (BARY-170) ─────────────────────────────────────────
+
+/** Both filters at once — the widget's and a block's own. */
+export function andFilters(
+  a: IssueFilter | undefined,
+  b: IssueFilter | undefined,
+): IssueFilter | undefined {
+  if (!a?.rules.length) return b?.rules.length ? b : undefined;
+  if (!b?.rules.length) return a;
+  return { op: "and", rules: [a, b] };
+}
+
+/** A block as a widget of its kind — for its data and its drawing. The
+ *  widget's size; the widget's filter and the block's together. */
+export function blockWidget(widget: Widget, block: WidgetBlock): Widget {
+  return {
+    id: block.id,
+    type: block.type,
+    size: widget.size,
+    config: {
+      ...block.config,
+      filter: andFilters(widget.config.filter, block.config.filter),
+      accent: widget.config.accent,
+    },
+  };
+}
+
+/** The blocks a widget draws: all of them from size L up; below, only the
+ *  first — there's no room for a second row. */
+export function shownBlocks(widget: Widget): WidgetBlock[] {
+  const blocks = widget.config.blocks ?? [];
+  return MIN_SIZE_RANK[widget.size] >= 2 ? blocks : blocks.slice(0, 1);
+}
+
+/** A fresh block of a kind, with its defaults. */
+export function newBlock(type: BlockType, id: string): WidgetBlock {
+  // A kind's defaults hold no title, background or accent — those are
+  // the widget's — so they carry over as they are.
+  return { id, type, config: { ...WIDGETS[type].config } as BlockConfig };
+}
+
+/** An older custom widget of one kind, as a widget of one block. */
+export function toBlocks(widget: Widget): Widget {
+  if (!(BLOCK_TYPES as readonly string[]).includes(widget.type)) return widget;
+  const { title, filter, background, accent, ...rest } = widget.config;
+  return {
+    id: widget.id,
+    type: "blocks",
+    size: widget.size,
+    config: {
+      title,
+      filter,
+      background: background === "fill" ? "tint" : background,
+      accent: accent ?? WIDGETS[widget.type].accent,
+      blocks: [
+        {
+          id: "b1",
+          type: widget.type as BlockType,
+          config: {
+            ...rest,
+            elements: rest.elements ?? elementsOf(widget),
+          },
+        },
+      ],
+    },
+  };
+}
+
+/** Templates — a starting set of blocks, freely changed afterwards. */
+export const TEMPLATES = [
+  "kpi",
+  "progress",
+  "distribution",
+  "flow",
+  "matrix",
+  "issues",
+  "sprint",
+  "kpiList",
+  "empty",
+] as const;
+export type TemplateKey = (typeof TEMPLATES)[number];
+
+const ex = (
+  kind: ElementKind,
+  more: Partial<WidgetElement> = {},
+): WidgetElement => ({ id: kind, kind, ...more });
+
+/** The blocks a template starts with; `id` makes each block's id. */
+export function templateBlocks(
+  key: TemplateKey,
+  id: () => string,
+): WidgetBlock[] {
+  const block = (type: BlockType, config: BlockConfig = {}): WidgetBlock => {
+    const fresh = newBlock(type, id());
+    return { ...fresh, config: { ...fresh.config, ...config } };
+  };
+  switch (key) {
+    case "empty":
+      return [];
+    case "sprint":
+      return [
+        block("progress", { elements: [ex("breakdown"), ex("deadline")] }),
+        block("kpi", { metric: "closed", elements: [ex("trend")] }),
+        block("issues", {
+          sort: "priority",
+          elements: [ex("rows", { value: 3 }), ex("col_assignee")],
+        }),
+      ];
+    case "kpiList":
+      return [
+        block("kpi", { metric: "overdue", elements: [ex("trend")] }),
+        block("issues", {
+          sort: "dueDate",
+          filter: {
+            op: "and",
+            rules: [{ field: "dueDate", is: "before", value: "today" }],
+          },
+          elements: [
+            ex("rows", { value: 4 }),
+            ex("col_dueDate", { style: "relative" }),
+          ],
+        }),
+      ];
+    default:
+      return [block(key)];
+  }
+}
+
+/** A fresh custom widget from a template. */
+export function templateWidget(
+  key: TemplateKey,
+  id: () => string,
+  keep: WidgetConfig = {},
+): Widget {
+  return {
+    id: "draft",
+    type: "blocks",
+    size: WIDGETS.blocks.size,
+    config: {
+      filter: keep.filter,
+      accent: keep.accent,
+      background: keep.background,
+      blocks: templateBlocks(key, id),
+    },
+  };
+}
+
+/** A saved custom widget (BARY-170), as the gallery lists it. */
+export interface CustomWidgetEntry {
+  id: string;
+  name: string;
+  widget: Widget;
+  shared: boolean;
+  /** The viewer built it — may change or delete it. */
+  mine: boolean;
+}
 
 /** A fresh widget of a kind, with its defaults. */
 export function newWidget(type: WidgetType, id: string): Widget {
@@ -608,6 +1273,7 @@ export function offeredOn(
   kind: "project" | "workspace" | "view",
 ): boolean {
   const kinds = WIDGETS[type].kinds;
+  if (WIDGETS[type].hidden) return false;
   return (
     (!kinds || kinds.includes(kind)) && !(kind === "view" && type === "about")
   );
@@ -619,24 +1285,85 @@ const labelsSchema = z
   .object({ legend: z.boolean(), axes: z.boolean(), values: z.boolean() })
   .strict();
 
-const configSchema = z
+const baseConfigShape = z.object({
+  title: z.string().trim().max(80).optional(),
+  filter: issueFilterSchema.optional(),
+  metric: z.enum(KPI_METRICS).optional(),
+  groupBy: z.enum(GROUP_FIELDS).optional(),
+  groupBy2: z.enum(GROUP_FIELDS).optional(),
+  chart: z.enum(DISTRIBUTION_CHARTS).optional(),
+  measure: z.enum(MEASURES).optional(),
+  timeBy: z.enum(TIME_BY).optional(),
+  splitBy: z.enum(GROUP_FIELDS).optional(),
+  seriesChart: z.enum(SERIES_CHARTS).optional(),
+  openOnly: z.boolean().optional(),
+  sort: z.enum(ISSUE_SORTS).optional(),
+  labels: labelsSchema.optional(),
+  background: z.enum(BACKGROUNDS).optional(),
+  accent: z.enum(ACCENTS).optional(),
+  text: z.string().max(2000).optional(),
+  shortcuts: z.array(z.enum(SHORTCUT_KEYS)).max(20).optional(),
+  // Notes used to carry their text here; it's private now
+  // (`DashboardNote`) and dropped on read (`normalizeWidget`).
+  pages: z.unknown().optional(),
+  elements: z
+    .array(
+      z
+        .object({
+          id: z.string().min(1).max(40),
+          kind: z.enum(ELEMENT_KINDS),
+          value: z.number().min(0).max(1_000_000).optional(),
+          date: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/)
+            .optional(),
+          filter: issueFilterSchema.optional(),
+          label: z.string().trim().max(40).optional(),
+          style: z.enum(ELEMENT_STYLES).optional(),
+          flag: z.boolean().optional(),
+          sort: z.enum(ELEMENT_SORTS).optional(),
+          color: z.enum(ACCENTS).optional(),
+          minSize: z.enum(ELEMENT_MIN_SIZES).optional(),
+        })
+        .strict(),
+    )
+    .max(20)
+    .optional(),
+});
+
+const blockSchema = z
   .object({
-    title: z.string().trim().max(80).optional(),
-    filter: issueFilterSchema.optional(),
-    metric: z.enum(KPI_METRICS).optional(),
-    groupBy: z.enum(GROUP_FIELDS).optional(),
-    groupBy2: z.enum(GROUP_FIELDS).optional(),
-    chart: z.enum(DISTRIBUTION_CHARTS).optional(),
-    openOnly: z.boolean().optional(),
-    sort: z.enum(ISSUE_SORTS).optional(),
-    labels: labelsSchema.optional(),
-    background: z.enum(BACKGROUNDS).optional(),
-    accent: z.enum(ACCENTS).optional(),
-    text: z.string().max(2000).optional(),
-    shortcuts: z.array(z.enum(SHORTCUT_KEYS)).max(20).optional(),
-    // Notes used to carry their text here; it's private now
-    // (`DashboardNote`) and dropped on read (`normalizeWidget`).
-    pages: z.unknown().optional(),
+    id: z.string().min(1).max(40),
+    type: z.enum(BLOCK_TYPES),
+    config: baseConfigShape
+      .pick({
+        filter: true,
+        metric: true,
+        groupBy: true,
+        groupBy2: true,
+        chart: true,
+        measure: true,
+        timeBy: true,
+        splitBy: true,
+        seriesChart: true,
+        openOnly: true,
+        sort: true,
+        labels: true,
+        elements: true,
+      })
+      .strict(),
+  })
+  .strict();
+
+const configSchema = baseConfigShape
+  .extend({
+    blocks: z
+      .array(blockSchema)
+      .max(6)
+      .refine((list) => new Set(list.map((b) => b.id)).size === list.length, {
+        message: "Duplicate block id",
+      })
+      .optional(),
   })
   .strict();
 
@@ -716,7 +1443,13 @@ export function normalizeWidget(widget: Widget): Widget {
 
 /** The labels a chart shows — stored or the default. */
 export function labelsOf(widget: Widget): ChartLabels {
-  return widget.config.labels ?? DEFAULT_LABELS;
+  // Legend, axes and values are elements now — read through them.
+  const kinds = new Set(shownElements(widget).map((e) => e.kind));
+  return {
+    legend: kinds.has("legend"),
+    axes: kinds.has("axes"),
+    values: kinds.has("values"),
+  };
 }
 
 /** The accent a widget is drawn in — its own or its kind's. */

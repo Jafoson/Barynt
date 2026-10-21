@@ -56,6 +56,7 @@ model Workspace {
   // Wie einzelne Personen das Dashboard dieses Workspace eingerichtet haben.
   dashboards    WorkspaceDashboardPreference[]
   dashboardLayouts DashboardLayout[]
+  customWidgets    CustomWidget[]
   // Wie einzelne Personen Board/Liste der projektübergreifenden "Meine
   // Issues"-Ansicht eingerichtet haben (BARY-33).
   myIssuesViewPreferences MyIssuesViewPreference[]
@@ -181,6 +182,7 @@ model User {
   workspaceDashboards WorkspaceDashboardPreference[]
   dashboardLayouts    DashboardLayout[]
   dashboardNotes      DashboardNote[]
+  customWidgets       CustomWidget[]
   issueViewPreferences   IssueViewPreference[]
   myIssuesViewPreferences MyIssuesViewPreference[]
   savedViews             SavedView[]
@@ -543,6 +545,30 @@ model DashboardLayout {
   @@index([workspaceId])
   @@index([projectId])
   @@index([userId])
+}
+
+/// Ein eigenes Widget (BARY-170): ein benanntes, fertig eingestelltes Widget
+/// aus dem Baukasten, das man beliebig oft auf Dashboards legt. Gehört der
+/// Person, die es gebaut hat; geteilt (`shared`) sehen es alle im Workspace in
+/// der Galerie — ändern oder löschen kann es weiter nur die Erstellerin. Ein
+/// platziertes Widget ist eine Kopie: spätere Änderungen hier ändern es nicht.
+model CustomWidget {
+  id          String  @id
+  workspaceId String
+  userId      String
+  name        String
+  /// `{ type, size, config }` — geprüft mit `widgetsSchema`.
+  widget      Json
+  shared      Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, userId])
+  @@index([workspaceId, shared])
 }
 
 /// Der Text eines Notiz-Widgets — immer privat (BARY-169). Das Widget kann in

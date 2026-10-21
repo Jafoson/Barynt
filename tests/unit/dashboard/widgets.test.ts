@@ -1,15 +1,31 @@
 import { describe, expect, it } from "bun:test";
 import {
+  andFilters,
+  BLOCK_TYPES,
+  blockWidget,
   defaultWidgets,
+  ELEMENTS,
+  elementOf,
+  elementOptions,
+  elementsOf,
   fitSize,
+  fitsSize,
+  labelsOf,
   layoutKey,
+  minSizeChoices,
   moveWidgetTo,
   newWidget,
   normalizeWidget,
   notePagesSchema,
+  offeredOn,
   parseWidgets,
   pickShortcuts,
   SIZE_SPAN,
+  shownBlocks,
+  shownElements,
+  TEMPLATES,
+  templateBlocks,
+  toBlocks,
   WIDGET_SIZES,
   WIDGET_TYPES,
   WIDGETS,
@@ -93,8 +109,8 @@ describe("Reading stored widgets", () => {
   });
 
   it("brings a size the kind doesn't offer to the nearest one", () => {
-    expect(fitSize("kpi", "XL")).toBe("M");
-    expect(fitSize("matrix", "S")).toBe("L");
+    expect(fitSize("age", "XL")).toBe("L");
+    expect(fitSize("about", "S")).toBe("M");
     expect(fitSize("flow", "L")).toBe("L");
   });
 
@@ -171,5 +187,292 @@ describe("Notes", () => {
       true,
     );
     expect(notePagesSchema.safeParse([]).success).toBe(false);
+  });
+});
+
+describe("Measures and time series (BARY-170)", () => {
+  it("accepts a measure, a time axis and a split", () => {
+    const widget = {
+      id: "f",
+      type: "flow",
+      size: "XL",
+      config: {
+        measure: "storyPoints",
+        timeBy: "closed",
+        splitBy: "priority",
+        seriesChart: "stacked",
+      },
+    };
+    expect(parseWidgets([widget])).toEqual([widget as Widget]);
+  });
+
+  it("rejects an unknown measure", () => {
+    expect(
+      parseWidgets([
+        { id: "k", type: "kpi", size: "S", config: { measure: "money" } },
+      ]),
+    ).toBeNull();
+  });
+});
+
+describe("Elements (BARY-170)", () => {
+  const kpi = (config: Widget["config"] = {}): Widget => ({
+    id: "k",
+    type: "kpi",
+    size: "M",
+    config,
+  });
+
+  it("gives an untouched widget today's look", () => {
+    expect(elementsOf(kpi()).map((e) => e.kind)).toEqual(["trend", "spark"]);
+    expect(labelsOf({ id: "f", type: "flow", size: "XL", config: {} })).toEqual(
+      { legend: true, axes: true, values: true },
+    );
+  });
+
+  it("honors the older label switches", () => {
+    const flow: Widget = {
+      id: "f",
+      type: "flow",
+      size: "XL",
+      config: { labels: { legend: false, axes: true, values: false } },
+    };
+    expect(elementsOf(flow).map((e) => e.kind)).toEqual(["axes"]);
+  });
+
+  it("shows due dates for a list sorted by them", () => {
+    const list: Widget = {
+      id: "l",
+      type: "issues",
+      size: "L",
+      config: { sort: "dueDate" },
+    };
+    expect(elementsOf(list).map((e) => e.kind)).toEqual(["col_dueDate"]);
+  });
+
+  it("keeps the stored order and drops what the kind doesn't offer", () => {
+    const widget = kpi({
+      elements: [
+        { id: "a", kind: "goal", value: 25 },
+        { id: "b", kind: "heatmap" },
+        { id: "c", kind: "trend" },
+      ],
+    });
+    expect(elementsOf(widget).map((e) => e.kind)).toEqual(["goal", "trend"]);
+    expect(elementOf(widget, "goal")?.value).toBe(25);
+    expect(elementOf(widget, "spark")).toBeUndefined();
+  });
+
+  it("an empty list means no elements, not the defaults", () => {
+    expect(elementsOf(kpi({ elements: [] }))).toEqual([]);
+  });
+
+  it("stores elements with their values and rejects bad ones", () => {
+    const widget = kpi({
+      elements: [
+        { id: "g", kind: "goal", value: 20 },
+        {
+          id: "s",
+          kind: "second",
+          filter: { op: "and", rules: [] },
+        },
+      ],
+    });
+    expect(parseWidgets([widget])).toEqual([widget]);
+    expect(
+      parseWidgets([kpi({ elements: [{ id: "x", kind: "nope" as "goal" }] })]),
+    ).toBeNull();
+    expect(
+      parseWidgets([
+        kpi({ elements: [{ id: "d", kind: "goal", date: "18.10.2026" }] }),
+      ]),
+    ).toBeNull();
+  });
+
+  it("every offered element is a known kind, once per widget kind", () => {
+    for (const defs of Object.values(ELEMENTS)) {
+      const kinds = (defs ?? []).map((d) => d.kind);
+      expect(new Set(kinds).size).toBe(kinds.length);
+    }
+  });
+});
+
+describe("Element settings (BARY-170)", () => {
+  it("stores an element's own settings", () => {
+    const widget: Widget = {
+      id: "k",
+      type: "kpi",
+      size: "L",
+      config: {
+        elements: [
+          { id: "t", kind: "trend", style: "pct", flag: true },
+          { id: "m", kind: "miniList", value: 5, sort: "dueDate" },
+          { id: "s", kind: "second", label: "dringend", minSize: "L" },
+        ],
+      },
+    };
+    expect(parseWidgets([widget])).toEqual([widget]);
+  });
+
+  it("rejects an unknown style or a too long label", () => {
+    const kpi = (element: object) => ({
+      id: "k",
+      type: "kpi",
+      size: "S",
+      config: { elements: [{ id: "x", kind: "trend", ...element }] },
+    });
+    expect(parseWidgets([kpi({ style: "wavy" })])).toBeNull();
+    expect(parseWidgets([kpi({ label: "x".repeat(41) })])).toBeNull();
+  });
+
+  it("hides an element below the size it can show in", () => {
+    // By nature: a spark needs two columns, a mini list a second row.
+    expect(fitsSize("kpi", { kind: "spark" }, "S")).toBe(false);
+    expect(fitsSize("kpi", { kind: "spark" }, "M")).toBe(true);
+    expect(fitsSize("kpi", { kind: "miniList" }, "M")).toBe(false);
+    expect(fitsSize("kpi", { kind: "miniList" }, "W")).toBe(false);
+    expect(fitsSize("kpi", { kind: "miniList" }, "L")).toBe(true);
+    expect(fitsSize("kpi", { kind: "trend" }, "S")).toBe(true);
+    // By choice — only ever higher than by nature.
+    expect(fitsSize("kpi", { kind: "trend", minSize: "XL" }, "T")).toBe(true);
+    expect(fitsSize("kpi", { kind: "trend", minSize: "XL" }, "L")).toBe(false);
+    expect(fitsSize("kpi", { kind: "spark", minSize: "S" }, "S")).toBe(false);
+    expect(minSizeChoices("kpi", "spark")).toEqual(["M", "L", "XL"]);
+    const widget: Widget = {
+      id: "k",
+      type: "kpi",
+      size: "S",
+      config: {
+        elements: [
+          { id: "t", kind: "trend" },
+          { id: "s", kind: "spark" },
+        ],
+      },
+    };
+    expect(shownElements(widget).map((e) => e.kind)).toEqual(["trend"]);
+  });
+
+  it("offers settings only where an element has some", () => {
+    expect(elementOptions("kpi", "trend").map((o) => o.key)).toEqual([
+      "style",
+      "flag",
+    ]);
+    expect(elementOptions("matrix", "axes")).toEqual([]);
+    // The same element, different settings per kind.
+    expect(elementOptions("issues", "link").map((o) => o.key)).toEqual([
+      "label",
+    ]);
+  });
+});
+
+describe("Blocks and templates (BARY-170)", () => {
+  let n = 0;
+  const id = () => `b${++n}`;
+  const rule = (value: number) => ({
+    op: "and" as const,
+    rules: [{ field: "priority" as const, is: "gte" as const, value }],
+  });
+
+  it("every template validates as a custom widget", () => {
+    for (const key of TEMPLATES) {
+      const widget: Widget = {
+        id: "w",
+        type: "blocks",
+        size: "L",
+        config: { blocks: templateBlocks(key, id) },
+      };
+      expect(parseWidgets([widget])).not.toBeNull();
+    }
+    expect(templateBlocks("empty", id)).toEqual([]);
+    expect(templateBlocks("sprint", id).map((b) => b.type)).toEqual([
+      "progress",
+      "kpi",
+      "issues",
+    ]);
+  });
+
+  it("rejects a block of a kind that can't be one, or a widget's field", () => {
+    const blocks = (block: object) => [
+      { id: "w", type: "blocks", size: "L", config: { blocks: [block] } },
+    ];
+    expect(
+      parseWidgets(blocks({ id: "a", type: "members", config: {} })),
+    ).toBeNull();
+    expect(
+      parseWidgets(blocks({ id: "a", type: "kpi", config: { title: "x" } })),
+    ).toBeNull();
+  });
+
+  it("a block counts with the widget's filter and its own", () => {
+    const widget: Widget = {
+      id: "w",
+      type: "blocks",
+      size: "L",
+      config: { filter: rule(2), accent: "red" },
+    };
+    const block = {
+      id: "b",
+      type: "kpi" as const,
+      config: { metric: "open" as const, filter: rule(3) },
+    };
+    const as = blockWidget(widget, block);
+    expect(as.type).toBe("kpi");
+    expect(as.size).toBe("L");
+    expect(as.config.filter).toEqual({ op: "and", rules: [rule(2), rule(3)] });
+    expect(andFilters(undefined, rule(3))).toEqual(rule(3));
+    expect(andFilters(rule(2), { op: "and", rules: [] })).toEqual(rule(2));
+  });
+
+  it("draws only the first block below size L", () => {
+    const widget = (size: Widget["size"]): Widget => ({
+      id: "w",
+      type: "blocks",
+      size,
+      config: { blocks: templateBlocks("sprint", id) },
+    });
+    expect(shownBlocks(widget("M"))).toHaveLength(1);
+    expect(shownBlocks(widget("W"))).toHaveLength(1);
+    expect(shownBlocks(widget("L"))).toHaveLength(3);
+    expect(shownBlocks(widget("XL"))).toHaveLength(3);
+  });
+
+  it("turns an older one-kind custom widget into one block", () => {
+    const old: Widget = {
+      id: "c",
+      type: "kpi",
+      size: "M",
+      config: {
+        title: "Dringend",
+        metric: "urgent",
+        filter: rule(3),
+        background: "fill",
+        accent: "red",
+      },
+    };
+    const converted = toBlocks(old);
+    expect(converted.type).toBe("blocks");
+    expect(converted.config.title).toBe("Dringend");
+    expect(converted.config.filter).toEqual(rule(3));
+    // Blocks may hold charts — no `fill`.
+    expect(converted.config.background).toBe("tint");
+    expect(converted.config.blocks).toHaveLength(1);
+    const [block] = converted.config.blocks ?? [];
+    expect(block.type).toBe("kpi");
+    expect(block.config.metric).toBe("urgent");
+    // Its extras as they showed before.
+    expect(block.config.elements?.map((e) => e.kind)).toEqual([
+      "trend",
+      "spark",
+    ]);
+    expect(parseWidgets([converted])).not.toBeNull();
+    // Already blocks, or not a block kind: unchanged.
+    expect(toBlocks(converted)).toBe(converted);
+    const members: Widget = { id: "m", type: "members", size: "L", config: {} };
+    expect(toBlocks(members)).toBe(members);
+  });
+
+  it("the gallery doesn't list the blocks kind itself", () => {
+    expect(offeredOn("blocks", "project")).toBe(false);
+    expect(BLOCK_TYPES.every((type) => offeredOn(type, "project"))).toBe(true);
   });
 });

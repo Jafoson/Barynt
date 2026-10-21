@@ -27,8 +27,12 @@
 
   [data-editing] & {
     background: color-mix(in srgb, var(--primary) 6%, var(--surface));
-    box-shadow: 0 0 0 100vmax color-mix(in srgb, var(--primary) 6%, var(--surface));
-    clip-path: inset(0 -100vmax);
+    /* The bar's tint across the full width, and a hairline under it
+       (the second shadow, 1px lower, peeks out only at the bottom). */
+    box-shadow:
+      0 0 0 100vmax color-mix(in srgb, var(--primary) 6%, var(--surface)),
+      0 1px 0 100vmax color-mix(in srgb, var(--primary) 22%, var(--surface));
+    clip-path: inset(0 -100vmax -1px);
   }
 }
 
@@ -183,6 +187,12 @@
   container: dash / inline-size;
   max-width: 140rem;
   margin: 0 auto;
+
+  /* Edit mode: room under the bar — the ✕ of the top row hangs out above
+     its widget and would touch it. */
+  [data-editing] & {
+    padding-top: 1.5rem;
+  }
 }
 
 .grid {

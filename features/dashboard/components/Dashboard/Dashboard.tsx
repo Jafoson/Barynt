@@ -63,6 +63,13 @@ const DATA_KEYS = [
   "openOnly",
   "sort",
   "filter",
+  "measure",
+  "timeBy",
+  "splitBy",
+  // A second number, a mini list, a link — elements bring data of their own.
+  "elements",
+  // A custom widget's blocks carry all of the above themselves.
+  "blocks",
 ] as const;
 
 const needsData = (a: WidgetModel, b: WidgetModel) =>
@@ -222,6 +229,11 @@ export function Dashboard({
           workspaceSlug={workspaceSlug}
           kind={target.kind}
           sheet={isPhone}
+          workspaceId={newView.workspaceId}
+          customWidgets={view.customWidgets}
+          load={(list) => loadWidgetData(target, list, view.range, view.scope)}
+          lookups={lookups}
+          area={area}
           onAdd={(widget) => {
             setDraft((list) => [...list, widget]);
             fetchData([widget]);
@@ -232,7 +244,7 @@ export function Dashboard({
           close={close}
         />
       ),
-      isPhone ? { placement: "bottom" } : { width: 960, centered: true },
+      isPhone ? { placement: "bottom" } : { width: 1180, centered: true },
     );
 
   // Edit mode on a phone or tablet: the floating plus adds widgets.

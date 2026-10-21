@@ -10,6 +10,8 @@ import type {
   DashboardIssue,
   WidgetData,
 } from "@/features/dashboard/types";
+import { shownElements } from "@/features/dashboard/widgets";
+import { PriorityIcon } from "@/features/issues/components/IssueIcons/IssueIcons";
 import { Link } from "@/i18n/navigation";
 import { useTimeAgo } from "@/lib/utils/useTimeAgo";
 import styles from "../widget.module.scss";
@@ -48,6 +50,7 @@ function Issues({
   widget,
   data,
   issueHref,
+  activeElement,
 }: BodyProps & { data: Extract<Data, { type: "attention" | "issues" }> }) {
   const t = useTranslations("widgets");
   const timeAgo = useTimeAgo();
@@ -76,6 +79,82 @@ function Issues({
       month: "short",
       timeZone: "UTC",
     });
+  // The list's columns are its elements, in their order (BARY-170); the
+  // attention list keeps its reason pill.
+  const elements = attention ? [] : shownElements(widget);
+  const rows = elements.find((e) => e.kind === "rows")?.value;
+  const columns = elements.flatMap((e) =>
+    e.kind.startsWith("col_") ? [e.kind] : [],
+  );
+  const href = data.type === "issues" ? data.href : null;
+  const linkEl = elements.find((e) => e.kind === "link");
+  const relativeDue =
+    elements.find((e) => e.kind === "col_dueDate")?.style === "relative";
+  /** "heute", "in 3 T.", "vor 2 T." */
+  const dueFromNow = (ms: number) => {
+    const today = new Date();
+    const start = Date.UTC(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const days = Math.round((ms - start) / 86_400_000);
+    return days >= 0 ? t("dueIn", { days }) : t("dueAgo", { days: -days });
+  };
+  const column = (kind: string, issue: DashboardIssue) => {
+    switch (kind) {
+      case "col_status":
+        return (
+          <span key={kind} className={styles.pill}>
+            {issue.statusName}
+          </span>
+        );
+      case "col_assignee":
+        return issue.assignee ? (
+          <Avatar key={kind} avatar={issue.assignee} size={18} />
+        ) : (
+          <span key={kind} className={styles.noAvatar} />
+        );
+      case "col_priority":
+        return <PriorityIcon key={kind} priority={issue.priority} size={13} />;
+      case "col_dueDate":
+        return (
+          <span key={kind} className={styles.pill}>
+            {issue.dueDate
+              ? relativeDue
+                ? dueFromNow(issue.dueDate)
+                : day(issue.dueDate)
+              : "—"}
+          </span>
+        );
+      case "col_updated":
+        return (
+          <span key={kind} className={styles.pill}>
+            {timeAgo(issue.updated)}
+          </span>
+        );
+      case "col_labels":
+        return issue.labels?.length ? (
+          <span key={kind} className={styles.labelDots}>
+            {issue.labels.slice(0, 3).map((label) => (
+              <i
+                key={label.name}
+                title={label.name}
+                style={{ background: label.color }}
+              />
+            ))}
+          </span>
+        ) : null;
+      case "col_storyPoints":
+        return issue.storyPoints != null ? (
+          <span key={kind} className={styles.pill}>
+            {issue.storyPoints} SP
+          </span>
+        ) : null;
+      default:
+        return null;
+    }
+  };
   const overdueDays = (issue: DashboardIssue) =>
     issue.dueDate
       ? Math.max(1, Math.round((Date.now() - issue.dueDate) / 86_400_000))
@@ -93,7 +172,7 @@ function Issues({
         </div>
       </div>
       <div className={`${styles.rows} ${styles.noS}`}>
-        {data.issues.map((issue) => (
+        {(rows ? data.issues.slice(0, rows) : data.issues).map((issue) => (
           <Link
             key={issue.id}
             href={issueHref(issue.ref)}
@@ -108,25 +187,33 @@ function Issues({
               <span className={styles.ref}>{issue.ref}</span>
               {issue.title}
             </span>
-            {attention && issue.reason ? (
-              <span
-                className={styles.pill}
-                data-tone={REASON_TONE[issue.reason]}
-              >
-                {issue.reason === "overdue"
-                  ? t("overdueBy", { days: overdueDays(issue) })
-                  : t(`reason_${issue.reason}`)}
-              </span>
-            ) : widget.config.sort === "dueDate" ? (
-              <span className={styles.pill}>
-                {issue.dueDate ? day(issue.dueDate) : "—"}
-              </span>
-            ) : (
-              <span className={styles.pill}>{timeAgo(issue.updated)}</span>
-            )}
+            <span className={styles.issueCols}>
+              {attention && issue.reason ? (
+                <span
+                  className={styles.pill}
+                  data-tone={REASON_TONE[issue.reason]}
+                >
+                  {issue.reason === "overdue"
+                    ? t("overdueBy", { days: overdueDays(issue) })
+                    : t(`reason_${issue.reason}`)}
+                </span>
+              ) : (
+                columns.map((kind) => column(kind, issue))
+              )}
+            </span>
           </Link>
         ))}
       </div>
+      {href && (
+        <Link
+          href={href}
+          className={`${styles.elLink} ${styles.noS}`}
+          data-active={(linkEl && activeElement === linkEl.id) || undefined}
+        >
+          {linkEl?.label?.trim() || t("openAsList")}
+          <Icon icon="lucide:arrow-right" width={13} />
+        </Link>
+      )}
     </>
   );
 }

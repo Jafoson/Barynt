@@ -1,7 +1,9 @@
 import type { DashboardScope } from "@/features/dashboard/scope";
 import type {
+  CustomWidgetEntry,
   NotePage,
   ShortcutKey,
+  TimeBy,
   Widget,
 } from "@/features/dashboard/widgets";
 import type { AuditEntry } from "@/lib/audit/actions";
@@ -34,6 +36,9 @@ export interface DashboardIssue {
   updated: number;
   dueDate: number | null;
   reason?: AttentionReason;
+  storyPoints?: number | null;
+  /** Only when the list shows its labels column. */
+  labels?: { name: string; color: string }[];
 }
 
 /** One part of a distribution or one axis entry of a matrix. */
@@ -48,14 +53,18 @@ export interface Slice {
   href?: string | null;
 }
 
-export interface FlowPoint {
-  /** Bucket start, `YYYY-MM-DD`. */
-  date: string;
-  created: number;
-  closed: number;
-  /** The board filtered to each bar; `null` for an empty one. */
-  createdHref?: string | null;
-  closedHref?: string | null;
+/** One line or bar series of a time series (BARY-170). */
+export interface Series {
+  /** "created"/"closed" for the classic pair, "all" for one date, or the
+   *  group's key when split. */
+  key: string;
+  label: string;
+  color: string;
+  /** One value per bucket. */
+  values: number[];
+  total: number;
+  /** The board filtered to each bucket; `null` where it's empty. */
+  hrefs: (string | null)[];
 }
 
 export interface BurnupPoint {
@@ -174,6 +183,9 @@ export type WidgetData =
       spark: number[] | null;
       /** The board filtered to what this number counts. */
       href: string | null;
+      /** Elements: the "second number", the mini list. */
+      second?: { value: number; href: string | null } | null;
+      list?: DashboardIssue[];
     }
   | {
       type: "progress";
@@ -181,12 +193,33 @@ export type WidgetData =
       inProgress: number;
       total: number;
       href: string | null;
+      second?: { value: number; href: string | null } | null;
+      /** Days until done at the range's pace; `null` without a pace. */
+      forecastDays?: number | null;
     }
   | { type: "distribution"; slices: Slice[]; total: number }
   | { type: "attention"; issues: DashboardIssue[]; total: number }
-  | { type: "issues"; issues: DashboardIssue[]; total: number }
-  | { type: "flow"; points: FlowPoint[]; created: number; closed: number }
+  | {
+      type: "issues";
+      issues: DashboardIssue[];
+      total: number;
+      href?: string | null;
+    }
+  | {
+      type: "flow";
+      /** Bucket starts, `YYYY-MM-DD`. */
+      dates: string[];
+      timeBy: TimeBy;
+      series: Series[];
+      /** The main series one range earlier (element "previous"). */
+      previous?: number[] | null;
+    }
   | { type: "burnup"; points: BurnupPoint[] }
+  | {
+      type: "blocks";
+      /** Each block's own data, by block id (BARY-170). */
+      blocks: Record<string, WidgetData>;
+    }
   | {
       type: "cycle";
       avg: number | null;
@@ -263,6 +296,8 @@ export interface DashboardLayoutInfo {
 }
 
 export interface DashboardView {
+  /** The viewer's custom widgets and the shared ones of others. */
+  customWidgets: CustomWidgetEntry[];
   target: DashboardTarget;
   range: RangeKey;
   unit: BucketUnit;

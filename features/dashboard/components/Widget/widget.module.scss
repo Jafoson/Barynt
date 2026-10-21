@@ -233,6 +233,334 @@
   }
 }
 
+/* ── Elements (BARY-170) ─────────────────────────────────────────────────── */
+
+/* The number and whatever elements sit under it. */
+.kpiStack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-flow: row dense;
+  gap: 0.375rem;
+  margin-top: auto;
+  min-width: 0;
+
+  & > :is(.extra, .miniList) {
+    margin-top: 0.25rem;
+  }
+}
+
+.sparkBlock {
+  display: block;
+  min-width: 0;
+}
+
+/* Wide but short (M): no room below — the spark moves beside the number. */
+@container w (min-width: 15rem) and (max-height: 13.75rem) {
+  .kpiStack {
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 1rem;
+    align-items: end;
+
+    & > * {
+      grid-column: 1;
+    }
+
+    & > .sparkBlock {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+    }
+  }
+}
+
+.subIcon {
+  margin-right: 0.3125rem;
+  vertical-align: -0.125rem;
+}
+
+.kpiMain {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+/* How close the number is to its goal. */
+.goalRing {
+  --p: 0;
+
+  flex: none;
+  width: clamp(2rem, 18cqmin, 3rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) calc(var(--p) * 100%), var(--track) 0);
+  mask: radial-gradient(circle, transparent 57%, #000 58%);
+}
+
+/* "Davon …" — a second number in a small tile. */
+.extra {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.4375rem 0.625rem;
+  border-radius: 0.625rem;
+  background: var(--track);
+  color: inherit;
+  text-decoration: none;
+  font-size: 0.75rem;
+
+  & > b {
+    font-size: 1.0625rem;
+    font-variant-numeric: tabular-nums;
+
+    & > small {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+  }
+
+  &:is(a):hover {
+    background: color-mix(in srgb, var(--on-surface) 12%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 1px;
+  }
+}
+
+.secondLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.miniList {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 0.75rem;
+
+  & > span {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+    padding: 0.3125rem 0;
+    border-top: 1px solid var(--outline-variant);
+
+    & > i {
+      flex: none;
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      background: var(--c);
+    }
+
+    & > .ref {
+      margin-right: 0;
+    }
+  }
+}
+
+/* "Alle ansehen →" */
+.elLink {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.25rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+}
+
+/* "Summe 123" above a chart. */
+.sumRow {
+  flex: none;
+  font-size: 0.75rem;
+  color: var(--muted);
+
+  & b {
+    color: var(--on-surface);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* A chart with lines drawn over it (average, goal, the range before). */
+.plot {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
+  & > :is(.cols, .chart) {
+    flex: 1;
+  }
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* Bars start below `.cols`' top padding. */
+.overlayCols {
+  top: 0.875rem;
+  height: calc(100% - 0.875rem);
+}
+
+/* A goal line's color — red unless the element picks one. */
+:is(.plot, .goalKey) {
+  --goal: var(--red);
+
+  &[data-goal="blue"] { --goal: var(--chart-1); }
+  &[data-goal="teal"] { --goal: var(--teal); }
+  &[data-goal="green"] { --goal: var(--green); }
+  &[data-goal="lime"] { --goal: var(--lime); }
+  &[data-goal="ochre"] { --goal: var(--chart-2); }
+  &[data-goal="amber"] { --goal: var(--amber); }
+  &[data-goal="orange"] { --goal: var(--orange); }
+  &[data-goal="pink"] { --goal: #e05aa8; }
+  &[data-goal="purple"] { --goal: var(--purple); }
+  &[data-goal="indigo"] { --goal: var(--indigo); }
+  &[data-goal="gray"] { --goal: #8a949a; }
+}
+
+.goalKey {
+  color: var(--goal);
+}
+
+/* A goal or average line's name, at its right end. */
+.lineLabel {
+  position: absolute;
+  right: 0;
+  bottom: calc((100 - var(--y)) * 1%);
+  padding: 0 0.25rem;
+  border-radius: 0.25rem;
+  background: var(--surface-container-low);
+  color: var(--c);
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1.3;
+  pointer-events: none;
+}
+
+/* Bars start below `.cols`' top padding — the label too. */
+.lineLabelCols {
+  bottom: calc((100 - var(--y)) * (100% - 0.875rem) / 100);
+}
+
+/* The range before, as a pale column behind the bars. */
+.ghost {
+  position: absolute;
+  inset: auto 0 0;
+  border-radius: 4px 4px 2px 2px;
+  background: color-mix(in srgb, var(--on-surface) 12%, transparent);
+  pointer-events: none;
+}
+
+/* The goal as a thin bar under the number. */
+.goalBar {
+  --p: 0;
+
+  display: block;
+  height: 0.375rem;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    to right,
+    var(--accent) calc(var(--p) * 100%),
+    var(--track) 0
+  );
+}
+
+/* A custom widget's blocks, top to bottom. Charts and lists take the room
+   left; with numbers only, they sit at the bottom like a number widget. */
+.blocks {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  &:not(:has(> [data-grow])) {
+    justify-content: flex-end;
+  }
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  min-height: 0;
+
+  &[data-grow] {
+    flex: 1;
+  }
+
+  & + & {
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--rule);
+  }
+
+  /* Its own "bottom" is the block's, not the widget's. */
+  & > :is(.kpiStack, .progress) {
+    margin-top: 0;
+  }
+}
+
+/* The element being edited in the builder. */
+.widget [data-active] {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 0.375rem;
+}
+
+/* An issue row's columns, at its right end. */
+.issueCols {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.labelDots {
+  display: flex;
+
+  & > i {
+    width: 0.5625rem;
+    height: 0.5625rem;
+    margin-left: -0.125rem;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1.5px var(--surface-container-low);
+  }
+}
+
+.noAvatar {
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  border: 1px dashed var(--outline);
+}
+
 .progress {
   display: flex;
   flex-direction: column;
@@ -576,6 +904,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  & > .mSum {
+    background: none;
+    font-weight: 700;
   }
 
   & > .mRow {
@@ -1540,7 +1873,11 @@
   .aboutBox {
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas: "hero" "text";
-    gap: 0.5rem;
+    gap: 0.375rem;
+  }
+
+  .aboutHero {
+    gap: 0.625rem;
   }
 
   .aboutSide,
@@ -1552,22 +1889,35 @@
 
   .aboutDesc {
     -webkit-line-clamp: 2;
-    font-size: 0.9375rem;
+  }
+
+  /* One row is tight: a smaller picture leaves the text (or the "add a
+     description" pill) its room. `!important` beats the size the
+     component sets inline. */
+  .aboutHero > :first-child {
+    --avatar-size: 2.125rem !important;
   }
 
   .aboutTitle {
+    gap: 0;
+
     & > b {
-      font-size: 1.375rem;
+      font-size: 1.0625rem;
     }
 
     & > span {
-      font-size: 0.875rem;
+      font-size: 0.75rem;
     }
   }
 
+  .aboutDesc {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+  }
+
   .aboutAdd {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.6875rem;
   }
 }
 
@@ -1826,5 +2176,91 @@
 
   &:hover {
     stroke-width: 7.5;
+  }
+}
+
+/* Stacked columns: the parts of one bucket, bottom up. */
+.stackCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column-reverse;
+  min-width: 1px;
+  border-radius: 4px 4px 2px 2px;
+  overflow: hidden;
+
+  & > :is(i, a) {
+    display: block;
+    flex: none;
+    min-height: 0;
+  }
+}
+
+/* A distribution as a table: value, measure, share. */
+.tableWrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+
+  & th {
+    position: sticky;
+    top: 0;
+    padding: 0 0.375rem 0.375rem;
+    background: inherit;
+    color: var(--muted);
+    font-size: 0.65625rem;
+    font-weight: 600;
+    text-align: right;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+
+    &:first-child {
+      text-align: left;
+    }
+  }
+
+  & td {
+    padding: 0.375rem;
+    border-top: 1px solid var(--rule);
+    text-align: right;
+    white-space: nowrap;
+
+    &:first-child {
+      display: flex;
+      align-items: center;
+      gap: 0.4375rem;
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    & > i {
+      flex: none;
+      width: 0.5625rem;
+      height: 0.5625rem;
+      border-radius: 3px;
+    }
+
+    & > a {
+      color: inherit;
+      text-decoration: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  & td:last-child {
+    color: var(--muted);
   }
 }

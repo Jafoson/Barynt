@@ -1,5 +1,5 @@
 import type { DashboardIssue, WidgetData } from "@/features/dashboard/types";
-import type { Widget } from "@/features/dashboard/widgets";
+import { blockWidget, type Widget } from "@/features/dashboard/widgets";
 import type { User } from "@/types";
 
 // Made-up numbers for the gallery's previews — every kind looks filled and
@@ -63,6 +63,16 @@ const KEYS = Array.from({ length: 12 }, (_, i) => {
 export function sampleData(widget: Widget, words: SampleWords): WidgetData {
   const by = widget.config.groupBy;
   switch (widget.type) {
+    case "blocks":
+      return {
+        type: "blocks",
+        blocks: Object.fromEntries(
+          (widget.config.blocks ?? []).map((block) => [
+            block.id,
+            sampleData(blockWidget(widget, block), words),
+          ]),
+        ),
+      };
     case "kpi":
       return {
         type: "kpi",
@@ -121,15 +131,29 @@ export function sampleData(widget: Widget, words: SampleWords): WidgetData {
     case "flow": {
       const created = [4, 6, 3, 7, 5, 8, 6, 9, 5, 7, 10, 6];
       const closed = [3, 4, 5, 4, 6, 5, 7, 6, 8, 6, 7, 8];
+      const sum = (v: number[]) => v.reduce((a, b) => a + b, 0);
       return {
         type: "flow",
-        points: KEYS.map((date, i) => ({
-          date,
-          created: created[i],
-          closed: closed[i],
-        })),
-        created: created.reduce((a, b) => a + b),
-        closed: closed.reduce((a, b) => a + b),
+        dates: KEYS,
+        timeBy: "createdClosed",
+        series: [
+          {
+            key: "created",
+            label: "",
+            color: "var(--chart-1)",
+            values: created,
+            total: sum(created),
+            hrefs: created.map(() => null),
+          },
+          {
+            key: "closed",
+            label: "",
+            color: "var(--chart-3)",
+            values: closed,
+            total: sum(closed),
+            hrefs: closed.map(() => null),
+          },
+        ],
       };
     }
     case "burnup":

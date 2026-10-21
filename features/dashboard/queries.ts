@@ -23,12 +23,17 @@ import type {
   WorkloadRow,
 } from "@/features/dashboard/types";
 import {
+  blockWidget,
+  type CustomWidgetEntry,
   defaultWidgets,
+  elementOf,
   type GroupField,
   type KpiMetric,
   layoutKey,
+  type Measure,
   notePagesSchema,
   parseWidgets,
+  toBlocks,
   type Widget,
 } from "@/features/dashboard/widgets";
 import type { IssueFilter } from "@/features/issues/filter";
@@ -52,6 +57,7 @@ import {
   bucketKey,
   previousWindow,
   type RangeKey,
+  step,
   toRange,
   truncate,
   type Window,
@@ -81,6 +87,7 @@ import {
   WORKSPACE_GUEST_ROLE_KEY,
   WORKSPACE_VIEWER_ROLE_KEY,
 } from "@/lib/rbac";
+import { STATUS_CATEGORIES } from "@/lib/status-category";
 import { resolveAvatarUrl } from "@/lib/storage";
 import type { IssueType, Priority, Status, User } from "@/types";
 
@@ -98,6 +105,15 @@ import type { IssueType, Priority, Status, User } from "@/types";
 // "doesn't exist for you"; the page turns it into a 404.
 
 type Where = Prisma.IssueWhereInput;
+
+/** The status ladder's colors, by category. */
+const CATEGORY_COLORS: Record<string, string> = {
+  backlog: "#8a9099",
+  unstarted: "#b8bcc4",
+  started: "#e0992b",
+  completed: "#5ab98a",
+  canceled: "#5f6b71",
+};
 
 /** After how long an in-progress issue counts as stale. */
 const STALE_DAYS = 14;
@@ -142,6 +158,8 @@ const ISSUE_SELECT = {
   updated: true,
   dueDate: true,
   projectId: true,
+  storyPoints: true,
+  labels: true,
   assignee: { select: USER_SELECT },
 } as const;
 
@@ -428,7 +446,66 @@ function mapIssue(ctx: Ctx, row: IssueRow): Promise<DashboardIssue> {
     assignee: row.assignee ? await mapUser(row.assignee) : null,
     updated: row.updated.getTime(),
     dueDate: row.dueDate?.getTime() ?? null,
+    storyPoints: row.storyPoints,
   }))();
+}
+
+/** The issues a number counts, as a `where` — for its "second number" and
+ *  its mini list (elements). */
+function metricWhere(ctx: Ctx, metric: KpiMetric): Where {
+  const open: Where = { status: { notIn: ctx.closed } };
+  const inWindow = { gte: ctx.window.from, lt: ctx.window.to };
+  switch (metric) {
+    case "open":
+      return open;
+    case "inProgress":
+      return { status: { in: ctx.started } };
+    case "inReview":
+      return { status: "in_review" };
+    case "created":
+      return { created: inWindow };
+    case "closed":
+    case "cycleTime":
+      return { closedAt: inWindow };
+    case "overdue":
+      return { ...open, dueDate: { lt: todayStart() } };
+    case "dueSoon":
+      return {
+        ...open,
+        dueDate: {
+          gte: todayStart(),
+          lt: new Date(todayStart().getTime() + 7 * DAY),
+        },
+      };
+    case "unassigned":
+      return { ...open, assigneeId: null };
+    case "urgent":
+      return { ...open, priority: { gte: 4 } };
+    case "total":
+      return {};
+  }
+}
+
+/** "Second number": the same set narrowed by an extra filter. */
+async function secondNumber(
+  ctx: Ctx,
+  base: Where,
+  widget: Widget,
+  extra: [string, string][],
+  measure: Measure,
+): Promise<{ value: number; href: string | null } | null> {
+  const second = elementOf(widget, "second");
+  if (!second?.filter?.rules.length) return null;
+  const narrow = await filterWhere(second.filter);
+  const own = widget.config.filter;
+  const both: IssueFilter = {
+    op: "and",
+    rules: [...(own?.rules ?? []), ...second.filter.rules],
+  };
+  return {
+    value: await measureOf({ AND: [base, narrow] }, measure),
+    href: await boardHref(ctx, both, extra),
+  };
 }
 
 /**
@@ -468,7 +545,7 @@ const OPEN_PARAM: [string, string] = [
  *  "after" starts the day after, its "before" ends the day before — so
  *  the day before `from`, and `to` itself. */
 function between(
-  field: "created" | "updated",
+  field: "created" | "updated" | "dueDate",
   from: Date,
   to?: Date,
 ): [string, string][] {
@@ -518,30 +595,97 @@ const todayStart = () => {
 
 // ── Time series helpers ─────────────────────────────────────────────────────
 
-/** Count dates per bucket of `window`, every bucket present. */
-function bucketCounts(dates: Date[], window: Window): number[] {
-  const index = new Map(window.keys.map((key, i) => [key, i]));
-  const counts = window.keys.map(() => 0);
-  for (const date of dates) {
-    const i = index.get(bucketKey(truncate(date, window.unit)));
-    if (i !== undefined) counts[i]++;
-  }
-  return counts;
+/** The fields every measured read needs — a weight and every group key. */
+const AGG_SELECT = {
+  storyPoints: true,
+  estimateHours: true,
+  status: true,
+  priority: true,
+  type: true,
+  assigneeId: true,
+  projectId: true,
+  labels: true,
+} as const;
+
+type AggRow = Prisma.IssueGetPayload<{ select: typeof AGG_SELECT }>;
+
+/** What one issue adds to a measure (BARY-170). */
+function weightOf(measure: Measure): (row: AggRow) => number {
+  if (measure === "storyPoints") return (row) => row.storyPoints ?? 0;
+  if (measure === "estimate") return (row) => row.estimateHours ?? 0;
+  return () => 1;
 }
 
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** Issues (or their points/hours) matching `where` — one number. */
+async function measureOf(where: Where, measure: Measure): Promise<number> {
+  if (measure === "count") return db.issue.count({ where });
+  const result = await db.issue.aggregate({
+    where,
+    _sum: { storyPoints: true, estimateHours: true },
+  });
+  return round1(
+    measure === "storyPoints"
+      ? (result._sum.storyPoints ?? 0)
+      : (result._sum.estimateHours ?? 0),
+  );
+}
+
+interface Dated {
+  date: Date;
+  w: number;
+  row: AggRow;
+}
+
+/** Sum weights per bucket of `window`, every bucket present. */
+function bucketSums(items: Dated[], window: Window): number[] {
+  const index = new Map(window.keys.map((key, i) => [key, i]));
+  const sums = window.keys.map(() => 0);
+  for (const item of items) {
+    const i = index.get(bucketKey(truncate(item.date, window.unit)));
+    if (i !== undefined) sums[i] += item.w;
+  }
+  return sums.map(round1);
+}
+
+/** Issues whose date `column` falls in `[from, to)`, weighted. */
 async function datesIn(
   where: Where,
-  column: "created" | "closedAt",
+  column: "created" | "closedAt" | "dueDate",
   from: Date,
   to: Date,
-): Promise<Date[]> {
+  measure: Measure = "count",
+): Promise<Dated[]> {
   const rows = await db.issue.findMany({
     where: { AND: [where, { [column]: { gte: from, lt: to } }] },
-    select: { [column]: true },
+    select: { ...AGG_SELECT, [column]: true },
   });
-  return rows
-    .map((row) => (row as unknown as Record<string, Date | null>)[column])
-    .filter((d): d is Date => !!d);
+  const weight = weightOf(measure);
+  return rows.flatMap((row) => {
+    const date = (row as unknown as Record<string, Date | null>)[column];
+    return date ? [{ date, w: weight(row as AggRow), row: row as AggRow }] : [];
+  });
+}
+
+/** The group key(s) of an issue for a field — labels can be several. */
+function keysOf(ctx: Ctx, row: AggRow, field: GroupField): string[] {
+  switch (field) {
+    case "status":
+      return [row.status];
+    case "statusCategory":
+      return [ctx.statusById.get(row.status)?.category ?? "backlog"];
+    case "priority":
+      return [String(row.priority)];
+    case "type":
+      return [row.type];
+    case "assignee":
+      return [row.assigneeId ?? "_none"];
+    case "project":
+      return [row.projectId];
+    case "label":
+      return row.labels.length ? row.labels : ["_none"];
+  }
 }
 
 /** Closed issues in a window with their cycle time in days. */
@@ -591,52 +735,90 @@ async function kpi(
   where: Where,
   metric: KpiMetric,
   own: IssueFilter | undefined,
+  measure: Measure,
+  widget: Widget,
 ): Promise<WidgetData> {
-  const href = await boardHref(ctx, own, metricParams(ctx, metric));
-  const data = await kpiValue(ctx, where, metric);
-  return data.type === "kpi" ? { ...data, href } : data;
+  const params = metricParams(ctx, metric);
+  const [href, data] = await Promise.all([
+    boardHref(ctx, own, params),
+    kpiValue(ctx, where, metric, measure),
+  ]);
+  if (data.type !== "kpi") return data;
+  const counted: Where = { AND: [where, metricWhere(ctx, metric)] };
+  const list = elementOf(widget, "miniList");
+  const [second, rows] = await Promise.all([
+    secondNumber(ctx, counted, widget, params, measure),
+    list
+      ? db.issue.findMany({
+          where: counted,
+          select: ISSUE_SELECT,
+          orderBy:
+            list.sort === "updated"
+              ? [{ updated: "desc" }]
+              : list.sort === "dueDate"
+                ? [
+                    { dueDate: { sort: "asc", nulls: "last" } },
+                    { priority: "desc" },
+                  ]
+                : [{ priority: "desc" }, { updated: "desc" }],
+          take: Math.min(10, Math.max(1, list.value ?? 3)),
+        })
+      : Promise.resolve([]),
+  ]);
+  return {
+    ...data,
+    href,
+    second,
+    list: await Promise.all(rows.map((row) => mapIssue(ctx, row))),
+  };
 }
 
 async function kpiValue(
   ctx: Ctx,
   where: Where,
   metric: KpiMetric,
+  measure: Measure,
 ): Promise<WidgetData> {
   const { window, previous } = ctx;
   const open: Where = { status: { notIn: ctx.closed } };
-  const count = (extra: Where) =>
-    db.issue.count({ where: { AND: [where, extra] } });
+  const count = (extra: Where) => measureOf({ AND: [where, extra] }, measure);
 
   switch (metric) {
     case "open": {
       const [now, created, closed] = await Promise.all([
         count(open),
-        datesIn(where, "created", window.from, window.to),
-        datesIn(where, "closedAt", window.from, window.to),
+        datesIn(where, "created", window.from, window.to, measure),
+        datesIn(where, "closedAt", window.from, window.to, measure),
       ]);
       // Walk back from now: the open pile at each bucket's end.
-      const c = bucketCounts(created, window);
-      const d = bucketCounts(closed, window);
+      const c = bucketSums(created, window);
+      const d = bucketSums(closed, window);
       const spark = window.keys.map(() => 0);
       let level = now;
       for (let i = window.keys.length - 1; i >= 0; i--) {
-        spark[i] = level;
+        spark[i] = round1(level);
         level -= c[i] - d[i];
       }
-      return { type: "kpi", value: now, previous: level, spark, href: null };
+      return {
+        type: "kpi",
+        value: now,
+        previous: round1(level),
+        spark,
+        href: null,
+      };
     }
     case "created":
     case "closed": {
       const column = metric === "created" ? "created" : "closedAt";
       const [dates, before] = await Promise.all([
-        datesIn(where, column, window.from, window.to),
+        datesIn(where, column, window.from, window.to, measure),
         count({ [column]: { gte: previous.from, lt: previous.to } }),
       ]);
       return {
         type: "kpi",
-        value: dates.length,
+        value: round1(dates.reduce((a, d) => a + d.w, 0)),
         previous: before,
-        spark: bucketCounts(dates, window),
+        spark: bucketSums(dates, window),
         href: null,
       };
     }
@@ -699,23 +881,23 @@ function cycleSpark(
   return sums.map(avg);
 }
 
-async function progress(ctx: Ctx, where: Where): Promise<WidgetData> {
+async function progress(
+  ctx: Ctx,
+  where: Where,
+  measure: Measure,
+): Promise<WidgetData> {
   const canceled = ctx.closed.filter((id) => !ctx.completed.includes(id));
   const scoped: Where = { AND: [where, { status: { notIn: canceled } }] };
   const [total, done, inProgress] = await Promise.all([
-    db.issue.count({ where: scoped }),
-    db.issue.count({
-      where: { AND: [where, { status: { in: ctx.completed } }] },
-    }),
-    db.issue.count({
-      where: { AND: [where, { status: { in: ctx.started } }] },
-    }),
+    measureOf(scoped, measure),
+    measureOf({ AND: [where, { status: { in: ctx.completed } }] }, measure),
+    measureOf({ AND: [where, { status: { in: ctx.started } }] }, measure),
   ]);
   return { type: "progress", total, done, inProgress, href: null };
 }
 
 const COLUMN: Record<
-  Exclude<GroupField, "label">,
+  Exclude<GroupField, "label" | "statusCategory">,
   "status" | "priority" | "type" | "assigneeId" | "projectId"
 > = {
   status: "status",
@@ -732,6 +914,14 @@ async function axisFor(
   keys: string[],
 ): Promise<Slice[]> {
   switch (field) {
+    case "statusCategory":
+      // Named on the client (`category_*`); colors match the status ladder.
+      return STATUS_CATEGORIES.map((key) => ({
+        key,
+        label: "",
+        color: CATEGORY_COLORS[key],
+        count: 0,
+      }));
     case "status":
       return ctx.statuses.map((s) => ({
         key: s.id,
@@ -803,36 +993,54 @@ async function axisFor(
   }
 }
 
-/** Counts per key of one field. */
+/** The measure per key of one field — issues, points or hours. */
 async function countsBy(
+  ctx: Ctx,
   where: Where,
   field: GroupField,
+  measure: Measure = "count",
 ): Promise<Map<string, number>> {
   if (field === "label") {
-    const rows = await db.issue.findMany({ where, select: { labels: true } });
+    const rows = await db.issue.findMany({ where, select: AGG_SELECT });
+    const weight = weightOf(measure);
     const counts = new Map<string, number>();
-    for (const row of rows) {
-      const keys = row.labels.length ? row.labels : ["_none"];
-      for (const key of keys) counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-    return counts;
+    for (const row of rows)
+      for (const key of keysOf(ctx, row, field))
+        counts.set(key, (counts.get(key) ?? 0) + weight(row));
+    return new Map([...counts].map(([k, v]) => [k, round1(v)]));
   }
-  const column = COLUMN[field];
+  const column = field === "statusCategory" ? "status" : COLUMN[field];
   const rows = await db.issue.groupBy({
     by: [column],
     where,
     _count: { _all: true },
+    _sum: { storyPoints: true, estimateHours: true },
   });
-  return new Map(
-    rows.map((row) => [
-      String((row as Record<string, unknown>)[column] ?? "_none"),
-      row._count._all,
-    ]),
-  );
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const raw = String((row as Record<string, unknown>)[column] ?? "_none");
+    const key =
+      field === "statusCategory"
+        ? (ctx.statusById.get(raw)?.category ?? "backlog")
+        : raw;
+    const value =
+      measure === "storyPoints"
+        ? (row._sum.storyPoints ?? 0)
+        : measure === "estimate"
+          ? (row._sum.estimateHours ?? 0)
+          : row._count._all;
+    counts.set(key, round1((counts.get(key) ?? 0) + value));
+  }
+  return counts;
 }
 
 /** Ladder fields keep their order; people, projects and labels go by size. */
-const LADDER = new Set<GroupField>(["status", "priority", "type"]);
+const LADDER = new Set<GroupField>([
+  "status",
+  "statusCategory",
+  "priority",
+  "type",
+]);
 
 /** Board params for one value of a field — `null` for "everything else". */
 async function sliceParams(
@@ -850,6 +1058,8 @@ async function sliceParams(
   }
   const lookups = await ctx.slugs();
   switch (field) {
+    case "statusCategory":
+      return [["statusCategory", key]];
     case "status":
       return [["status", key]];
     case "type":
@@ -879,17 +1089,18 @@ async function distribution(
   field: GroupField,
   openOnly: boolean,
   own: IssueFilter | undefined,
+  measure: Measure,
 ): Promise<WidgetData> {
   const scoped = openOnly
     ? { AND: [where, { status: { notIn: ctx.closed } }] }
     : where;
-  const counts = await countsBy(scoped, field);
+  const counts = await countsBy(ctx, scoped, field, measure);
   const axis = await axisFor(ctx, field, [...counts.keys()]);
   let slices = axis
     .map((slice) => ({ ...slice, count: counts.get(slice.key) ?? 0 }))
     .filter((slice) => slice.count > 0);
   if (!LADDER.has(field)) slices.sort((a, b) => b.count - a.count);
-  const total = [...counts.values()].reduce((a, b) => a + b, 0);
+  const total = round1([...counts.values()].reduce((a, b) => a + b, 0));
   if (slices.length > SLICE_LIMIT) {
     const rest = slices.slice(SLICE_LIMIT - 1);
     slices = [
@@ -898,7 +1109,7 @@ async function distribution(
         key: "_other",
         label: "",
         color: "#8a9099",
-        count: rest.reduce((a, b) => a + b.count, 0),
+        count: round1(rest.reduce((a, b) => a + b.count, 0)),
       },
     ];
   }
@@ -980,6 +1191,7 @@ async function issues(
   where: Where,
   sort: Widget["config"]["sort"],
   openOnly: boolean,
+  widget: Widget,
 ): Promise<WidgetData> {
   const scoped = openOnly
     ? { AND: [where, { status: { notIn: ctx.closed } }] }
@@ -997,57 +1209,233 @@ async function issues(
       where: scoped,
       select: ISSUE_SELECT,
       orderBy,
-      take: LIST_LIMIT,
+      take: Math.min(
+        30,
+        Math.max(1, elementOf(widget, "rows")?.value ?? LIST_LIMIT),
+      ),
     }),
     db.issue.count({ where: scoped }),
   ]);
+  // The labels column needs names and colors.
+  const labelIds = elementOf(widget, "col_labels")
+    ? [...new Set(rows.flatMap((r) => r.labels))]
+    : [];
+  const labels = labelIds.length
+    ? new Map(
+        (
+          await db.label.findMany({
+            where: { id: { in: labelIds } },
+            select: { id: true, name: true, color: true },
+          })
+        ).map((l) => [l.id, l]),
+      )
+    : null;
   return {
     type: "issues",
     total,
-    issues: await Promise.all(rows.map((row) => mapIssue(ctx, row))),
+    // "Open as list →" (element "link").
+    href: elementOf(widget, "link")
+      ? await boardHref(ctx, widget.config.filter, openOnly ? [OPEN_PARAM] : [])
+      : null,
+    issues: await Promise.all(
+      rows.map(async (row) => ({
+        ...(await mapIssue(ctx, row)),
+        ...(labels && {
+          labels: row.labels.flatMap((id) => {
+            const l = labels.get(id);
+            return l ? [{ name: l.name, color: l.color }] : [];
+          }),
+        }),
+      })),
+    ),
   };
 }
 
+/** Buckets of the same length as `window`, from today forward — for due
+ *  dates, which lie ahead. */
+function forwardWindow(window: Window): Window {
+  const from = truncate(new Date(), window.unit);
+  const keys = window.keys.map((_, i) => bucketKey(step(from, window.unit, i)));
+  return {
+    from,
+    to: step(from, window.unit, window.keys.length),
+    unit: window.unit,
+    keys,
+  };
+}
+
+const SERIES_LIMIT = 6;
+
+/**
+ * A time series (BARY-170): created and closed side by side, or one date
+ * — created, closed or due — on its own or split by a field. Each value
+ * is a link to the board filtered to its bucket (and group).
+ */
 async function flow(
   ctx: Ctx,
   where: Where,
   own: IssueFilter | undefined,
+  config: Widget["config"],
 ): Promise<WidgetData> {
-  const { window } = ctx;
-  const [created, closed] = await Promise.all([
-    datesIn(where, "created", window.from, window.to),
-    datesIn(where, "closedAt", window.from, window.to),
-  ]);
-  const c = bucketCounts(created, window);
-  const d = bucketCounts(closed, window);
-  // Each bar opens the board with what it counts: created in its bucket,
-  // or done and last changed in it (the board has no "closed on").
+  const timeBy = config.timeBy ?? "createdClosed";
+  const measure = config.measure ?? "count";
+  const window = timeBy === "due" ? forwardWindow(ctx.window) : ctx.window;
   const starts = window.keys.map((key) => {
     const [y, m, dd] = key.split("-").map(Number);
     return new Date(y, m - 1, dd);
   });
   const end = (i: number) => starts[i + 1] ?? window.to;
-  const points = await Promise.all(
-    window.keys.map(async (date, i) => ({
-      date,
-      created: c[i],
-      closed: d[i],
-      createdHref: c[i]
-        ? await boardHref(ctx, own, between("created", starts[i], end(i)))
-        : null,
-      closedHref: d[i]
-        ? await boardHref(ctx, own, [
+
+  /** Board params for bucket `i` of a date. */
+  const bucketParams = (
+    by: Exclude<typeof timeBy, "createdClosed">,
+    i: number,
+  ): [string, string][] =>
+    by === "created"
+      ? between("created", starts[i], end(i))
+      : by === "closed"
+        ? [
             ["statusCategory", "completed"],
             ...between("updated", starts[i], end(i)),
-          ])
-        : null,
-    })),
+          ]
+        : between("dueDate", starts[i], end(i));
+
+  const series = async (
+    key: string,
+    label: string,
+    color: string,
+    values: number[],
+    params: (i: number) => [string, string][],
+  ) => ({
+    key,
+    label,
+    color,
+    values,
+    total: round1(values.reduce((a, b) => a + b, 0)),
+    hrefs: await Promise.all(
+      values.map((v, i) => (v ? boardHref(ctx, own, params(i)) : null)),
+    ),
+  });
+
+  // "Previous period": the main series a range earlier, bucket by bucket.
+  const previousOf = async (
+    column: "created" | "closedAt",
+  ): Promise<number[] | null> => {
+    if (!elementOf({ id: "", type: "flow", size: "XL", config }, "previous"))
+      return null;
+    const prev = ctx.previous;
+    const items = await datesIn(where, column, prev.from, prev.to, measure);
+    return bucketSums(items, prev);
+  };
+
+  if (timeBy === "createdClosed") {
+    const [created, closed, previous] = await Promise.all([
+      datesIn(where, "created", window.from, window.to, measure),
+      datesIn(where, "closedAt", window.from, window.to, measure),
+      previousOf("created"),
+    ]);
+    return {
+      type: "flow",
+      dates: window.keys,
+      previous,
+      timeBy,
+      series: [
+        await series(
+          "created",
+          "",
+          "var(--chart-1)",
+          bucketSums(created, window),
+          (i) => bucketParams("created", i),
+        ),
+        await series(
+          "closed",
+          "",
+          "var(--chart-3)",
+          bucketSums(closed, window),
+          (i) => bucketParams("closed", i),
+        ),
+      ],
+    };
+  }
+
+  const column =
+    timeBy === "created"
+      ? "created"
+      : timeBy === "closed"
+        ? "closedAt"
+        : "dueDate";
+  const items = await datesIn(where, column, window.from, window.to, measure);
+  const split = config.splitBy;
+
+  if (!split) {
+    return {
+      type: "flow",
+      dates: window.keys,
+      previous:
+        timeBy === "due"
+          ? null
+          : await previousOf(timeBy === "created" ? "created" : "closedAt"),
+      timeBy,
+      series: [
+        await series(
+          "all",
+          "",
+          "var(--accent)",
+          bucketSums(items, window),
+          (i) => bucketParams(timeBy, i),
+        ),
+      ],
+    };
+  }
+
+  // Split: one series per value, the biggest few, the rest as "other".
+  const byKey = new Map<string, Dated[]>();
+  for (const item of items)
+    for (const key of keysOf(ctx, item.row, split))
+      byKey.set(key, [...(byKey.get(key) ?? []), item]);
+  const axis = await axisFor(ctx, split, [...byKey.keys()]);
+  const ranked = axis
+    .filter((slice) => byKey.has(slice.key))
+    .map((slice) => ({
+      slice,
+      values: bucketSums(byKey.get(slice.key) ?? [], window),
+    }))
+    .sort((a, b) =>
+      LADDER.has(split)
+        ? 0
+        : b.values.reduce((x, y) => x + y, 0) -
+          a.values.reduce((x, y) => x + y, 0),
+    );
+  const shown = ranked.slice(0, SERIES_LIMIT);
+  const rest = ranked.slice(SERIES_LIMIT);
+  const out = await Promise.all(
+    shown.map(async ({ slice, values }) => {
+      const group = await sliceParams(ctx, split, slice.key);
+      return series(slice.key, slice.label, slice.color, values, (i) => [
+        ...bucketParams(timeBy, i),
+        ...(group ?? []),
+      ]);
+    }),
   );
+  if (rest.length) {
+    const values = window.keys.map((_, i) =>
+      round1(rest.reduce((a, r) => a + r.values[i], 0)),
+    );
+    out.push({
+      key: "_other",
+      label: "",
+      color: "#8a9099",
+      values,
+      total: round1(values.reduce((a, b) => a + b, 0)),
+      hrefs: values.map(() => null),
+    });
+  }
   return {
     type: "flow",
-    points,
-    created: created.length,
-    closed: closed.length,
+    dates: window.keys,
+    previous: null,
+    timeBy,
+    series: out,
   };
 }
 
@@ -1063,8 +1451,8 @@ async function burnup(ctx: Ctx, where: Where): Promise<WidgetData> {
     datesIn(where, "created", window.from, window.to),
     datesIn(where, "closedAt", window.from, window.to),
   ]);
-  const c = bucketCounts(created, window);
-  const d = bucketCounts(closed, window);
+  const c = bucketSums(created, window);
+  const d = bucketSums(closed, window);
   let total = totalBefore;
   let done = doneBefore;
   return {
@@ -1171,11 +1559,14 @@ async function matrix(
   rowField: GroupField,
   colField: GroupField,
   openOnly: boolean,
+  measure: Measure,
 ): Promise<WidgetData> {
-  // Labels can't be an axis (see `MATRIX_FIELDS`); fall back to status.
-  const rf = rowField === "label" ? "status" : rowField;
+  // Labels and status groups can't be an axis (see `MATRIX_FIELDS`); fall
+  // back to status.
+  const rf =
+    rowField === "label" || rowField === "statusCategory" ? "status" : rowField;
   const cf =
-    colField === "label" || colField === rf
+    colField === "label" || colField === "statusCategory" || colField === rf
       ? rf === "status"
         ? "priority"
         : "status"
@@ -1189,7 +1580,14 @@ async function matrix(
     by: r === c ? [r] : [r, c],
     where: scoped,
     _count: { _all: true },
+    _sum: { storyPoints: true, estimateHours: true },
   });
+  const measured = (row: (typeof rows)[number]) =>
+    measure === "storyPoints"
+      ? (row._sum.storyPoints ?? 0)
+      : measure === "estimate"
+        ? (row._sum.estimateHours ?? 0)
+        : row._count._all;
   const keyOf = (row: Record<string, unknown>, column: string) =>
     String(row[column] ?? "_none");
   const rowKeys = new Set(rows.map((row) => keyOf(row, r)));
@@ -1204,12 +1602,16 @@ async function matrix(
   for (const row of rows) {
     const i = rowsUsed.findIndex((s) => s.key === keyOf(row, r));
     const j = colsUsed.findIndex((s) => s.key === keyOf(row, c));
-    if (i >= 0 && j >= 0) cells[i][j] += row._count._all;
+    if (i >= 0 && j >= 0) cells[i][j] = round1(cells[i][j] + measured(row));
   }
   for (const [i, s] of rowsUsed.entries())
     s.count = cells[i].reduce((a, b) => a + b, 0);
   for (const [j, s] of colsUsed.entries())
     s.count = cells.reduce((a, row) => a + row[j], 0);
+  // Nothing measured (e.g. no story points set): nothing to draw.
+  if (cells.every((row) => row.every((v) => v === 0))) {
+    return { type: "matrix", rows: [], cols: [], cells: [], max: 0 };
+  }
   return {
     type: "matrix",
     rows: rowsUsed,
@@ -1806,15 +2208,71 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
   const { resolved } = ctx;
 
   switch (widget.type) {
+    case "blocks": {
+      // Every block as a widget of its kind — the widget's filter and the
+      // block's own together (`blockWidget`).
+      const entries = await Promise.all(
+        (config.blocks ?? []).map(
+          async (block) =>
+            [
+              block.id,
+              await widgetData(ctx, blockWidget(widget, block)),
+            ] as const,
+        ),
+      );
+      return { type: "blocks", blocks: Object.fromEntries(entries) };
+    }
     case "kpi":
-      return kpi(ctx, where, config.metric ?? "open", config.filter);
-    case "progress":
+      return kpi(
+        ctx,
+        where,
+        config.metric ?? "open",
+        config.filter,
+        config.measure ?? "count",
+        widget,
+      );
+    case "progress": {
+      const measure = config.measure ?? "count";
+      const canceled = ctx.closed.filter((id) => !ctx.completed.includes(id));
+      const notCanceled: Where = {
+        AND: [where, { status: { notIn: canceled } }],
+      };
+      const extra: [string, string][] = [["statusCategory.not", "canceled"]];
+      const base = await progress(ctx, where, measure);
+      // Forecast: the pace of the last N weeks (its own setting) or of the
+      // range, applied to what's left.
+      const forecast = elementOf(widget, "forecast");
+      const paceTo = forecast?.value ? new Date() : ctx.window.to;
+      const paceFrom = forecast?.value
+        ? new Date(paceTo.getTime() - forecast.value * 7 * DAY)
+        : ctx.window.from;
+      const [href, second, recent] = await Promise.all([
+        boardHref(ctx, config.filter, extra),
+        secondNumber(ctx, notCanceled, widget, extra, measure),
+        forecast
+          ? measureOf(
+              {
+                AND: [
+                  where,
+                  { status: { in: ctx.completed } },
+                  { closedAt: { gte: paceFrom, lt: paceTo } },
+                ],
+              },
+              measure,
+            )
+          : Promise.resolve(0),
+      ]);
+      const days = Math.max(1, (paceTo.getTime() - paceFrom.getTime()) / DAY);
+      const left =
+        base.type === "progress" ? Math.max(0, base.total - base.done) : 0;
       return {
-        ...(await progress(ctx, where)),
-        href: await boardHref(ctx, config.filter, [
-          ["statusCategory.not", "canceled"],
-        ]),
-      } as WidgetData;
+        ...(base as Extract<WidgetData, { type: "progress" }>),
+        href,
+        second,
+        forecastDays:
+          forecast && recent > 0 ? Math.ceil(left / (recent / days)) : null,
+      };
+    }
     case "distribution":
       return distribution(
         ctx,
@@ -1822,13 +2280,14 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
         config.groupBy ?? "status",
         config.openOnly ?? false,
         config.filter,
+        config.measure ?? "count",
       );
     case "attention":
       return attention(ctx, where);
     case "issues":
-      return issues(ctx, where, config.sort, config.openOnly ?? true);
+      return issues(ctx, where, config.sort, config.openOnly ?? true, widget);
     case "flow":
-      return flow(ctx, where, config.filter);
+      return flow(ctx, where, config.filter, config);
     case "burnup":
       return burnup(ctx, where);
     case "cycle":
@@ -1842,6 +2301,7 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
         config.groupBy ?? "assignee",
         config.groupBy2 ?? "status",
         config.openOnly ?? true,
+        config.measure ?? "count",
       );
     case "age":
       return age(ctx, where);
@@ -1936,8 +2396,10 @@ export async function getDashboard(
   const scope: DashboardScope = resolved.canViewAll ? wanted : "mine";
   const layout = await layoutFor(target, resolved, userId, scope);
 
-  const data =
-    (await computeWidgets(target, layout.widgets, range, scope)) ?? {};
+  const [data, customWidgets] = await Promise.all([
+    computeWidgets(target, layout.widgets, range, scope).then((d) => d ?? {}),
+    customWidgetsFor(resolved.workspaceId, userId),
+  ]);
 
   return {
     target,
@@ -1951,7 +2413,41 @@ export async function getDashboard(
       canEditShared: resolved.canEditShared,
     },
     data,
+    customWidgets,
   };
+}
+
+/** The viewer's own custom widgets and the ones others share in the
+ *  workspace — the gallery's last section. */
+async function customWidgetsFor(
+  workspaceId: string,
+  userId: string,
+): Promise<CustomWidgetEntry[]> {
+  const rows = await db.customWidget.findMany({
+    where: { workspaceId, OR: [{ userId }, { shared: true }] },
+    select: { id: true, name: true, widget: true, shared: true, userId: true },
+    orderBy: [{ name: "asc" }],
+  });
+  return rows.flatMap((row) => {
+    // Stored without an id (every placement gets its own) — the entry's
+    // own id stands in while it's in the gallery.
+    // Older ones were a single kind — they read as one block now.
+    const parsed = parseWidgets([
+      { ...(row.widget as Record<string, unknown>), id: row.id },
+    ])?.[0];
+    const widget = parsed && toBlocks(parsed);
+    return widget
+      ? [
+          {
+            id: row.id,
+            name: row.name,
+            widget,
+            shared: row.shared,
+            mine: row.userId === userId,
+          },
+        ]
+      : [];
+  });
 }
 
 /** For the server actions: may the current user see, edit (own or view), or
