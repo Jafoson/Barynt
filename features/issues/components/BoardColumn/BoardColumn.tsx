@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/atoms/Button/Button";
 import { BoardCard } from "@/features/issues/components/BoardCard/BoardCard";
 import { CreateIssueModal } from "@/features/issues/components/CreateIssueModal/CreateIssueModal";
 import { GroupIcon } from "@/features/issues/components/GroupIcon/GroupIcon";
-import type { GroupDef } from "@/features/issues/group";
+import { type GroupDef, groupPatch } from "@/features/issues/group";
 import type { IssueComposerData, IssueLookups } from "@/features/issues/types";
 import { useModal } from "@/lib/context";
 import type { IssueDetail } from "@/types";
@@ -44,6 +44,9 @@ interface BoardColumnProps {
   /** All columns of the board, for each card's "Move to…". */
   moveTargets?: GroupDef[];
   onCardMoveTo?: (issue: IssueDetail, groupId: string) => void;
+  /** With swimlanes: the lane this cell belongs to — a new issue created
+   *  here starts with its value too (BARY-173). */
+  lane?: GroupDef;
   /**
    * With swimlanes (BARY-173) a column splits: its `head` sits once above
    * every lane, and each lane draws a `cell` — only the cards of that
@@ -86,6 +89,7 @@ export function BoardColumn({
   moveTargets,
   onCardMoveTo,
   variant = "column",
+  lane,
   columnDrag,
 }: BoardColumnProps) {
   const { openModal } = useModal();
@@ -93,29 +97,39 @@ export function BoardColumn({
   // Without `issue.create` in this project there is neither the plus in the
   // column header nor the row at the end of the column. The server has already
   // decided this (`creatableProjectIds`), it's just not rendered here. Without
-  // a project the question doesn't even arise.
-  // A cell has no "New task" row: the new issue would start without the
-  // lane's value and drop into another lane at once — the column's head
-  // keeps its plus.
-  const canCreate =
-    variant !== "cell" &&
-    projectId !== undefined &&
-    composer.creatableProjectIds.includes(projectId);
-  // In another grouping the column isn't a status — a new issue then starts
-  // in the workspace's first workflow status, same as the composer's default.
-  const initialStatus =
-    group.key === "status"
+  // a project the question doesn't even arise — across projects (V8) a
+  // column or lane grouped by project names one.
+  const createProjectId =
+    projectId ??
+    (group.key === "project"
       ? group.id
-      : (composer.statuses.find((s) => s.isColumn)?.id ??
-        composer.statuses[0]?.id ??
-        "");
+      : lane?.key === "project"
+        ? lane.id
+        : undefined);
+  const canCreate =
+    createProjectId !== undefined &&
+    composer.creatableProjectIds.includes(createProjectId);
+  // A new issue starts where it's created: the column's value and, in a
+  // swimlane, the lane's too — "In Progress" in Lena's lane is status In
+  // Progress, assigned to Lena (BARY-173). Without a status among them it
+  // starts in the workspace's first workflow status, as the composer would.
+  const { status, ...initialValues } = {
+    ...groupPatch(group.key, group.id),
+    ...(lane ? groupPatch(lane.key, lane.id) : {}),
+  };
+  const initialStatus =
+    status ??
+    composer.statuses.find((s) => s.isColumn)?.id ??
+    composer.statuses[0]?.id ??
+    "";
 
   function showCreateIssueModal() {
-    if (projectId === undefined) return;
+    if (createProjectId === undefined) return;
     openModal(({ close }) => (
       <CreateIssueModal
-        projectId={projectId}
+        projectId={createProjectId}
         initialStatus={initialStatus}
+        initialValues={initialValues}
         data={composer}
         close={close}
       />

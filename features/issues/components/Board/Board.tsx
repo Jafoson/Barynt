@@ -554,8 +554,9 @@ export function Board({
     group: GroupDef,
     columnIssues: IssueDetail[],
     variant: "column" | "head" | "cell" = "column",
-    laneId?: string,
+    lane?: GroupDef,
   ) => {
+    const laneId = lane?.id;
     const cardHandlers = board.columnHandlers(group.id, laneId);
     const { onDragOver, onDragLeave, onDrop } = draggedColumn
       ? columnDropHandlers(group)
@@ -568,6 +569,7 @@ export function Board({
       <BoardColumn
         key={laneId === undefined ? group.id : `${laneId}:${group.id}`}
         variant={variant}
+        lane={lane}
         group={group}
         issues={columnIssues}
         projectId={projectId}
@@ -691,7 +693,7 @@ export function Board({
                           g,
                           board.getColumnIssues(g.id, lane.id),
                           "cell",
-                          lane.id,
+                          lane,
                         ),
                       )}
                     </div>
