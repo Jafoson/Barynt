@@ -1,6 +1,5 @@
 "use client";
 
-import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { CopyButton } from "@/components/ui/layout/CopyButton/CopyButton";
 import { PageHeader } from "@/components/ui/layout/PageHeader/PageHeader";
@@ -9,7 +8,6 @@ import {
   SettingsList,
   type SettingsRow,
 } from "@/components/ui/layout/SettingsList/SettingsList";
-import { Link } from "@/i18n/navigation";
 import styles from "./accountMcp.module.scss";
 import { McpDocs } from "./McpDocs";
 
@@ -55,12 +53,22 @@ export function AccountMcp({ apiKeysHref, mcpUrl }: Props) {
     {
       id: "auth",
       label: t("mcp.authLabel"),
-      desc: t("mcp.authDesc"),
-      control: (
-        <Link href={apiKeysHref} className={styles.link}>
-          {t("mcp.manageKeys")}
-          <Icon icon="lucide:arrow-right" width={14} />
-        </Link>
+      // Two equal ways in — OAuth first. No key link here: a key is the
+      // exception, its tab below has the link where it's needed.
+      desc: (
+        <span className={styles.authWays}>
+          <span className={styles.authWay}>
+            <b>{t("mcp.authOauth")}</b>
+            <span className={styles.recommended}>
+              {t("mcp.authRecommended")}
+            </span>
+            <span>{t("mcp.authOauthDesc")}</span>
+          </span>
+          <span className={styles.authWay}>
+            <b>{t("mcp.authKey")}</b>
+            <span>{t("mcp.authKeyDesc")}</span>
+          </span>
+        </span>
       ),
     },
     {

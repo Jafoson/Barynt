@@ -1267,9 +1267,7 @@
     "connectionTitle": "Verbindung",
     "serverUrlLabel": "Server-URL",
     "serverUrlDesc": "Der MCP-Endpunkt, mit dem sich jeder Client verbindet.",
-    "authLabel": "Authentifizierung",
-    "authDesc": "OAuth (empfohlen): Die App braucht nur die Server-URL, findet die Anmeldung selbst und öffnet Barynt im Browser. Alternativ ein persönlicher API-Schlüssel als Bearer-Token — für Skripte, CI und Apps ohne OAuth.",
-    "manageKeys": "API-Schlüssel verwalten",
+    "authLabel": "Anmeldung",
     "transportLabel": "Transport",
     "transportValue": "Streamable HTTP",
     "setupTitle": "Mit einer KI verbinden",
@@ -1277,7 +1275,12 @@
     "toolsTitle": "Verfügbare Tools",
     "toolsDesc": "Ein Tool pro REST-Endpunkt. Jedes prüft weiterhin seinen eigenen Scope sowie die normalen Berechtigungen — ein Tool kommt also nie weiter als der Schlüssel, mit dem es läuft.",
     "oauthTitle": "Was beim Anmelden passiert",
-    "oauthDesc": "Die Anmeldung folgt der MCP-Spezifikation (OAuth 2.1 mit PKCE)."
+    "oauthDesc": "Die Anmeldung folgt der MCP-Spezifikation (OAuth 2.1 mit PKCE).",
+    "authOauth": "OAuth",
+    "authRecommended": "empfohlen",
+    "authOauthDesc": "Die App meldet sich im Browser an — nur die Server-URL nötig.",
+    "authKey": "API-Key",
+    "authKeyDesc": "Für Skripte, CI und Apps ohne OAuth."
   },
   "oauth": {
     "title": "Zugriff autorisieren",

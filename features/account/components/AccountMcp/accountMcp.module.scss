@@ -10,15 +10,32 @@
   }
 }
 
-.link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  color: var(--on-surface);
-  font-size: var(--text-sm);
-  text-decoration: none;
+/* The two ways to sign in, one per line (spans: the row's description
+   is itself a span). */
+.authWays {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
 
-  &:hover {
-    color: var(--primary);
+  & b {
+    font-weight: 600;
+    color: var(--on-surface);
   }
+}
+
+.authWay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.125rem 0.5rem;
+}
+
+.recommended {
+  padding: 0 0.4375rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+  font-size: var(--text-xs);
+  font-weight: 600;
 }
