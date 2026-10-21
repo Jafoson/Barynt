@@ -84,7 +84,7 @@ export function AccountMcp({ apiKeysHref, mcpUrl }: Props) {
 
       <SettingsBody>
         <SettingsList title={t("mcp.connectionTitle")} rows={connectionRows} />
-        <McpDocs mcpUrl={mcpUrl} />
+        <McpDocs mcpUrl={mcpUrl} apiKeysHref={apiKeysHref} />
       </SettingsBody>
     </>
   );

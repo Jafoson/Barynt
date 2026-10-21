@@ -299,9 +299,27 @@ export type McpClientId =
   | "vscode"
   | "api-key";
 
-/** One step of a client's setup — text, and maybe something to copy. */
+/** Where a step's link may point — built from this page's own URLs. */
+export interface McpLinkContext {
+  mcpUrl: string;
+  /** The API keys page (it knows the workspace, this data doesn't). */
+  apiKeysHref: string;
+}
+
+/** A shortcut from a step straight to where it happens. */
+export interface McpStepLink {
+  label: DocText;
+  href: (ctx: McpLinkContext) => string;
+  /** `web` opens a new tab; `app` hands over to an installed app
+   *  (cursor:, vscode:); `internal` stays in Barynt. */
+  kind: "web" | "app" | "internal";
+}
+
+/** One step of a client's setup — text, maybe a link, maybe something to
+ *  copy. */
 export interface McpSetupStep {
   text: DocText;
+  link?: McpStepLink;
   /** Built from the page's own MCP URL (`appUrl("/api/mcp")`). */
   code?: (mcpUrl: string) => string;
 }
@@ -337,6 +355,14 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
         text: {
           en: "In Claude (web or desktop app), open Settings → Connectors and choose Add custom connector.",
           de: "In Claude (Web oder Desktop-App) Einstellungen → Connectors öffnen und „Add custom connector“ wählen.",
+        },
+        link: {
+          label: {
+            en: "Open Claude connectors",
+            de: "Claude-Connectors öffnen",
+          },
+          href: () => "https://claude.ai/settings/connectors",
+          kind: "web",
         },
       },
       {
@@ -383,6 +409,14 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
           de: "Prüfen: barynt sollte als verbunden erscheinen.",
         },
         code: () => "claude mcp list",
+        link: {
+          label: {
+            en: "Claude Code docs on MCP",
+            de: "Claude-Code-Doku zu MCP",
+          },
+          href: () => "https://code.claude.com/docs/en/mcp",
+          kind: "web",
+        },
       },
     ],
     note: {
@@ -398,6 +432,14 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
         text: {
           en: "In ChatGPT, open Settings → Apps & Connectors → Advanced settings and turn on Developer mode.",
           de: "In ChatGPT Einstellungen → Apps & Connectors → Erweiterte Einstellungen öffnen und den Entwicklermodus einschalten.",
+        },
+        link: {
+          label: {
+            en: "Open ChatGPT settings",
+            de: "ChatGPT-Einstellungen öffnen",
+          },
+          href: () => "https://chatgpt.com/#settings",
+          kind: "web",
         },
       },
       {
@@ -422,8 +464,16 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
     steps: [
       {
         text: {
-          en: "Open Cursor Settings → MCP and add the server to mcp.json — just the URL, no key.",
-          de: "In Cursor Einstellungen → MCP öffnen und den Server in mcp.json eintragen — nur die URL, kein Schlüssel.",
+          en: "Add the server with one click — Cursor opens and asks to install it. Or add it by hand under Cursor Settings → MCP in mcp.json — just the URL, no key.",
+          de: "Den Server mit einem Klick hinzufügen — Cursor öffnet sich und fragt, ob er ihn installieren soll. Oder von Hand unter Cursor-Einstellungen → MCP in mcp.json eintragen — nur die URL, kein Schlüssel.",
+        },
+        link: {
+          label: { en: "Add to Cursor", de: "Zu Cursor hinzufügen" },
+          // Cursor's install link: the server object (without its name)
+          // as base64-encoded JSON.
+          href: ({ mcpUrl }) =>
+            `cursor://anysphere.cursor-deeplink/mcp/install?name=barynt&config=${encodeURIComponent(btoa(JSON.stringify({ url: mcpUrl })))}`,
+          kind: "app",
         },
         code: (url) => `{
   "mcpServers": {
@@ -453,8 +503,15 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
     steps: [
       {
         text: {
-          en: "Add the server to .vscode/mcp.json (this workspace) or to your user's mcp.json (everywhere).",
-          de: "Den Server in .vscode/mcp.json (dieser Workspace) oder in die mcp.json deines Benutzerprofils (überall) eintragen.",
+          en: "Add the server with one click — VS Code opens and offers to install it. Or add it by hand to .vscode/mcp.json (this workspace) or your user's mcp.json (everywhere).",
+          de: "Den Server mit einem Klick hinzufügen — VS Code öffnet sich und bietet die Installation an. Oder von Hand in .vscode/mcp.json (dieser Workspace) bzw. die mcp.json deines Benutzerprofils (überall) eintragen.",
+        },
+        link: {
+          label: { en: "Add to VS Code", de: "Zu VS Code hinzufügen" },
+          // VS Code's install link: the server as URL-encoded JSON.
+          href: ({ mcpUrl }) =>
+            `vscode:mcp/install?${encodeURIComponent(JSON.stringify({ name: "barynt", type: "http", url: mcpUrl }))}`,
+          kind: "app",
         },
         code: (url) => `{
   "servers": {
@@ -481,6 +538,11 @@ export const MCP_CLIENT_GUIDES: McpClientGuide[] = [
         text: {
           en: "Only where a browser sign-in isn't possible — scripts, CI, or an app without OAuth. Create a key on the API keys page with just the scopes the tools need.",
           de: "Nur, wo keine Anmeldung im Browser möglich ist — Skripte, CI oder eine App ohne OAuth. Leg auf der Seite API-Schlüssel einen Key an, mit genau den Scopes, die die Tools brauchen.",
+        },
+        link: {
+          label: { en: "Create an API key", de: "API-Schlüssel anlegen" },
+          href: ({ apiKeysHref }) => apiKeysHref,
+          kind: "internal",
         },
       },
       {

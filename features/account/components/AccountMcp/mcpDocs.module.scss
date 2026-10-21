@@ -76,6 +76,38 @@
   }
 }
 
+/* A step's shortcut — to the app's settings, an install, or a page here.
+   Neutral like the app's other secondary actions; the icon tells them
+   apart (new tab, install, inside Barynt). */
+.stepLink {
+  grid-column: 2;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2rem;
+  padding: 0.3125rem 0.75rem;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius-pill);
+  color: var(--on-surface);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--surface-container-high);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 2px;
+  }
+
+  @include bp.coarse {
+    min-height: var(--touch-min);
+  }
+}
+
 .note {
   margin: 0;
   padding: 0.625rem 0.875rem;

@@ -1,10 +1,12 @@
 "use client";
 
+import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Badge } from "@/components/ui/atoms/Badge/Badge";
 import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { CopyButton } from "@/components/ui/layout/CopyButton/CopyButton";
+import { Link } from "@/i18n/navigation";
 import { DocGuides } from "../AccountApiKeys/DocGuides";
 import { useDocText } from "../AccountApiKeys/docText";
 import styles from "./mcpDocs.module.scss";
@@ -13,6 +15,7 @@ import {
   MCP_OAUTH_STEPS,
   MCP_TOOL_GROUPS,
   type McpClientId,
+  type McpStepLink,
   type McpToolGroupId,
 } from "./mcpDocsData";
 
@@ -33,6 +36,48 @@ function CodeBlock({ code }: { code: string }) {
   );
 }
 
+/** A step's shortcut: a new tab for the web, a hand-over to an installed
+ *  app (`cursor:`, `vscode:`), or a page inside Barynt. */
+function StepLink({
+  link,
+  label,
+  href,
+}: {
+  link: McpStepLink;
+  label: string;
+  href: string;
+}) {
+  const icon =
+    link.kind === "web"
+      ? "lucide:external-link"
+      : link.kind === "app"
+        ? "lucide:download"
+        : "lucide:arrow-right";
+  const content = (
+    <>
+      {label}
+      <Icon icon={icon} width={14} />
+    </>
+  );
+  if (link.kind === "internal") {
+    return (
+      <Link href={href} className={styles.stepLink}>
+        {content}
+      </Link>
+    );
+  }
+  return (
+    <a
+      href={href}
+      className={styles.stepLink}
+      data-kind={link.kind}
+      {...(link.kind === "web" && { target: "_blank", rel: "noreferrer" })}
+    >
+      {content}
+    </a>
+  );
+}
+
 /**
  * The reference below the connection details (`AccountMcp.tsx`): how to
  * connect each common AI app (OAuth first, a key as the fallback), what
@@ -41,7 +86,13 @@ function CodeBlock({ code }: { code: string }) {
  * split from `AccountApiKeys` — pure rendering over static data
  * (`mcpDocsData.ts`), no data fetching of its own.
  */
-export function McpDocs({ mcpUrl }: { mcpUrl: string }) {
+export function McpDocs({
+  mcpUrl,
+  apiKeysHref,
+}: {
+  mcpUrl: string;
+  apiKeysHref: string;
+}) {
   const t = useTranslations();
   const doc = useDocText();
   const [client, setClient] = useState<McpClientId>("claude");
@@ -75,6 +126,13 @@ export function McpDocs({ mcpUrl }: { mcpUrl: string }) {
               {guide.steps.map((step) => (
                 <li key={doc(step.text)}>
                   <span>{doc(step.text)}</span>
+                  {step.link && (
+                    <StepLink
+                      link={step.link}
+                      label={doc(step.link.label)}
+                      href={step.link.href({ mcpUrl, apiKeysHref })}
+                    />
+                  )}
                   {step.code && <CodeBlock code={step.code(mcpUrl)} />}
                 </li>
               ))}
