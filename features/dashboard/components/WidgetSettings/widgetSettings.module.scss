@@ -279,3 +279,10 @@
     color: var(--on-surface);
   }
 }
+
+/* A quiet line under a group of fields (BARY-183). */
+.hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--on-surface-variant);
+}

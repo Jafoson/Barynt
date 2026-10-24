@@ -435,5 +435,7 @@ export function sampleData(widget: Widget, words: SampleWords): WidgetData {
       };
     case "note":
       return { type: "note", pages: [{ id: "p1", text: words.note }] };
+    case "embed":
+      return { type: "embed", framing: null };
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useState } from "react";
 import { Input } from "@/components/ui/atoms/Input/Input";
 import { NativeSelect } from "@/components/ui/atoms/NativeSelect/NativeSelect";
 import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
@@ -10,6 +11,10 @@ import {
   CYCLE_BY,
   CYCLE_VIEWS,
   DISTRIBUTION_CHARTS,
+  EMBED_FITS,
+  EMBED_KINDS,
+  EMBED_REFRESH,
+  type EmbedRefresh,
   FLOW_BY,
   GROUP_FIELDS,
   type GroupField,
@@ -18,6 +23,7 @@ import {
   MATRIX_FIELDS,
   MEASURES,
   type Measure,
+  normalizeEmbedUrl,
   SERIES_CHARTS,
   type SeriesChart,
   TIME_BY,
@@ -48,6 +54,8 @@ export function KindFields({
 
   return (
     <>
+      {widget.type === "embed" && <EmbedFields widget={widget} set={set} />}
+
       {/* What is added up — issues, story points or hours (BARY-170). */}
       {(widget.type === "kpi"
         ? config.metric !== "cycleTime"
@@ -296,5 +304,92 @@ function Segments<T extends string>({
         />
       </span>
     </div>
+  );
+}
+
+/** An embed's address and how it shows (BARY-183). */
+function EmbedFields({
+  widget,
+  set,
+}: {
+  widget: Widget;
+  set: (patch: Partial<WidgetConfig>) => void;
+}) {
+  const t = useTranslations("widgets");
+  const { config } = widget;
+  const kind = config.embedKind ?? "website";
+  // Typed freely; stored only once it's a valid https address.
+  const [draft, setDraft] = useState(config.url ?? "");
+  const normalized = normalizeEmbedUrl(draft);
+  const invalid = draft.trim() !== "" && normalized === null;
+
+  return (
+    <>
+      <div className={styles.field}>
+        <span className={styles.label}>{t("embedKind")}</span>
+        <span className={styles.full}>
+          <SegmentedControl
+            variant="surface"
+            value={kind}
+            onChange={(v) =>
+              set({ embedKind: v as (typeof EMBED_KINDS)[number] })
+            }
+            items={EMBED_KINDS.map((k) => ({
+              value: k,
+              label: t(`embedKind_${k}`),
+            }))}
+          />
+        </span>
+      </div>
+      <Input
+        label={t("embedUrl")}
+        value={draft}
+        inputMode="url"
+        placeholder="https://"
+        error={invalid ? t("embedUrlInvalid") : undefined}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          const next = normalizeEmbedUrl(e.target.value);
+          if (next || !e.target.value.trim()) set({ url: next ?? undefined });
+        }}
+        onBlur={() => normalized && setDraft(normalized)}
+      />
+      {kind === "image" ? (
+        <div className={styles.field}>
+          <span className={styles.label}>{t("embedFit")}</span>
+          <span className={styles.full}>
+            <SegmentedControl
+              variant="surface"
+              value={config.fit ?? "cover"}
+              onChange={(v) => set({ fit: v as (typeof EMBED_FITS)[number] })}
+              items={EMBED_FITS.map((f) => ({
+                value: f,
+                label: t(`embedFit_${f}`),
+              }))}
+            />
+          </span>
+        </div>
+      ) : (
+        <NativeSelect
+          label={t("embedRefresh")}
+          value={String(config.refresh ?? 0)}
+          onChange={(v) =>
+            set({
+              refresh: v === "0" ? undefined : (Number(v) as EmbedRefresh),
+            })
+          }
+          items={[
+            { value: "0", label: t("embedRefresh_never") },
+            ...EMBED_REFRESH.map((n) => ({
+              value: String(n),
+              label: t("embedRefresh_every", { minutes: n }),
+            })),
+          ]}
+        />
+      )}
+      <p className={styles.hint}>
+        {kind === "image" ? t("embedHintImage") : t("embedHintWebsite")}
+      </p>
+    </>
   );
 }
