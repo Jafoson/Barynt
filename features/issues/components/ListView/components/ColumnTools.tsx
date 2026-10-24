@@ -22,6 +22,9 @@ interface ColumnToolsProps {
   resize?: {
     /** The width set by this person, px — none: as wide as its content. */
     width?: number;
+    /** The title takes what's left: its edge sizes the column after it
+     *  instead — dragged right, that one gets narrower. */
+    next?: boolean;
     custom: boolean;
     onChange: (width: number) => void;
     onCommit: (width: number) => void;
@@ -57,15 +60,17 @@ export function ColumnTools({
     e.preventDefault();
     e.stopPropagation();
     const handle = e.currentTarget;
-    const cell = handle.closest("th");
+    const own = handle.closest("th");
+    const cell = resize.next ? own?.nextElementSibling : own;
     if (!cell) return;
     const startX = e.clientX;
     const startWidth = cell.getBoundingClientRect().width;
+    const sign = resize.next ? -1 : 1;
     const widthAt = (x: number) =>
       Math.round(
         Math.min(
           MAX_COLUMN_WIDTH,
-          Math.max(MIN_COLUMN_WIDTH, startWidth + x - startX),
+          Math.max(MIN_COLUMN_WIDTH, startWidth + sign * (x - startX)),
         ),
       );
     handle.setPointerCapture(e.pointerId);
@@ -83,14 +88,13 @@ export function ColumnTools({
   const keyResize = (e: React.KeyboardEvent<HTMLSpanElement>) => {
     if (!resize || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
     e.preventDefault();
-    const cell = e.currentTarget.closest("th");
+    const own = e.currentTarget.closest("th");
+    const cell = resize.next ? own?.nextElementSibling : own;
     if (!cell) return;
     const now = cell.getBoundingClientRect().width;
+    const step = (e.key === "ArrowLeft" ? -16 : 16) * (resize.next ? -1 : 1);
     const next = Math.round(
-      Math.min(
-        MAX_COLUMN_WIDTH,
-        Math.max(MIN_COLUMN_WIDTH, now + (e.key === "ArrowLeft" ? -16 : 16)),
-      ),
+      Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, now + step)),
     );
     resize.onChange(next);
     resize.onCommit(next);

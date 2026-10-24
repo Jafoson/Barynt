@@ -613,7 +613,14 @@ export function ListView({
     const width = widths[id];
     const sortable = COLUMN_SORT[id] !== undefined;
     const fixed = FIXED_LIST_COLUMNS.includes(id);
-    const resizable = !UNSIZED_LIST_COLUMNS.includes(id);
+    // The title takes what's left; its edge sizes the column after it.
+    const after = shownColumns[shownColumns.indexOf(id) + 1];
+    const sizes: ListColumn | undefined = UNSIZED_LIST_COLUMNS.includes(id)
+      ? after && !UNSIZED_LIST_COLUMNS.includes(after)
+        ? after
+        : undefined
+      : id;
+    const sizedWidth = sizes ? widths[sizes] : undefined;
     return {
       id,
       width:
@@ -646,14 +653,17 @@ export function ListView({
                 : () => saveColumns(chosen.filter((c) => c !== id))
             }
             resize={
-              resizable
+              sizes
                 ? {
-                    width,
-                    custom: width !== undefined,
-                    onChange: (w) => setWidths((cur) => ({ ...cur, [id]: w })),
-                    onCommit: (w) => commitWidths({ ...widths, [id]: w }),
+                    width: sizedWidth,
+                    next: sizes !== id,
+                    // The menu resets this column's own width only.
+                    custom: sizes === id && sizedWidth !== undefined,
+                    onChange: (w) =>
+                      setWidths((cur) => ({ ...cur, [sizes]: w })),
+                    onCommit: (w) => commitWidths({ ...widths, [sizes]: w }),
                     onReset: () => {
-                      const { [id]: _gone, ...rest } = widths;
+                      const { [sizes]: _gone, ...rest } = widths;
                       commitWidths(rest);
                     },
                   }

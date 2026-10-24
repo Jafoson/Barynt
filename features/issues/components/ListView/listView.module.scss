@@ -408,11 +408,11 @@
 
 .resizeHandle {
   position: absolute;
-  top: 0.375rem;
-  bottom: 0.375rem;
-  inset-inline-end: -0.25rem;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  inset-inline-end: -0.375rem;
   z-index: 1;
-  width: 0.5rem;
+  width: 0.75rem;
   cursor: col-resize;
   touch-action: none;
 
@@ -422,22 +422,19 @@
     content: "";
     position: absolute;
     inset-block: 0.125rem;
-    inset-inline-start: calc(50% - 0.5px);
-    width: 1px;
+    inset-inline-start: calc(50% - 1px);
+    width: 2px;
     border-radius: 1px;
     background: var(--outline-variant);
-    transition:
-      background 0.12s,
-      width 0.12s,
-      inset-inline-start 0.12s;
+    transition: background 0.12s, width 0.12s, inset-inline-start 0.12s;
   }
 
   &:hover::after,
   &:focus-visible::after,
   &:active::after {
     inset-block: 0;
-    inset-inline-start: calc(50% - 1px);
-    width: 2px;
+    inset-inline-start: calc(50% - 1.5px);
+    width: 3px;
     background: var(--primary);
   }
 
