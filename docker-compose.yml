@@ -152,7 +152,8 @@ services:
     #   context: .
     #   dockerfile: Dockerfile
     #   target: migrate
-    command: ["sh", "-c", "bun prisma migrate deploy && bun prisma/bootstrap.ts"]
+    command:
+      ["sh", "-c", "bun prisma migrate deploy && bun prisma/bootstrap.ts"]
     restart: "no"
     environment:
       DATABASE_URL: "${COMPOSE_DATABASE_URL:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-IssueTracker}}"

@@ -55,6 +55,8 @@ export const WIDGET_TYPES = [
   // Flow metrics (BARY-171), read from the status history.
   "cfd",
   "timeInStatus",
+  // A website or an image from an address (BARY-183).
+  "embed",
   // A custom widget made of building blocks (BARY-170) — only the builder
   // makes these; the gallery doesn't list the kind itself.
   "blocks",
@@ -158,6 +160,44 @@ export interface ShortcutLink {
 export type ShortcutChoice = ShortcutKey | `link:${string}`;
 
 export const linkKey = (id: string): ShortcutChoice => `link:${id}`;
+
+export const EMBED_KINDS = ["website", "image"] as const;
+export type EmbedKind = (typeof EMBED_KINDS)[number];
+export const EMBED_FITS = ["cover", "contain"] as const;
+export type EmbedFit = (typeof EMBED_FITS)[number];
+export const EMBED_REFRESH = [1, 5, 15] as const;
+export type EmbedRefresh = (typeof EMBED_REFRESH)[number];
+
+/**
+ * An embed's address as one to store — `https://` only: a page served over
+ * plain http can't be framed in an https app anyway (mixed content).
+ */
+export function normalizeEmbedUrl(input: string): string | null {
+  const url = normalizeLinkUrl(input);
+  if (!url?.startsWith("https://")) return null;
+  return embeddableForm(url);
+}
+
+/**
+ * Some sites refuse framing on their ordinary pages but offer an embed
+ * address of their own — a YouTube video's watch page is one. Pasted as
+ * it's copied from the address bar, it becomes the form that works.
+ */
+function embeddableForm(url: string): string {
+  const u = new URL(url);
+  const host = u.hostname.replace(/^(www\.|m\.)/, "");
+  const youtube =
+    host === "youtu.be"
+      ? u.pathname.slice(1)
+      : host === "youtube.com" && u.pathname === "/watch"
+        ? u.searchParams.get("v")
+        : host === "youtube.com" && u.pathname.startsWith("/shorts/")
+          ? u.pathname.split("/")[2]
+          : null;
+  if (youtube && /^[\w-]{6,20}$/.test(youtube))
+    return `https://www.youtube.com/embed/${youtube}`;
+  return url;
+}
 
 /**
  * What someone typed as a link's address, as one to store — `figma.com`
@@ -278,6 +318,14 @@ export interface WidgetConfig {
   shortcuts?: ShortcutChoice[];
   /** External links among the shortcut tiles (BARY-182). */
   links?: ShortcutLink[];
+  /** Embed (BARY-183): a website in a frame, or an image. */
+  embedKind?: EmbedKind;
+  /** Embed: the address — always `https://` (`normalizeEmbedUrl`). */
+  url?: string;
+  /** Embed, image: fill the widget or show it whole. */
+  fit?: EmbedFit;
+  /** Embed, website: reload every so many minutes; unset: never. */
+  refresh?: EmbedRefresh;
   /** A custom widget's building blocks, top to bottom (`blocks` kind). */
   blocks?: WidgetBlock[];
   /** Burnup: done against everything, or what's left counting down. */
@@ -1022,6 +1070,16 @@ export const WIDGETS: Record<WidgetType, WidgetDef> = {
     kinds: ["workspace", "view"],
     config: {},
   },
+  embed: {
+    type: "embed",
+    icon: "lucide:app-window",
+    sizes: ["S", "M", "L", "XL", "W"],
+    size: "L",
+    accent: "gray",
+    issues: false,
+    group: "other",
+    config: { embedKind: "website" },
+  },
   shortcuts: {
     type: "shortcuts",
     icon: "lucide:layout-grid",
@@ -1410,6 +1468,22 @@ const baseConfigShape = z.object({
     .max(40)
     .optional()
     .transform((list) => list as ShortcutChoice[] | undefined),
+  embedKind: z.enum(EMBED_KINDS).optional(),
+  url: z
+    .string()
+    .max(2000)
+    .refine((url) => normalizeEmbedUrl(url) === url)
+    .optional(),
+  fit: z.enum(EMBED_FITS).optional(),
+  refresh: z
+    .union(
+      EMBED_REFRESH.map((n) => z.literal(n)) as [
+        z.ZodLiteral<1>,
+        z.ZodLiteral<5>,
+        z.ZodLiteral<15>,
+      ],
+    )
+    .optional(),
   links: z
     .array(
       z.object({

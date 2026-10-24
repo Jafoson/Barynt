@@ -15,7 +15,7 @@
   min-height: 0;
   border-radius: var(--radius-lg);
   border: 0.125rem solid transparent;
-  transition: background .15s, border-color .15s;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 /* Phone: one column per screen (the switcher above the board moves between
@@ -29,7 +29,8 @@
 .dragOver {
   background: color-mix(in oklab, var(--primary) 16%, transparent);
   border-color: var(--primary);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in oklab, var(--primary) 30%, transparent);
 }
 
 .colHeader {
@@ -73,7 +74,7 @@
   z-index: 1;
 
   &::after {
-    content: '';
+    content: "";
     display: block;
     height: 0.125rem;
     background: var(--primary);
@@ -82,7 +83,7 @@
   }
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     left: -0.25rem;
     top: -0.25rem;
@@ -115,8 +116,8 @@
   cursor: pointer;
   /* Always there, just quiet — a control that only exists under the pointer
      is easy to take for missing (and can't be found by keyboard or touch). */
-  opacity: .55;
-  transition: opacity .12s, color .12s, background .12s, border-color .12s;
+  opacity: 0.55;
+  transition: opacity 0.12s, color 0.12s, background 0.12s, border-color 0.12s;
 
   .col:hover &,
   &:hover {

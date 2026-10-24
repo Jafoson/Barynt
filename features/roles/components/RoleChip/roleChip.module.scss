@@ -28,11 +28,17 @@
   &[data-locked] {
     background: var(--surface-container-low);
 
-    .name { color: var(--on-surface-variant); }
+    .name {
+      color: var(--on-surface-variant);
+    }
     /* The dot keeps its rank color, just muted: it's the same dot as in the
        matrix header below, and that one stays colored. */
-    .dot { opacity: .6; }
-    .tag { background: var(--surface-container); }
+    .dot {
+      opacity: 0.6;
+    }
+    .tag {
+      background: var(--surface-container);
+    }
   }
 }
 
@@ -79,7 +85,7 @@
   background: var(--surface-container-highest);
   color: var(--on-surface-variant);
   font-size: var(--text-xxs);
-  letter-spacing: .03em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   white-space: nowrap;
 }

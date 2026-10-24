@@ -4,7 +4,7 @@
 .copy {
   /* The button grows to fit the word. Without a transition, the code block's
      header would jump in width. */
-  transition: color .14s ease;
+  transition: color 0.14s ease;
   white-space: nowrap;
 
   &[data-copied] {
@@ -13,10 +13,13 @@
 
   /* The word fades in instead of popping in abruptly. */
   > span:last-child {
-    animation: copyConfirm .16s ease;
+    animation: copyConfirm 0.16s ease;
   }
 }
 
 @keyframes copyConfirm {
-  from { opacity: 0; transform: translateX(-0.25rem); }
+  from {
+    opacity: 0;
+    transform: translateX(-0.25rem);
+  }
 }

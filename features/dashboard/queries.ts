@@ -56,6 +56,7 @@ import {
 import { getVisibleViewById } from "@/features/views/queries";
 import { systemViewSlug } from "@/features/views/system";
 import { viewPath } from "@/features/views/url";
+import { appBaseUrl } from "@/lib/app-url";
 import {
   bucketKey,
   previousWindow,
@@ -77,6 +78,7 @@ import {
   workspacePath,
   workspaceSettingsPath,
 } from "@/lib/nav";
+import { framePolicy } from "@/lib/net/embed-check";
 import {
   accessFor,
   currentUserCanEnterWorkspace,
@@ -2509,6 +2511,14 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
       return projects(ctx);
     case "links":
       return links(resolved.workspaceId);
+    case "embed":
+      return {
+        type: "embed",
+        framing:
+          config.embedKind !== "image" && config.url
+            ? await framePolicy(config.url, appBaseUrl())
+            : null,
+      };
     case "shortcuts":
       return shortcuts(resolved.workspaceId, resolved.projectId);
     case "note": {

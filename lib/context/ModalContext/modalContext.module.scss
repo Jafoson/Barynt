@@ -8,7 +8,7 @@
   inset: 0;
   background: rgb(0, 0, 0, 0.32);
   display: flex;
-  animation: fadeIn .16s ease both;
+  animation: fadeIn 0.16s ease both;
 }
 
 /* Phone: a dialog fills the screen — no offset, no gaps, and it rises above
@@ -54,17 +54,17 @@
   }
 }
 
-.backdrop{
+.backdrop {
   position: absolute;
   inset: 0;
   background: transparent;
   cursor: default;
 }
 
-.comp{
+.comp {
   position: relative;
   z-index: 1;
-  animation: pop .16s ease;
+  animation: pop 0.16s ease;
   /* `tabIndex={-1}` on this box (`ModalFrame`) is only a landing spot for
      the programmatic focus that opens the dialog — not something a real
      Tab press ever reaches, and not itself a control. A visible ring
@@ -99,7 +99,7 @@
 
 .comp.right {
   display: flex;
-  animation: slideIn .2s cubic-bezier(.22, .61, .36, 1);
+  animation: slideIn 0.2s cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 /* ---------- Placement: bottom sheet ---------- */
@@ -116,7 +116,7 @@
   display: flex;
   justify-content: center;
   width: 100%;
-  animation: slideUp .22s cubic-bezier(.22, .61, .36, 1);
+  animation: slideUp 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
 
   /* The box spans the whole width, but a sheet narrower than that (a
      tablet) leaves gaps beside it. They must belong to the backdrop again —
@@ -130,11 +130,33 @@
 
 /* fadeIn/pop mirror the global keyframes — animation names get hashed too
    inside a module, so a reference to the outside would resolve to nothing. */
-@keyframes fadeIn  { from { opacity: .35; } }
-@keyframes pop     { from { opacity: .2; transform: translateY(-4px) scale(.985); } }
-@keyframes slideIn { from { opacity: .4; transform: translateX(24px); } }
-@keyframes slideUp { from { opacity: .6; transform: translateY(100%); } }
+@keyframes fadeIn {
+  from {
+    opacity: 0.35;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0.2;
+    transform: translateY(-4px) scale(0.985);
+  }
+}
+@keyframes slideIn {
+  from {
+    opacity: 0.4;
+    transform: translateX(24px);
+  }
+}
+@keyframes slideUp {
+  from {
+    opacity: 0.6;
+    transform: translateY(100%);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .overlay, .comp { animation-duration: .01ms; }
+  .overlay,
+  .comp {
+    animation-duration: 0.01ms;
+  }
 }

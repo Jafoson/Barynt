@@ -300,9 +300,15 @@
 .icon {
   --accent: var(--primary);
 
-  &[data-accent="blue"] { --accent: var(--chart-1); }
-  &[data-accent="lime"] { --accent: var(--lime); }
-  &[data-accent="indigo"] { --accent: var(--indigo); }
+  &[data-accent="blue"] {
+    --accent: var(--chart-1);
+  }
+  &[data-accent="lime"] {
+    --accent: var(--lime);
+  }
+  &[data-accent="indigo"] {
+    --accent: var(--indigo);
+  }
 
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   color: var(--accent);

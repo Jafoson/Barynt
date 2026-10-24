@@ -14,6 +14,7 @@ import { Link } from "@/i18n/navigation";
 import type { BucketUnit } from "@/lib/buckets";
 import { BlocksBody } from "./components/BlocksBody";
 import { ChartBody } from "./components/ChartBody";
+import { EmbedBody } from "./components/EmbedBody";
 import { ListBody } from "./components/ListBody";
 import { NumberBody } from "./components/NumberBody";
 import type { BodyProps } from "./components/shared";
@@ -73,6 +74,14 @@ export function useWidgetTitle() {
     }
     if (widget.type === "distribution")
       return t(`group_${widget.config.groupBy ?? "status"}`) + measure;
+    // An embed without a name of its own: the site it shows.
+    if (widget.type === "embed" && widget.config.url) {
+      try {
+        return new URL(widget.config.url).hostname.replace(/^www\./, "");
+      } catch {
+        return t("type_embed");
+      }
+    }
     if (widget.type === "matrix")
       return t("matrixTitle", {
         rows: t(`group_${widget.config.groupBy ?? "assignee"}`),
@@ -157,6 +166,8 @@ export function Widget({
         <div className={styles.empty}>
           <Icon icon="lucide:loader-circle" width={18} />
         </div>
+      ) : data.type === "embed" ? (
+        <EmbedBody widget={widget} data={data} title={titleOf(widget)} />
       ) : data.type === "blocks" ? (
         <BlocksBody {...body} data={data} />
       ) : data.type === "kpi" || data.type === "progress" ? (

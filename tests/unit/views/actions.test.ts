@@ -146,7 +146,7 @@ beforeEach(() => {
 });
 
 const created = () =>
-  (db.savedView.create.mock.calls.at(-1)?.[0] as { data: Row }).data;
+  (db.savedView.create.mock.calls.at(-1)?.[0] as { data: Row })?.data;
 
 describe("createView", () => {
   const input = {
@@ -252,7 +252,7 @@ describe("updateView", () => {
     rows = [viewRow()];
     await updateView("v1", { groupBy: "assignee" });
     expect(
-      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object }).data,
+      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object })?.data,
     ).toEqual({ groupBy: "assignee" });
   });
 
@@ -392,7 +392,7 @@ describe("saveViewState", () => {
       layout: "list",
     });
     expect(
-      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object }).data,
+      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object })?.data,
     ).toEqual({
       filter: {
         op: "and",
@@ -452,7 +452,7 @@ describe("saveViewState", () => {
       sub: "1",
     });
     expect(
-      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object }).data,
+      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object })?.data,
     ).toMatchObject({
       display: {
         hiddenGroups: ["status:done"],
@@ -466,7 +466,7 @@ describe("saveViewState", () => {
     rows = [viewRow()];
     await saveViewState("v1", { group: "mood", sort: "x", layout: "gantt" });
     expect(
-      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object }).data,
+      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object })?.data,
     ).toMatchObject({ groupBy: null, sortBy: "manual", layout: "board" });
   });
 

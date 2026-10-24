@@ -225,9 +225,7 @@
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
   background: var(--surface-container-low);
-  transition:
-    border-color 0.12s,
-    background-color 0.12s;
+  transition: border-color 0.12s, background-color 0.12s;
 
   &:hover,
   &[data-menu-open],

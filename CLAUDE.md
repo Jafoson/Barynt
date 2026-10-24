@@ -53,6 +53,7 @@ pick ticket → in_progress → work → in_review → (user OK) → done
 This version deviates from older Next.js versions. Always read `node_modules/next/dist/docs/` before writing code.
 
 - `params` and `searchParams` in pages/layouts are now **Promises** → always await them:
+
   ```ts
   export default async function Page({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -105,15 +106,14 @@ components/
 ## Responsive / mobile (BARY-36)
 
 The desktop layout is the base; the mixins in `styles/breakpoints.scss` reach
-*down* (`@use "breakpoints" as bp;`). Test widths: 375 / 768 / 1280px.
+_down_ (`@use "breakpoints" as bp;`). Test widths: 375 / 768 / 1280px.
 
-| Mixin | Applies | JS twin (`lib/utils/useMediaQuery`) |
-|---|---|---|
-| `bp.phone` | ≤ 640px | `PHONE_QUERY` |
-| `bp.tablet-down` | ≤ 1024px (phone + tablet) | `COMPACT_QUERY` |
-| `bp.tablet-only`, `bp.desktop`, `bp.rail` | tablet / > 1024px / collapsed icon rail | — |
-| `bp.coarse`, `bp.no-hover` | touch / no hover (input capability, not width) | — |
-
+| Mixin                                     | Applies                                        | JS twin (`lib/utils/useMediaQuery`) |
+| ----------------------------------------- | ---------------------------------------------- | ----------------------------------- |
+| `bp.phone`                                | ≤ 640px                                        | `PHONE_QUERY`                       |
+| `bp.tablet-down`                          | ≤ 1024px (phone + tablet)                      | `COMPACT_QUERY`                     |
+| `bp.tablet-only`, `bp.desktop`, `bp.rail` | tablet / > 1024px / collapsed icon rail        | —                                   |
+| `bp.coarse`, `bp.no-hover`                | touch / no hover (input capability, not width) | —                                   |
 - **Layout in CSS, behavior in JS.** Width-only differences belong in SCSS;
   `useMediaQuery` is for behavior that has to differ (sheet vs. dialog, one
   column of a matrix). It is `false` on the server and during hydration.
@@ -127,7 +127,7 @@ The desktop layout is the base; the mixins in `styles/breakpoints.scss` reach
   `$upTo: tablet`) turns rows into wrapping flex cards — each cell is found by
   its column id (`td[data-col="…"]`), the page only sets `order` and
   `flex: 1 1 100%`. Give the label `flex: 1 1 calc(100% - 6.5rem)` to keep
-  the actions on its line; `flex: 1 1 0` fits *everything* on one line.
+  the actions on its line; `flex: 1 1 0` fits _everything_ on one line.
   `setting-rows` stacks a settings card's control under its text by the
   page's own width (container query, so a tablet's narrow panel counts too).
   `page-scroll-lists` makes the page scroll instead of each `fill` table
@@ -149,11 +149,10 @@ The desktop layout is the base; the mixins in `styles/breakpoints.scss` reach
 `Issue.description` and `Comment.body` are **ProseMirror documents** (`Json`),
 not strings. Reading and writing are separate:
 
-| | Component | Environment |
-|---|---|---|
-| Display | `components/ui/atoms/RichText` | Server Component, **no** dependency |
-| Edit | `components/ui/atoms/RichTextEditor` | `"use client"`, Tiptap, via `next/dynamic` |
-
+|         | Component                            | Environment                                |
+| ------- | ------------------------------------ | ------------------------------------------ |
+| Display | `components/ui/atoms/RichText`       | Server Component, **no** dependency        |
+| Edit    | `components/ui/atoms/RichTextEditor` | `"use client"`, Tiptap, via `next/dynamic` |
 - Display translates the JSON to React by hand — no `generateHTML`, no
   `dangerouslySetInnerHTML`. Whoever adds a node type there must ship the
   matching extension in the editor (and vice versa).
@@ -186,7 +185,7 @@ leaves every icon empty (BARY-45).
 - The scan (`scripts/build-icons.ts`) reads string literals `"prefix:name"`
   from `app/`, `components/`, `features/`, `lib/`. Write icon names as
   literals; a name assembled at runtime isn't seen and always hits the API.
-- A new icon *set* (a prefix other than lucide/logos/material-symbols/mdi)
+- A new icon _set_ (a prefix other than lucide/logos/material-symbols/mdi)
   needs its `@iconify-json/<prefix>` as a devDependency.
 
 ## Personal behavior settings (`UserPreferences`)
@@ -195,19 +194,18 @@ Per-person settings that change how the app acts, not just how it looks.
 Account section **Navigation** (`account/navigation`), plus date/time in
 **Appearance** and own shortcuts / confirmations in **Shortcuts**.
 
-| Setting | Column | Read where |
-|---|---|---|
-| Click on a project name | `projectLanding` (`board`/`list`/`dashboard`) | `Sidebar/NavGroups/Projects` — the row's `href` |
-| Start page after sign-in | `startPage` | `app/[locale]/page.tsx` redirect |
-| Open issue | `issueOpenMode` (`panel`/`page`/`tab`/`browserTab`) | `useIssueOpen().open` (`features/issues/issue-links.ts`) |
-| "Open full page" in the issue header / `O` | `issuePageOpenMode` (`tab`/`browserTab`/`page`) | `useIssueOpen().openFullPage` — `OpenPageButton`, `IssueDetailView` |
-| Default grouping / order | `defaultGrouping`, `defaultSort` | the four view pages + `useTopbar`, as fallback to `?group=`/`?sort=` |
-| Sub-issues default | `defaultShowSubIssues` | `getIssueViewGroups` / `getMyIssuesViewGroups`, only while a view has no row of its own |
-| Sidebar collapsed / project order | `sidebarCollapsed`, `projectOrder` | `AppShell` (cookie wins, then this), `Projects` |
-| Date display, week start, time zone | `dateFormat`, `weekStart`, `timeZone` | `useTimeAgo`, `Calendar`, `i18n/request.ts` (`timeZone`) |
-| Own shortcuts | `shortcutOverrides` (`{ defaultSpec: ownSpec }`) | `useShortcut`, `useShortcutSequence`, `Shortcut` |
-| Ask before deleting | `confirmDestructive` | `useConfirm` — `danger` confirms resolve `true`, unless `always` |
-
+| Setting                                    | Column                                              | Read where                                                                              |
+| ------------------------------------------ | --------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Click on a project name                    | `projectLanding` (`board`/`list`/`dashboard`)       | `Sidebar/NavGroups/Projects` — the row's `href`                                         |
+| Start page after sign-in                   | `startPage`                                         | `app/[locale]/page.tsx` redirect                                                        |
+| Open issue                                 | `issueOpenMode` (`panel`/`page`/`tab`/`browserTab`) | `useIssueOpen().open` (`features/issues/issue-links.ts`)                                |
+| "Open full page" in the issue header / `O` | `issuePageOpenMode` (`tab`/`browserTab`/`page`)     | `useIssueOpen().openFullPage` — `OpenPageButton`, `IssueDetailView`                     |
+| Default grouping / order                   | `defaultGrouping`, `defaultSort`                    | the four view pages + `useTopbar`, as fallback to `?group=`/`?sort=`                    |
+| Sub-issues default                         | `defaultShowSubIssues`                              | `getIssueViewGroups` / `getMyIssuesViewGroups`, only while a view has no row of its own |
+| Sidebar collapsed / project order          | `sidebarCollapsed`, `projectOrder`                  | `AppShell` (cookie wins, then this), `Projects`                                         |
+| Date display, week start, time zone        | `dateFormat`, `weekStart`, `timeZone`               | `useTimeAgo`, `Calendar`, `i18n/request.ts` (`timeZone`)                                |
+| Own shortcuts                              | `shortcutOverrides` (`{ defaultSpec: ownSpec }`)    | `useShortcut`, `useShortcutSequence`, `Shortcut`                                        |
+| Ask before deleting                        | `confirmDestructive`                                | `useConfirm` — `danger` confirms resolve `true`, unless `always`                        |
 - Allowed values live in `features/account/preferences.ts` (one list per
   setting); `updateBehavior` validates against them, `toBehavior` narrows a
   row on read. A new option goes in that list, the settings UI and `messages/*`.
@@ -232,28 +230,28 @@ otherwise an `SMTP_HOST` set locally for Mailpit & co. in `.env` (Bun loads
 `.env` for `bun test` too) would make `isMailConfigured()` come back true in
 the middle of a unit test.
 
-| File | Job |
-|---|---|
-| `lib/mail/config.ts` | Reads the SMTP variables, `isMailConfigured()` |
-| `lib/mail/transport.ts` | `nodemailer` transport, reused as long as the config stays the same |
-| `lib/mail/send.ts` | `sendMail()` — swallows errors, no-op without configuration |
-| `lib/mail/templates/layout.ts` | `renderLayout()` (frame, branding, footer), `renderDetailTable()`, `renderAlertBox()` |
-| `lib/mail/templates/html.ts` | `escapeHtml()`, `humanizeKey()`, `formatDateDe()` |
-| `lib/mail/templates/*.ts` | One pure function per occasion, `(Input) → { subject, html, text }`, no DB access |
-| `lib/mail/index.ts` | Barrel + `sendInvitationEmail()`/`sendMemberRemovedEmail()` (load workspace/project/names themselves) |
+| File                           | Job                                                                                                   |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `lib/mail/config.ts`           | Reads the SMTP variables, `isMailConfigured()`                                                        |
+| `lib/mail/transport.ts`        | `nodemailer` transport, reused as long as the config stays the same                                   |
+| `lib/mail/send.ts`             | `sendMail()` — swallows errors, no-op without configuration                                           |
+| `lib/mail/templates/layout.ts` | `renderLayout()` (frame, branding, footer), `renderDetailTable()`, `renderAlertBox()`                 |
+| `lib/mail/templates/html.ts`   | `escapeHtml()`, `humanizeKey()`, `formatDateDe()`                                                     |
+| `lib/mail/templates/*.ts`      | One pure function per occasion, `(Input) → { subject, html, text }`, no DB access                     |
+| `lib/mail/index.ts`            | Barrel + `sendInvitationEmail()`/`sendMemberRemovedEmail()` (load workspace/project/names themselves) |
 
 Templates, as of today:
 
-| File | Occasion | Send point |
-|---|---|---|
-| `invitation.ts` | Invitation (new account) | `sendInvitationEmail()`, from the invite actions |
-| `memberRemoved.ts` | Removed from workspace/project | `sendMemberRemovedEmail()`, from `removeMember`/`removeProjectMember` |
-| `notification.ts` | assigned/mentioned/comment/status/invite/role | `lib/notify` (per `*Email` column) |
-| `welcome.ts` | Registration with password | **not wired up yet** |
-| `emailVerification.ts` | Confirm email address | **not wired up yet** (no token system) |
-| `passwordReset.ts` | Reset password | **not wired up yet** (no reset token) |
-| `weeklyDigest.ts` | Weekly summary | **not wired up yet** (no job, no query) |
-| `issueUpdate.ts` | Batched mail for title/priority/labels | **not wired up yet** (no `NotificationEvent` for it) |
+| File                   | Occasion                                      | Send point                                                            |
+| ---------------------- | --------------------------------------------- | --------------------------------------------------------------------- |
+| `invitation.ts`        | Invitation (new account)                      | `sendInvitationEmail()`, from the invite actions                      |
+| `memberRemoved.ts`     | Removed from workspace/project                | `sendMemberRemovedEmail()`, from `removeMember`/`removeProjectMember` |
+| `notification.ts`      | assigned/mentioned/comment/status/invite/role | `lib/notify` (per `*Email` column)                                    |
+| `welcome.ts`           | Registration with password                    | **not wired up yet**                                                  |
+| `emailVerification.ts` | Confirm email address                         | **not wired up yet** (no token system)                                |
+| `passwordReset.ts`     | Reset password                                | **not wired up yet** (no reset token)                                 |
+| `weeklyDigest.ts`      | Weekly summary                                | **not wired up yet** (no job, no query)                               |
+| `issueUpdate.ts`       | Batched mail for title/priority/labels        | **not wired up yet** (no `NotificationEvent` for it)                  |
 
 Three active callers:
 
@@ -291,13 +289,13 @@ email was sent to …") belongs in every input interface.
 
 ```ts
 // lib/db.ts
-import { PrismaClient } from "@/app/generated/prisma"
+import { PrismaClient } from "@/app/generated/prisma";
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
-export const db = globalForPrisma.prisma ?? new PrismaClient()
+export const db = globalForPrisma.prisma ?? new PrismaClient();
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
 ```
 
 ### Changing the schema — mandatory checklist
@@ -550,7 +548,7 @@ test against the mock. The DB mock is the smaller assumption and lets the
 real code run.
 
 For the same reason, `notifications/` (with `notify.test.ts`) gets its own
-process: it mocks `@/lib/mail` entirely, to check *whether* and *for whom*
+process: it mocks `@/lib/mail` entirely, to check _whether_ and _for whom_
 `notify()` triggers a mail. `workspace/inviteWorkspaceMember.test.ts` and
 `projects/projectMembers.test.ts` transitively import `sendInvitationEmail`
 from `@/lib/mail` and rely on the real function (which returns immediately
@@ -568,7 +566,7 @@ and `templates.test.ts` (neither of which uses `mock.module`) share one.
 The same conflict exists a third time around `@/lib/project-membership`:
 `workspace/inviteLinks.test.ts`, `workspace/inviteWorkspaceMember.test.ts`,
 `workspace/removeMember.test.ts`, and `workspace/teams.test.ts` all mock it
-away entirely (they only care that it gets *called*, not what it does), while
+away entirely (they only care that it gets _called_, not what it does), while
 `projects/projectMembership.test.ts` (its own tests), `workspace/createWorkspace.test.ts`,
 `auth/userProvisioning.test.ts`, and `auth/acceptInvitation.test.ts` all rely
 on the real implementation running against their own `@/lib/db` mock. The
@@ -629,7 +627,7 @@ the summary script matches XML testcases to log blocks by reconstructing
 the label Bun prints on its `(fail) <describe path> > <name> [<time>]` line
 (`classname`, reversed since Bun nests it innermost-first, plus `name`)
 rather than by file position, and why `classname` gets XML-unescaped
-*twice* — Bun double-escapes the `>` it joins nested describe names with.
+_twice_ — Bun double-escapes the `>` it joins nested describe names with.
 
 ```
 # Correct:

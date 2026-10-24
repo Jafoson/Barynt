@@ -29,7 +29,11 @@
     0 0.5rem 1.5rem rgb(0 0 0 / 0.14);
 
   &[data-bg="tint"] {
-    background: color-mix(in srgb, var(--accent) 14%, var(--surface-container-low));
+    background: color-mix(
+      in srgb,
+      var(--accent) 14%,
+      var(--surface-container-low)
+    );
   }
 
   &[data-bg="gradient"] {
@@ -59,18 +63,42 @@
 /* The accents — the app's chart and named colors, plus pink and gray. */
 .widget,
 .accent {
-  &[data-accent="blue"] { --accent: var(--chart-1); }
-  &[data-accent="teal"] { --accent: var(--teal); }
-  &[data-accent="green"] { --accent: var(--green); }
-  &[data-accent="lime"] { --accent: var(--lime); }
-  &[data-accent="ochre"] { --accent: var(--chart-2); }
-  &[data-accent="amber"] { --accent: var(--amber); }
-  &[data-accent="orange"] { --accent: var(--orange); }
-  &[data-accent="red"] { --accent: var(--red); }
-  &[data-accent="pink"] { --accent: #e05aa8; }
-  &[data-accent="purple"] { --accent: var(--purple); }
-  &[data-accent="indigo"] { --accent: var(--indigo); }
-  &[data-accent="gray"] { --accent: #8a949a; }
+  &[data-accent="blue"] {
+    --accent: var(--chart-1);
+  }
+  &[data-accent="teal"] {
+    --accent: var(--teal);
+  }
+  &[data-accent="green"] {
+    --accent: var(--green);
+  }
+  &[data-accent="lime"] {
+    --accent: var(--lime);
+  }
+  &[data-accent="ochre"] {
+    --accent: var(--chart-2);
+  }
+  &[data-accent="amber"] {
+    --accent: var(--amber);
+  }
+  &[data-accent="orange"] {
+    --accent: var(--orange);
+  }
+  &[data-accent="red"] {
+    --accent: var(--red);
+  }
+  &[data-accent="pink"] {
+    --accent: #e05aa8;
+  }
+  &[data-accent="purple"] {
+    --accent: var(--purple);
+  }
+  &[data-accent="indigo"] {
+    --accent: var(--indigo);
+  }
+  &[data-accent="gray"] {
+    --accent: #8a949a;
+  }
 }
 
 /* Icon and title in the accent, a quiet note on the right. */
@@ -292,7 +320,10 @@
   width: clamp(2rem, 18cqmin, 3rem);
   aspect-ratio: 1;
   border-radius: 50%;
-  background: conic-gradient(var(--accent) calc(var(--p) * 100%), var(--track) 0);
+  background: conic-gradient(
+    var(--accent) calc(var(--p) * 100%),
+    var(--track) 0
+  );
   mask: radial-gradient(circle, transparent 57%, #000 58%);
 }
 
@@ -432,17 +463,39 @@
 :is(.plot, .goalKey) {
   --goal: var(--red);
 
-  &[data-goal="blue"] { --goal: var(--chart-1); }
-  &[data-goal="teal"] { --goal: var(--teal); }
-  &[data-goal="green"] { --goal: var(--green); }
-  &[data-goal="lime"] { --goal: var(--lime); }
-  &[data-goal="ochre"] { --goal: var(--chart-2); }
-  &[data-goal="amber"] { --goal: var(--amber); }
-  &[data-goal="orange"] { --goal: var(--orange); }
-  &[data-goal="pink"] { --goal: #e05aa8; }
-  &[data-goal="purple"] { --goal: var(--purple); }
-  &[data-goal="indigo"] { --goal: var(--indigo); }
-  &[data-goal="gray"] { --goal: #8a949a; }
+  &[data-goal="blue"] {
+    --goal: var(--chart-1);
+  }
+  &[data-goal="teal"] {
+    --goal: var(--teal);
+  }
+  &[data-goal="green"] {
+    --goal: var(--green);
+  }
+  &[data-goal="lime"] {
+    --goal: var(--lime);
+  }
+  &[data-goal="ochre"] {
+    --goal: var(--chart-2);
+  }
+  &[data-goal="amber"] {
+    --goal: var(--amber);
+  }
+  &[data-goal="orange"] {
+    --goal: var(--orange);
+  }
+  &[data-goal="pink"] {
+    --goal: #e05aa8;
+  }
+  &[data-goal="purple"] {
+    --goal: var(--purple);
+  }
+  &[data-goal="indigo"] {
+    --goal: var(--indigo);
+  }
+  &[data-goal="gray"] {
+    --goal: #8a949a;
+  }
 }
 
 .goalKey {
@@ -893,7 +946,11 @@
     min-width: 0;
     border-radius: 0.4375rem;
     font-variant-numeric: tabular-nums;
-    background: color-mix(in srgb, var(--accent) calc(var(--v, 0) * 60% + 5%), transparent);
+    background: color-mix(
+      in srgb,
+      var(--accent) calc(var(--v, 0) * 60% + 5%),
+      transparent
+    );
   }
 
   & > .mHead {
@@ -1155,10 +1212,18 @@
 .ageCols .col > i {
   background: var(--accent);
 
-  &[data-step="0"] { opacity: 0.45; }
-  &[data-step="1"] { opacity: 0.6; }
-  &[data-step="2"] { opacity: 0.75; }
-  &[data-step="3"] { opacity: 0.9; }
+  &[data-step="0"] {
+    opacity: 0.45;
+  }
+  &[data-step="1"] {
+    opacity: 0.6;
+  }
+  &[data-step="2"] {
+    opacity: 0.75;
+  }
+  &[data-step="3"] {
+    opacity: 0.9;
+  }
 }
 
 /* Cycle time as a histogram (BARY-171): one column per bin, the slow
@@ -1175,8 +1240,12 @@
   & .col > i {
     background: var(--teal);
 
-    &[data-tone="amber"] { background: var(--amber); }
-    &[data-tone="red"] { background: var(--red); }
+    &[data-tone="amber"] {
+      background: var(--amber);
+    }
+    &[data-tone="red"] {
+      background: var(--red);
+    }
   }
 }
 
@@ -1234,7 +1303,6 @@
     margin-left: auto;
   }
 }
-
 
 .faces {
   display: flex;
@@ -1435,7 +1503,6 @@
     justify-content: flex-start;
   }
 }
-
 
 /* A short (medium) widget: no "all …" link, only rows that fit whole. */
 @container w (max-height: 13.75rem) {
@@ -2150,7 +2217,6 @@
   }
 }
 
-
 /* "Save" — bottom right, only while there's something to keep. */
 .noteSave {
   position: absolute;
@@ -2315,5 +2381,62 @@
 
   & td:last-child {
     color: var(--muted);
+  }
+}
+
+/* ── Embed (BARY-183) ── */
+.embedFrame,
+.embedImage {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  border-radius: 0.625rem;
+  background: var(--track);
+}
+
+.embedImage {
+  object-fit: cover;
+
+  &[data-fit="contain"] {
+    object-fit: contain;
+    background: transparent;
+  }
+}
+
+.embedFallback {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--muted);
+
+  & > svg {
+    color: var(--accent);
+  }
+}
+
+.embedOpen {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-pill);
+  background: var(--track);
+  color: var(--on-surface);
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 1px;
   }
 }

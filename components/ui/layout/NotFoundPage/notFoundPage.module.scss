@@ -42,7 +42,9 @@
 
 .logo {
   margin-bottom: 1.75rem;
-  filter: drop-shadow(0 0.125rem 0.625rem color-mix(in oklab, var(--shadow) 35%, transparent));
+  filter: drop-shadow(
+    0 0.125rem 0.625rem color-mix(in oklab, var(--shadow) 35%, transparent)
+  );
 }
 
 /* Decorative, not the heading — `title` carries the actual message for

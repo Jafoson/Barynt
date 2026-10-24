@@ -8,6 +8,7 @@ import type {
 } from "@/features/dashboard/widgets";
 import type { AuditEntry } from "@/lib/audit/actions";
 import type { BucketUnit, RangeKey } from "@/lib/buckets";
+import type { FramePolicy } from "@/lib/net/embed-check";
 import type { User } from "@/types";
 
 // What a dashboard's widgets display — fully computed on the server, as
@@ -307,6 +308,12 @@ export type WidgetData =
       href: string | null;
     }
   | { type: "shortcuts"; items: Shortcut[] }
+  | {
+      type: "embed";
+      /** Whether the page lets itself be framed here (BARY-183) — only
+       *  checked for websites; `unknown` when the server can't tell. */
+      framing: FramePolicy | null;
+    }
   | {
       type: "note";
       /** This person's own pages — nobody else's. */

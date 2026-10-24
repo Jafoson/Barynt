@@ -7,7 +7,11 @@
   padding: 0.625rem 0.875rem;
   margin: 0 0 1rem;
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--secondary-container) 30%, var(--surface));
+  background: color-mix(
+    in srgb,
+    var(--secondary-container) 30%,
+    var(--surface)
+  );
   margin-inline: 1rem;
 
   /* Phone: air between the top bar and the banner. */
