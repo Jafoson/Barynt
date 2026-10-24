@@ -16,6 +16,7 @@ import type { ViewTab } from "@/features/views/components/ViewTabs/ViewTabs";
 import { getProjectViews, getWorkspaceViews } from "@/features/views/queries";
 import type { SavedView } from "@/features/views/schema";
 import { ensureSystemViews } from "@/features/views/system";
+import { tabOrder } from "@/features/views/tab-order";
 import { type SlugLookups, viewParams, viewPath } from "@/features/views/url";
 import {
   getCurrentWorkspace,
@@ -30,7 +31,6 @@ import { currentUserId, hasPermission } from "@/lib/permissions";
 import { fullName } from "@/lib/utils/string";
 import type { User } from "@/types";
 import { TopbarClient, type TopbarViews } from "./TopbarClient";
-import { tabOrder } from "@/features/views/tab-order";
 
 interface TopbarProps {
   /** Issues in the current view — already narrowed by the active filters. */
