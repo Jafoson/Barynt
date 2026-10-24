@@ -12,7 +12,11 @@
 }
 
 // Corners scale with size: a 64px avatar needs more rounding than a 16px avatar.
-$square-radius: clamp(0.1875rem, calc(var(--avatar-size) * 0.28), var(--radius-lg));
+$square-radius: clamp(
+  0.1875rem,
+  calc(var(--avatar-size) * 0.28),
+  var(--radius-lg)
+);
 
 .avatar {
   /* Set by the component: --avatar-size, --avatar-bg, --avatar-fg

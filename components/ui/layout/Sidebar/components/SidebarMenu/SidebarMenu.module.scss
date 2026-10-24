@@ -4,54 +4,63 @@
    may be truncated: `min-width: 0` removes its content width as a floor,
    otherwise everything beside it would yield instead — for a flex item,
    that's the precondition for `text-overflow` to take effect at all. */
-.title{
-    min-width: 0;
-    font-Weight: 600;
-    font-size: var(--text-base);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-align: left;
+.title {
+  min-width: 0;
+  font-weight: 600;
+  font-size: var(--text-base);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
 
-    @include bp.rail { display: none; }
+  @include bp.rail {
+    display: none;
+  }
 }
 
-.icon{
-    margin-left: auto;
-    color: var(--surface-bright);
+.icon {
+  margin-left: auto;
+  color: var(--surface-bright);
 
-    @include bp.rail { display: none; }
+  @include bp.rail {
+    display: none;
+  }
 }
 
-.label{
-    font-size: var(--text-base);
-    padding-left: 0.25rem;
-    padding-bottom: 0.5rem;
+.label {
+  font-size: var(--text-base);
+  padding-left: 0.25rem;
+  padding-bottom: 0.5rem;
 }
 
-.elevated{
-    margin-bottom: 1rem;
+.elevated {
+  margin-bottom: 1rem;
 }
 /* The workspace button: avatar only in the rail. */
 .trigger {
-    @include bp.phone {
-        min-height: 3rem;
-    }
+  @include bp.phone {
+    min-height: 3rem;
+  }
 
-    @include bp.rail {
-        justify-content: center;
-        @include bp.rail-square(var(--rail-item));
-    }
+  @include bp.rail {
+    justify-content: center;
+    @include bp.rail-square(var(--rail-item));
+  }
 }
 
 .backLabel {
-    @include bp.rail { @include bp.sr-only; }
+  @include bp.rail {
+    @include bp.sr-only;
+  }
 }
 
 .back {
-    @include bp.rail {
-        @include bp.rail-square(var(--rail-item));
+  @include bp.rail {
+    @include bp.rail-square(var(--rail-item));
 
-        & > svg { width: var(--rail-icon); height: var(--rail-icon); }
+    & > svg {
+      width: var(--rail-icon);
+      height: var(--rail-icon);
     }
+  }
 }

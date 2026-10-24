@@ -140,11 +140,11 @@
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background .12s;
+  transition: background 0.12s;
 
   svg {
     color: var(--text-3);
-    transition: color .12s;
+    transition: color 0.12s;
   }
 
   &:hover {
@@ -209,7 +209,7 @@
 
 .chevron {
   flex: none;
-  transition: transform .15s;
+  transition: transform 0.15s;
 }
 
 .chevronOpen {
@@ -244,7 +244,7 @@
   width: 100%;
 }
 
-.search{
+.search {
   background: var(--surface-container-low);
 
   /* Phone: same field as on the desktop, just taller. */
@@ -337,7 +337,7 @@
   }
 }
 
-.navGroup{
+.navGroup {
   display: flex;
   flex-direction: column;
   padding-bottom: 0.75rem;
@@ -384,7 +384,7 @@
   display: none;
 }
 
-.titleWrapper{
+.titleWrapper {
   /* Separates the "Projects" overview entry above from the project list. */
   margin-top: 0.5rem;
   border-top: 1px solid var(--outline-variant);
@@ -403,7 +403,7 @@
   align-items: center;
   width: 100%;
 
-  & span{
+  & span {
     color: var(--on-surface-variant);
   }
 
@@ -425,7 +425,7 @@
   }
 }
 
-.projectTabsWrapper{
+.projectTabsWrapper {
   /* No scrolling of its own — `.scroll` above scrolls the whole menu
      (on a phone: this list alone, see `.scrollProjects`). */
   display: flex;

@@ -116,15 +116,33 @@
   background: color-mix(in srgb, var(--accent) 18%, transparent);
   color: var(--accent);
 
-  &[data-accent="blue"] { --accent: var(--chart-1); }
-  &[data-accent="teal"] { --accent: var(--teal); }
-  &[data-accent="green"] { --accent: var(--green); }
-  &[data-accent="lime"] { --accent: var(--lime); }
-  &[data-accent="ochre"] { --accent: var(--chart-2); }
-  &[data-accent="orange"] { --accent: var(--orange); }
-  &[data-accent="red"] { --accent: var(--red); }
-  &[data-accent="purple"] { --accent: var(--purple); }
-  &[data-accent="indigo"] { --accent: var(--indigo); }
+  &[data-accent="blue"] {
+    --accent: var(--chart-1);
+  }
+  &[data-accent="teal"] {
+    --accent: var(--teal);
+  }
+  &[data-accent="green"] {
+    --accent: var(--green);
+  }
+  &[data-accent="lime"] {
+    --accent: var(--lime);
+  }
+  &[data-accent="ochre"] {
+    --accent: var(--chart-2);
+  }
+  &[data-accent="orange"] {
+    --accent: var(--orange);
+  }
+  &[data-accent="red"] {
+    --accent: var(--red);
+  }
+  &[data-accent="purple"] {
+    --accent: var(--purple);
+  }
+  &[data-accent="indigo"] {
+    --accent: var(--indigo);
+  }
 }
 
 .preview {
@@ -192,11 +210,24 @@
   font-size: var(--text-xs);
   cursor: pointer;
 
-  &[data-size="M"] { --c: 2; }
-  &[data-size="L"] { --c: 2; --r: 2; }
-  &[data-size="T"] { --c: 2; --r: 4; }
-  &[data-size="XL"] { --c: 4; --r: 2; }
-  &[data-size="W"] { --c: 5; }
+  &[data-size="M"] {
+    --c: 2;
+  }
+  &[data-size="L"] {
+    --c: 2;
+    --r: 2;
+  }
+  &[data-size="T"] {
+    --c: 2;
+    --r: 4;
+  }
+  &[data-size="XL"] {
+    --c: 4;
+    --r: 2;
+  }
+  &[data-size="W"] {
+    --c: 5;
+  }
 
   &[aria-pressed="true"] {
     color: var(--on-surface);

@@ -63,6 +63,7 @@ export function Shortcut({ keys, className, raw }: ShortcutProps) {
   return (
     <span className={[styles.shortcut, className].filter(Boolean).join(" ")}>
       {combos.map((labels, ci) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static key sequence, may contain repeats
         <Fragment key={`${specs[ci]}-${ci}`}>
           {ci > 0 && <span className={styles.or}>/</span>}
           {labels.map((label, i) => (

@@ -172,7 +172,7 @@
   text-align: left;
   font-size: var(--text-xs);
   font-weight: 550;
-  letter-spacing: .04em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
@@ -255,7 +255,7 @@ tbody tr:first-child .groupHead {
 
 .permHead,
 .cell {
-  transition: background .1s;
+  transition: background 0.1s;
 }
 
 /* Mixed opaque instead of semi-transparent: the first column is sticky and
@@ -304,7 +304,7 @@ tbody tr:first-child .groupHead {
   vertical-align: middle;
 
   &[data-busy] {
-    opacity: .45;
+    opacity: 0.45;
   }
 }
 
@@ -313,7 +313,8 @@ tbody tr:first-child .groupHead {
    of the row. On top instead of the bottom, so the last row stays without
    a closing line. */
 .row + .row :is(.permHead, .cell) {
-  border-top: 1px solid color-mix(in srgb, var(--outline-variant) 55%, transparent);
+  border-top: 1px solid
+    color-mix(in srgb, var(--outline-variant) 55%, transparent);
 }
 
 /* The checkbox carries the meaning: empty means "not set", green allows,
@@ -334,7 +335,11 @@ tbody tr:first-child .groupHead {
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--on-surface-variant);
-  transition: background .12s, border-color .12s, color .12s, transform .08s;
+  transition:
+    background 0.12s,
+    border-color 0.12s,
+    color 0.12s,
+    transform 0.08s;
 
   .cell[data-granted] & {
     border-color: color-mix(in srgb, var(--green) 55%, transparent);
@@ -357,7 +362,7 @@ button.mark {
   }
 
   &:active:not(:disabled) {
-    transform: scale(.9);
+    transform: scale(0.9);
   }
 
   &:disabled {
@@ -369,7 +374,7 @@ button.mark {
    stay readable — they explain what a default role can do. */
 .cell[data-locked] .mark {
   border-style: dashed;
-  opacity: .7;
+  opacity: 0.7;
 }
 
 /* ---------- Pending changes ---------- */
@@ -386,7 +391,7 @@ button.mark {
   background: color-mix(in srgb, var(--primary) 10%, var(--matrix-surface));
 
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 0.1875rem;
     right: 0.1875rem;
@@ -410,7 +415,8 @@ button.mark {
   align-items: center;
   gap: 0.625rem;
   padding: 0.5rem 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--primary) 45%, var(--outline-variant));
+  border: 1px solid
+    color-mix(in srgb, var(--primary) 45%, var(--outline-variant));
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--primary) 8%, var(--background));
 }

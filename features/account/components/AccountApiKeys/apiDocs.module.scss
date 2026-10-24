@@ -152,7 +152,10 @@
 
 .paramRow {
   display: grid;
-  grid-template-columns: minmax(5.625rem, max-content) minmax(4.375rem, max-content) auto minmax(0, 1fr);
+  grid-template-columns: minmax(5.625rem, max-content) minmax(
+      4.375rem,
+      max-content
+    ) auto minmax(0, 1fr);
   align-items: center;
   gap: 0.625rem;
   font-size: var(--text-sm);

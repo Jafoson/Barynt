@@ -24,7 +24,7 @@
   /* A long press opens the quick-action sheet — not the browser's callout. */
   -webkit-touch-callout: none;
   cursor: pointer;
-  transition: border-color .12s, background .12s, transform .04s;
+  transition: border-color 0.12s, background 0.12s, transform 0.04s;
 
   &:hover {
     border-color: var(--outline);
@@ -55,11 +55,10 @@
     background: var(--surface-container-high);
     outline: none !important;
   }
-
 }
 
 .dragging {
-  opacity: .5;
+  opacity: 0.5;
   transform: rotate(1deg);
 }
 
@@ -159,7 +158,9 @@
     calc(var(--title-end-x, 0px) + 0.1875rem),
     calc(100% - var(--edit-size))
   );
-  margin-block-start: calc(var(--title-end-y, var(--edit-size)) - var(--edit-size));
+  margin-block-start: calc(
+    var(--title-end-y, var(--edit-size)) - var(--edit-size)
+  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -249,7 +250,7 @@
 
 .id {
   font-family: var(--font-mono);
-  letter-spacing: .01em;
+  letter-spacing: 0.01em;
   color: var(--on-surface-variant);
 }
 

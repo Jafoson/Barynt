@@ -20,9 +20,11 @@
   height: 1.875rem;
   border-radius: var(--radius-sm);
   font-size: 1.0625rem;
-  transition: background .12s;
+  transition: background 0.12s;
 
-  &:hover { background: var(--surface-container-high); }
+  &:hover {
+    background: var(--surface-container-high);
+  }
 }
 
 .grid {
@@ -40,7 +42,9 @@
   height: 1.875rem;
   border-radius: var(--radius-sm);
   font-size: 1rem;
-  transition: background .12s;
+  transition: background 0.12s;
 
-  &:hover { background: var(--surface-container-high); }
+  &:hover {
+    background: var(--surface-container-high);
+  }
 }

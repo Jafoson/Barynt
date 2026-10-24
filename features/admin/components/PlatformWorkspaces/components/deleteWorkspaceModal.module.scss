@@ -24,7 +24,8 @@
   margin: 0;
   padding: 0.75rem 0.875rem;
   list-style: none;
-  border: 1px solid color-mix(in oklab, var(--error) 35%, var(--outline-variant));
+  border: 1px solid
+    color-mix(in oklab, var(--error) 35%, var(--outline-variant));
   border-radius: var(--radius);
   background: color-mix(in oklab, var(--error) 7%, transparent);
 
@@ -50,7 +51,11 @@
   color: var(--on-error-container);
 
   &:hover:not(:disabled) {
-    background: color-mix(in oklab, var(--error-container) 85%, var(--on-error-container));
+    background: color-mix(
+      in oklab,
+      var(--error-container) 85%,
+      var(--on-error-container)
+    );
   }
 }
 

@@ -54,7 +54,7 @@
     flex: none;
   }
 
-  &::after{
+  &::after {
     content: "";
     position: absolute;
     top: 0;
@@ -67,11 +67,12 @@
     transition: background 0.12s;
   }
 
-  &:hover { color: var(--on-surface); }
-  &:hover::after{
+  &:hover {
+    color: var(--on-surface);
+  }
+  &:hover::after {
     opacity: 0.12;
   }
-
 
   /* icon-only: square — the width follows the row's height. The icon is
      already centered by `.item`; only the shape remains here. */
@@ -88,7 +89,7 @@
     font-weight: 600;
     box-shadow: 0 1px 0.1875rem rgba(0, 0, 0, 0.25);
 
-    &::after{
+    &::after {
       background: var(--on-primary);
     }
   }
@@ -99,8 +100,8 @@
     color: var(--surface);
     box-shadow: 0 1px 0.125rem rgba(0, 0, 0, 0.2);
 
-    &::after{
-      background: var(--surface)
+    &::after {
+      background: var(--surface);
     }
   }
 }

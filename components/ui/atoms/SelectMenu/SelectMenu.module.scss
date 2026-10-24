@@ -1,20 +1,20 @@
 @use "breakpoints" as bp;
 
-.content{
-    max-height: 17.5rem;
-    overflow-y: auto;
-    margin: 0 -1px;
+.content {
+  max-height: 17.5rem;
+  overflow-y: auto;
+  margin: 0 -1px;
 }
 
 /* A menu that took over a bottom sheet as a page (`Popover`): the page
    scrolls, the list takes all its height instead of a dropdown's. */
 :global([data-sheet-page]) .content {
-    max-height: none;
-    overflow: visible;
+  max-height: none;
+  overflow: visible;
 }
 
 .menuItem {
-position: relative;
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.625rem;
@@ -29,7 +29,6 @@ position: relative;
   white-space: nowrap;
   overflow: hidden;
 
-
   &::after {
     position: absolute;
     top: 0;
@@ -39,12 +38,18 @@ position: relative;
     content: "";
     background: var(--on-surface);
     opacity: 0;
-    transition: opacity .12s;
+    transition: opacity 0.12s;
   }
 
-  &:hover::after { opacity: var(--opacity-hover); }
-  &:active::after { opacity: var(--opacity-active); }
-  &:focus-visible::after { opacity: var(--opacity-focus); }
+  &:hover::after {
+    opacity: var(--opacity-hover);
+  }
+  &:active::after {
+    opacity: var(--opacity-active);
+  }
+  &:focus-visible::after {
+    opacity: var(--opacity-focus);
+  }
 
   /* The `::after` overlay above is already this item's focus indicator,
      contained within its own bounds. The global `:focus-visible` outline
@@ -61,10 +66,10 @@ position: relative;
   }
 }
 
-.active { 
-    color: var(--on-surface);
-    font-weight: 600;
-    background: rgba(from (var(--on-surface)) r g b / 0.20);
+.active {
+  color: var(--on-surface);
+  font-weight: 600;
+  background: rgba(from (var(--on-surface)) r g b / 0.2);
 }
 
 .menuLabel {
@@ -72,7 +77,7 @@ position: relative;
   color: var(--on-surface-variant);
   padding: 0.4375rem 0.5625rem 0.25rem;
   font-weight: 600;
-  letter-spacing: .03em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
@@ -88,7 +93,10 @@ position: relative;
   margin-bottom: 0.25rem;
   outline: none;
 
-  &:focus { border-color: var(--tertiary); }}
+  &:focus {
+    border-color: var(--tertiary);
+  }
+}
 
 .label {
   overflow: hidden;
@@ -99,7 +107,9 @@ position: relative;
 .cursorNormal {
   cursor: default;
 
-  &:hover::after { opacity: 0; }
+  &:hover::after {
+    opacity: 0;
+  }
 }
 
 .menuItem,

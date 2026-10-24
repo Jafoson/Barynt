@@ -99,7 +99,11 @@
   cursor: pointer;
 
   &[data-bg="tint"] {
-    background: color-mix(in srgb, var(--accent) 14%, var(--surface-container-low));
+    background: color-mix(
+      in srgb,
+      var(--accent) 14%,
+      var(--surface-container-low)
+    );
   }
 
   &[data-bg="gradient"] {
@@ -149,9 +153,7 @@
   outline-offset: 0.125rem;
   background: var(--accent);
   cursor: pointer;
-  transition:
-    outline-color 0.12s,
-    transform 0.1s;
+  transition: outline-color 0.12s, transform 0.1s;
 
   &:hover,
   &:focus-visible {

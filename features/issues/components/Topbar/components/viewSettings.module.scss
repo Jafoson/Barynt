@@ -74,7 +74,6 @@
   border-top: 1px solid var(--outline-variant);
 }
 
-
 /* A panel with many options (the filters) scrolls instead of running off
    the screen. */
 .scrolling {
@@ -82,7 +81,6 @@
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-
 
 /* One filter: its row, and the chips of what is chosen right below it. */
 .facet {

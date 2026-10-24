@@ -94,15 +94,15 @@ only in new workspaces.
 **The cost:** a system role isn't editable — changing it would affect every
 tenant. Anyone who needs "Member, but without labels" creates a new role in
 their own workspace. In the role editor, the shared roles show up marked
-*Shared*, with a locked matrix, so it stays clear what they grant.
+_Shared_, with a locked matrix, so it stays clear what they grant.
 
-| `system` | `scope` | `workspaceId` | `projectId` | Meaning |
-|---|---|---|---|---|
-| `true` | (any) | `NULL` | `NULL` | default role, applies to everyone |
-| `false` | `PLATFORM` | `NULL` | `NULL` | custom platform role |
-| `false` | `WORKSPACE` | set | `NULL` | custom role of this workspace |
-| `false` | `PROJECT` | set | `NULL` | custom role, in **all** projects of the workspace |
-| `false` | `PROJECT` | set | set | custom role, only in this project |
+| `system` | `scope`     | `workspaceId` | `projectId` | Meaning                                           |
+| -------- | ----------- | ------------- | ----------- | ------------------------------------------------- |
+| `true`   | (any)       | `NULL`        | `NULL`      | default role, applies to everyone                 |
+| `false`  | `PLATFORM`  | `NULL`        | `NULL`      | custom platform role                              |
+| `false`  | `WORKSPACE` | set           | `NULL`      | custom role of this workspace                     |
+| `false`  | `PROJECT`   | set           | `NULL`      | custom role, in **all** projects of the workspace |
+| `false`  | `PROJECT`   | set           | set         | custom role, only in this project                 |
 
 A `CHECK` constraint enforces this table instead of merely documenting it.
 
@@ -115,11 +115,11 @@ A `CHECK` constraint enforces this table instead of merely documenting it.
 `User.platformRoleId` → `Role` with `scope = PLATFORM`. Governs platform
 operations (`/admin`, accounts, suspending workspaces).
 
-| Role | Rank | Content |
-|---|:---:|---|
-| `platform_admin` | 2 | every platform permission **except** `tenant.access` |
-| `platform_support` | 1 | `platform.access` + `tenant.access` |
-| `platform_member` | 0 | none — default for every account |
+| Role               | Rank | Content                                              |
+| ------------------ | :--: | ---------------------------------------------------- |
+| `platform_admin`   |  2   | every platform permission **except** `tenant.access` |
+| `platform_support` |  1   | `platform.access` + `tenant.access`                  |
+| `platform_member`  |  0   | none — default for every account                     |
 
 **`tenant.access` is the master key** into other people's workspaces. It can
 only live on a platform role: tenant permissions aren't grantable at this
@@ -134,15 +134,15 @@ side effect of being an admin.
 
 `WorkspaceMember.roleId` → `Role` with `scope = WORKSPACE`.
 
-| Role | Rank | Summary |
-|---|:---:|---|
-| `owner` | 6 | everything; the only one with `workspace.delete` |
-| `admin` | 5 | everything except `workspace.delete` |
-| `manager` | 4 | without `role.manage`, without `project.view.all` |
-| `project_lead` | 3 | full project permissions, no workspace administration |
-| `member` | 2 | own issues, commenting, labels |
-| `viewer` | 1 | read and comment |
-| `guest` | 0 | same as viewer |
+| Role           | Rank | Summary                                               |
+| -------------- | :--: | ----------------------------------------------------- |
+| `owner`        |  6   | everything; the only one with `workspace.delete`      |
+| `admin`        |  5   | everything except `workspace.delete`                  |
+| `manager`      |  4   | without `role.manage`, without `project.view.all`     |
+| `project_lead` |  3   | full project permissions, no workspace administration |
+| `member`       |  2   | own issues, commenting, labels                        |
+| `viewer`       |  1   | read and comment                                      |
+| `guest`        |  0   | same as viewer                                        |
 
 Workspace roles may carry project-related permissions — those apply in
 **all** projects of the workspace where the person doesn't have their own
@@ -152,13 +152,13 @@ project role. Once they do, that role decides instead.
 
 `ProjectMember.roleId` → `Role` with `scope = PROJECT`.
 
-| Role | Rank | ALLOW | DENY |
-|---|:---:|---|---|
-| `project_admin` | 4 | everything in its scope | — |
-| `contributor` | 3 | create, edit own, comment, labels | — |
-| `project_viewer` | 2 | read + comment | everything else |
-| `project_guest` | 1 | read + comment | everything else |
-| `blocked` | 0 | — | **everything** |
+| Role             | Rank | ALLOW                             | DENY            |
+| ---------------- | :--: | --------------------------------- | --------------- |
+| `project_admin`  |  4   | everything in its scope           | —               |
+| `contributor`    |  3   | create, edit own, comment, labels | —               |
+| `project_viewer` |  2   | read + comment                    | everything else |
+| `project_guest`  |  1   | read + comment                    | everything else |
+| `blocked`        |  0   | —                                 | **everything**  |
 
 ---
 
@@ -203,7 +203,7 @@ at all in the scope in question derives their authority from the scope above
 and is unbounded upward. `assignmentCeiling()` handles that:
 
 ```ts
-assignmentCeiling(access, "PROJECT")
+assignmentCeiling(access, "PROJECT");
 // own project role → its rank
 // no project role   → Infinity (authority comes from above)
 ```
@@ -217,8 +217,13 @@ hierarchy also applies to custom roles.
 
 ```ts
 import {
-  getAccess, accessFor, can, hasPermission,
-  requirePermission, requirePermissionOr, PLATFORM,
+  getAccess,
+  accessFor,
+  can,
+  hasPermission,
+  requirePermission,
+  requirePermissionOr,
+  PLATFORM,
 } from "@/lib/permissions";
 
 // A single check, throws on failure:
@@ -227,8 +232,11 @@ await requirePermission("workspace.update", { workspaceId });
 // `.own`/`.any` pair — satisfied as soon as either one applies:
 await requirePermissionOr([
   { permission: "issue.delete.any", ctx: { projectId } },
-  { permission: "issue.delete.own", ctx: { projectId },
-    ownerIds: [issue.reporterId, issue.assigneeId] },
+  {
+    permission: "issue.delete.own",
+    ctx: { projectId },
+    ownerIds: [issue.reporterId, issue.assigneeId],
+  },
 ]);
 
 // Many flags at once (UIs, loops) — one resolution instead of n:
@@ -238,7 +246,7 @@ access.rank("PROJECT");
 
 // Lists without N+1 — the visibility rule for whole project lists:
 const visible = await accessibleProjectIds(userId, workspaceId);
-const mine = await visibleProjectIds(workspaceId);   // for the logged-in user
+const mine = await visibleProjectIds(workspaceId); // for the logged-in user
 
 // Entering the tenant — not a permission, but membership:
 await canEnterWorkspace(userId, workspaceId);
@@ -263,12 +271,12 @@ checks it.
 the data definition:
 
 ```ts
-can(uid, "platform.access",  PLATFORM)         // ✓ PLATFORM only
-can(uid, "workspace.update", { workspaceId })  // ✓ WORKSPACE only
-can(uid, "label.create",     { workspaceId })  // ✓ both tenant scopes
-can(uid, "label.create",     { projectId })    // ✓
-can(uid, "workspace.update", { projectId })    // ✗ compile error
-can(uid, "issue.create",     PLATFORM)         // ✗ compile error
+can(uid, "platform.access", PLATFORM); // ✓ PLATFORM only
+can(uid, "workspace.update", { workspaceId }); // ✓ WORKSPACE only
+can(uid, "label.create", { workspaceId }); // ✓ both tenant scopes
+can(uid, "label.create", { projectId }); // ✓
+can(uid, "workspace.update", { projectId }); // ✗ compile error
+can(uid, "issue.create", PLATFORM); // ✗ compile error
 ```
 
 A wrong context is thus a compile error instead of a silent `false` answer.
@@ -290,15 +298,15 @@ only protects the pages beneath it, not every call to a function.
 Write actions require their permission, read queries require visibility.
 Without that, `blocked` would be a role that only grays out buttons:
 
-| Query | Check |
-|---|---|
-| `getProjects`, `getProjectsWithStats` | filtered by `visibleProjectIds` |
-| `getIssuesByProject` | `project.view` |
-| `getIssueById`, `getIssueByRef` | `project.view`, otherwise `null` |
-| `getSearchIssues`, `getMyIssues`, `getInboxIssues` | filtered to visible projects |
-| `getLabels` | project labels only from visible projects |
-| `getMembers`, `getTeams` | `canEnterWorkspace` |
-| `getProjectMembersView`, `getProjectSettingsView` | `project.view`, otherwise `null` |
+| Query                                              | Check                                     |
+| -------------------------------------------------- | ----------------------------------------- |
+| `getProjects`, `getProjectsWithStats`              | filtered by `visibleProjectIds`           |
+| `getIssuesByProject`                               | `project.view`                            |
+| `getIssueById`, `getIssueByRef`                    | `project.view`, otherwise `null`          |
+| `getSearchIssues`, `getMyIssues`, `getInboxIssues` | filtered to visible projects              |
+| `getLabels`                                        | project labels only from visible projects |
+| `getMembers`, `getTeams`                           | `canEnterWorkspace`                       |
+| `getProjectMembersView`, `getProjectSettingsView`  | `project.view`, otherwise `null`          |
 
 These checks **fail empty instead of throwing**: the queries run in Server
 Components that render in parallel with the layout — an exception there
@@ -317,13 +325,13 @@ Level 3 is UX only, but it shouldn't guess. **No component checks for
 itself** — every one receives ready-made flags from the Server Component
 above it, and none of them knows a role name:
 
-| UI | Flags | Source |
-|---|---|---|
-| Members (workspace) | `can.invite`, `can.setRole`, `can.remove` | page via `getAccess` |
-| Members (project) | `canAdd`, `canSetRole`, `canRemove`, per-row `manageable` | `getProjectMembersView` |
-| Project settings | `canUpdate`, `canDelete` | `getProjectSettingsView` |
-| Role editor | `canManage`, `grantable`, `maxRank`, per-role `manageable` | `getRoleManagerView` |
-| "New issue" | `creatableProjectIds` | `getIssueComposerData` |
+| UI                  | Flags                                                      | Source                   |
+| ------------------- | ---------------------------------------------------------- | ------------------------ |
+| Members (workspace) | `can.invite`, `can.setRole`, `can.remove`                  | page via `getAccess`     |
+| Members (project)   | `canAdd`, `canSetRole`, `canRemove`, per-row `manageable`  | `getProjectMembersView`  |
+| Project settings    | `canUpdate`, `canDelete`                                   | `getProjectSettingsView` |
+| Role editor         | `canManage`, `grantable`, `maxRank`, per-role `manageable` | `getRoleManagerView`     |
+| "New issue"         | `creatableProjectIds`                                      | `getIssueComposerData`   |
 
 The last case shows the pattern: there are **three** places that create an
 issue (the sidebar button, the board column, the list's group header), and
@@ -342,11 +350,11 @@ down, there'd be cards with no project name.
 
 Three routes, one component (`features/roles/components/RoleManager`):
 
-| Route | Context for `role.manage` | Manages |
-|---|---|---|
-| `/admin/roles` | Platform | custom platform roles |
-| `/[workspace]/roles` | Workspace | custom workspace roles **and** the workspace's project roles |
-| `/[workspace]/project/[slug]/roles` | Project | project-owned roles |
+| Route                               | Context for `role.manage` | Manages                                                      |
+| ----------------------------------- | ------------------------- | ------------------------------------------------------------ |
+| `/admin/roles`                      | Platform                  | custom platform roles                                        |
+| `/[workspace]/roles`                | Workspace                 | custom workspace roles **and** the workspace's project roles |
+| `/[workspace]/project/[slug]/roles` | Project                   | project-owned roles                                          |
 
 `role.manage` is the same key everywhere — which bucket is meant is decided
 purely by context. The workspace's project roles deliberately hang off the
@@ -375,11 +383,11 @@ A role that's still assigned to someone can't be deleted (foreign key set to
 individually — so every action checks its own, both in the workspace
 (`features/issues/actions.ts`) and in the project (`features/projects/actions.ts`):
 
-| Action | Permission |
-|---|---|
-| add, invite by email | `member.invite` |
-| change a member's role | `member.role.update` |
-| remove from workspace/project | `member.remove` |
+| Action                        | Permission           |
+| ----------------------------- | -------------------- |
+| add, invite by email          | `member.invite`      |
+| change a member's role        | `member.role.update` |
+| remove from workspace/project | `member.remove`      |
 
 The UI gets the three flags separately (`canAdd`, `canSetRole`,
 `canRemove`) and shows exactly what the action also allows through. On top
@@ -400,7 +408,7 @@ invitation gets no permissions until it's accepted. Before that, there was
 no path there in the first place — `pending` was set and never cleared
 again.
 
-`/invite/<token>` is therefore public (`proxy.ts`): the token *is* the
+`/invite/<token>` is therefore public (`proxy.ts`): the token _is_ the
 authorization, and whoever redeems it doesn't have a password yet. Unknown,
 expired, already used, or workspace suspended all look identical — otherwise
 the page would be an oracle for valid tokens. There's no mail sending; the

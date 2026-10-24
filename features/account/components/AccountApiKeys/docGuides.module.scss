@@ -100,7 +100,10 @@
 .row,
 .usage {
   display: grid;
-  grid-template-columns: minmax(6rem, max-content) minmax(0, 1fr) minmax(0, max-content);
+  grid-template-columns: minmax(6rem, max-content) minmax(0, 1fr) minmax(
+      0,
+      max-content
+    );
   gap: 0.75rem;
   align-items: baseline;
   padding: 0.4375rem 0;

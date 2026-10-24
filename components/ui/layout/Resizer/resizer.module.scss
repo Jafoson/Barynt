@@ -18,7 +18,7 @@
     margin: 0 auto;
     background: var(--tertiary);
     opacity: 0;
-    transition: opacity .12s;
+    transition: opacity 0.12s;
   }
 
   &:hover::after,

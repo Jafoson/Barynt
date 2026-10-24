@@ -36,7 +36,9 @@
     gap: 0.25rem;
 
     /* At 10px text size, rounding naturally positions the dot correctly. */
-    .dot { translate: none; }
+    .dot {
+      translate: none;
+    }
   }
 
   /* Less padding on the right, the cross brings its own hit area. */
@@ -44,8 +46,12 @@
     padding-right: 0.375rem;
   }
 
-  &.sm.removable { padding-right: 0.3125rem; }
-  &.xs.removable { padding-right: 0.25rem; }
+  &.sm.removable {
+    padding-right: 0.3125rem;
+  }
+  &.xs.removable {
+    padding-right: 0.25rem;
+  }
 
   &.filled {
     background: color-mix(in oklab, var(--label-color) 15%, transparent);
@@ -95,8 +101,8 @@
   height: 0.875rem;
   border-radius: var(--radius-pill);
   color: inherit;
-  opacity: .5;
-  transition: opacity .12s, background .12s;
+  opacity: 0.5;
+  transition: opacity 0.12s, background 0.12s;
 
   &:hover {
     opacity: 1;

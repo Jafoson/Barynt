@@ -127,6 +127,8 @@ function GroupParts({
   return (
     <>
       {node.rules.map((child, i) => (
+        // Rules carry no ids; their place plus what they say is the key.
+        // biome-ignore lint/suspicious/noArrayIndexKey: see above
         <Fragment key={`${i}:${labelsOf.member(child)}`}>
           {i > 0 && (
             <span className={styles.opPill} data-op={node.op}>

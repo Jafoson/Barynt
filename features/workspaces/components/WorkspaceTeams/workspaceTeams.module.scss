@@ -17,7 +17,6 @@
 
   @include card-rows.card-rows;
   @include card-rows.page-scroll-lists;
-
 }
 
 .team {
@@ -111,12 +110,27 @@
    the projects on a line of their own, wrapping if there are several. */
 .content {
   @include bp.phone {
-    td[data-col="team"] { order: 1; flex: 1 1 calc(100% - 6.5rem); }
-    td[data-col="actions"] { order: 2; }
-    td[data-col="lead"] { order: 3; }
-    td[data-col="members"] { order: 4; }
-    td[data-col="open"] { order: 5; margin-inline-start: auto; }
-    td[data-col="projects"] { order: 6; flex: 1 1 100%; }
+    td[data-col="team"] {
+      order: 1;
+      flex: 1 1 calc(100% - 6.5rem);
+    }
+    td[data-col="actions"] {
+      order: 2;
+    }
+    td[data-col="lead"] {
+      order: 3;
+    }
+    td[data-col="members"] {
+      order: 4;
+    }
+    td[data-col="open"] {
+      order: 5;
+      margin-inline-start: auto;
+    }
+    td[data-col="projects"] {
+      order: 6;
+      flex: 1 1 100%;
+    }
   }
 }
 

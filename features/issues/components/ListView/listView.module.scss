@@ -49,8 +49,15 @@ $tracks: (
 $steps: (
   60rem: (labels),
   52rem: (updated),
-  44rem: (priority, dueDate, storyPoints),
-  36rem: (project, type),
+  44rem: (
+    priority,
+    dueDate,
+    storyPoints,
+  ),
+  36rem: (
+    project,
+    type,
+  ),
 );
 
 @function track-list($hidden, $with-project) {
@@ -61,7 +68,7 @@ $steps: (
     } @else if
       list.index($hidden, $col) ==
       null and
-      ($col != project or $with-project)
+        ($col != project or $with-project)
     {
       $out: list.append($out, $track, space);
     }
