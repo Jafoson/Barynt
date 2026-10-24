@@ -137,6 +137,72 @@ export const SHORTCUT_KEYS = [
 ] as const;
 export type ShortcutKey = (typeof SHORTCUT_KEYS)[number];
 
+/**
+ * An external link among the shortcut tiles (BARY-182) — its own name, an
+ * address outside the app, an icon from a fixed set. A fixed set because
+ * every icon has to be a literal the bundle picks up; a site's favicon or
+ * any icon name would load from elsewhere at runtime (BARY-45).
+ */
+export const LINK_ICONS = [
+  "lucide:link",
+  "lucide:globe",
+  "lucide:file-text",
+  "lucide:book-open",
+  "lucide:folder",
+  "lucide:table",
+  "lucide:chart-column",
+  "lucide:calendar",
+  "lucide:message-circle",
+  "lucide:video",
+  "lucide:palette",
+  "logos:github-icon",
+  "logos:gitlab",
+  "logos:figma",
+  "logos:slack-icon",
+  "logos:notion-icon",
+  "logos:google-drive",
+  "logos:jira",
+  "logos:confluence",
+  "logos:miro-icon",
+  "logos:linear-icon",
+  "logos:microsoft-teams",
+  "logos:discord-icon",
+  "logos:youtube-icon",
+] as const;
+export type LinkIcon = (typeof LINK_ICONS)[number];
+
+export interface ShortcutLink {
+  id: string;
+  label: string;
+  url: string;
+  icon?: LinkIcon;
+}
+
+/** A tile in the chosen order: a place in the app, or `link:<id>`. */
+export type ShortcutChoice = ShortcutKey | `link:${string}`;
+
+export const linkKey = (id: string): ShortcutChoice => `link:${id}`;
+
+/**
+ * What someone typed as a link's address, as one to store — `figma.com`
+ * becomes `https://figma.com`. `null` for anything that isn't a plain
+ * web address (`javascript:`, `mailto:`, garbage).
+ */
+export function normalizeLinkUrl(input: string): string | null {
+  const raw = input.trim();
+  if (!raw) return null;
+  const withScheme = /^[a-z][a-z\d+.-]*:/i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const url = new URL(withScheme);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    if (!url.hostname.includes(".") && url.hostname !== "localhost")
+      return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 export const ISSUE_SORTS = [
   "updated",
   "created",
@@ -233,7 +299,9 @@ export interface WidgetConfig {
    *  (BARY-170). Unset: the kind's defaults. */
   elements?: WidgetElement[];
   /** The shortcut tiles shown, in order; unset means every one offered. */
-  shortcuts?: ShortcutKey[];
+  shortcuts?: ShortcutChoice[];
+  /** External links among the shortcut tiles (BARY-182). */
+  links?: ShortcutLink[];
   /** A custom widget's building blocks, top to bottom (`blocks` kind). */
   blocks?: WidgetBlock[];
   /** Burnup: done against everything, or what's left counting down. */
@@ -1359,7 +1427,27 @@ const baseConfigShape = z.object({
   background: z.enum(BACKGROUNDS).optional(),
   accent: z.enum(ACCENTS).optional(),
   text: z.string().max(2000).optional(),
-  shortcuts: z.array(z.enum(SHORTCUT_KEYS)).max(20).optional(),
+  shortcuts: z
+    .array(
+      z.union([z.enum(SHORTCUT_KEYS), z.string().regex(/^link:[\w-]{1,40}$/)]),
+    )
+    .max(40)
+    .optional()
+    .transform((list) => list as ShortcutChoice[] | undefined),
+  links: z
+    .array(
+      z.object({
+        id: z.string().regex(/^[\w-]{1,40}$/),
+        label: z.string().trim().min(1).max(60),
+        url: z
+          .string()
+          .max(2000)
+          .refine((url) => normalizeLinkUrl(url) === url),
+        icon: z.enum(LINK_ICONS).optional(),
+      }),
+    )
+    .max(20)
+    .optional(),
   burn: z.enum(BURN_VIEWS).optional(),
   targetDate: z
     .string()
@@ -1528,9 +1616,9 @@ export function accentOf(widget: Widget): WidgetAccent {
  * what the place offers. A choice the viewer can't reach (no permission,
  * a workspace-only target on a project) simply drops out.
  */
-export function pickShortcuts<T extends { key: ShortcutKey; default: boolean }>(
+export function pickShortcuts<T extends { key: string; default: boolean }>(
   offered: T[],
-  chosen: ShortcutKey[] | undefined,
+  chosen: readonly string[] | undefined,
 ): T[] {
   // Nothing chosen yet: the tiles shown by default; the rest wait in the
   // settings to be switched on.

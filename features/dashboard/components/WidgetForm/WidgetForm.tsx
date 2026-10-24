@@ -231,7 +231,9 @@ export function WidgetForm({
             default: item.default,
           }))}
           chosen={config.shortcuts}
-          onChange={(shortcuts) => set({ shortcuts })}
+          links={config.links}
+          sheet={sheet}
+          onChange={({ shortcuts, links }) => set({ shortcuts, links })}
         />
       )}
 

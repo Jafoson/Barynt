@@ -1582,6 +1582,17 @@
     "place": "Ort"
   },
   "widgets": {
+    "linkAdd": "Externer Link",
+    "linkAddTitle": "Externer Link",
+    "linkEditTitle": "Link bearbeiten",
+    "linkEdit": "„{name}“ bearbeiten",
+    "linkRemove": "„{name}“ entfernen",
+    "linkName": "Name",
+    "linkNamePlaceholder": "z. B. Figma-Entwürfe",
+    "linkNameMissing": "Gib dem Link einen Namen.",
+    "linkUrl": "URL",
+    "linkUrlInvalid": "Keine gültige Web-Adresse.",
+    "linkIcon": "Icon",
     "discardTitle": "Änderungen verwerfen?",
     "discardBody": "Das Dashboard kehrt zum gespeicherten Stand zurück.",
     "discard": "Verwerfen",

@@ -1582,6 +1582,17 @@
     "place": "Place"
   },
   "widgets": {
+    "linkAdd": "External link",
+    "linkAddTitle": "External link",
+    "linkEditTitle": "Edit link",
+    "linkEdit": "Edit “{name}”",
+    "linkRemove": "Remove “{name}”",
+    "linkName": "Name",
+    "linkNamePlaceholder": "e.g. Figma designs",
+    "linkNameMissing": "Give the link a name.",
+    "linkUrl": "URL",
+    "linkUrlInvalid": "Not a valid web address.",
+    "linkIcon": "Icon",
     "discardTitle": "Discard changes?",
     "discardBody": "The dashboard goes back to its saved state.",
     "discard": "Discard",
