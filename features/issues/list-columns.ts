@@ -31,9 +31,22 @@ export const FIXED_LIST_COLUMNS: readonly ListColumn[] = [
   "title",
 ];
 
-/** What a list starts with: what a board card shows (BARY-175) — minus
- *  the fields hidden for the board (`listColumns`). */
+/** What a list starts with (BARY-175) — minus the fields hidden for the
+ *  board (`listColumns`). The project only across projects. */
 export const DEFAULT_LIST_COLUMNS: readonly ListColumn[] = [
+  "priority",
+  "identifier",
+  "project",
+  "status",
+  "title",
+  "labels",
+  "assignee",
+  "updated",
+];
+
+/** A phone's card rows: what the list showed before it became a table —
+ *  they stay as they were. */
+export const CARD_ROW_COLUMNS: readonly ListColumn[] = [
   "priority",
   "identifier",
   "project",
@@ -41,11 +54,11 @@ export const DEFAULT_LIST_COLUMNS: readonly ListColumn[] = [
   "type",
   "title",
   "labels",
+  "comments",
   "assignee",
   "storyPoints",
   "dueDate",
   "updated",
-  "comments",
 ];
 
 export function isListColumn(value: string): value is ListColumn {

@@ -40,6 +40,7 @@ import { orderGroups } from "@/features/issues/group-order";
 import { isGroupHidden } from "@/features/issues/hidden-groups";
 import { useIssueOpen } from "@/features/issues/issue-links";
 import {
+  CARD_ROW_COLUMNS,
   COLUMN_FIELD,
   COLUMN_SORT,
   columnOfSort,
@@ -407,12 +408,9 @@ export function ListView({
   // count.
   const shownColumns: ListColumn[] = isCompact
     ? (() => {
-        const base = listColumns(undefined, hiddenCardFields).filter(
-          (id) => available(id) && id !== "comments",
+        return CARD_ROW_COLUMNS.filter(
+          (id) => available(id) && !hiddenCardFields.includes(id),
         );
-        const at = base.indexOf("assignee");
-        base.splice(at < 0 ? base.length : at, 0, "comments");
-        return base;
       })()
     : // Grouped by status, every row of a group says the same.
       chosen.filter((id) => id !== "status" || groupKey !== "status");
