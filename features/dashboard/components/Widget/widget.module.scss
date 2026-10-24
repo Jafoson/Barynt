@@ -1412,6 +1412,20 @@
     outline: 2px solid var(--tertiary);
     outline-offset: 1px;
   }
+
+  /* An external link (BARY-182) says it leaves the app. */
+  &[data-external] {
+    position: relative;
+
+    &::after {
+      content: "↗";
+      position: absolute;
+      top: 0.375rem;
+      right: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--on-surface-variant);
+    }
+  }
 }
 
 @container w (max-height: 13.75rem) {

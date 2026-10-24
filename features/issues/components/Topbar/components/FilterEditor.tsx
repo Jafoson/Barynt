@@ -52,6 +52,11 @@ interface FilterEditorProps {
   /** Inside the phone's filter sheet: no footer — "remove all" sits in the
    *  sheet's bar and its back button is "done" — and touch-sized controls. */
   inSheet?: boolean;
+  /** More settings between the conditions and the footer — a widget's
+   *  order (BARY-182). */
+  extra?: React.ReactNode;
+  /** "Cancel" also puts those back. */
+  onCancel?: () => void;
 }
 
 const isList = (is: FilterOp) => is === "any" || is === "none" || is === "all";
@@ -80,6 +85,8 @@ export function FilterEditor({
   area,
   onDone,
   inSheet = false,
+  extra,
+  onCancel,
 }: FilterEditorProps) {
   const t = useTranslations();
   const labels = useFilterLabels(lookups);
@@ -234,6 +241,8 @@ export function FilterEditor({
         />
       </div>
 
+      {extra && <div className={styles.extra}>{extra}</div>}
+
       {!inSheet && (
         <div className={styles.footer}>
           <Button
@@ -251,6 +260,7 @@ export function FilterEditor({
               variant="elevated"
               onClick={() => {
                 onChange(initial);
+                onCancel?.();
                 onDone();
               }}
             >

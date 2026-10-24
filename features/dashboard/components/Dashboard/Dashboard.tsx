@@ -8,6 +8,7 @@ import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/Segment
 import { SplitButton } from "@/components/ui/atoms/SplitButton/SplitButton";
 import { RangePicker } from "@/components/ui/charts/RangePicker/RangePicker";
 import { ScopePicker } from "@/components/ui/charts/ScopePicker/ScopePicker";
+import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
 import {
   loadWidgetData,
   resetDashboardWidgets,
@@ -27,8 +28,9 @@ import type { FilterLabelLookups } from "@/features/issues/components/Topbar/fil
 import { useOpenViewModal } from "@/features/views/useOpenViewModal";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import type { RangeKey } from "@/lib/buckets";
-import { useModal } from "@/lib/context";
+import { useHasOpenModal, useModal } from "@/lib/context";
 import { setFabAction } from "@/lib/fab-action";
+import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { NoteContext } from "../NoteContext/NoteContext";
 import { useWidgetTitle, Widget } from "../Widget/Widget";
@@ -171,6 +173,29 @@ export function Dashboard({
     setEditing(false);
     setDraft(saved);
   };
+
+  // Esc leaves edit mode like "Cancel" — asking first when there's
+  // something to lose. Not while a window is open: Esc closes that one.
+  const confirm = useConfirm();
+  const hasOpenModal = useHasOpenModal();
+  useShortcut(
+    "esc",
+    async () => {
+      if (
+        dirty &&
+        !(await confirm({
+          title: t("discardTitle"),
+          description: t("discardBody"),
+          confirmLabel: t("discard"),
+          cancelLabel: t("keepEditing"),
+          danger: true,
+        }))
+      )
+        return;
+      discard();
+    },
+    { enabled: editing && !hasOpenModal },
+  );
 
   const save = (level: "personal" | "shared") =>
     startTransition(async () => {

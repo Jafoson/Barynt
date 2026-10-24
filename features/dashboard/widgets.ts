@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { type IssueFilter, issueFilterSchema } from "@/features/issues/filter";
+import { VIEW_ICONS, type ViewIcon } from "@/features/views/icons";
 
 // ─── Dashboard widgets (BARY-169) ───────────────────────────────────────────
 //
@@ -137,6 +138,47 @@ export const SHORTCUT_KEYS = [
 ] as const;
 export type ShortcutKey = (typeof SHORTCUT_KEYS)[number];
 
+/**
+ * An external link among the shortcut tiles (BARY-182) — its own name, an
+ * address outside the app, and the same icons a view can carry. Without
+ * one it shows a plain link icon.
+ */
+export const LINK_ICONS = VIEW_ICONS;
+export type LinkIcon = ViewIcon;
+export const LINK_ICON_DEFAULT = "lucide:link";
+
+export interface ShortcutLink {
+  id: string;
+  label: string;
+  url: string;
+  icon?: LinkIcon;
+}
+
+/** A tile in the chosen order: a place in the app, or `link:<id>`. */
+export type ShortcutChoice = ShortcutKey | `link:${string}`;
+
+export const linkKey = (id: string): ShortcutChoice => `link:${id}`;
+
+/**
+ * What someone typed as a link's address, as one to store — `figma.com`
+ * becomes `https://figma.com`. `null` for anything that isn't a plain
+ * web address (`javascript:`, `mailto:`, garbage).
+ */
+export function normalizeLinkUrl(input: string): string | null {
+  const raw = input.trim();
+  if (!raw) return null;
+  const withScheme = /^[a-z][a-z\d+.-]*:/i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const url = new URL(withScheme);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    if (!url.hostname.includes(".") && url.hostname !== "localhost")
+      return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 export const ISSUE_SORTS = [
   "updated",
   "created",
@@ -144,6 +186,12 @@ export const ISSUE_SORTS = [
   "priority",
 ] as const;
 export type IssueSort = (typeof ISSUE_SORTS)[number];
+/** "Needs attention" can also order by why an issue needs it, "Age" by how
+ *  old — each its own default, the order it always had (BARY-182). */
+export const ATTENTION_SORTS = ["urgency", ...ISSUE_SORTS] as const;
+export const AGE_SORTS = ["oldest", ...ISSUE_SORTS] as const;
+const WIDGET_SORTS = ["urgency", "oldest", ...ISSUE_SORTS] as const;
+export type WidgetSort = (typeof WIDGET_SORTS)[number];
 
 /** What a widget adds up (BARY-170): issues, or their story points or
  *  estimated hours. Custom number fields join here later (BARY-129). */
@@ -217,7 +265,7 @@ export interface WidgetConfig {
   seriesChart?: SeriesChart;
   /** Only issues that are still open. */
   openOnly?: boolean;
-  sort?: IssueSort;
+  sort?: WidgetSort;
   labels?: ChartLabels;
   background?: WidgetBackground;
   accent?: WidgetAccent;
@@ -227,7 +275,9 @@ export interface WidgetConfig {
    *  (BARY-170). Unset: the kind's defaults. */
   elements?: WidgetElement[];
   /** The shortcut tiles shown, in order; unset means every one offered. */
-  shortcuts?: ShortcutKey[];
+  shortcuts?: ShortcutChoice[];
+  /** External links among the shortcut tiles (BARY-182). */
+  links?: ShortcutLink[];
   /** A custom widget's building blocks, top to bottom (`blocks` kind). */
   blocks?: WidgetBlock[];
   /** Burnup: done against everything, or what's left counting down. */
@@ -1348,12 +1398,32 @@ const baseConfigShape = z.object({
   splitBy: z.enum(GROUP_FIELDS).optional(),
   seriesChart: z.enum(SERIES_CHARTS).optional(),
   openOnly: z.boolean().optional(),
-  sort: z.enum(ISSUE_SORTS).optional(),
+  sort: z.enum(WIDGET_SORTS).optional(),
   labels: labelsSchema.optional(),
   background: z.enum(BACKGROUNDS).optional(),
   accent: z.enum(ACCENTS).optional(),
   text: z.string().max(2000).optional(),
-  shortcuts: z.array(z.enum(SHORTCUT_KEYS)).max(20).optional(),
+  shortcuts: z
+    .array(
+      z.union([z.enum(SHORTCUT_KEYS), z.string().regex(/^link:[\w-]{1,40}$/)]),
+    )
+    .max(40)
+    .optional()
+    .transform((list) => list as ShortcutChoice[] | undefined),
+  links: z
+    .array(
+      z.object({
+        id: z.string().regex(/^[\w-]{1,40}$/),
+        label: z.string().trim().min(1).max(60),
+        url: z
+          .string()
+          .max(2000)
+          .refine((url) => normalizeLinkUrl(url) === url),
+        icon: z.enum(LINK_ICONS).optional(),
+      }),
+    )
+    .max(20)
+    .optional(),
   burn: z.enum(BURN_VIEWS).optional(),
   targetDate: z
     .string()
@@ -1522,9 +1592,9 @@ export function accentOf(widget: Widget): WidgetAccent {
  * what the place offers. A choice the viewer can't reach (no permission,
  * a workspace-only target on a project) simply drops out.
  */
-export function pickShortcuts<T extends { key: ShortcutKey; default: boolean }>(
+export function pickShortcuts<T extends { key: string; default: boolean }>(
   offered: T[],
-  chosen: ShortcutKey[] | undefined,
+  chosen: readonly string[] | undefined,
 ): T[] {
   // Nothing chosen yet: the tiles shown by default; the rest wait in the
   // settings to be switched on.

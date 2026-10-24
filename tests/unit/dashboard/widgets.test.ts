@@ -15,6 +15,7 @@ import {
   minSizeChoices,
   moveWidgetTo,
   newWidget,
+  normalizeLinkUrl,
   normalizeWidget,
   notePagesSchema,
   offeredOn,
@@ -30,6 +31,7 @@ import {
   WIDGET_TYPES,
   WIDGETS,
   type Widget,
+  widgetsSchema,
 } from "@/features/dashboard/widgets";
 
 // The dashboard's widget registry (BARY-169). Pure data and arithmetic — the
@@ -521,5 +523,66 @@ describe("Flow metrics (BARY-171)", () => {
       expect(offeredOn("cfd", kind)).toBe(true);
       expect(offeredOn("timeInStatus", kind)).toBe(true);
     }
+  });
+});
+
+describe("order of list widgets (BARY-182)", () => {
+  const attention = (sort: string) => [
+    { id: "w1", type: "attention", size: "L", config: { sort } },
+  ];
+
+  it("takes urgency, oldest and the issue orders, nothing else", () => {
+    expect(widgetsSchema.safeParse(attention("urgency")).success).toBe(true);
+    expect(widgetsSchema.safeParse(attention("dueDate")).success).toBe(true);
+    expect(widgetsSchema.safeParse(attention("random")).success).toBe(false);
+    expect(widgetsSchema.safeParse(attention("oldest")).success).toBe(true);
+  });
+});
+
+describe("external links among the shortcuts (BARY-182)", () => {
+  it("makes a typed address a web address", () => {
+    expect(normalizeLinkUrl("figma.com/file/x")).toBe(
+      "https://figma.com/file/x",
+    );
+    expect(normalizeLinkUrl(" https://github.com/a/b ")).toBe(
+      "https://github.com/a/b",
+    );
+  });
+
+  it("refuses anything that isn't one", () => {
+    expect(normalizeLinkUrl("javascript:alert(1)")).toBeNull();
+    expect(normalizeLinkUrl("mailto:a@b.de")).toBeNull();
+    expect(normalizeLinkUrl("hello")).toBeNull();
+    expect(normalizeLinkUrl("")).toBeNull();
+  });
+
+  const shortcuts = (config: object) => [
+    { id: "w1", type: "shortcuts", size: "L", config },
+  ];
+
+  it("stores links and their place among the tiles", () => {
+    const parsed = widgetsSchema.safeParse(
+      shortcuts({
+        shortcuts: ["board", "link:abc-1"],
+        links: [
+          {
+            id: "abc-1",
+            label: "Figma",
+            url: "https://figma.com/",
+            icon: "lucide:star",
+          },
+        ],
+      }),
+    );
+    expect(parsed.success).toBe(true);
+  });
+
+  it("drops a link that isn't a web address", () => {
+    const parsed = widgetsSchema.safeParse(
+      shortcuts({
+        links: [{ id: "x", label: "Bad", url: "javascript:alert(1)" }],
+      }),
+    );
+    expect(parsed.success).toBe(false);
   });
 });

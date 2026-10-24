@@ -64,8 +64,13 @@ export function useWidgetTitle() {
       const first = widget.config.blocks?.[0];
       return first ? titleOf(blockWidget(widget, first)) : t("type_blocks");
     }
-    if (widget.type === "issues")
-      return t(`issuesTitle_${widget.config.sort ?? "updated"}`);
+    if (widget.type === "issues") {
+      const sort = widget.config.sort;
+      // "urgency"/"oldest" belong to other widgets — never set here.
+      return t(
+        `issuesTitle_${sort && sort !== "urgency" && sort !== "oldest" ? sort : "updated"}`,
+      );
+    }
     if (widget.type === "distribution")
       return t(`group_${widget.config.groupBy ?? "status"}`) + measure;
     if (widget.type === "matrix")

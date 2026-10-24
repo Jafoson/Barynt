@@ -7,8 +7,11 @@ import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import type { WidgetData } from "@/features/dashboard/types";
 import {
+  LINK_ICON_DEFAULT,
+  linkKey,
   pickShortcuts,
-  type ShortcutKey,
+  type ShortcutChoice,
+  type ShortcutLink,
   type Widget,
 } from "@/features/dashboard/widgets";
 import { useOpenLabelModal } from "@/features/issues/useOpenLabelModal";
@@ -38,7 +41,13 @@ export function TeamBody({ data, widget }: { data: Data; widget: Widget }) {
     case "links":
       return <Links data={data} />;
     case "shortcuts":
-      return <Shortcuts data={data} chosen={widget.config.shortcuts} />;
+      return (
+        <Shortcuts
+          data={data}
+          chosen={widget.config.shortcuts}
+          links={widget.config.links}
+        />
+      );
   }
 }
 
@@ -351,23 +360,58 @@ function Links({ data }: { data: Extract<Data, { type: "links" }> }) {
 function Shortcuts({
   data,
   chosen,
+  links = [],
 }: {
   data: Extract<Data, { type: "shortcuts" }>;
-  chosen: ShortcutKey[] | undefined;
+  chosen: ShortcutChoice[] | undefined;
+  links?: ShortcutLink[];
 }) {
   const t = useTranslations("widgets");
-  const items = pickShortcuts(data.items, chosen);
+  // The app's places and the widget's own external links (BARY-182), in
+  // one order.
+  const items = pickShortcuts(
+    [
+      ...data.items.map((item) => ({
+        ...item,
+        label: t(`shortcut_${item.key}`),
+        external: false,
+      })),
+      ...links.map((link) => ({
+        key: linkKey(link.id),
+        default: true,
+        icon: link.icon ?? LINK_ICON_DEFAULT,
+        href: link.url,
+        label: link.label,
+        external: true,
+      })),
+    ],
+    chosen,
+  );
   if (items.length === 0) {
     return <div className={styles.empty}>{t("noShortcuts")}</div>;
   }
   return (
     <nav className={styles.shortcuts} aria-label={t("type_shortcuts")}>
-      {items.map((item) => (
-        <Link key={item.key} href={item.href} className={styles.shortcut}>
-          <Icon icon={item.icon} width={18} />
-          <span>{t(`shortcut_${item.key}`)}</span>
-        </Link>
-      ))}
+      {items.map((item) =>
+        item.external ? (
+          <a
+            key={item.key}
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.shortcut}
+            data-external
+          >
+            <Icon icon={item.icon} width={18} />
+            <span>{item.label}</span>
+          </a>
+        ) : (
+          <Link key={item.key} href={item.href} className={styles.shortcut}>
+            <Icon icon={item.icon} width={18} />
+            <span>{item.label}</span>
+          </Link>
+        ),
+      )}
     </nav>
   );
 }
