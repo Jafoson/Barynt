@@ -34,12 +34,14 @@ export default async function ListPage({
   const project = projects.find((p) => p.slug === projectSlug);
   if (!project) notFound();
 
-  const [issues, composer, hiddenCardFields, groups] = await Promise.all([
-    getIssuesByProject(project.id, filters),
-    getIssueComposerData(),
-    getIssueViewPreference(project.id, "list"),
-    getIssueViewGroups(project.id, "list"),
-  ]);
+  const [issues, composer, hiddenCardFields, boardHiddenFields, groups] =
+    await Promise.all([
+      getIssuesByProject(project.id, filters),
+      getIssueComposerData(),
+      getIssueViewPreference(project.id, "list"),
+      getIssueViewPreference(project.id, "board"),
+      getIssueViewGroups(project.id, "list"),
+    ]);
   if (!composer) notFound();
 
   return (
@@ -50,6 +52,7 @@ export default async function ListPage({
         projectId={project.id}
         composer={composer}
         hiddenCardFields={hiddenCardFields}
+        boardHiddenFields={boardHiddenFields}
         hiddenGroups={groups.hiddenGroups}
         hideEmptyGroups={groups.hideEmptyGroups}
         groupOrder={groups.groupOrder}

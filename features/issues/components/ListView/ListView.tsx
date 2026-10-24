@@ -40,6 +40,7 @@ import { orderGroups } from "@/features/issues/group-order";
 import { isGroupHidden } from "@/features/issues/hidden-groups";
 import { useIssueOpen } from "@/features/issues/issue-links";
 import {
+  COLUMN_FIELD,
   COLUMN_SORT,
   columnOfSort,
   FIXED_LIST_COLUMNS,
@@ -112,6 +113,9 @@ interface ListViewProps {
   emptyTitle?: string;
   /** The list's own columns in order (BARY-175); empty: the default. */
   columns?: string[];
+  /** Fields hidden on the board — a list without columns of its own leaves
+   *  them out too, so both start out showing the same. */
+  boardHiddenFields?: string[];
   /** Stores a new column choice or order — the person's own list. */
   onColumnsChange?: (columns: string[]) => void;
   /** A saved view's columns live in its address (`?cols=`), like the rest
@@ -161,6 +165,7 @@ export function ListView({
   groupOrder = [],
   emptyTitle,
   columns: storedColumns = [],
+  boardHiddenFields = hiddenCardFields,
   onColumnsChange,
   columnsInUrl = false,
   sortReversed = false,
@@ -369,10 +374,25 @@ export function ListView({
   const storedKey = storedColumns.join(",");
   // biome-ignore lint/correctness/useExhaustiveDependencies: resync on a new stored list only
   useEffect(() => setOwnColumns(storedColumns), [storedKey]);
-  const chosen = listColumns(ownColumns, hiddenCardFields).filter(
+  // A field the project turned off has no column — across projects, only
+  // one every project turned off.
+  const scopeProjects = projectId
+    ? projects.filter((p) => p.id === projectId)
+    : projects;
+  const offField = (id: ListColumn) => {
+    const field = COLUMN_FIELD[id];
+    return (
+      field !== undefined &&
+      scopeProjects.length > 0 &&
+      scopeProjects.every(
+        (p) => !visibleDetailFields(p.hiddenDetailFields ?? []).has(field),
+      )
+    );
+  };
+  const available = (id: ListColumn) =>
     // Within one project every row would name the same one.
-    (id) => id !== "project" || projectId === undefined,
-  );
+    (id !== "project" || projectId === undefined) && !offField(id);
+  const chosen = listColumns(ownColumns, boardHiddenFields).filter(available);
   const saveColumns = (next: ListColumn[]) => {
     setOwnColumns(next);
     if (columnsInUrl) {
@@ -388,7 +408,7 @@ export function ListView({
   const shownColumns: ListColumn[] = isCompact
     ? (() => {
         const base = listColumns(undefined, hiddenCardFields).filter(
-          (id) => id !== "project" || projectId === undefined,
+          (id) => available(id) && id !== "comments",
         );
         const at = base.indexOf("assignee");
         base.splice(at < 0 ? base.length : at, 0, "comments");
@@ -662,7 +682,7 @@ export function ListView({
       header: (
         <ColumnPicker
           shown={chosen}
-          crossProject={projectId === undefined}
+          available={available}
           onChange={saveColumns}
         />
       ),

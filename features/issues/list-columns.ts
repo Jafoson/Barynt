@@ -2,6 +2,7 @@
 
 import type { CardFieldKey } from "@/features/issues/card-fields";
 import type { SortKey } from "@/features/issues/sort";
+import type { DetailFieldKey } from "@/features/projects/detail-fields";
 
 /** Every column the list can show, in no particular order. */
 export const LIST_COLUMNS = [
@@ -30,7 +31,8 @@ export const FIXED_LIST_COLUMNS: readonly ListColumn[] = [
   "title",
 ];
 
-/** What the list showed before columns could be chosen — still the start. */
+/** What a list starts with: what a board card shows (BARY-175) — minus
+ *  the fields hidden for the board (`listColumns`). */
 export const DEFAULT_LIST_COLUMNS: readonly ListColumn[] = [
   "priority",
   "identifier",
@@ -43,6 +45,7 @@ export const DEFAULT_LIST_COLUMNS: readonly ListColumn[] = [
   "storyPoints",
   "dueDate",
   "updated",
+  "comments",
 ];
 
 export function isListColumn(value: string): value is ListColumn {
@@ -80,6 +83,21 @@ export function listColumns(
   }
   return result;
 }
+
+/**
+ * The project field behind a column — a project that turned the field off
+ * (project settings, "Fields") has no column for it either.
+ */
+export const COLUMN_FIELD: Partial<Record<ListColumn, DetailFieldKey>> = {
+  priority: "priority",
+  status: "status",
+  type: "type",
+  assignee: "assignee",
+  labels: "labels",
+  storyPoints: "storyPoints",
+  estimate: "estimateHours",
+  dueDate: "dueDate",
+};
 
 /** What a column's header sorts by — none for those that don't order. */
 export const COLUMN_SORT: Partial<Record<ListColumn, SortKey>> = {

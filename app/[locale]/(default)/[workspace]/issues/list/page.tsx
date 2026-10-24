@@ -34,12 +34,14 @@ export default async function WorkspaceListPage({
   const session = await getSession();
   if (!session) redirect(`/${locale}/login`);
 
-  const [issues, composer, hiddenCardFields, groups] = await Promise.all([
-    getWorkspaceIssues(session.userId, workspace, filters),
-    getIssueComposerData(),
-    getMyIssuesViewPreference("list"),
-    getMyIssuesViewGroups("list"),
-  ]);
+  const [issues, composer, hiddenCardFields, boardHiddenFields, groups] =
+    await Promise.all([
+      getWorkspaceIssues(session.userId, workspace, filters),
+      getIssueComposerData(),
+      getMyIssuesViewPreference("list"),
+      getMyIssuesViewPreference("board"),
+      getMyIssuesViewGroups("list"),
+    ]);
   if (!composer) notFound();
 
   return (
@@ -49,6 +51,7 @@ export default async function WorkspaceListPage({
         issues={issues}
         composer={composer}
         hiddenCardFields={hiddenCardFields}
+        boardHiddenFields={boardHiddenFields}
         hiddenGroups={groups.hiddenGroups}
         hideEmptyGroups={groups.hideEmptyGroups}
         groupOrder={groups.groupOrder}

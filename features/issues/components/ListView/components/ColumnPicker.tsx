@@ -19,19 +19,20 @@ import styles from "../listView.module.scss";
  */
 export function ColumnPicker({
   shown,
-  crossProject,
+  available,
   onChange,
 }: {
   shown: ListColumn[];
-  /** Only across projects is there a project column. */
-  crossProject: boolean;
+  /** Whether a column exists here at all — a project column only across
+   *  projects, none for a field the project turned off. */
+  available: (column: ListColumn) => boolean;
   onChange: (next: ListColumn[]) => void;
 }) {
   const t = useTranslations("issues.table");
   const anchor = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const offered = LIST_COLUMNS.filter(
-    (c) => !FIXED_LIST_COLUMNS.includes(c) && (c !== "project" || crossProject),
+    (c) => !FIXED_LIST_COLUMNS.includes(c) && available(c),
   );
 
   return (
