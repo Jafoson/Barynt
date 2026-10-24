@@ -17,6 +17,14 @@ describe("where the floating new-issue button shows", () => {
     );
   });
 
+  it("shows on the workspace's board, list and views (V8)", () => {
+    expect(ISSUE_VIEW_PATH.test("/acme/issues")).toBe(true);
+    expect(ISSUE_VIEW_PATH.test("/acme/issues/list")).toBe(true);
+    expect(ISSUE_VIEW_PATH.test("/acme/view/meine-bugs")).toBe(true);
+    expect(ISSUE_VIEW_PATH.test("/acme/views")).toBe(true);
+    expect(ISSUE_VIEW_PATH.test("/acme/view/bugs/extra")).toBe(false);
+  });
+
   it("shows on my issues, board and list", () => {
     expect(ISSUE_VIEW_PATH.test("/acme/my")).toBe(true);
     expect(ISSUE_VIEW_PATH.test("/acme/my/list")).toBe(true);

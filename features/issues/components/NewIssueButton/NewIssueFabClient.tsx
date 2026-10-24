@@ -13,11 +13,12 @@ import { useNewIssueOpener } from "./useNewIssueOpener";
 
 /**
  * Where creating something from a floating button makes sense: a project's
- * board or list, its saved views (BARY-164), and "my issues" — the views full
+ * board or list, its saved views (BARY-164), the workspace's own board,
+ * list, views and directory of views (V8), and "my issues" — the views full
  * of issues. Not settings, members, the dashboard and so on.
  */
 export const ISSUE_VIEW_PATH =
-  /^\/[^/]+\/(project\/[^/]+(\/list|\/view\/[^/]+)?|my(\/list)?)\/?$/;
+  /^\/[^/]+\/(project\/[^/]+(\/list|\/view\/[^/]+)?|issues(\/list)?|views?(\/[^/]+)?|my(\/list)?)\/?$/;
 
 /** The overview pages where the same menu is on offer: the workspace's
  *  overview (its root), dashboard, projects, members and teams, and a project's overview and
