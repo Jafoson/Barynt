@@ -792,10 +792,7 @@
       "resize": "Resize “{column}”",
       "total": "Total · {count, plural, one {# issue} other {# issues}}",
       "totalGroup": "Total {group}",
-      "columnsTitle": "Columns",
-      "styleTitle": "Table style",
-      "style_modern": "Modern",
-      "style_classic": "Classic"
+      "columnsTitle": "Columns"
     }
   },
   "views": {

@@ -792,10 +792,7 @@
       "resize": "Breite von „{column}“ ändern",
       "total": "Gesamt · {count, plural, one {# Issue} other {# Issues}}",
       "totalGroup": "Summe {group}",
-      "columnsTitle": "Spalten",
-      "styleTitle": "Tabellenstil",
-      "style_modern": "Modern",
-      "style_classic": "Klassisch"
+      "columnsTitle": "Spalten"
     }
   },
   "views": {

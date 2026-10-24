@@ -75,12 +75,6 @@ interface TableBaseProps<T> {
    * under all rows — only drawn when a column has a `total`.
    */
   totals?: TableTotals<T>;
-  /**
-   * Lines between the columns that run through the group headers too — a
-   * group header then lays an empty cell per column under its content, for
-   * the caller's stylesheet to draw the line on (`td[data-col]`).
-   */
-  columnLines?: boolean;
   className?: string;
 }
 
@@ -155,7 +149,6 @@ export function Table<T>({
   dnd,
   sort,
   totals,
-  columnLines = false,
   className,
   rows,
   groups,
@@ -364,18 +357,8 @@ export function Table<T>({
             <tr
               className={styles.groupRow}
               role="row"
-              data-lines={columnLines || undefined}
               {...(dnd ? dnd.groupHeader(section.id) : {})}
             >
-              {columnLines &&
-                columns.map((column) => (
-                  <td
-                    key={column.id}
-                    className={styles.lineCell}
-                    data-col={column.id}
-                    aria-hidden="true"
-                  />
-                ))}
               <th
                 className={styles.groupCell}
                 role="columnheader"

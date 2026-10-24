@@ -10,7 +10,6 @@ import {
   ISSUE_OPEN_MODES,
   ISSUE_PAGE_OPEN_MODES,
   isTimeZone,
-  LIST_STYLES,
   PROJECT_LANDINGS,
   PROJECT_ORDERS,
   SORT_KEYS,
@@ -237,7 +236,6 @@ const BEHAVIOR_CHOICES: Partial<
   projectOrder: PROJECT_ORDERS,
   dateFormat: DATE_FORMATS,
   weekStart: WEEK_STARTS,
-  listStyle: LIST_STYLES,
 };
 
 const BEHAVIOR_FLAGS = [

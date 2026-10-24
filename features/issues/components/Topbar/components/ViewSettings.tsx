@@ -10,7 +10,6 @@ import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/Segment
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
-import { LIST_STYLES, type ListStyle } from "@/features/account/preferences";
 import type { ViewGroupsPatch } from "@/features/issues/actions";
 import {
   CARD_FIELD_KEYS,
@@ -915,22 +914,6 @@ export function DisplayPanel({
 
       {/* The list shows columns instead of card fields (BARY-175) — the
           same switches as the "+" in its header. */}
-      {state.view === "list" && columns && (
-        <div className={`${styles.row} ${styles.switchRow}`}>
-          <span className={styles.rowLabel}>
-            {t("issues.table.styleTitle")}
-          </span>
-          <SegmentedControl
-            variant="surface"
-            value={columns.style}
-            onChange={(v) => columns.onStyleChange(v as ListStyle)}
-            items={LIST_STYLES.map((s) => ({
-              value: s,
-              label: t(`issues.table.style_${s}`),
-            }))}
-          />
-        </div>
-      )}
       {state.view === "list" && columns && (
         <div className={styles.section}>
           <span className={styles.sectionTitle}>

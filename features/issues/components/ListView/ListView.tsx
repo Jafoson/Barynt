@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/layout/Table/useTableDnd";
 import type { TableSort } from "@/components/ui/layout/Table/useTableSort";
 import { updateBehavior } from "@/features/account/actions";
-import type { ListStyle } from "@/features/account/preferences";
 import { reorderIssue, updateIssue } from "@/features/issues/actions";
 import { AssigneePicker } from "@/features/issues/components/AssigneePicker/AssigneePicker";
 import { IssueTitleField } from "@/features/issues/components/IssueTitleField/IssueTitleField";
@@ -406,15 +405,6 @@ export function ListView({
     } else onColumnsChange?.(next);
   };
 
-  const { listStyle } = usePreferences();
-  // Modern or classic (lines between the columns) — the person's own,
-  // chosen in the display panel; shows at once, stored behind.
-  const [tableStyle, setTableStyle] = useState(listStyle);
-  const changeStyle = (next: ListStyle) => {
-    setTableStyle(next);
-    void updateBehavior({ listStyle: next });
-  };
-
   // The display panel offers the same switches as the "+" (BARY-175).
   const offeredColumns = LIST_COLUMNS.filter(
     (c) => !FIXED_LIST_COLUMNS.includes(c) && available(c),
@@ -433,11 +423,9 @@ export function ListView({
             shown: chosen,
             offered: offeredColumns,
             onChange: (next) => saveRef.current(next),
-            style: tableStyle,
-            onStyleChange: changeStyle,
           },
     );
-  }, [chosenKey, offeredKey, isCompact, tableStyle]);
+  }, [chosenKey, offeredKey, isCompact]);
   useEffect(() => () => setListColumnsControl(null), []);
 
   // A phone or tablet keeps its card rows as they were — the fields the
@@ -786,7 +774,6 @@ export function ListView({
       ref={containerRef}
       data-project={projectId === undefined ? "" : undefined}
       data-by-status={groupKey === "status" ? "" : undefined}
-      data-table-style={isCompact ? undefined : tableStyle}
     >
       <Table
         fill
@@ -797,7 +784,6 @@ export function ListView({
         getRowKey={(issue) => issue.id}
         dnd={isCompact ? undefined : dnd}
         sort={isCompact ? undefined : tableSort}
-        columnLines={!isCompact && tableStyle === "classic"}
         totals={
           isCompact
             ? undefined
