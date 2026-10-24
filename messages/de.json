@@ -885,7 +885,14 @@
       "moveTabEarlier": "Nach vorne",
       "moveTabLater": "Nach hinten",
       "done": "Fertig",
-      "hiddenMark": "Nicht in der Tab-Leiste"
+      "hiddenMark": "Nicht in der Tab-Leiste",
+      "start": {
+        "set": "Als Start-View des Workspace",
+        "unset": "Nicht mehr Start-View",
+        "on": "Öffnet jetzt beim Start",
+        "off": "Keine Start-View mehr",
+        "badge": "Start-View"
+      }
     }
   },
   "realtime": {

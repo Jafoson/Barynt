@@ -885,7 +885,14 @@
       "moveTabEarlier": "Move earlier",
       "moveTabLater": "Move later",
       "done": "Done",
-      "hiddenMark": "Not in the tab row"
+      "hiddenMark": "Not in the tab row",
+      "start": {
+        "set": "Make the workspace's start view",
+        "unset": "No longer the start view",
+        "on": "Now opens at start",
+        "off": "No start view anymore",
+        "badge": "Start view"
+      }
     }
   },
   "realtime": {

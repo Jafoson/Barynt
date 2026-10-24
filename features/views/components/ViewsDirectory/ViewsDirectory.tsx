@@ -30,6 +30,7 @@ import { useOpenViewModal } from "@/features/views/useOpenViewModal";
 import { type MenuView, useViewMenu } from "@/features/views/useViewMenu";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useModal } from "@/lib/context";
+import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useTimeAgo } from "@/lib/utils/useTimeAgo";
 import type { Project } from "@/types";
@@ -214,6 +215,8 @@ export function ViewsDirectory({
   // much as from the row itself.
   const { openModal } = useModal();
   const isPhone = useMediaQuery(PHONE_QUERY);
+  // Which view the app — or a project — starts on (V7), for its card.
+  const preferences = usePreferences();
   const customizeTabs = (placeId: string) => {
     const entries: TabEntry[] = tabOrder(
       views.filter((v) => (v.projectId ?? "") === placeId),
@@ -358,6 +361,15 @@ export function ViewsDirectory({
           </span>
         </div>
         <div className={styles.tags}>
+          {(v.projectId
+            ? v.startView
+            : preferences.startPage === "view" &&
+              preferences.startViewId === v.id) && (
+            <span className={styles.tag} data-kind="start">
+              <Icon icon="lucide:house" width={12} />
+              {t("views.tabs.start.badge")}
+            </span>
+          )}
           {v.systemKey && (
             <span className={styles.tag} data-kind="system">
               {t("views.systemBadge")}
