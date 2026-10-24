@@ -416,20 +416,28 @@
   cursor: col-resize;
   touch-action: none;
 
+  /* Always a quiet divider, so the edge to drag is visible; under the
+     pointer, focused or while dragging, the accent. */
   &::after {
     content: "";
     position: absolute;
-    inset-block: 0;
-    inset-inline-start: calc(50% - 1px);
-    width: 2px;
+    inset-block: 0.125rem;
+    inset-inline-start: calc(50% - 0.5px);
+    width: 1px;
     border-radius: 1px;
-    background: transparent;
-    transition: background 0.12s;
+    background: var(--outline-variant);
+    transition:
+      background 0.12s,
+      width 0.12s,
+      inset-inline-start 0.12s;
   }
 
   &:hover::after,
   &:focus-visible::after,
   &:active::after {
+    inset-block: 0;
+    inset-inline-start: calc(50% - 1px);
+    width: 2px;
     background: var(--primary);
   }
 
