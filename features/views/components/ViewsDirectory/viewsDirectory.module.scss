@@ -380,3 +380,10 @@
     display: none;
   }
 }
+
+/* A view left out of the person's tab row (BARY-184). */
+.cardHidden {
+  margin-inline-start: 0.375rem;
+  vertical-align: -0.125em;
+  color: var(--on-surface-variant);
+}

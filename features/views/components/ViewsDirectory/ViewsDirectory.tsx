@@ -17,13 +17,20 @@ import {
 } from "@/features/issues/components/Topbar/filterLabels";
 import { isGroup } from "@/features/issues/filter";
 import { setViewUserState } from "@/features/views/actions";
+import {
+  type TabEntry,
+  ViewTabsEditor,
+} from "@/features/views/components/ViewTabs/ViewTabsEditor";
 import { viewIconOf } from "@/features/views/icons";
 import { setNewViewAction } from "@/features/views/newViewAction";
 import type { ViewEntry } from "@/features/views/queries";
+import { tabOrder } from "@/features/views/tab-order";
 import { viewPath } from "@/features/views/url";
 import { useOpenViewModal } from "@/features/views/useOpenViewModal";
 import { type MenuView, useViewMenu } from "@/features/views/useViewMenu";
 import { Link, useRouter } from "@/i18n/navigation";
+import { useModal } from "@/lib/context";
+import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useTimeAgo } from "@/lib/utils/useTimeAgo";
 import type { Project } from "@/types";
 import styles from "./viewsDirectory.module.scss";
@@ -203,6 +210,39 @@ export function ViewsDirectory({
         ? t("viewsPage.workspace")
         : (projects.find((p) => p.id === id)?.name ?? "");
 
+  // The tab row of a place, as the person set it (BARY-184) — from here as
+  // much as from the row itself.
+  const { openModal } = useModal();
+  const isPhone = useMediaQuery(PHONE_QUERY);
+  const customizeTabs = (placeId: string) => {
+    const entries: TabEntry[] = tabOrder(
+      views.filter((v) => (v.projectId ?? "") === placeId),
+    ).map((v) => ({
+      id: v.id,
+      name:
+        v.systemKey === "my-issues" || v.systemKey === "created-by-me"
+          ? t(`views.systemTab.${v.systemKey}`)
+          : v.name,
+      icon: v.icon,
+      color: v.color,
+      layout: v.layout,
+      hidden: v.tabHidden,
+      sharedBy:
+        v.visibility !== "PRIVATE" && v.ownerId !== me ? v.ownerName : null,
+    }));
+    openModal(
+      ({ close }) => (
+        <ViewTabsEditor
+          views={entries}
+          scope={placeId ? "project" : "workspace"}
+          close={close}
+          sheet={isPhone}
+        />
+      ),
+      isPhone ? { placement: "bottom" } : undefined,
+    );
+  };
+
   const card = (v: DirectoryView) => {
     const state = stateOf(v);
     const vis = visibilityOf(v);
@@ -231,7 +271,18 @@ export function ViewsDirectory({
             <Icon icon={viewIconOf(v)} width={17} />
           </span>
           <span className={styles.cardTitle}>
-            <span className={styles.cardName}>{v.name}</span>
+            <span className={styles.cardName}>
+              {v.name}
+              {v.tabHidden && (
+                <Icon
+                  icon="lucide:eye-off"
+                  width={13}
+                  className={styles.cardHidden}
+                  role="img"
+                  aria-label={t("views.tabs.hiddenMark")}
+                />
+              )}
+            </span>
             <span className={styles.cardSummary} title={summaryOf(v)}>
               {summaryOf(v)}
             </span>
@@ -532,6 +583,14 @@ export function ViewsDirectory({
                 )}
                 <h2>{s.project?.name ?? t("viewsPage.workspace")}</h2>
                 <span className={styles.sectionCount}>{s.views.length}</span>
+                <button
+                  type="button"
+                  className={styles.sectionAdd}
+                  onClick={() => customizeTabs(s.id)}
+                >
+                  <Icon icon="lucide:sliders-horizontal" width={14} />
+                  <span>{t("views.tabs.customizeTabs")}</span>
+                </button>
                 <button
                   type="button"
                   className={styles.sectionAdd}

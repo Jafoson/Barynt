@@ -30,6 +30,7 @@ import { currentUserId, hasPermission } from "@/lib/permissions";
 import { fullName } from "@/lib/utils/string";
 import type { User } from "@/types";
 import { TopbarClient, type TopbarViews } from "./TopbarClient";
+import { tabOrder } from "@/features/views/tab-order";
 
 interface TopbarProps {
   /** Issues in the current view — already narrowed by the active filters. */
@@ -174,18 +175,8 @@ async function loadTopbarViews({
   // Across projects (V8) the system views come first and say what sets
   // them apart ("Assigned", "Created by me"); the workspace's own follow.
   const t = projectId ? null : await getTranslations();
-  const usual = [
-    ...views.filter((v) => v.systemKey),
-    ...views.filter((v) => !v.systemKey),
-  ];
-  // The person's own tab order (BARY-184): placed ones first, by their
-  // place; the rest after them in the usual order.
-  const shown = [
-    ...usual
-      .filter((v) => v.tabPosition !== null)
-      .sort((a, b) => (a.tabPosition ?? 0) - (b.tabPosition ?? 0)),
-    ...usual.filter((v) => v.tabPosition === null),
-  ];
+  // In the person's own tab order (BARY-184).
+  const shown = tabOrder(views);
 
   const hrefOf = (v: SavedView) =>
     `${viewPath(workspaceId, projectSlug, v.slug)}?${viewParams(v, lookups).toString()}`;

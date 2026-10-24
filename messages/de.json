@@ -884,7 +884,8 @@
       "tabsReset": "Auf Standard zurücksetzen",
       "moveTabEarlier": "Nach vorne",
       "moveTabLater": "Nach hinten",
-      "done": "Fertig"
+      "done": "Fertig",
+      "hiddenMark": "Nicht in der Tab-Leiste"
     }
   },
   "realtime": {

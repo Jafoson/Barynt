@@ -884,7 +884,8 @@
       "tabsReset": "Reset to default",
       "moveTabEarlier": "Move earlier",
       "moveTabLater": "Move later",
-      "done": "Done"
+      "done": "Done",
+      "hiddenMark": "Not in the tab row"
     }
   },
   "realtime": {

@@ -11,14 +11,26 @@ import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
 import { resetViewTabs, saveViewTabs } from "@/features/views/actions";
 import { viewIconOf } from "@/features/views/icons";
+import type { ViewLayout } from "@/features/views/schema";
 import { useRouter } from "@/i18n/navigation";
 import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
-import type { ViewTab } from "./ViewTabs";
 import styles from "./viewTabs.module.scss";
+
+/** What the editor needs of a view — a tab, or a card of the directory. */
+export interface TabEntry {
+  id: string;
+  name: string;
+  icon: string | null;
+  color: string | null;
+  layout: ViewLayout;
+  hidden: boolean;
+  /** Who shared it — someone else's shared view only. */
+  sharedBy: string | null;
+}
 
 interface ViewTabsEditorProps {
   /** Every view of the row, hidden ones included, in the row's order. */
-  views: ViewTab[];
+  views: TabEntry[];
   /** Whose row this is — said in the hint. */
   scope: "project" | "workspace";
   close: () => void;
