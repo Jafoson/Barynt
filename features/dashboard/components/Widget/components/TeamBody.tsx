@@ -7,6 +7,7 @@ import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import type { WidgetData } from "@/features/dashboard/types";
 import {
+  LINK_ICON_DEFAULT,
   linkKey,
   pickShortcuts,
   type ShortcutChoice,
@@ -378,7 +379,7 @@ function Shortcuts({
       ...links.map((link) => ({
         key: linkKey(link.id),
         default: true,
-        icon: link.icon ?? "lucide:link",
+        icon: link.icon ?? LINK_ICON_DEFAULT,
         href: link.url,
         label: link.label,
         external: true,

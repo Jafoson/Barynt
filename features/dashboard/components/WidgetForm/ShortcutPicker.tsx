@@ -10,6 +10,7 @@ import { ModalFooter } from "@/components/ui/layout/Modal/components/ModalFooter
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
 import {
+  LINK_ICON_DEFAULT,
   LINK_ICONS,
   type LinkIcon,
   linkKey,
@@ -62,7 +63,7 @@ export function ShortcutPicker({
     })),
     ...links.map((link) => ({
       key: linkKey(link.id),
-      icon: link.icon ?? "lucide:link",
+      icon: link.icon ?? LINK_ICON_DEFAULT,
       default: true,
       label: link.label,
       link,
@@ -270,10 +271,11 @@ function LinkDialog({
                   key={value}
                   type="button"
                   className={styles.linkIcon}
-                  data-active={(icon ?? "lucide:link") === value || undefined}
-                  aria-pressed={(icon ?? "lucide:link") === value}
+                  data-active={icon === value || undefined}
+                  aria-pressed={icon === value}
                   aria-label={value.split(":")[1]}
-                  onClick={() => setIcon(value)}
+                  // A second click takes it off again: the plain link icon.
+                  onClick={() => setIcon(icon === value ? undefined : value)}
                 >
                   <Icon icon={value} width={18} />
                 </button>

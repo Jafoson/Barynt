@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { type IssueFilter, issueFilterSchema } from "@/features/issues/filter";
+import { VIEW_ICONS, type ViewIcon } from "@/features/views/icons";
 
 // ─── Dashboard widgets (BARY-169) ───────────────────────────────────────────
 //
@@ -139,37 +140,12 @@ export type ShortcutKey = (typeof SHORTCUT_KEYS)[number];
 
 /**
  * An external link among the shortcut tiles (BARY-182) — its own name, an
- * address outside the app, an icon from a fixed set. A fixed set because
- * every icon has to be a literal the bundle picks up; a site's favicon or
- * any icon name would load from elsewhere at runtime (BARY-45).
+ * address outside the app, and the same icons a view can carry. Without
+ * one it shows a plain link icon.
  */
-export const LINK_ICONS = [
-  "lucide:link",
-  "lucide:globe",
-  "lucide:file-text",
-  "lucide:book-open",
-  "lucide:folder",
-  "lucide:table",
-  "lucide:chart-column",
-  "lucide:calendar",
-  "lucide:message-circle",
-  "lucide:video",
-  "lucide:palette",
-  "logos:github-icon",
-  "logos:gitlab",
-  "logos:figma",
-  "logos:slack-icon",
-  "logos:notion-icon",
-  "logos:google-drive",
-  "logos:jira",
-  "logos:confluence",
-  "logos:miro-icon",
-  "logos:linear-icon",
-  "logos:microsoft-teams",
-  "logos:discord-icon",
-  "logos:youtube-icon",
-] as const;
-export type LinkIcon = (typeof LINK_ICONS)[number];
+export const LINK_ICONS = VIEW_ICONS;
+export type LinkIcon = ViewIcon;
+export const LINK_ICON_DEFAULT = "lucide:link";
 
 export interface ShortcutLink {
   id: string;

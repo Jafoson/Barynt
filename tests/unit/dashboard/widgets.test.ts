@@ -569,7 +569,7 @@ describe("external links among the shortcuts (BARY-182)", () => {
             id: "abc-1",
             label: "Figma",
             url: "https://figma.com/",
-            icon: "logos:figma",
+            icon: "lucide:star",
           },
         ],
       }),
