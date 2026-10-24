@@ -60,7 +60,7 @@
      visible in the expanded/overlay state, where this same panel becomes
      the dialog. */
   outline: none !important;
-  animation: dockIn .18s ease both;
+  animation: dockIn 0.18s ease both;
 
   @include bp.phone {
     width: 100%;
@@ -79,8 +79,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgb(0 0 0 / .32);
-  animation: dockIn .16s ease both;
+  background: rgb(0 0 0 / 0.32);
+  animation: dockIn 0.16s ease both;
 }
 
 /* Covers the page and closes on click — the modal's rules apply in full
@@ -101,9 +101,14 @@
 /* The width is set immediately, the panel fades in — sliding in would
    leave a gap next to it open, because the space is already there. */
 @keyframes dockIn {
-  from { opacity: 0; }
+  from {
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .panel, .overlay { animation-duration: .01ms; }
+  .panel,
+  .overlay {
+    animation-duration: 0.01ms;
+  }
 }

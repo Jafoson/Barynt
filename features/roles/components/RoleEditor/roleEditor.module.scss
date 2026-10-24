@@ -8,12 +8,12 @@
   border: 1px solid var(--primary);
   border-radius: var(--radius);
   background: var(--surface-container-lowest);
-  animation: rolesEditorIn .14s ease;
+  animation: rolesEditorIn 0.14s ease;
 }
 
 @keyframes rolesEditorIn {
   from {
-    opacity: .3;
+    opacity: 0.3;
     transform: translateY(-0.1875rem);
   }
 }
@@ -50,7 +50,7 @@
   color: var(--red);
   font-size: var(--text-xs);
   white-space: nowrap;
-  transition: background .12s, border-color .12s;
+  transition: background 0.12s, border-color 0.12s;
 
   &:hover:not(:disabled) {
     background: color-mix(in srgb, var(--red) 12%, transparent);
@@ -58,7 +58,7 @@
   }
 
   &:disabled {
-    opacity: var(--opacity-disabled, .4);
+    opacity: var(--opacity-disabled, 0.4);
     cursor: not-allowed;
   }
 }
@@ -73,7 +73,7 @@
   height: 1.5rem;
   border-radius: var(--radius-sm);
   color: var(--on-surface-variant);
-  transition: background .12s, color .12s;
+  transition: background 0.12s, color 0.12s;
 
   &:hover {
     background: var(--surface-container-high);

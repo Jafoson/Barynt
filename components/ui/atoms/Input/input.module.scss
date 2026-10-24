@@ -37,7 +37,9 @@
   font-size: var(--text-base);
   transition: border-color 0.12s, box-shadow 0.12s;
 
-  &::placeholder { color: var(--on-surface-variant); }
+  &::placeholder {
+    color: var(--on-surface-variant);
+  }
 
   /* `color-mix` instead of a token: `--accent-soft` used to be here, but is
      defined nowhere — the line was dropped and the ring was lost. The error
@@ -49,12 +51,19 @@
   /* Error state */
   &.hasError {
     border-color: var(--error);
-    &:focus { box-shadow: 0 0 0 0.1875rem color-mix(in oklab, var(--error) 18%, transparent); }
+    &:focus {
+      box-shadow: 0 0 0 0.1875rem
+        color-mix(in oklab, var(--error) 18%, transparent);
+    }
   }
 
   /* Icon padding adjustments */
-  &.hasIconLeft  { padding-left: 2.125rem; }
-  &.hasIconRight { padding-right: 2.125rem; }
+  &.hasIconLeft {
+    padding-left: 2.125rem;
+  }
+  &.hasIconRight {
+    padding-right: 2.125rem;
+  }
 
   /* Date: normalize browser chrome */
   &[type="date"] {
@@ -64,7 +73,9 @@
 
   /* Remove browser password reveal button */
   &::-ms-reveal,
-  &::-ms-clear { display: none; }
+  &::-ms-clear {
+    display: none;
+  }
 }
 
 /* ── Appearance: title field of a creation dialog ── */
@@ -81,7 +92,7 @@
   /* Same padding as the description below — otherwise the two would sit
      offset by eight pixels within the dialog. */
   padding: 0.3125rem 0.5rem;
-  transition: background .12s, border-color .12s, box-shadow .12s;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
 
   &::placeholder {
     color: var(--outline);
@@ -101,7 +112,8 @@
   &:focus {
     background: var(--surface-container-low);
     border-color: var(--tertiary);
-}}
+  }
+}
 
 /* ── Size: sm ── */
 .sm {
@@ -109,14 +121,25 @@
     height: var(--control-h-sm);
     font-size: var(--text-sm);
     padding: 0 0.5625rem;
-    &.hasIconLeft  { padding-left: 1.875rem; }
-    &.hasIconRight { padding-right: 1.875rem; }
+    &.hasIconLeft {
+      padding-left: 1.875rem;
+    }
+    &.hasIconRight {
+      padding-right: 1.875rem;
+    }
   }
 
-  .iconLeft  { left: 0.5rem; }
-  .iconRight { right: 0.25rem; }
+  .iconLeft {
+    left: 0.5rem;
+  }
+  .iconRight {
+    right: 0.25rem;
+  }
 
-  .iconRight button { width: 1.375rem; height: 1.375rem; }
+  .iconRight button {
+    width: 1.375rem;
+    height: 1.375rem;
+  }
 }
 
 /* ── Appearance: bordered field with a fixed prefix ──
@@ -138,15 +161,22 @@
      click into the input, whereas the border itself would do nothing. On
      the border, the edge of the field would be dead space. */
 
-  &:focus-within { border-color: var(--tertiary); }
+  &:focus-within {
+    border-color: var(--tertiary);
+  }
 
   &:has(.hasError) {
     border-color: var(--error);
-    &:focus-within { box-shadow: 0 0 0 0.1875rem color-mix(in oklab, var(--error) 18%, transparent); }
+    &:focus-within {
+      box-shadow: 0 0 0 0.1875rem
+        color-mix(in oklab, var(--error) 18%, transparent);
+    }
   }
 
   /* The marker on the right overlays the field — the input ends before it. */
-  &:has(> .iconRight) .input.bare { padding-right: 2.125rem; }
+  &:has(> .iconRight) .input.bare {
+    padding-right: 2.125rem;
+  }
 }
 
 /* The prefix belongs to the value but isn't something you could edit:
@@ -173,19 +203,31 @@
   background: none;
   font-size: var(--text-base);
 
-  &::placeholder { color: var(--on-surface-variant); }
+  &::placeholder {
+    color: var(--on-surface-variant);
+  }
   &::-ms-reveal,
-  &::-ms-clear { display: none; }
+  &::-ms-clear {
+    display: none;
+  }
 }
 
 .sm {
-  .framed { height: var(--control-h-sm); }
+  .framed {
+    height: var(--control-h-sm);
+  }
 
-  .prefix { padding-left: 0.5625rem; }
-  .input.bare { padding-right: 0.5625rem; }
+  .prefix {
+    padding-left: 0.5625rem;
+  }
+  .input.bare {
+    padding-right: 0.5625rem;
+  }
 
   .input.bare,
-  .prefix { font-size: var(--text-sm); }
+  .prefix {
+    font-size: var(--text-sm);
+  }
 }
 
 /* ── Icons ── */
@@ -199,7 +241,9 @@
   pointer-events: none;
 }
 
-.iconLeft  { left: 0.625rem; }
+.iconLeft {
+  left: 0.625rem;
+}
 .iconRight {
   right: 0.3125rem;
   pointer-events: auto;
@@ -233,5 +277,9 @@
   line-height: var(--leading-normal);
 }
 
-.errorText { color: var(--error); }
-.hintText  { color: var(--on-surface-variant); }
+.errorText {
+  color: var(--error);
+}
+.hintText {
+  color: var(--on-surface-variant);
+}

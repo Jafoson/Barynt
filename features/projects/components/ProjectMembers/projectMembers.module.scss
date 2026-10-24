@@ -17,7 +17,6 @@
   gap: 0.75rem;
 
   @include card-rows.card-rows;
-
 }
 
 /* Trigger for the role menu: the arrow sits next to the role, not inside
@@ -89,10 +88,23 @@
 /* Phone rows: who on top, then role, (teams,) status, and the action at the end. */
 .content {
   @include bp.phone {
-    td[data-col="member"] { order: 1; flex: 1 1 100%; }
-    td[data-col="role"] { order: 2; }
-    td[data-col="teams"] { order: 3; flex: 1 1 auto; }
-    td[data-col="status"] { order: 4; }
-    td[data-col="actions"] { order: 5; margin-inline-start: auto; }
+    td[data-col="member"] {
+      order: 1;
+      flex: 1 1 100%;
+    }
+    td[data-col="role"] {
+      order: 2;
+    }
+    td[data-col="teams"] {
+      order: 3;
+      flex: 1 1 auto;
+    }
+    td[data-col="status"] {
+      order: 4;
+    }
+    td[data-col="actions"] {
+      order: 5;
+      margin-inline-start: auto;
+    }
   }
 }

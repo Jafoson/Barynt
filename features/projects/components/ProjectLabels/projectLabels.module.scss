@@ -81,11 +81,21 @@
    room for exactly them, so the use wraps onto the next line). */
 .content {
   @include bp.phone {
-    td[data-col="label"] { order: 1; flex: 1 1 calc(100% - 6.5rem); }
-    td[data-col="actions"] { order: 2; }
-    td[data-col="usage"] { order: 3; flex: 1 1 100%; }
+    td[data-col="label"] {
+      order: 1;
+      flex: 1 1 calc(100% - 6.5rem);
+    }
+    td[data-col="actions"] {
+      order: 2;
+    }
+    td[data-col="usage"] {
+      order: 3;
+      flex: 1 1 100%;
+    }
 
     /* The inherited table has no actions: the label takes the whole line. */
-    tr:not(:has(td[data-col="actions"])) td[data-col="label"] { flex-basis: 100%; }
+    tr:not(:has(td[data-col="actions"])) td[data-col="label"] {
+      flex-basis: 100%;
+    }
   }
 }

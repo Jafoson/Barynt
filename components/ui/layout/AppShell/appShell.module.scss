@@ -48,9 +48,7 @@
     /* Closed: out of the tab order and away from screen readers, but only
        once the slide-out has finished. */
     visibility: hidden;
-    transition:
-      transform 0.22s ease,
-      visibility 0s linear 0.22s;
+    transition: transform 0.22s ease, visibility 0s linear 0.22s;
 
     .shell[data-nav-open] & {
       transform: none;

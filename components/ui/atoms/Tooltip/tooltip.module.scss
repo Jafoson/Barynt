@@ -32,11 +32,19 @@
   white-space: nowrap;
   box-shadow: var(--shadow-pop);
   pointer-events: none;
-  animation: pop .1s ease;
+  animation: pop 0.1s ease;
 
   --outline: var(--inverse-on-surface);
-  --outline-variant: color-mix(in oklab, var(--inverse-on-surface) 30%, transparent);
-  --surface-container-low: color-mix(in oklab, var(--inverse-on-surface) 15%, transparent);
+  --outline-variant: color-mix(
+    in oklab,
+    var(--inverse-on-surface) 30%,
+    transparent
+  );
+  --surface-container-low: color-mix(
+    in oklab,
+    var(--inverse-on-surface) 15%,
+    transparent
+  );
   --on-surface-variant: var(--inverse-on-surface);
 }
 
@@ -56,5 +64,8 @@
    when they aren't defined here at all, so an unqualified reference would
    point to nothing. Values identical to the global `pop`. */
 @keyframes pop {
-  from { opacity: .2; transform: translateY(-0.25rem) scale(.985); }
+  from {
+    opacity: 0.2;
+    transform: translateY(-0.25rem) scale(0.985);
+  }
 }

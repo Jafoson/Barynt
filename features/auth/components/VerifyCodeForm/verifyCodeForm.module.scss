@@ -26,7 +26,8 @@
   &:focus {
     outline: none;
     border-color: var(--tertiary);
-    box-shadow: 0 0 0 0.125rem color-mix(in srgb, var(--tertiary) 25%, transparent);
+    box-shadow: 0 0 0 0.125rem
+      color-mix(in srgb, var(--tertiary) 25%, transparent);
   }
 
   &:disabled {

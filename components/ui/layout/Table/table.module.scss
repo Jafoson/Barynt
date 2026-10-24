@@ -421,7 +421,7 @@ tbody.group {
    following group's sticky header would cover it. */
 .row[data-drop]::before,
 .groupRow[data-drop]::before {
-  content: '';
+  content: "";
   position: absolute;
   inset-inline: 0;
   z-index: 3;
@@ -436,7 +436,7 @@ tbody.group {
    it: the card clips its edges, an overhang would get cut off. */
 .row[data-drop]::after,
 .groupRow[data-drop]::after {
-  content: '';
+  content: "";
   position: absolute;
   inset-inline-start: 0;
   z-index: 3;
@@ -447,15 +447,23 @@ tbody.group {
   pointer-events: none;
 }
 
-.row[data-drop='above'] {
-  &::before { top: 0; }
-  &::after { top: -0.125rem; }
+.row[data-drop="above"] {
+  &::before {
+    top: 0;
+  }
+  &::after {
+    top: -0.125rem;
+  }
 }
 
-.row[data-drop='below'],
+.row[data-drop="below"],
 .groupRow[data-drop] {
-  &::before { bottom: 0; }
-  &::after { bottom: -0.125rem; }
+  &::before {
+    bottom: 0;
+  }
+  &::after {
+    bottom: -0.125rem;
+  }
 }
 
 /* The live region: there for screen readers, not for eyes. `display: none`

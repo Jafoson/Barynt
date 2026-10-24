@@ -51,7 +51,7 @@ export function NavLink({
   function isActive() {
     return isNavActive(pathname, href, activeHref);
   }
-  function LeadingIcon() {
+  function renderLeadingIcon() {
     // Without its own icon, the entry represents a named entity (project,
     // workspace, ...) rather than a route — the same image-or-initials logic
     // used everywhere else entities show up (`Avatar`), instead of an
@@ -83,7 +83,7 @@ export function NavLink({
       data-active={isActive() ? "true" : undefined}
       onClick={onClick}
     >
-      <LeadingIcon />
+      {renderLeadingIcon()}
       <span className={navStyles.label}>{label}</span>
       {badge && (
         <Badge className={navStyles.badge} style={{ marginLeft: "auto" }}>

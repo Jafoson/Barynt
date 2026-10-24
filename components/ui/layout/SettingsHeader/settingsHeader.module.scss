@@ -83,9 +83,7 @@
   white-space: nowrap;
   color: var(--on-surface-variant);
   text-decoration: none;
-  transition:
-    background-color 0.12s ease,
-    color 0.12s ease;
+  transition: background-color 0.12s ease, color 0.12s ease;
 
   /* A veil over the field instead of a second background color: this way
      the same rule lightens both the resting and the open field without
@@ -142,4 +140,3 @@
     opacity: var(--opacity-selected);
   }
 }
-
