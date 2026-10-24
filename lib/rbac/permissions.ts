@@ -212,6 +212,13 @@ export const PERMISSIONS = {
     desc: "Sees the dashboard numbers of the whole project/workspace, not just their own",
     scopes: WORKSPACE_AND_PROJECT,
   },
+  // The default layout everyone sees until they arrange their own
+  // (`DashboardLayout` without a user, BARY-169). On a project role it's
+  // that project's dashboard; on a workspace role, the workspace's.
+  "dashboard.manage": {
+    desc: "Set the default dashboard layout for everyone",
+    scopes: WORKSPACE_AND_PROJECT,
+  },
 
   // ── Teams ───────────────────────────────────────────────────────────────────
   //
@@ -241,6 +248,21 @@ export const PERMISSIONS = {
   "label.create": { desc: "Create a label", scopes: WORKSPACE_AND_PROJECT },
   "label.update": { desc: "Edit a label", scopes: WORKSPACE_AND_PROJECT },
   "label.delete": { desc: "Delete a label", scopes: WORKSPACE_AND_PROJECT },
+
+  // ── Views ───────────────────────────────────────────────────────────────────
+  //
+  // Saved views (BARY-8). A private view needs no permission — seeing the
+  // issues is enough to save a filter over them. These two keys govern only
+  // what others see: on a project role for the project's views, on a
+  // workspace role for the cross-project views of the workspace.
+  "view.share": {
+    desc: "Create shared views and edit the ones you created",
+    scopes: WORKSPACE_AND_PROJECT,
+  },
+  "view.manage": {
+    desc: "Edit and delete shared views created by others",
+    scopes: WORKSPACE_AND_PROJECT,
+  },
 
   // ── Issues ──────────────────────────────────────────────────────────────────
   //

@@ -10,6 +10,12 @@
   --amber: #e0992b;
   --blue: #3b7bd5;
   --purple: #a274d9;
+  /* Filter chip outlines (BARY-166) — kept apart from primary/secondary,
+     which mean "selected" and "action" elsewhere. */
+  --teal: #2fb3a0;
+  --orange: #e8743b;
+  --lime: #9bc53d;
+  --indigo: #7c86ff;
 
   /* ── Chart data series ──────────────────────────────────────────────────────
 

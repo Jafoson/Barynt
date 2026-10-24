@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getMyPreferences } from "@/features/account/queries";
+import { startViewTarget } from "@/features/views/queries";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { canCreateWorkspace, getSystemSettings } from "@/lib/system-settings";
@@ -36,8 +37,15 @@ export default async function LocaleRootPage({
     // Where this person wants to start. Everything but the workspace's own
     // start page lives right below it, so the target exists in any
     // workspace they belong to.
-    const { startPage } = await getMyPreferences();
-    const section = startPage === "workspace" ? "" : `/${startPage}`;
+    const { startPage, startViewId } = await getMyPreferences();
+    // A view (V7): only while it still exists and they still see it —
+    // otherwise the workspace's start page, without a word.
+    if (startPage === "view" && startViewId) {
+      const target = await startViewTarget(startViewId);
+      if (target) redirect(`/${locale}${target}`);
+    }
+    const section =
+      startPage === "workspace" || startPage === "view" ? "" : `/${startPage}`;
     redirect(`/${locale}/${membership.workspaceId}${section}`);
   }
 

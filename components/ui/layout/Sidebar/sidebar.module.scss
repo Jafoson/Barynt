@@ -113,13 +113,13 @@
   }
 }
 
-/* Workspace overview and dashboard, at the top of the sidebar. The spacing
-   below visibly separates them from "My tasks" — both are views onto the
-   whole workspace, not part of the sections below. */
+/* Dashboard, board and "My tasks" at the top of the sidebar (V8). The
+   spacing below separates them from the directories — projects, views —
+   that follow. */
 .workspaceDashboardGroup {
   margin-bottom: 0.875rem;
 
-  /* Phone: "Overview" / "Dashboard" are in the bottom bar there. */
+  /* Phone: these three are in the bottom bar there. */
   @include bp.phone {
     display: none;
   }
@@ -410,6 +410,18 @@
   /* No room for the heading and the add button in the rail. */
   @include bp.rail {
     display: none;
+  }
+}
+
+/* The favorites (V7). On a phone only the project list below scrolls, so
+   a long favorites list gets a height of its own. */
+.favoritesWrapper {
+  display: flex;
+  flex-direction: column;
+
+  @include bp.phone {
+    max-height: 30vh;
+    overflow-y: auto;
   }
 }
 

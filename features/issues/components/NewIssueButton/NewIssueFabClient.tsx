@@ -5,17 +5,20 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { IssueComposerData } from "@/features/issues/types";
 import { useOpenCreateProject } from "@/features/projects/useOpenCreateProject";
+import { useNewViewAction } from "@/features/views/newViewAction";
 import { usePathname } from "@/i18n/navigation";
+import { useFabAction } from "@/lib/fab-action";
 import styles from "./newIssueFab.module.scss";
 import { useNewIssueOpener } from "./useNewIssueOpener";
 
 /**
  * Where creating something from a floating button makes sense: a project's
- * board or list, and "my issues" — the views full of issues. Not settings,
- * members, the dashboard and so on.
+ * board or list, its saved views (BARY-164), the workspace's own board,
+ * list, views and directory of views (V8), and "my issues" — the views full
+ * of issues. Not settings, members, the dashboard and so on.
  */
 export const ISSUE_VIEW_PATH =
-  /^\/[^/]+\/(project\/[^/]+(\/list)?|my(\/list)?)\/?$/;
+  /^\/[^/]+\/(project\/[^/]+(\/list|\/view\/[^/]+)?|issues(\/list)?|views?(\/[^/]+)?|my(\/list)?)\/?$/;
 
 /** The overview pages where the same menu is on offer: the workspace's
  *  overview (its root), dashboard, projects, members and teams, and a project's overview and
@@ -50,7 +53,11 @@ export function NewIssueFabClient({
   const pathname = usePathname();
   const openCreateProject = useOpenCreateProject();
   const openIssue = useNewIssueOpener(data);
+  // Registered by the topbar on a project's board/list (`NewViewButton`).
+  const newView = useNewViewAction();
   const [open, setOpen] = useState(false);
+  // A page's own job for the plus (the dashboard's "add widget").
+  const pageAction = useFabAction();
 
   // Escape closes the menu (a phone with a keyboard attached, or a desktop
   // window narrowed to phone width).
@@ -63,6 +70,29 @@ export function NewIssueFabClient({
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  if (pageAction) {
+    return (
+      <div className={styles.root}>
+        <button
+          type="button"
+          className={styles.fab}
+          data-variant={pageAction.variant}
+          data-extended={pageAction.text ? true : undefined}
+          aria-label={pageAction.label}
+          title={pageAction.label}
+          onClick={pageAction.run}
+        >
+          <Icon
+            icon={pageAction.icon}
+            width={pageAction.text ? 20 : 26}
+            className={styles.plus}
+          />
+          {pageAction.text && <span>{pageAction.text}</span>}
+        </button>
+      </div>
+    );
+  }
+
   if (!ISSUE_VIEW_PATH.test(pathname) && !OVERVIEW_PATH.test(pathname)) {
     return null;
   }
@@ -74,6 +104,14 @@ export function NewIssueFabClient({
       label: t("actions.newIssue"),
       icon: "lucide:circle-plus",
       onPick: openIssue,
+    });
+  }
+  if (newView) {
+    choices.push({
+      id: "view",
+      label: newView.label,
+      icon: "lucide:layers",
+      onPick: newView.run,
     });
   }
   if (canCreateProject && workspaceId) {

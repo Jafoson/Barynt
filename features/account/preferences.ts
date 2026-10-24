@@ -4,14 +4,23 @@
 // browser and in tests alike.
 
 import { GROUP_KEYS } from "@/features/issues/group";
+import { sanitizeColumnWidths } from "@/features/issues/list-columns";
 import { SORT_KEYS } from "@/features/issues/sort";
 
 /** Where a click on a project's name in the sidebar leads. */
-export const PROJECT_LANDINGS = ["board", "list", "dashboard"] as const;
+/** `view`: the project's start view (set in a view tab's menu, V7) — the
+ *  board where there is none. */
+export const PROJECT_LANDINGS = ["board", "list", "dashboard", "view"] as const;
 export type ProjectLanding = (typeof PROJECT_LANDINGS)[number];
 
 /** Where you land after signing in. `workspace` is the workspace's start page. */
-export const START_PAGES = ["workspace", "my", "inbox", "dashboard"] as const;
+export const START_PAGES = [
+  "workspace",
+  "my",
+  "inbox",
+  "dashboard",
+  "view",
+] as const;
 export type StartPage = (typeof START_PAGES)[number];
 
 /**
@@ -69,6 +78,8 @@ export function toShortcutOverrides(value: unknown): ShortcutOverrides {
 export interface BehaviorPreferences {
   projectLanding: ProjectLanding;
   startPage: StartPage;
+  /** The view for `startPage = "view"` (V7). */
+  startViewId: string | null;
   issueOpenMode: IssueOpenMode;
   issuePageOpenMode: IssuePageOpenMode;
   defaultGrouping: (typeof GROUP_KEYS)[number];
@@ -82,11 +93,14 @@ export interface BehaviorPreferences {
   timeZone: string | null;
   shortcutOverrides: ShortcutOverrides;
   confirmDestructive: boolean;
+  /** The list's column widths in px (BARY-175) — the same in every list. */
+  listColumnWidths: Record<string, number>;
 }
 
 export const DEFAULT_BEHAVIOR: BehaviorPreferences = {
   projectLanding: "board",
   startPage: "workspace",
+  startViewId: null,
   issueOpenMode: "panel",
   issuePageOpenMode: "tab",
   defaultGrouping: "status",
@@ -99,6 +113,7 @@ export const DEFAULT_BEHAVIOR: BehaviorPreferences = {
   timeZone: null,
   shortcutOverrides: {},
   confirmDestructive: true,
+  listColumnWidths: {},
 };
 
 const oneOf = <T extends string>(
@@ -126,6 +141,10 @@ export function toBehavior(
       d.projectLanding,
     ),
     startPage: oneOf(START_PAGES, row.startPage, d.startPage),
+    startViewId:
+      typeof row.startViewId === "string" && row.startViewId
+        ? row.startViewId
+        : null,
     issueOpenMode: oneOf(ISSUE_OPEN_MODES, row.issueOpenMode, d.issueOpenMode),
     issuePageOpenMode: oneOf(
       ISSUE_PAGE_OPEN_MODES,
@@ -154,5 +173,6 @@ export function toBehavior(
       typeof row.confirmDestructive === "boolean"
         ? row.confirmDestructive
         : d.confirmDestructive,
+    listColumnWidths: sanitizeColumnWidths(row.listColumnWidths),
   };
 }

@@ -1,16 +1,42 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 
+const STATUS_CATEGORY: Record<string, string> = {
+  backlog: "backlog",
+  todo: "unstarted",
+  in_progress: "started",
+  in_review: "started",
+  done: "completed",
+  canceled: "canceled",
+};
+
 mock.module("@/lib/db", () => ({
   db: {
     issue: { findUnique: mock(), update: mock(), create: mock() },
     project: { update: mock() },
     user: { findUnique: mock() },
     auditLog: { create: mock(async () => ({})) },
+    // Whether the target status closes the issue comes from its category
+    // (BARY-161, `lib/statuses.ts`), not from its id. Written out here instead
+    // of importing `DEFAULT_STATUSES`: `@/lib/workspace-defaults` is mocked
+    // by another file that may share this process. The audit trail reads
+    // `name` from the same row and falls back to the raw id.
+    status: {
+      findUnique: mock(async ({ where }: { where: { id: string } }) => {
+        const category = STATUS_CATEGORY[where.id];
+        return category ? { name: where.id, category } : null;
+      }),
+      // The flow metrics' record of every change (BARY-171).
+      findMany: mock(async ({ where }: { where: { id: { in: string[] } } }) =>
+        where.id.in.flatMap((id) =>
+          STATUS_CATEGORY[id] ? [{ id, category: STATUS_CATEGORY[id] }] : [],
+        ),
+      ),
+    },
+    issueStatusEvent: { create: mock(async () => ({})) },
     // Not the subject of this file — `moveIssue`/`updateIssue` look up names
-    // for these when status/priority/type/labels change (audit trail,
+    // for these when priority/type/labels change (audit trail,
     // `recordIssueAudit` & co.). `null` is a valid result (unknown id), in
     // which case the row falls back to the raw id.
-    status: { findUnique: mock(async () => null) },
     priority: { findUnique: mock(async () => null) },
     issueType: { findUnique: mock(async () => null) },
     label: { findMany: mock(async () => []) },
@@ -91,6 +117,22 @@ describe("Closing", () => {
 
     expect(written().status).toBe("done");
     expect(written().closedAt).toBeInstanceOf(Date);
+  });
+
+  it("records the change for the flow metrics", async () => {
+    const created = db.issueStatusEvent.create as ReturnType<typeof mock>;
+    created.mockClear();
+    mockFindUnique.mockResolvedValue(issue("in_progress", null));
+    await moveIssue("i1", "done");
+
+    expect(created).toHaveBeenCalledTimes(1);
+    expect(created.mock.calls[0][0].data).toMatchObject({
+      issueId: "i1",
+      fromStatus: "in_progress",
+      toStatus: "done",
+      fromCategory: "started",
+      toCategory: "completed",
+    });
   });
 
   it("counts discarding as a close too", async () => {

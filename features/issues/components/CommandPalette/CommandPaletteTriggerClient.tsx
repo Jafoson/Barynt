@@ -35,16 +35,18 @@ export function CommandPaletteTriggerClient({
   data,
 }: CommandPaletteTriggerClientProps) {
   const t = useTranslations();
-  const [open, setOpen] = useState(false);
+  // Open, and whether straight in "go to view" (key V).
+  const [open, setOpen] = useState<false | "all" | "views">(false);
   const hasOpenModal = useHasOpenModal();
   const { openModal } = useModal();
   const pathname = usePathname();
 
-  useShortcut("mod+k", () => setOpen(true), { enabled: !hasOpenModal });
+  useShortcut("mod+k", () => setOpen("all"), { enabled: !hasOpenModal });
+  useShortcut("v", () => setOpen("views"), { enabled: !hasOpenModal });
 
   useEffect(() => {
     const w = window as { __openPalette?: () => void };
-    w.__openPalette = () => setOpen(true);
+    w.__openPalette = () => setOpen("all");
     return () => {
       w.__openPalette = undefined;
     };
@@ -79,7 +81,8 @@ export function CommandPaletteTriggerClient({
 
   return (
     <CommandPalette
-      open={open}
+      open={open !== false}
+      startInViews={open === "views"}
       onClose={() => setOpen(false)}
       workspaceId={data.workspaceId}
       projects={data.projects}

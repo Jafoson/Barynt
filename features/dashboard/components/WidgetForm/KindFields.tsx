@@ -1,0 +1,395 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+import { useState } from "react";
+import { Input } from "@/components/ui/atoms/Input/Input";
+import { NativeSelect } from "@/components/ui/atoms/NativeSelect/NativeSelect";
+import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
+import { Switch } from "@/components/ui/atoms/Switch/Switch";
+import {
+  BURN_VIEWS,
+  CYCLE_BY,
+  CYCLE_VIEWS,
+  DISTRIBUTION_CHARTS,
+  EMBED_FITS,
+  EMBED_KINDS,
+  EMBED_REFRESH,
+  type EmbedRefresh,
+  FLOW_BY,
+  GROUP_FIELDS,
+  type GroupField,
+  ISSUE_SORTS,
+  KPI_METRICS,
+  MATRIX_FIELDS,
+  MEASURES,
+  type Measure,
+  normalizeEmbedUrl,
+  SERIES_CHARTS,
+  type SeriesChart,
+  TIME_BY,
+  type TimeBy,
+  WIDGETS,
+  type Widget,
+  type WidgetConfig,
+} from "@/features/dashboard/widgets";
+import styles from "../WidgetSettings/widgetSettings.module.scss";
+
+/**
+ * What a widget of a kind counts and how it draws — the metric, the
+ * measure, the grouping, the chart. A widget's settings and each block of a
+ * custom widget (BARY-170) show the same fields.
+ */
+export function KindFields({
+  widget,
+  set,
+}: {
+  widget: Widget;
+  set: (patch: Partial<WidgetConfig>) => void;
+}) {
+  const t = useTranslations("widgets");
+  const def = WIDGETS[widget.type];
+  const { config } = widget;
+  const fieldItems = (fields: readonly GroupField[]) =>
+    fields.map((f) => ({ value: f, label: t(`group_${f}`) }));
+
+  return (
+    <>
+      {widget.type === "embed" && <EmbedFields widget={widget} set={set} />}
+
+      {/* What is added up — issues, story points or hours (BARY-170). */}
+      {(widget.type === "kpi"
+        ? config.metric !== "cycleTime"
+        : ["progress", "distribution", "matrix", "flow"].includes(
+            widget.type,
+          )) && (
+        <NativeSelect
+          label={t("measure")}
+          value={config.measure ?? "count"}
+          onChange={(v) =>
+            set({ measure: v === "count" ? undefined : (v as Measure) })
+          }
+          items={MEASURES.map((m) => ({
+            value: m,
+            label: t(`measure_${m}`),
+          }))}
+        />
+      )}
+
+      {widget.type === "flow" && (
+        <>
+          <NativeSelect
+            label={t("timeAxis")}
+            value={config.timeBy ?? "createdClosed"}
+            onChange={(v) =>
+              set({
+                timeBy: v === "createdClosed" ? undefined : (v as TimeBy),
+                ...(v === "createdClosed" && { splitBy: undefined }),
+              })
+            }
+            items={TIME_BY.map((x) => ({
+              value: x,
+              label: t(`timeBy_${x}`),
+            }))}
+          />
+          {(config.timeBy ?? "createdClosed") !== "createdClosed" && (
+            <NativeSelect
+              label={t("splitBy")}
+              value={config.splitBy ?? ""}
+              onChange={(v) =>
+                set({
+                  splitBy: v ? (v as WidgetConfig["splitBy"]) : undefined,
+                })
+              }
+              items={[
+                { value: "", label: t("splitNone") },
+                ...GROUP_FIELDS.map((f) => ({
+                  value: f,
+                  label: t(`group_${f}`),
+                })),
+              ]}
+            />
+          )}
+          <div className={styles.field}>
+            <span className={styles.label}>{t("chart")}</span>
+            <span className={styles.full}>
+              <SegmentedControl
+                variant="surface"
+                value={config.seriesChart ?? "bars"}
+                onChange={(v) =>
+                  set({
+                    seriesChart: v === "bars" ? undefined : (v as SeriesChart),
+                  })
+                }
+                items={SERIES_CHARTS.filter(
+                  (c) =>
+                    c !== "stacked" ||
+                    (config.timeBy ?? "createdClosed") === "createdClosed" ||
+                    !!config.splitBy,
+                ).map((c) => ({ value: c, label: t(`seriesChart_${c}`) }))}
+              />
+            </span>
+          </div>
+        </>
+      )}
+
+      {widget.type === "kpi" && (
+        <NativeSelect
+          label={t("metric")}
+          value={config.metric ?? "open"}
+          onChange={(v) => set({ metric: v as WidgetConfig["metric"] })}
+          items={KPI_METRICS.map((m) => ({
+            value: m,
+            label: t(`metric_${m}`),
+          }))}
+        />
+      )}
+
+      {widget.type === "distribution" && (
+        <>
+          <NativeSelect
+            label={t("groupBy")}
+            value={config.groupBy ?? "status"}
+            onChange={(v) => set({ groupBy: v as WidgetConfig["groupBy"] })}
+            items={fieldItems(GROUP_FIELDS)}
+          />
+          <div className={styles.field}>
+            <span className={styles.label}>{t("chart")}</span>
+            <span className={styles.full}>
+              <SegmentedControl
+                variant="surface"
+                value={config.chart ?? "ring"}
+                onChange={(v) => set({ chart: v as WidgetConfig["chart"] })}
+                items={DISTRIBUTION_CHARTS.map((c) => ({
+                  value: c,
+                  label: t(`chart_${c}`),
+                }))}
+              />
+            </span>
+          </div>
+        </>
+      )}
+
+      {widget.type === "matrix" && (
+        <>
+          <NativeSelect
+            label={t("rows")}
+            value={config.groupBy ?? "assignee"}
+            onChange={(v) => set({ groupBy: v as WidgetConfig["groupBy"] })}
+            items={fieldItems(MATRIX_FIELDS)}
+          />
+          <NativeSelect
+            label={t("columns")}
+            value={config.groupBy2 ?? "status"}
+            onChange={(v) => set({ groupBy2: v as WidgetConfig["groupBy2"] })}
+            items={fieldItems(MATRIX_FIELDS)}
+          />
+        </>
+      )}
+
+      {widget.type === "issues" && (
+        <NativeSelect
+          label={t("sort")}
+          value={config.sort ?? "updated"}
+          onChange={(v) => set({ sort: v as WidgetConfig["sort"] })}
+          items={ISSUE_SORTS.map((s) => ({
+            value: s,
+            label: t(`sort_${s}`),
+          }))}
+        />
+      )}
+
+      {(widget.type === "distribution" ||
+        widget.type === "matrix" ||
+        widget.type === "issues") && (
+        <div className={styles.row}>
+          <span>{t("openOnly")}</span>
+          <Switch
+            checked={config.openOnly ?? def.config.openOnly ?? false}
+            onChange={(on) => set({ openOnly: on })}
+            label={t("openOnly")}
+            labelHidden
+          />
+        </div>
+      )}
+
+      {/* ── Flow metrics (BARY-171) ── */}
+      {widget.type === "burnup" && (
+        <>
+          <Segments
+            label={t("burnView")}
+            value={config.burn ?? "up"}
+            onChange={(v) => set({ burn: v === "up" ? undefined : v })}
+            items={BURN_VIEWS.map((v) => ({ value: v, label: t(`burn_${v}`) }))}
+          />
+          {config.burn === "down" && (
+            <Input
+              variant="date"
+              label={t("targetDate")}
+              hint={t("targetDateHint")}
+              value={config.targetDate ?? ""}
+              onChange={(e) => set({ targetDate: e.target.value || undefined })}
+            />
+          )}
+        </>
+      )}
+
+      {widget.type === "cycle" && (
+        <>
+          <Segments
+            label={t("cycleBy")}
+            value={config.cycleBy ?? "lead"}
+            onChange={(v) => set({ cycleBy: v === "lead" ? undefined : v })}
+            items={CYCLE_BY.map((v) => ({
+              value: v,
+              label: t(`cycleBy_${v}`),
+            }))}
+          />
+          <Segments
+            label={t("chart")}
+            value={config.cycleView ?? "points"}
+            onChange={(v) => set({ cycleView: v === "points" ? undefined : v })}
+            items={CYCLE_VIEWS.map((v) => ({
+              value: v,
+              label: t(`cycleView_${v}`),
+            }))}
+          />
+        </>
+      )}
+
+      {(widget.type === "cfd" || widget.type === "timeInStatus") && (
+        <Segments
+          label={t("flowBy")}
+          value={config.flowBy ?? "category"}
+          onChange={(v) => set({ flowBy: v === "category" ? undefined : v })}
+          items={FLOW_BY.map((v) => ({ value: v, label: t(`flowBy_${v}`) }))}
+        />
+      )}
+
+      {widget.type === "cfd" && (
+        <div className={styles.row}>
+          <span>{t("showDone")}</span>
+          <Switch
+            checked={!config.hideDone}
+            onChange={(on) => set({ hideDone: on ? undefined : true })}
+            label={t("showDone")}
+            labelHidden
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+/** A labeled segmented control across the panel's width. */
+function Segments<T extends string>({
+  label,
+  value,
+  onChange,
+  items,
+}: {
+  label: string;
+  value: T;
+  onChange: (value: T) => void;
+  items: { value: T; label: string }[];
+}) {
+  return (
+    <div className={styles.field}>
+      <span className={styles.label}>{label}</span>
+      <span className={styles.full}>
+        <SegmentedControl
+          variant="surface"
+          value={value}
+          onChange={(v) => onChange(v as T)}
+          items={items}
+        />
+      </span>
+    </div>
+  );
+}
+
+/** An embed's address and how it shows (BARY-183). */
+function EmbedFields({
+  widget,
+  set,
+}: {
+  widget: Widget;
+  set: (patch: Partial<WidgetConfig>) => void;
+}) {
+  const t = useTranslations("widgets");
+  const { config } = widget;
+  const kind = config.embedKind ?? "website";
+  // Typed freely; stored only once it's a valid https address.
+  const [draft, setDraft] = useState(config.url ?? "");
+  const normalized = normalizeEmbedUrl(draft);
+  const invalid = draft.trim() !== "" && normalized === null;
+
+  return (
+    <>
+      <div className={styles.field}>
+        <span className={styles.label}>{t("embedKind")}</span>
+        <span className={styles.full}>
+          <SegmentedControl
+            variant="surface"
+            value={kind}
+            onChange={(v) =>
+              set({ embedKind: v as (typeof EMBED_KINDS)[number] })
+            }
+            items={EMBED_KINDS.map((k) => ({
+              value: k,
+              label: t(`embedKind_${k}`),
+            }))}
+          />
+        </span>
+      </div>
+      <Input
+        label={t("embedUrl")}
+        value={draft}
+        inputMode="url"
+        placeholder="https://"
+        error={invalid ? t("embedUrlInvalid") : undefined}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          const next = normalizeEmbedUrl(e.target.value);
+          if (next || !e.target.value.trim()) set({ url: next ?? undefined });
+        }}
+        onBlur={() => normalized && setDraft(normalized)}
+      />
+      {kind === "image" ? (
+        <div className={styles.field}>
+          <span className={styles.label}>{t("embedFit")}</span>
+          <span className={styles.full}>
+            <SegmentedControl
+              variant="surface"
+              value={config.fit ?? "cover"}
+              onChange={(v) => set({ fit: v as (typeof EMBED_FITS)[number] })}
+              items={EMBED_FITS.map((f) => ({
+                value: f,
+                label: t(`embedFit_${f}`),
+              }))}
+            />
+          </span>
+        </div>
+      ) : (
+        <NativeSelect
+          label={t("embedRefresh")}
+          value={String(config.refresh ?? 0)}
+          onChange={(v) =>
+            set({
+              refresh: v === "0" ? undefined : (Number(v) as EmbedRefresh),
+            })
+          }
+          items={[
+            { value: "0", label: t("embedRefresh_never") },
+            ...EMBED_REFRESH.map((n) => ({
+              value: String(n),
+              label: t("embedRefresh_every", { minutes: n }),
+            })),
+          ]}
+        />
+      )}
+      <p className={styles.hint}>
+        {kind === "image" ? t("embedHintImage") : t("embedHintWebsite")}
+      </p>
+    </>
+  );
+}

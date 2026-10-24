@@ -1,7 +1,9 @@
 import styles from "../../sidebar.module.scss";
 import NavGroupAdmin from "./Admin";
+import NavGroupFavorites from "./Favorites";
 import NavGroupGlobal from "./Global";
 import NavGroupProjects from "./Projects";
+import NavGroupViews from "./Views";
 import NavGroupWorkspaceDashboard from "./WorkspaceDashboard";
 
 interface NavGroupProps {
@@ -19,7 +21,9 @@ function NavGroup({ isAdminRoute = true }: NavGroupProps) {
           <div className={styles.globalGroup} data-nav-outline>
             <NavGroupGlobal />
           </div>
+          <NavGroupFavorites />
           <NavGroupProjects />
+          <NavGroupViews />
         </>
       )}
       {isAdminRoute && <NavGroupAdmin />}

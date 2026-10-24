@@ -1,45 +1,63 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useTransition } from "react";
-import { type GroupKey, groupKeyFromParam } from "@/features/issues/group";
-import { type SortKey, sortKeyFromParam } from "@/features/issues/sort";
-import { usePathname, useRouter } from "@/i18n/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { type IssueFilter, isGroup } from "@/features/issues/filter";
 import {
-  assigneeIdToSlug,
-  assigneeSlugToId,
-  labelIdToSlug,
-  labelSlugToId,
-  priorityIdToSlug,
-  prioritySlugToId,
-  projectIdToSlug,
-  projectSlugToId,
-  statusIdToSlug,
-  statusSlugToId,
-} from "@/lib/filter-slugs";
+  filterToParams,
+  idToSlug,
+  isFilterParam,
+  mapFilterValues,
+  parseFilterParams,
+  type SlugLookups,
+  slugToId,
+} from "@/features/issues/filter-url";
+import {
+  type GroupKey,
+  groupKeyFromParam,
+  laneKeyFromParam,
+} from "@/features/issues/group";
+import { type SortKey, sortKeyFromParam } from "@/features/issues/sort";
+import {
+  layoutFromParam,
+  VIEW_DEFAULT_GROUP,
+  VIEW_DEFAULT_SORT,
+  VIEW_SETTING_KEYS,
+} from "@/features/views/url";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import type { Label, Priority, Project, User } from "@/types";
+import {
+  type ChipField,
+  chipState,
+  conditionCount,
+  dueBuckets,
+  onlySearch,
+  withChip,
+  withDueBuckets,
+  withoutNode,
+} from "./filterModel";
 
-export type FilterKey =
-  | "status"
-  | "priority"
-  | "assignee"
-  | "label"
-  | "project"
-  | "storyPoints"
-  | "dueDate";
-
-const FILTER_KEYS: FilterKey[] = [
-  "status",
-  "priority",
-  "assignee",
-  "label",
-  "project",
-  "storyPoints",
-  "dueDate",
-];
+/** A field with a chip of its own (`filterModel.ts`), plus the due-date
+ *  buckets. */
+export type FilterKey = ChipField | "dueDate";
 
 export type View = "board" | "list";
+
+/** What each chip shows of a filter tree. */
+export function filterStateOf(tree: IssueFilter): FilterState {
+  const values = (field: ChipField) => chipState(tree, field).values;
+  return {
+    status: values("status") as string[],
+    priority: values("priority") as number[],
+    type: values("type") as string[],
+    assignee: values("assignee") as string[],
+    label: values("label") as string[],
+    project: values("project") as string[],
+    storyPoints: values("storyPoints") as number[],
+    dueDate: dueBuckets(tree),
+  };
+}
 
 /**
  * What the view shows issues by: a single project, or the current user's
@@ -52,6 +70,8 @@ export type IssueArea = "project" | "my";
 export interface FilterState {
   status: string[];
   priority: number[];
+  /** Issue type ids (BARY-166). */
+  type: string[];
   assignee: string[];
   label: string[];
   /** Only in the "My issues" area — within a project there's nothing to narrow down. */
@@ -78,6 +98,12 @@ export interface UseTopbarArgs {
   priorities: Priority[];
   members: User[];
   labels: Label[];
+  /**
+   * On a saved view's page (BARY-164): the layout comes from `?layout=` and
+   * the board/list switch writes it there instead of changing the path, and a
+   * missing `?group=`/`?sort=` means the view's defaults, not the person's.
+   */
+  viewMode?: boolean;
 }
 
 export function useTopbar({
@@ -86,6 +112,7 @@ export function useTopbar({
   priorities,
   members,
   labels,
+  viewMode = false,
 }: UseTopbarArgs) {
   const router = useRouter();
   const pathname = usePathname();
@@ -96,16 +123,24 @@ export function useTopbar({
   const [, startQuietTransition] = useTransition();
   const base = `/${workspaceId}`;
 
-  // The area lives in the path — `/<ws>/project/<slug>[/list]` or
-  // `/<ws>/my[/list]`. Everywhere else there's no issue view and therefore
-  // no topbar either.
+  // The area lives in the path — `/<ws>/project/<slug>[/list]`, or across
+  // projects `/<ws>/issues[/list]` and `/<ws>/view/<slug>` (V8; `/my`
+  // before). Everywhere else there's no issue view and therefore no topbar
+  // either.
+  const inArea = (segment: string) =>
+    pathname === `${base}/${segment}` ||
+    pathname.startsWith(`${base}/${segment}/`);
   const area: IssueArea | null = pathname.startsWith(`${base}/project/`)
     ? "project"
-    : pathname === `${base}/my` || pathname.startsWith(`${base}/my/`)
+    : inArea("issues") || inArea("view") || inArea("my") || inArea("dashboard")
       ? "my"
       : null;
   const showFilters = area !== null;
-  const view: View = pathname.endsWith("/list") ? "list" : "board";
+  const view: View = viewMode
+    ? layoutFromParam(searchParams.get("layout"))
+    : pathname.endsWith("/list")
+      ? "list"
+      : "board";
 
   const slug =
     pathname.match(new RegExp(`^${base}/project/([^/]+)`))?.[1] ??
@@ -116,28 +151,41 @@ export function useTopbar({
       ? null
       : (projects.find((p) => p.slug === slug) ?? projects[0] ?? null);
 
-  // URL holds slugs; the UI works in internal-id space — translate on read.
-  const parse = (key: FilterKey) =>
-    searchParams.get(key)?.split(",").filter(Boolean) ?? [];
+  // The URL holds the filter tree with slugs (`filter-url.ts`); the UI works
+  // in internal-id space — translate on read, and back on write.
+  const slugLookups: SlugLookups = {
+    priorities,
+    members: members.flatMap((m) =>
+      m.handle ? [{ id: m.id, handle: m.handle }] : [],
+    ),
+    labels,
+    projects,
+  };
+  const tree: IssueFilter = mapFilterValues(
+    parseFilterParams(searchParams),
+    slugToId(slugLookups),
+  );
 
-  const filters: FilterState = {
-    status: parse("status").map(statusSlugToId),
-    priority: parse("priority")
-      .map((s) => prioritySlugToId(priorities, s))
-      .filter((n): n is number => n !== undefined),
-    assignee: parse("assignee")
-      .map((s) => assigneeSlugToId(members, s))
-      .filter((id): id is string => Boolean(id)),
-    label: parse("label")
-      .map((s) => labelSlugToId(labels, s))
-      .filter((id): id is string => Boolean(id)),
-    project: parse("project")
-      .map((s) => projectSlugToId(projects, s))
-      .filter((id): id is string => Boolean(id)),
-    storyPoints: parse("storyPoints")
-      .map(Number)
-      .filter((n) => Number.isFinite(n)),
-    dueDate: parse("dueDate"),
+  const chip = (field: ChipField) => chipState(tree, field);
+  const filters = filterStateOf(tree);
+  // "Is not" picked before any value: the tree has no rule to carry it
+  // yet, so it waits here until the first value arrives.
+  const [pendingNot, setPendingNot] = useState<
+    Partial<Record<ChipField, boolean>>
+  >({});
+  const isNot = (field: ChipField) =>
+    chip(field).values.length > 0
+      ? chip(field).negated
+      : (pendingNot[field] ?? false);
+  /** Which chips exclude rather than include ("is not"). */
+  const negated: Record<ChipField, boolean> = {
+    status: isNot("status"),
+    priority: isNot("priority"),
+    type: isNot("type"),
+    assignee: isNot("assignee"),
+    label: isNot("label"),
+    project: isNot("project"),
+    storyPoints: isNot("storyPoints"),
   };
 
   // The typed text belongs to the search box alone (see IssueSearch): it renders
@@ -152,20 +200,18 @@ export function useTopbar({
 
   useEffect(() => () => clearTimeout(searchTimer.current), []);
 
-  // Chips only — the search box clears itself through its own button, so it must
-  // not make the filter row's "clear" appear.
-  const filterCount =
-    filters.status.length +
-    filters.priority.length +
-    filters.assignee.length +
-    filters.label.length +
-    filters.project.length +
-    filters.storyPoints.length +
-    filters.dueDate.length;
+  // Conditions only — the search box clears itself through its own button,
+  // so it must not make the filter row's "clear" appear.
+  const filterCount = conditionCount(tree);
 
   // Without `?sort=`/`?group=` the person's own defaults apply — the same
   // fallback the pages use, so the control shows what the view really does.
-  const { defaultSort, defaultGrouping } = usePreferences();
+  // On a view's page the view's address is the whole truth instead.
+  const preferences = usePreferences();
+  const defaultSort = viewMode ? VIEW_DEFAULT_SORT : preferences.defaultSort;
+  const defaultGrouping = viewMode
+    ? VIEW_DEFAULT_GROUP
+    : preferences.defaultGrouping;
   const sortKey: SortKey = sortKeyFromParam(
     searchParams.get("sort") ?? defaultSort,
   );
@@ -173,24 +219,7 @@ export function useTopbar({
   const groupKey: GroupKey = groupKeyFromParam(
     searchParams.get("group") ?? defaultGrouping,
   );
-
-  // internal id (as passed by the filter UI) → URL slug
-  function toSlug(key: FilterKey, value: string | number): string {
-    switch (key) {
-      case "status":
-        return statusIdToSlug(String(value));
-      case "priority":
-        return priorityIdToSlug(priorities, value as number);
-      case "assignee":
-        return assigneeIdToSlug(members, String(value));
-      case "label":
-        return labelIdToSlug(labels, String(value));
-      case "project":
-        return projectIdToSlug(projects, String(value));
-      default:
-        return String(value);
-    }
-  }
+  const laneKey = laneKeyFromParam(searchParams.get("lanes"), groupKey);
 
   // Every URL write goes through here, so a navigation triggered by any other
   // control also flushes the search text still sitting in the debounce. `quiet`
@@ -206,20 +235,55 @@ export function useTopbar({
     start(() => router.push(`${pathname}?${p.toString()}`, { scroll: false }));
   }
 
-  function toggleFilter(key: FilterKey, value: string | number) {
+  /** Writes a whole filter tree into the URL — the editor's and every
+   *  chip's way in. The search text stays the search box's. */
+  function setFilter(next: IssueFilter) {
     pushParams((p) => {
-      const cur = p.get(key)?.split(",").filter(Boolean) ?? [];
-      const slug = toSlug(key, value);
-      const next = cur.includes(slug)
-        ? cur.filter((v) => v !== slug)
-        : [...cur, slug];
-      if (next.length) p.set(key, next.join(","));
-      else p.delete(key);
+      for (const key of [...p.keys()])
+        if (key !== "q" && isFilterParam(key)) p.delete(key);
+      const own = {
+        op: "and" as const,
+        rules: next.rules.filter((n) => isGroup(n) || n.field !== "text"),
+      };
+      for (const [key, value] of filterToParams(
+        mapFilterValues(own, idToSlug(slugLookups)),
+      ))
+        p.append(key, value);
     });
   }
 
-  function clearFilter(key: FilterKey) {
-    pushParams((p) => p.delete(key));
+  function toggleFilter(key: FilterKey, value: string | number) {
+    if (key === "dueDate") {
+      const cur = filters.dueDate;
+      const bucket = String(value);
+      setFilter(
+        withDueBuckets(
+          tree,
+          cur.includes(bucket)
+            ? cur.filter((b) => b !== bucket)
+            : [...cur, bucket],
+        ),
+      );
+      return;
+    }
+    const cur = chip(key).values;
+    const next = cur.includes(value)
+      ? cur.filter((v) => v !== value)
+      : [...cur, value];
+    setFilter(withChip(tree, key, next, negated[key]));
+  }
+
+  /** "is" ↔ "is not" for a chip (BARY-166). */
+  function setNegated(key: ChipField, value: boolean) {
+    setPendingNot((cur) => ({ ...cur, [key]: value }));
+    if (chip(key).values.length > 0)
+      setFilter(withChip(tree, key, chip(key).values, value));
+  }
+
+  /** Removes a top-level node of the filter — or, with a `path`, one part
+   *  of a group (the active-filter row's ×). */
+  function removeExtra(index: number, path?: number[]) {
+    setFilter(withoutNode(tree, index, path));
   }
 
   // Called on every keystroke — writes a ref and re-arms the timer, nothing that
@@ -237,15 +301,34 @@ export function useTopbar({
   // Clears exactly what the filter row shows — the search box has its own button
   // and keeps its text, the sort keeps its choice.
   function clearAll() {
-    pushParams((p) => {
-      for (const key of FILTER_KEYS) p.delete(key);
-    });
+    setFilter(onlySearch(tree));
   }
 
   function setGroup(key: GroupKey) {
-    pushParams((p) =>
-      key === "status" ? p.delete("group") : p.set("group", key),
-    );
+    pushParams((p) => {
+      if (key === "status") p.delete("group");
+      else p.set("group", key);
+      // Lanes by the same field as the columns would only repeat them.
+      if (p.get("lanes") === key) p.delete("lanes");
+    });
+  }
+
+  /** The board's swimlanes (BARY-173) — `null` turns them off. */
+  function setLanes(key: GroupKey | null) {
+    pushParams((p) => (key ? p.set("lanes", key) : p.delete("lanes")));
+  }
+
+  /** Back to a fresh board or list: no filter, no grouping, order or lanes
+   *  of its own in the address — the search stays. */
+  function clearViewState() {
+    pushParams((p) => {
+      for (const key of [...p.keys()])
+        if (
+          (key !== "q" && isFilterParam(key)) ||
+          (VIEW_SETTING_KEYS as readonly string[]).includes(key)
+        )
+          p.delete(key);
+    });
   }
 
   function setSort(key: SortKey) {
@@ -253,7 +336,12 @@ export function useTopbar({
   }
 
   // The view lives in the path, not the query — carry the filters across.
+  // A saved view keeps its path and switches its layout in the query.
   function setView(next: View) {
+    if (viewMode) {
+      pushParams((p) => p.set("layout", next));
+      return;
+    }
     clearTimeout(searchTimer.current);
     const p = new URLSearchParams(searchParams.toString());
     if (typedQuery.current) p.set("q", typedQuery.current);
@@ -261,13 +349,43 @@ export function useTopbar({
     const qs = p.toString();
     const suffix = qs ? `?${qs}` : "";
     // The switcher stays within its own area: a project's board leads to
-    // that project's list, "my issues" leads to my own list.
-    const areaBase = area === "my" ? `${base}/my` : `${base}/project/${slug}`;
+    // that project's list, the workspace's to the workspace's.
+    const areaBase =
+      area === "my" ? `${base}/issues` : `${base}/project/${slug}`;
     startTransition(() =>
       router.push(
         next === "list" ? `${areaBase}/list${suffix}` : `${areaBase}${suffix}`,
       ),
     );
+  }
+
+  /**
+   * A saved view's display settings live in its address (BARY-165): the
+   * panel writes them there, so they show as unsaved like the filters.
+   */
+  function setViewDisplay(patch: {
+    hiddenFields?: string[];
+    hiddenGroups?: string[];
+    groupOrder?: string[];
+    hideEmptyGroups?: boolean;
+    showSubIssues?: boolean;
+    hideEmptyLanes?: boolean;
+  }) {
+    const setList = (p: URLSearchParams, key: string, value: string[]) =>
+      value.length ? p.set(key, value.join(",")) : p.delete(key);
+    pushParams((p) => {
+      if (patch.hiddenFields) setList(p, "fields", patch.hiddenFields);
+      if (patch.hiddenGroups) setList(p, "hide", patch.hiddenGroups);
+      if (patch.groupOrder) setList(p, "order", patch.groupOrder);
+      if (patch.hideEmptyGroups !== undefined)
+        patch.hideEmptyGroups ? p.set("empty", "1") : p.delete("empty");
+      if (patch.showSubIssues !== undefined)
+        patch.showSubIssues ? p.set("sub", "1") : p.delete("sub");
+      if (patch.hideEmptyLanes !== undefined)
+        patch.hideEmptyLanes
+          ? p.set("emptylanes", "1")
+          : p.delete("emptylanes");
+    });
   }
 
   return {
@@ -276,17 +394,25 @@ export function useTopbar({
     showFilters,
     project,
     filters,
+    negated,
+    tree,
     filterCount,
     searchValue: urlQuery,
     sortKey,
     groupKey,
+    laneKey,
     view,
     toggleFilter,
-    clearFilter,
+    setNegated,
+    removeExtra,
+    setFilter,
     clearAll,
     search,
     setSort,
     setGroup,
+    setLanes,
     setView,
+    setViewDisplay,
+    clearViewState,
   };
 }

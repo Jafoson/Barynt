@@ -10,6 +10,7 @@ mock.module("@/lib/db", () => ({
   },
 }));
 
+import { API_SCOPES } from "@/lib/api/scopes";
 import {
   createAuthorizationCode,
   resolveRequestedScopes,
@@ -40,8 +41,8 @@ describe("resolveRequestedScopes()", () => {
   });
 
   it("falls back to every scope when nothing recognized was requested — the same ceiling a manually created API key gets by default", () => {
-    expect(resolveRequestedScopes(undefined)).toHaveLength(11);
-    expect(resolveRequestedScopes("nonsense")).toHaveLength(11);
+    expect(resolveRequestedScopes(undefined)).toHaveLength(API_SCOPES.length);
+    expect(resolveRequestedScopes("nonsense")).toHaveLength(API_SCOPES.length);
   });
 });
 
@@ -97,6 +98,8 @@ describe("createAuthorizationCode()", () => {
   it("defaults to every scope when the request carries none", async () => {
     mockCodeCreate.mockResolvedValue({});
     await createAuthorizationCode(baseReq, "user-1");
-    expect(mockCodeCreate.mock.calls[0][0].data.scopes).toHaveLength(11);
+    expect(mockCodeCreate.mock.calls[0][0].data.scopes).toHaveLength(
+      API_SCOPES.length,
+    );
   });
 });

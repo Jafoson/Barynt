@@ -1,0 +1,453 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { widgetsSchema } from "@/features/dashboard/widgets";
+import { isGroupKey } from "@/features/issues/group";
+import { resolveUrlFilter } from "@/features/issues/queries";
+import { isSortKey } from "@/features/issues/sort";
+import { db } from "@/lib/db";
+import type { Prisma } from "@/lib/generated/prisma/client";
+import { can, currentUserId } from "@/lib/permissions";
+import { uid } from "@/lib/utils/id";
+import { canEditView, canSeeView } from "./access";
+import {
+  createViewFor,
+  deleteViewFor,
+  fail,
+  include,
+  loadView,
+  nextPosition,
+  uniqueViewSlug,
+  updateViewFor,
+  type ViewResult,
+} from "./core";
+import {
+  getVisibleViews,
+  mapView,
+  type ViewEntry,
+  viewAccessFacts,
+} from "./queries";
+import {
+  type CreateViewInput,
+  type SavedView,
+  type UpdateViewInput,
+  type ViewUserStateInput,
+  viewUserStateSchema,
+} from "./schema";
+import { displayFromParams, layoutFromParam, pickViewState } from "./url";
+
+/**
+ * Saved views (BARY-163) as server actions for the tab bar and its dialogs
+ * (V4), which show the reason a change didn't happen instead of hitting an
+ * error boundary. The rules live in `core.ts`, shared with the public API.
+ */
+export type { ViewResult } from "./core";
+
+export async function createView(
+  input: CreateViewInput,
+): Promise<ViewResult<SavedView>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  const result = await createViewFor(userId, input);
+  if (result.ok) revalidatePath("/", "layout");
+  return result;
+}
+
+export async function updateView(
+  id: string,
+  input: UpdateViewInput,
+): Promise<ViewResult<SavedView>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  const result = await updateViewFor(userId, id, input);
+  if (result.ok) revalidatePath("/", "layout");
+  return result;
+}
+
+/**
+ * A private copy for the caller, at the end of its scope's tabs. `name`
+ * comes from the UI, which knows the language ("… (copy)").
+ *
+ * For "save as new view" with unsaved changes the UI calls `createView`
+ * with the current state instead — this copies what's stored.
+ */
+export async function duplicateView(
+  id: string,
+  name: string,
+): Promise<ViewResult<SavedView>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  const loaded = await loadView(id, userId);
+  if (!loaded || !canSeeView(loaded.row, loaded.facts)) return fail("notFound");
+  const { row } = loaded;
+
+  const copyName = name.trim().slice(0, 80);
+  if (!copyName) return fail("invalid");
+
+  const copy = await db.savedView.create({
+    data: {
+      id: uid("v"),
+      workspaceId: row.workspaceId,
+      projectId: row.projectId,
+      ownerId: userId,
+      visibility: "PRIVATE",
+      name: copyName,
+      slug: await uniqueViewSlug(row.workspaceId, copyName),
+      icon: row.icon,
+      color: row.color,
+      position: await nextPosition(row.workspaceId, row.projectId),
+      layout: row.layout,
+      filter: row.filter as Prisma.InputJsonValue,
+      groupBy: row.groupBy,
+      subGroupBy: row.subGroupBy,
+      sortBy: row.sortBy,
+      sortDir: row.sortDir,
+      display: row.display as Prisma.InputJsonValue,
+    },
+    include: include(userId),
+  });
+
+  revalidatePath("/", "layout");
+  return { ok: true, data: mapView(copy, loaded.facts) };
+}
+
+/** Deletes a view (`deleteViewFor`). */
+export async function deleteView(id: string): Promise<ViewResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  const result = await deleteViewFor(userId, id);
+  if (result.ok) revalidatePath("/", "layout");
+  return result;
+}
+
+/** The swimlanes this person folded on a view's board (BARY-173) — their
+ *  own, not the view's: stored with their view state, like a pin. */
+export async function setViewCollapsedLanes(
+  id: string,
+  entries: string[],
+): Promise<ViewResult<null>> {
+  const result = await setViewUserState(id, { collapsedGroups: entries });
+  return result.ok ? { ok: true, data: null } : result;
+}
+
+/**
+ * The tab order of one scope (a project, or the workspace's cross-project
+ * views). `ids` is the new order; views the caller may not edit keep their
+ * place, so dragging can't reorder a shared view for the whole team
+ * without `view.share`/`view.manage`.
+ */
+export async function reorderViews(
+  workspaceId: string,
+  projectId: string | null,
+  ids: string[],
+): Promise<ViewResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  if (ids.length > 500 || new Set(ids).size !== ids.length)
+    return fail("invalid");
+
+  const facts = await viewAccessFacts(userId, { workspaceId, projectId });
+  if (!facts.canSeeScope) return fail("notFound");
+
+  const rows = await db.savedView.findMany({
+    where: { id: { in: ids }, workspaceId, projectId },
+    select: { id: true, visibility: true, ownerId: true },
+  });
+  const editable = new Set(
+    rows.filter((r) => canEditView(r, facts)).map((r) => r.id),
+  );
+
+  await db.$transaction(
+    ids.flatMap((viewId, index) =>
+      editable.has(viewId)
+        ? [
+            db.savedView.update({
+              where: { id: viewId },
+              data: { position: index + 1 },
+            }),
+          ]
+        : [],
+    ),
+  );
+
+  revalidatePath("/", "layout");
+  return { ok: true, data: null };
+}
+
+/** The caller's own state at a view: pinned, favorite, collapsed groups.
+ *  Allowed on every view they see — it changes nothing for anyone else. */
+export async function setViewUserState(
+  id: string,
+  input: ViewUserStateInput,
+): Promise<ViewResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  const parsed = viewUserStateSchema.safeParse(input);
+  if (!parsed.success) return fail("invalid");
+
+  const loaded = await loadView(id, userId);
+  if (!loaded || !canSeeView(loaded.row, loaded.facts)) return fail("notFound");
+
+  const data = { ...parsed.data };
+  // Starred without a place: at the end of the favorites. Unstarred: out.
+  if (data.favorite === true && data.favoritePosition === undefined)
+    data.favoritePosition = await nextFavoritePosition(userId);
+  if (data.favorite === false) data.favoritePosition = null;
+
+  await db.$transaction(async (tx) => {
+    // One start view per project and person: the others step down.
+    if (data.startView && loaded.row.projectId)
+      await tx.savedViewUserState.updateMany({
+        where: {
+          userId,
+          startView: true,
+          viewId: { not: id },
+          view: { projectId: loaded.row.projectId },
+        },
+        data: { startView: false },
+      });
+    await tx.savedViewUserState.upsert({
+      where: { userId_viewId: { userId, viewId: id } },
+      create: { userId, viewId: id, ...data },
+      update: data,
+    });
+  });
+
+  revalidatePath("/", "layout");
+  return { ok: true, data: null };
+}
+
+// ─── Favorites (V7) ─────────────────────────────────────────────────────────
+
+/** After the last favorite — views and projects share one list. */
+async function nextFavoritePosition(userId: string): Promise<number> {
+  const [views, projects] = await Promise.all([
+    db.savedViewUserState.aggregate({
+      where: { userId, favorite: true },
+      _max: { favoritePosition: true },
+    }),
+    db.projectUserState.aggregate({
+      where: { userId, favorite: true },
+      _max: { favoritePosition: true },
+    }),
+  ]);
+  return (
+    Math.max(
+      views._max.favoritePosition ?? 0,
+      projects._max.favoritePosition ?? 0,
+    ) + 1
+  );
+}
+
+/** Stars or unstars a project for the caller — on any project they see. */
+export async function setProjectFavorite(
+  projectId: string,
+  favorite: boolean,
+): Promise<ViewResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  if (typeof favorite !== "boolean") return fail("invalid");
+  if (!(await can(userId, "project.view", { projectId })))
+    return fail("notFound");
+
+  const data = {
+    favorite,
+    favoritePosition: favorite ? await nextFavoritePosition(userId) : null,
+  };
+  await db.projectUserState.upsert({
+    where: { userId_projectId: { userId, projectId } },
+    create: { userId, projectId, ...data },
+    update: data,
+  });
+
+  revalidatePath("/", "layout");
+  return { ok: true, data: null };
+}
+
+const favoriteOrderSchema = z
+  .array(
+    z.object({ kind: z.enum(["view", "project"]), id: z.string().max(100) }),
+  )
+  .max(200);
+
+/** The caller's favorites in a new order (drag & drop in the sidebar).
+ *  Entries that aren't their favorites are skipped. */
+export async function reorderFavorites(
+  entries: { kind: "view" | "project"; id: string }[],
+): Promise<ViewResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  const parsed = favoriteOrderSchema.safeParse(entries);
+  if (!parsed.success) return fail("invalid");
+
+  await db.$transaction(
+    parsed.data.map((entry, i) =>
+      entry.kind === "view"
+        ? db.savedViewUserState.updateMany({
+            where: { userId, viewId: entry.id, favorite: true },
+            data: { favoritePosition: i + 1 },
+          })
+        : db.projectUserState.updateMany({
+            where: { userId, projectId: entry.id, favorite: true },
+            data: { favoritePosition: i + 1 },
+          }),
+    ),
+  );
+
+  revalidatePath("/", "layout");
+  return { ok: true, data: null };
+}
+
+// ─── From the address (BARY-164) ────────────────────────────────────────────
+
+/**
+ * The stored fields an address stands for: its filters resolved to ids (the
+ * same lookup the board itself does), grouping, order, layout and display
+ * settings (BARY-165). The search
+ * text isn't part of a view and is ignored (`pickViewState`).
+ */
+async function stateFromParams(
+  /** The view's project — or, across projects, its workspace (V8). */
+  scope: { projectId: string } | { workspaceId: string },
+  params: Record<string, string>,
+) {
+  const state = pickViewState(params);
+  return {
+    filter: await resolveUrlFilter(state, scope),
+    groupBy: state.group && isGroupKey(state.group) ? state.group : null,
+    // Swimlanes (BARY-173): never the same grouping as the columns.
+    subGroupBy:
+      state.lanes && isGroupKey(state.lanes) && state.lanes !== state.group
+        ? state.lanes
+        : null,
+    sortBy: state.sort && isSortKey(state.sort) ? state.sort : "manual",
+    // The order turned round from a list header (BARY-175).
+    sortDir: state.dir === "desc" ? "desc" : "asc",
+    layout: layoutFromParam(state.layout),
+    display: displayFromParams(state),
+  } as const;
+}
+
+/** "Save": the view takes over what the address shows right now. */
+export async function saveViewState(
+  id: string,
+  params: Record<string, string>,
+): Promise<ViewResult<SavedView>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  const row = await db.savedView.findUnique({
+    where: { id },
+    select: { projectId: true, workspaceId: true, layout: true },
+  });
+  if (!row) return fail("notFound");
+  const state = await stateFromParams(
+    row.projectId
+      ? { projectId: row.projectId }
+      : { workspaceId: row.workspaceId },
+    params,
+  );
+  // A dashboard view's address carries no layout or display — taking them
+  // from it would turn it into a board and drop its widgets (BARY-169).
+  if (row.layout === "dashboard")
+    return updateView(id, { filter: state.filter });
+  return updateView(id, state);
+}
+
+/**
+ * "New view" from the topbar: name, color, icon, layout and visibility from
+ * the dialog, filters/grouping/order from the address — or none of those,
+ * when the person unticked "take over the current filters" (`params` then
+ * carries nothing but the layout).
+ */
+export async function createViewFromParams(
+  input: Omit<
+    CreateViewInput,
+    "filter" | "groupBy" | "subGroupBy" | "sortBy" | "sortDir" | "display"
+  > & { projectId: string | null },
+  params: Record<string, string>,
+  /** A dashboard view's widgets (BARY-169) — "save as new view" from a
+   *  dashboard takes its arrangement along. */
+  extra: { widgets?: unknown } = {},
+): Promise<ViewResult<SavedView>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  const widgets =
+    extra.widgets === undefined
+      ? undefined
+      : widgetsSchema.safeParse(extra.widgets);
+  if (widgets && !widgets.success) return fail("invalid");
+  const state = await stateFromParams(
+    input.projectId
+      ? { projectId: input.projectId }
+      : { workspaceId: input.workspaceId },
+    params,
+  );
+  return createView({
+    ...input,
+    filter: state.filter,
+    groupBy: state.groupBy,
+    subGroupBy: state.subGroupBy,
+    sortBy: state.sortBy,
+    display: widgets?.success
+      ? { ...state.display, widgets: widgets.data }
+      : state.display,
+  });
+}
+
+/** The views the switcher (key V) and the main search offer — every view
+ *  the caller sees in the workspace (V7, V8). */
+export async function listSwitchableViews(
+  workspaceId: string,
+): Promise<ViewEntry[]> {
+  if (typeof workspaceId !== "string") return [];
+  return getVisibleViews(workspaceId);
+}
+
+// ─── The tab row (BARY-184) ─────────────────────────────────────────────────
+
+/**
+ * The viewer's own tab row: `shown` in their order, `hidden` left out. Only
+ * views the person can see are touched; the views themselves stay as they
+ * are for everyone else.
+ */
+export async function saveViewTabs(
+  shown: string[],
+  hidden: string[],
+): Promise<ViewResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  const ids = [...new Set([...shown, ...hidden])].slice(0, 200);
+  const visible: string[] = [];
+  for (const id of ids) {
+    const loaded = await loadView(id, userId);
+    if (loaded && canSeeView(loaded.row, loaded.facts)) visible.push(id);
+  }
+  const hiddenSet = new Set(hidden);
+  await db.$transaction(
+    visible.map((viewId) => {
+      const data = hiddenSet.has(viewId)
+        ? { tabHidden: true, tabPosition: null }
+        : { tabHidden: false, tabPosition: shown.indexOf(viewId) };
+      return db.savedViewUserState.upsert({
+        where: { userId_viewId: { userId, viewId } },
+        create: { userId, viewId, ...data },
+        update: data,
+      });
+    }),
+  );
+  revalidatePath("/", "layout");
+  return { ok: true, data: null };
+}
+
+/** Back to the default row: every view shown, in the usual order. */
+export async function resetViewTabs(ids: string[]): Promise<ViewResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  await db.savedViewUserState.updateMany({
+    where: { userId, viewId: { in: ids.slice(0, 200) } },
+    data: { tabPosition: null, tabHidden: false },
+  });
+  revalidatePath("/", "layout");
+  return { ok: true, data: null };
+}

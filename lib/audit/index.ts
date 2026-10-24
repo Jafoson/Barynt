@@ -203,6 +203,7 @@ function whereFor(filter: AuditFilter): Prisma.AuditLogWhereInput {
             { action: { startsWith: "issue." } },
             { action: "label.created", projectId: { not: null } },
             { action: "label.deleted", projectId: { not: null } },
+            { action: "view.deleted", projectId: { not: null } },
           ],
         }
       : {}),

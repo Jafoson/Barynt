@@ -73,6 +73,10 @@
   font-weight: 600;
   color: var(--tertiary);
 
+  &[data-tone="secondary"] {
+    color: var(--secondary);
+  }
+
   &:active:not(:disabled) {
     background: var(--surface-container-high);
   }

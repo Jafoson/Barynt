@@ -47,6 +47,10 @@ const SEGMENTS: string[][] = [
     "tests/unit/webhooks",
   ],
   ["tests/unit/permissions/resolver.test.ts"],
+  // Saved views (BARY-163): `actions.test.ts` mocks `@/lib/permissions` and
+  // `@/lib/audit` entirely — kept out of segment 0, where files test or rely
+  // on the real modules.
+  ["tests/unit/views"],
   // Own invocation: sharing segment 0 with tests/unit/projects made
   // projectMembers.test.ts fail on `db.workspace.findUnique` inside
   // sendInvitationEmail — a module-cache race triggered merely by this

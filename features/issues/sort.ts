@@ -70,42 +70,52 @@ function compareNullableNumber(
 export function compareIssues(
   key: SortKey,
   { statuses, issueTypes, members }: SortLookups,
+  /** The other way round (a list header's second click, BARY-175) — empty
+   *  values still last. */
+  reversed = false,
 ): ((a: Issue, b: Issue) => number) | null {
   if (key === "manual") return null;
+  const dir = reversed ? -1 : 1;
 
   const primary = (a: Issue, b: Issue): number => {
     switch (key) {
       case "priority":
-        return b.priority - a.priority;
+        return dir * (b.priority - a.priority);
       case "type":
         return (
-          issueTypes.findIndex((t) => t.id === a.type) -
-          issueTypes.findIndex((t) => t.id === b.type)
+          dir *
+          (issueTypes.findIndex((t) => t.id === a.type) -
+            issueTypes.findIndex((t) => t.id === b.type))
         );
       case "status":
         return (
-          statuses.findIndex((s) => s.id === a.status) -
-          statuses.findIndex((s) => s.id === b.status)
+          dir *
+          (statuses.findIndex((s) => s.id === a.status) -
+            statuses.findIndex((s) => s.id === b.status))
         );
       case "storyPoints":
-        return compareNullableNumber(a.storyPoints, b.storyPoints, true);
+        return compareNullableNumber(a.storyPoints, b.storyPoints, !reversed);
       case "dueDate":
-        return compareNullableNumber(a.dueDate, b.dueDate, false);
+        return compareNullableNumber(a.dueDate, b.dueDate, reversed);
       case "estimate":
-        return compareNullableNumber(a.estimateHours, b.estimateHours, true);
+        return compareNullableNumber(
+          a.estimateHours,
+          b.estimateHours,
+          !reversed,
+        );
       case "assignee": {
         const an = memberName(members, a.assignee);
         const bn = memberName(members, b.assignee);
         if (an === null) return bn === null ? 0 : 1;
         if (bn === null) return -1;
-        return an.localeCompare(bn);
+        return dir * an.localeCompare(bn);
       }
       case "title":
-        return a.title.localeCompare(b.title);
+        return dir * a.title.localeCompare(b.title);
       case "created":
-        return b.created - a.created;
+        return dir * (b.created - a.created);
       case "updated":
-        return b.updated - a.updated;
+        return dir * (b.updated - a.updated);
       default:
         return 0;
     }
@@ -120,8 +130,9 @@ export function sortByKey<T extends Issue>(
   issues: T[],
   key: SortKey,
   lookups: SortLookups,
+  reversed = false,
 ): T[] {
-  const cmp = compareIssues(key, lookups);
+  const cmp = compareIssues(key, lookups, reversed);
   if (!cmp)
     return [...issues].sort((a, b) => effectiveRank(a) - effectiveRank(b));
   return [...issues].sort(cmp);

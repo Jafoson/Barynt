@@ -69,6 +69,7 @@ const CONTRIBUTE: Permission[] = [
   "comment.react",
   "label.create",
   "label.update",
+  "view.share",
 ];
 
 // ─── Scope PLATFORM ───────────────────────────────────────────────────────────
@@ -175,6 +176,8 @@ const WORKSPACE_ROLES: SystemRole[] = [
       "label.create",
       "label.update",
       "label.delete",
+      "view.share",
+      "view.manage",
     ],
     defaultProjectRoleKey: "project_admin",
   },
@@ -182,9 +185,9 @@ const WORKSPACE_ROLES: SystemRole[] = [
     key: "member",
     scope: "WORKSPACE",
     name: "Member",
-    desc: "The default role. Creates workspace-wide labels; what it may do in a project is decided by the project role there.",
+    desc: "The default role. Creates workspace-wide labels and shared views; what it may do in a project is decided by the project role there.",
     rank: 2,
-    allow: ["label.create", "label.update"],
+    allow: ["label.create", "label.update", "view.share"],
     defaultProjectRoleKey: "contributor",
   },
   {

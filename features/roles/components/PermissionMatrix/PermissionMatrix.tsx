@@ -378,6 +378,7 @@ const GROUP_OF: Record<string, string> = {
   issue: "issue",
   comment: "comment",
   label: "label",
+  view: "view",
   project: "project",
   member: "member",
   team: "team",
@@ -395,12 +396,13 @@ const GROUP_ORDER = {
   issue: 0,
   comment: 1,
   label: 2,
-  project: 3,
-  member: 4,
-  team: 5,
-  role: 6,
-  workspace: 7,
-  platform: 8,
+  view: 3,
+  project: 4,
+  member: 5,
+  team: 6,
+  role: 7,
+  workspace: 8,
+  platform: 9,
 } as const;
 
 type GroupId = keyof typeof GROUP_ORDER;

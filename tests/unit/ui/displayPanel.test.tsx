@@ -42,6 +42,9 @@ const state: DisplayState = {
   hiddenGroups: ["status:done", "priority:3"],
   hideEmptyGroups: false,
   showSubIssues: false,
+  groupOrder: [],
+  laneKey: null,
+  hideEmptyLanes: false,
 };
 
 function render(
@@ -51,11 +54,15 @@ function render(
     <DisplayPanel
       state={state}
       onGroup={() => {}}
+      onLanes={() => {}}
+      onToggleHideEmptyLanes={() => {}}
       onSort={() => {}}
       onToggleField={() => {}}
       onToggleGroup={() => {}}
       onToggleHideEmpty={() => {}}
       onToggleSubIssues={() => {}}
+      onReorderGroups={() => {}}
+      onResetOrder={() => {}}
       onReset={() => {}}
       facet={null}
       onFacetChange={() => {}}
@@ -76,10 +83,14 @@ describe("DisplayPanel", () => {
     expect(html).not.toContain("<select");
   });
 
-  it("shows the fields as chips, the hidden ones not selected", () => {
-    const html = render();
+  it("shows the board's fields as chips, the hidden ones not selected", () => {
+    const html = render({ state: { ...state, view: "board" } });
     expect(html).toContain("display.fieldsTitle");
     expect(html).toContain("fields.labels");
+  });
+
+  it("leaves the fields to the list's own column header (BARY-175)", () => {
+    expect(render()).not.toContain("display.fieldsTitle");
   });
 
   it("shows the groups as a row with how many are shown (BARY-47)", () => {
@@ -104,13 +115,35 @@ describe("DisplayPanel", () => {
     );
   });
 
-  it("opens the groups as a multi-select list, hidden ones not selected", () => {
+  it("opens the groups as a checklist, hidden ones unchecked (BARY-165)", () => {
     const html = render({ facet: "groups" });
-    expect(html).toContain('aria-multiselectable="true"');
     expect(html).toContain("Todo");
     expect(html).toContain("Done");
     expect(html).toContain("Canceled");
-    expect(html.match(/aria-selected="true"/g)).toHaveLength(2);
+    // Todo and Canceled shown (the list shows Canceled by default), Done hidden.
+    expect(html.match(/type="checkbox"/g)).toHaveLength(3);
+    expect(html.match(/type="checkbox"[^>]*checked=""/g)).toHaveLength(2);
+  });
+
+  it("offers up/down arrows, none past the ends (BARY-165)", () => {
+    const html = render({ facet: "groups" });
+    expect(html.match(/display\.moveUp/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(html.match(/display\.moveDown/g)?.length).toBeGreaterThanOrEqual(3);
+    // First row can't go up, last can't go down.
+    expect(html.match(/<button[^>]*disabled=""/g)).toHaveLength(2);
+  });
+
+  it("lists the groups in their own order, with a way back (BARY-165)", () => {
+    const plain = render({ facet: "groups" });
+    expect(plain.indexOf("Todo")).toBeLessThan(plain.indexOf("Canceled"));
+    expect(plain).not.toContain("display.resetOrder");
+
+    const ordered = render({
+      facet: "groups",
+      state: { ...state, groupOrder: ["status:canceled", "status:todo"] },
+    });
+    expect(ordered.indexOf("Canceled")).toBeLessThan(ordered.indexOf("Todo"));
+    expect(ordered).toContain("display.resetOrder");
   });
 
   it("has a reset button below unless the sheet holds it in its bar", () => {

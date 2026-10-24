@@ -1,6 +1,4 @@
 @use "breakpoints" as bp;
-@use "sass:list";
-@use "sass:map";
 
 /* Cells and group headers of the issue list. Grid, row height, hover, and
    sticky behavior come from the Table component. */
@@ -19,130 +17,8 @@
   container-type: inline-size;
 }
 
-/* ---------- Narrow list: columns drop out by priority ----------
-
-   Always there: key, title, assignee (far right), status. Going narrower,
-   the least important go first: labels, age, then priority, due date and
-   points, last project and type. When the list is grouped by status, the
-   status column is redundant and never shown.
-
-   A hidden column leaves its grid track too — a mere `display: none` on
-   the cells would shift the rest into the wrong tracks. The exception is
-   priority: its cell carries the drag handle, so it stays, collapsed to
-   nothing (the handle is positioned against the row and isn't clipped).
-   Desktop layout only; the card rows below take over at tablet width. */
-$tracks: (
-  priority: auto,
-  identifier: auto,
-  project: max-content,
-  status: auto,
-  type: auto,
-  title: minmax(0, 1fr),
-  labels: max-content,
-  assignee: auto,
-  storyPoints: max-content,
-  dueDate: max-content,
-  updated: max-content,
-);
-
-/* Which columns are gone at which list width (≤), cumulative. */
-$steps: (
-  60rem: (labels),
-  52rem: (updated),
-  44rem: (
-    priority,
-    dueDate,
-    storyPoints,
-  ),
-  36rem: (
-    project,
-    type,
-  ),
-);
-
-@function track-list($hidden, $with-project) {
-  $out: ();
-  @each $col, $track in $tracks {
-    @if $col == priority and list.index($hidden, $col) != null {
-      $out: list.append($out, 0, space);
-    } @else if
-      list.index($hidden, $col) ==
-      null and
-        ($col != project or $with-project)
-    {
-      $out: list.append($out, $track, space);
-    }
-  }
-  @return $out;
-}
-
-/* One rule set for all four combinations of "cross-project" and "grouped
-   by status". */
-@mixin hide-columns($hidden) {
-  @each $with-project in (false, true) {
-    @each $by-status in (false, true) {
-      $cols: $hidden;
-      @if $by-status {
-        $cols: list.join($cols, (status), comma);
-      }
-      $sel: ".content";
-      @if $with-project {
-        $sel: $sel + "[data-project]";
-      }
-      @if $by-status {
-        $sel: $sel + "[data-by-status]";
-      }
-
-      @if list.length($cols) > 0 {
-        #{$sel} table {
-          grid-template-columns: track-list($cols, $with-project);
-        }
-      }
-    }
-  }
-
-  @each $col in $hidden {
-    @if $col == priority {
-      .content td[data-col="priority"],
-      .content th[data-col="priority"] {
-        min-width: 0;
-        max-width: 0;
-        padding: 0;
-        overflow: hidden;
-      }
-    } @else {
-      .content td[data-col="#{$col}"],
-      .content th[data-col="#{$col}"] {
-        display: none;
-      }
-    }
-  }
-}
-
-@include bp.desktop {
-  .content[data-by-status] :is(td, th)[data-col="status"] {
-    display: none;
-  }
-
-  /* Grouped by status: the column is gone at every width. */
-  @each $with-project in (false, true) {
-    $sel: ".content[data-by-status]";
-    @if $with-project {
-      $sel: $sel + "[data-project]";
-    }
-    #{$sel} table {
-      grid-template-columns: track-list((status), $with-project);
-    }
-  }
-
-  $hidden: ();
-  @each $width, $cols in $steps {
-    $hidden: list.join($hidden, $cols, comma);
-    @container (max-width: #{$width}) {
-      @include hide-columns($hidden);
-    }
-  }
-}
+/* The columns are the person's own (BARY-175): a list wider than its
+   space scrolls sideways instead of dropping columns by itself. */
 
 /* ---------- Cells ---------- */
 
@@ -444,4 +320,211 @@ $steps: (
   gap: 0.25rem;
   font-size: var(--text-sm);
   color: var(--outline);
+}
+
+/* ── The list as a table (BARY-175) ── */
+
+/* Numbers line up by their digits. */
+.number {
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.personName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Header cells: the title, the menu beside it and the edge to drag the
+   width by. A column dragged by its header shows where it would land. */
+.content th[data-col] {
+  position: relative;
+  cursor: grab;
+
+  &[data-drop="before"] {
+    box-shadow: inset 2px 0 0 var(--primary);
+  }
+
+  &[data-drop="after"] {
+    box-shadow: inset -2px 0 0 var(--primary);
+  }
+
+  &:is(:hover, :focus-within) .columnMenu {
+    opacity: 1;
+  }
+}
+
+.columnLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Only under the pointer or focused — a header row full of chevrons would
+   be louder than the list. Without hover (touch), always there. */
+.columnMenu {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+
+  &:hover,
+  &[aria-expanded="true"] {
+    opacity: 1;
+    background: rgb(from var(--on-surface) r g b / 0.08);
+  }
+
+  &:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+  }
+
+  @include bp.no-hover {
+    opacity: 1;
+  }
+}
+
+.resizeHandle {
+  position: absolute;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  inset-inline-end: -0.375rem;
+  z-index: 1;
+  width: 0.75rem;
+  cursor: col-resize;
+  touch-action: none;
+
+  /* Always a quiet divider, so the edge to drag is visible; under the
+     pointer, focused or while dragging, the accent. */
+  &::after {
+    content: "";
+    position: absolute;
+    inset-block: 0.125rem;
+    inset-inline-start: calc(50% - 1px);
+    width: 2px;
+    border-radius: 1px;
+    background: var(--outline-variant);
+    transition: background 0.12s, width 0.12s, inset-inline-start 0.12s;
+  }
+
+  &:hover::after,
+  &:focus-visible::after,
+  &:active::after {
+    inset-block: 0;
+    inset-inline-start: calc(50% - 1.5px);
+    width: 3px;
+    background: var(--primary);
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+/* The column menu. */
+.menu {
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2.25rem;
+  padding: 0 0.625rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--on-surface);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: start;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: rgb(from var(--on-surface) r g b / 0.08);
+    outline: none;
+  }
+
+  @include bp.touch-target;
+}
+
+.menuCheck {
+  margin-inline-start: auto;
+  color: var(--primary);
+}
+
+.menuDivider {
+  height: 1px;
+  margin: 0.25rem 0.375rem;
+  background: var(--outline-variant);
+}
+
+/* "Total In Progress", "Total · 8 issues" in the title column. */
+.totalLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The column picker's "+" is always visible — it's how columns are found. */
+.columnMenu[data-always] {
+  opacity: 1;
+}
+
+.menuHead {
+  padding: 0.375rem 0.625rem 0.25rem;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+.pickRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.25rem;
+  padding: 0 0.625rem;
+  font-size: var(--text-sm);
+}
+
+/* A phone gives the list its whole width: no frame around it, no margin —
+   the group headers and dividers are structure enough. */
+.content {
+  @include bp.phone {
+    padding: 0;
+
+    & > :is(div, table) {
+      border: 0;
+      border-radius: 0;
+    }
+  }
 }

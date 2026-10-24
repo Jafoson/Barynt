@@ -32,16 +32,90 @@
   color: var(--on-surface-variant);
 }
 
-.guideIntro {
+/* A client's setup, step by step — the numbers are the real order. */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
   margin: 0;
-  font-size: var(--text-sm);
-  color: var(--on-surface-variant);
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
 
-  code {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
+  & > li {
+    display: grid;
+    grid-template-columns: 1.625rem minmax(0, 1fr);
+    gap: 0.375rem 0.75rem;
+    counter-increment: step;
+    font-size: var(--text-sm);
+    line-height: 1.55;
     color: var(--on-surface);
+
+    &::before {
+      content: counter(step);
+      display: grid;
+      place-items: center;
+      grid-row: span 2;
+      align-self: start;
+      width: 1.625rem;
+      height: 1.625rem;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--primary) 14%, transparent);
+      color: var(--primary);
+      font-size: var(--text-xs);
+      font-weight: 700;
+    }
+
+    & > span {
+      padding-top: 0.125rem;
+    }
+
+    & > .codeBlock {
+      grid-column: 2;
+    }
   }
+}
+
+/* A step's shortcut — to the app's settings, an install, or a page here.
+   Neutral like the app's other secondary actions; the icon tells them
+   apart (new tab, install, inside Barynt). */
+.stepLink {
+  grid-column: 2;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2rem;
+  padding: 0.3125rem 0.75rem;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius-pill);
+  color: var(--on-surface);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--surface-container-high);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 2px;
+  }
+
+  @include bp.coarse {
+    min-height: var(--touch-min);
+  }
+}
+
+.note {
+  margin: 0;
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--radius);
+  background: var(--surface-container-low);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--on-surface-variant);
 }
 
 .codeBlock {

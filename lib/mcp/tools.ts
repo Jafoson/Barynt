@@ -1,6 +1,7 @@
 import "server-only";
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
+import type { MutationResult } from "@/features/api-v1/mutations";
 import {
   addIssueRelationForUser,
   createCommentForUser,
@@ -29,10 +30,23 @@ import {
   listWorkspaceMembersForUser,
   listWorkspacesForUser,
 } from "@/features/api-v1/queries";
+import {
+  createViewForApi,
+  deleteViewForApi,
+  getViewForUser,
+  listProjectViewsForUser,
+  listStatusesForUser,
+  listViewIssuesForUser,
+  listWorkspaceViewsForUser,
+  updateViewForApi,
+} from "@/features/api-v1/views";
+import { parseIssueFilter } from "@/features/issues/filter";
 import { encodeCursor } from "@/lib/api/cursor";
 import { pickFields } from "@/lib/api/fields";
 import {
   authorize,
+  forbiddenResult,
+  invalidBodyResult,
   jsonResult,
   mutationResult,
   notFoundResult,
@@ -333,6 +347,150 @@ export function registerBaryntTools(server: McpServer): void {
     },
   );
 
+  // ─── Views and statuses (BARY-172) ─────────────────────────────────────
+
+  server.registerTool(
+    "list_views",
+    {
+      title: "List views",
+      description:
+        "List the saved views you can see — a project's (projectId) or a workspace's cross-project views including the built-in 'My issues' and 'Created by me' (workspaceId).",
+      inputSchema: z.object({
+        projectId: z.string().optional(),
+        workspaceId: z.string().optional(),
+      }),
+    },
+    async ({ projectId, workspaceId }, ctx) => {
+      const auth = await authorize(ctx, "views:read");
+      if (!auth.ok) return auth.result;
+      if (!projectId === !workspaceId) return invalidBodyResult();
+      const views = projectId
+        ? await listProjectViewsForUser(auth.auth.userId, projectId)
+        : await listWorkspaceViewsForUser(auth.auth.userId, workspaceId ?? "");
+      return views ? jsonResult(views) : notFoundResult();
+    },
+  );
+
+  server.registerTool(
+    "get_view",
+    {
+      title: "Get view",
+      description:
+        "Fetch one saved view: its filter tree, layout, grouping and sort. Use list_issues with viewId for its issues.",
+      inputSchema: z.object({ viewId: z.string() }),
+    },
+    async ({ viewId }, ctx) => {
+      const auth = await authorize(ctx, "views:read");
+      if (!auth.ok) return auth.result;
+      const view = await getViewForUser(auth.auth.userId, viewId);
+      return view ? jsonResult(view) : notFoundResult();
+    },
+  );
+
+  const viewInput = {
+    name: z.string().describe("Up to 80 characters."),
+    layout: z.enum(["board", "list", "dashboard"]),
+    visibility: z
+      .enum(["PRIVATE", "PROJECT", "WORKSPACE"])
+      .optional()
+      .describe(
+        "PRIVATE (default) for you only; PROJECT in a project, WORKSPACE for a cross-project view — sharing needs the view.share permission.",
+      ),
+    filter: z.unknown().optional().describe("A filter tree (see list_issues)."),
+    groupBy: z.string().nullable().optional(),
+    sortBy: z.string().optional(),
+    sortDir: z.enum(["asc", "desc"]).optional(),
+    icon: z.string().nullable().optional(),
+    color: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("Hex color, e.g. #3b7bd5."),
+  };
+
+  server.registerTool(
+    "create_view",
+    {
+      title: "Create view",
+      description:
+        "Save a view in a project (projectId) or as a cross-project view of a workspace (workspaceId).",
+      inputSchema: z.object({
+        projectId: z.string().optional(),
+        workspaceId: z.string().optional(),
+        ...viewInput,
+      }),
+    },
+    async ({ projectId, workspaceId, ...input }, ctx) => {
+      const auth = await authorize(ctx, "views:write");
+      if (!auth.ok) return auth.result;
+      if (!projectId === !workspaceId) return invalidBodyResult();
+      return viewMutationResult(
+        await createViewForApi(
+          auth.auth.userId,
+          projectId ? { projectId } : { workspaceId: workspaceId ?? "" },
+          input,
+        ),
+      );
+    },
+  );
+
+  server.registerTool(
+    "update_view",
+    {
+      title: "Update view",
+      description:
+        "Change a saved view. Only what you pass changes. Shared views: their creator (with view.share) or anyone with view.manage.",
+      inputSchema: z.object({
+        viewId: z.string(),
+        ...Object.fromEntries(
+          Object.entries(viewInput).map(([key, schema]) => [
+            key,
+            schema.optional(),
+          ]),
+        ),
+      }),
+    },
+    async ({ viewId, ...patch }, ctx) => {
+      const auth = await authorize(ctx, "views:write");
+      if (!auth.ok) return auth.result;
+      return viewMutationResult(
+        await updateViewForApi(auth.auth.userId, viewId, patch),
+      );
+    },
+  );
+
+  server.registerTool(
+    "delete_view",
+    {
+      title: "Delete view",
+      description: "Delete a saved view. Built-in views can't be deleted.",
+      inputSchema: z.object({ viewId: z.string() }),
+    },
+    async ({ viewId }, ctx) => {
+      const auth = await authorize(ctx, "views:write");
+      if (!auth.ok) return auth.result;
+      return viewMutationResult(
+        await deleteViewForApi(auth.auth.userId, viewId),
+      );
+    },
+  );
+
+  server.registerTool(
+    "list_statuses",
+    {
+      title: "List statuses",
+      description:
+        "List a workspace's statuses in board order, each with its category: backlog, unstarted, started, completed or canceled.",
+      inputSchema: z.object({ workspaceId: z.string() }),
+    },
+    async ({ workspaceId }, ctx) => {
+      const auth = await authorize(ctx, "workspaces:read");
+      if (!auth.ok) return auth.result;
+      const statuses = await listStatusesForUser(auth.auth.userId, workspaceId);
+      return statuses ? jsonResult(statuses) : notFoundResult();
+    },
+  );
+
   // ─── Issues ────────────────────────────────────────────────────────────
 
   server.registerTool(
@@ -340,9 +498,24 @@ export function registerBaryntTools(server: McpServer): void {
     {
       title: "List issues",
       description:
-        "List issues in a project, optionally filtered by status, assignee, or a text search over title and description.",
+        "List issues in a project, optionally filtered by status, assignee, a text search over title and description, or a filter tree. With viewId, list the issues a saved view shows instead (projectId is then not needed; @me in the view means you).",
       inputSchema: z.object({
-        projectId: z.string(),
+        projectId: z
+          .string()
+          .optional()
+          .describe("Required unless viewId is given."),
+        viewId: z
+          .string()
+          .optional()
+          .describe(
+            "A saved view's id (list_views) — its filter, project and fixed conditions apply.",
+          ),
+        filter: z
+          .unknown()
+          .optional()
+          .describe(
+            'A filter tree, as views store it: { "op": "and"|"or", "rules": [ { "field": "priority", "is": "gte", "value": 3 }, { "op": "or", "rules": [...] } ] }. Values like "@me" resolve to you; values are ids, not names. Fields: status, statusCategory, priority, type, assignee, reporter, label, project, storyPoints, estimate, dueDate, created, updated, parent, text. Ignored with viewId.',
+          ),
         status: z.string().optional(),
         assignee: z.string().optional().describe("User id."),
         q: z
@@ -364,14 +537,32 @@ export function registerBaryntTools(server: McpServer): void {
           ),
       }),
     },
-    async ({ projectId, limit, fields, ...filters }, ctx) => {
+    async (
+      { projectId, viewId, filter: rawFilter, limit, fields, ...filters },
+      ctx,
+    ) => {
       const auth = await authorize(ctx, "issues:read");
       if (!auth.ok) return auth.result;
 
-      const page = await listIssuesForUser(auth.auth.userId, projectId, {
-        ...filters,
-        take: limit ?? 25,
-      });
+      let page: Awaited<ReturnType<typeof listViewIssuesForUser>>;
+      if (viewId) {
+        const views = await authorize(ctx, "views:read");
+        if (!views.ok) return views.result;
+        page = await listViewIssuesForUser(auth.auth.userId, viewId, {
+          cursor: filters.cursor,
+          take: limit ?? 25,
+        });
+      } else {
+        if (!projectId) return invalidBodyResult();
+        const filter =
+          rawFilter === undefined ? undefined : parseIssueFilter(rawFilter);
+        if (filter === null) return invalidBodyResult();
+        page = await listIssuesForUser(auth.auth.userId, projectId, {
+          ...filters,
+          filter,
+          take: limit ?? 25,
+        });
+      }
       if (!page) return notFoundResult();
 
       const last = page.rows.at(-1);
@@ -645,4 +836,12 @@ export function registerBaryntTools(server: McpServer): void {
       );
     },
   );
+}
+
+/** A view mutation's result — unlike `mutationResult`, a 403 here means
+ *  "visible, but not yours to change". */
+function viewMutationResult<T>(result: MutationResult<T>) {
+  return !result.ok && result.status === 403
+    ? forbiddenResult()
+    : mutationResult(result);
 }

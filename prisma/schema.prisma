@@ -55,9 +55,12 @@ model Workspace {
   roles         Role[]
   // Wie einzelne Personen das Dashboard dieses Workspace eingerichtet haben.
   dashboards    WorkspaceDashboardPreference[]
+  dashboardLayouts DashboardLayout[]
+  customWidgets    CustomWidget[]
   // Wie einzelne Personen Board/Liste der projektübergreifenden "Meine
   // Issues"-Ansicht eingerichtet haben (BARY-33).
   myIssuesViewPreferences MyIssuesViewPreference[]
+  savedViews    SavedView[]
   // Wichtige externe Adressen — Dokumentation, Repository, Chat.
   links         WorkspaceLink[]
   notifications Notification[]
@@ -177,8 +180,14 @@ model User {
   preferences         UserPreferences?
   dashboards          DashboardPreference[]
   workspaceDashboards WorkspaceDashboardPreference[]
+  dashboardLayouts    DashboardLayout[]
+  dashboardNotes      DashboardNote[]
+  customWidgets       CustomWidget[]
   issueViewPreferences   IssueViewPreference[]
   myIssuesViewPreferences MyIssuesViewPreference[]
+  savedViews             SavedView[]
+  savedViewStates        SavedViewUserState[]
+  projectStates          ProjectUserState[]
   notifications       Notification[]                 @relation("NotificationRecipient")
   notificationsCaused Notification[]                 @relation("NotificationActor")
   apiKeys             ApiKey[]
@@ -382,12 +391,18 @@ model UserPreferences {
   // dort und in `updateBehavior`, nicht in der Datenbank.
 
   /// Wohin ein Klick auf den Projektnamen in der Seitenleiste führt:
-  /// "board" | "list" | "dashboard".
+  /// "board" | "list" | "dashboard" | "view" (die Start-View des Projekts,
+  /// `SavedViewUserState.startView`; ohne sie das Board).
   projectLanding String @default("board")
 
   /// Wo man nach dem Anmelden landet: "workspace" (Workspace-Start) | "my" |
-  /// "inbox" | "dashboard".
+  /// "inbox" | "dashboard" | "view" (`startViewId`).
   startPage String @default("workspace")
+
+  /// Die View für `startPage = "view"`. Gelöscht oder nicht mehr sichtbar →
+  /// zurück auf den Workspace-Start (V7). Kein Fremdschlüssel: eine fremde
+  /// private View soll hier nicht einmal als Verweis überleben müssen.
+  startViewId String?
 
   /// Was ein Klick auf ein Issue tut: "panel" | "page" | "tab" (neuer Tab in
   /// Barynt) | "browserTab".
@@ -428,6 +443,9 @@ model UserPreferences {
 
   /// Eigene Tastenkürzel: `{ "<Standard-Kürzel>": "<eigenes Kürzel>" }`.
   shortcutOverrides Json @default("{}")
+  /// Breiten der Listenspalten in px, `{ spalte: breite }` (BARY-175) —
+  /// persönlich, in jeder Liste dieselben.
+  listColumnWidths Json @default("{}")
 
   /// Vor dem Löschen und anderen unumkehrbaren Aktionen nachfragen.
   confirmDestructive Boolean @default(true)
@@ -458,49 +476,23 @@ model UserPreferences {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// ─── Das Projekt-Dashboard, wie es einer eingerichtet hat ────────────────────
+// ─── Dashboards: Zeitraum und Umfang je Person ──────────────────────────────
 //
-// Eine Zeile je Person **und** Projekt. Das Dashboard gehört keinem Projekt und
-// keinem Team, sondern dem, der es ansieht: wer Aufgaben verteilt, will die
-// Auslastung oben haben, wer selbst welche abarbeitet, den Rückstand. Beide auf
-// dieselbe Anordnung festzulegen hieße, einem von beiden die falsche Seite zu
-// zeigen.
-//
-// Die Zeile entsteht erst, wenn jemand etwas verstellt — wie `UserPreferences`.
-// Wer nie etwas anfasst, bekommt die Vorgabe aus `features/dashboard/widgets.ts`,
-// und die Oberfläche muss den Unterschied nicht kennen.
+// Eine Zeile je Person **und** Projekt bzw. Workspace — womit das Dashboard
+// aufgeht. Die Widgets selbst stehen in `DashboardLayout` (BARY-169).
 
 model DashboardPreference {
   userId    String
   projectId String
-
-  /// Bausteine, die diese Person ausgeblendet hat — Keys aus `WIDGETS`.
-  hidden String[]
-
-  /// Die Reihenfolge, in der die Bausteine stehen. Unvollständig gespeichert:
-  /// was hier fehlt, behält seinen Platz aus der Vorgabe. Sonst erschiene ein
-  /// später ergänzter Baustein bei niemandem mehr, der einmal etwas verschoben
-  /// hat.
-  order String[]
 
   /// Der Zeitraum, mit dem das Dashboard aufgeht — "7d" | "30d" | "90d" | "12m".
   /// Steht auch in der Adresse (`?range=`); hier steht, womit es ohne Angabe
   /// beginnt.
   range String @default("30d")
 
-  /// Welche der beiden Ansichten zuletzt offen war — "profile" | "dashboard".
-  ///
-  /// Die Projektzeile in der Seitenleiste führt ohne `?view=` auf diese Seite;
-  /// wer zuletzt die Zahlen ansah, soll sie beim nächsten Klick wieder sehen und
-  /// nicht erst wieder umschalten. Die Vorgabe ist der Steckbrief: er beantwortet
-  /// „was ist das hier" und gilt auch für den, der das Projekt zum ersten Mal
-  /// öffnet.
-  view String @default("profile")
-
   /// Mit welchem Umfang das Dashboard aufgeht — "all" | "mine". Wer
   /// `dashboard.view.all` nicht trägt, bekommt beim Lesen ohnehin "mine"
-  /// erzwungen (siehe `getProjectDashboard`); hier steht nur, womit es für die
-  /// aufgeht, die überhaupt wählen dürfen.
+  /// erzwungen; hier steht nur, womit es für die aufgeht, die wählen dürfen.
   scope String @default("all")
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -510,26 +502,15 @@ model DashboardPreference {
   @@index([projectId])
 }
 
-/// Wie eine Person das Dashboard eines Workspace eingerichtet hat — dasselbe
-/// Muster wie `DashboardPreference` eine Ebene tiefer, nur ohne `view`: Dashboard
-/// und Übersicht sind beim Workspace zwei eigene Routen mit je einem eigenen
-/// Navlink in der Seitenleiste, keine Ansicht, die sich eine Zeile merken muss.
+/// Dasselbe eine Ebene höher: das Workspace-Dashboard.
 model WorkspaceDashboardPreference {
   userId      String
   workspaceId String
 
-  /// Bausteine, die diese Person ausgeblendet hat — Keys aus `WIDGETS`.
-  hidden String[]
-
-  /// Die Reihenfolge, in der die Bausteine stehen. Unvollständig gespeichert,
-  /// siehe `DashboardPreference.order`.
-  order String[]
-
   /// Der Zeitraum, mit dem das Dashboard aufgeht — "7d" | "30d" | "90d" | "12m".
   range String @default("30d")
 
-  /// Mit welchem Umfang das Dashboard aufgeht — "all" | "mine". Dasselbe Feld
-  /// wie `DashboardPreference.scope` eine Ebene tiefer.
+  /// Mit welchem Umfang das Dashboard aufgeht — "all" | "mine".
   scope String @default("all")
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -537,6 +518,82 @@ model WorkspaceDashboardPreference {
 
   @@id([userId, workspaceId])
   @@index([workspaceId])
+}
+
+/// Die Widgets eines Projekt- oder Workspace-Dashboards (BARY-169).
+///
+/// Zwei Ebenen: eine Zeile ohne `userId` ist die Vorgabe für alle, die
+/// Projekt- bzw. Workspace-Admins einrichten; eine Zeile mit `userId` ist die
+/// eigene Anordnung einer Person und gewinnt. Ohne beide gilt die Vorgabe aus
+/// `features/dashboard/widgets.ts`. Dashboard-Views (`SavedView` mit
+/// `layout = "dashboard"`) führen ihre Widgets in `display.widgets` statt hier.
+model DashboardLayout {
+  /// "project:<id>" bzw. "workspace:<id>", dazu ":<userId>" für eine eigene —
+  /// eindeutig, weil Postgres zwei `NULL` in einem Unique-Index nicht als
+  /// gleich ansieht.
+  key         String  @id
+  workspaceId String
+  projectId   String?
+  userId      String?
+
+  /// `Widget[]` — geprüft beim Lesen und Schreiben (`widgetsSchema`).
+  widgets Json
+
+  updatedAt DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+/// Ein eigenes Widget (BARY-170): ein benanntes, fertig eingestelltes Widget
+/// aus dem Baukasten, das man beliebig oft auf Dashboards legt. Gehört der
+/// Person, die es gebaut hat; geteilt (`shared`) sehen es alle im Workspace in
+/// der Galerie — ändern oder löschen kann es weiter nur die Erstellerin. Ein
+/// platziertes Widget ist eine Kopie: spätere Änderungen hier ändern es nicht.
+model CustomWidget {
+  id          String  @id
+  workspaceId String
+  userId      String
+  name        String
+  /// `{ type, size, config }` — geprüft mit `widgetsSchema`.
+  widget      Json
+  shared      Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, userId])
+  @@index([workspaceId, shared])
+}
+
+/// Der Text eines Notiz-Widgets — immer privat (BARY-169). Das Widget kann in
+/// einer geteilten Anordnung stehen (Vorgabe für alle, Dashboard-View); was
+/// jemand hineinschreibt, sieht nur er selbst. Darum nicht im Layout, sondern
+/// eine Zeile je Person, Dashboard und Widget.
+model DashboardNote {
+  /// "<project|workspace|view>:<id>:<widgetId>:<userId>"
+  key      String @id
+  userId   String
+  /// "<project|workspace|view>:<id>" — das Dashboard, in dem das Widget steht.
+  target   String
+  widgetId String
+
+  /// `NotePage[]` — geprüft mit `notePagesSchema`.
+  pages Json
+
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, target])
 }
 
 /// Wie eine Person Board/Liste eines Projekts eingerichtet hat — Anzeige,
@@ -564,6 +621,18 @@ model IssueViewPreference {
   /// Sub-Issues (`Issue.parentId` gesetzt) als eigene Karten zeigen — nur im
   /// Board wirksam, standardmäßig aus.
   showSubIssues Boolean @default(false)
+  /// Eigene Reihenfolge der Spalten/Gruppen, Einträge "<groupKey>:<groupId>"
+  /// wie `hiddenGroups` (BARY-165). Was fehlt, behält seinen Platz aus der
+  /// Vorgabe (`features/issues/group-order.ts`).
+  groupOrder String[] @default([])
+
+  /// Swimlanes (BARY-173): Bahnen ohne Aufgabe ausblenden.
+  hideEmptyLanes Boolean  @default(false)
+  /// Eingeklappte Bahnen dieser Person, Einträge "<laneKey>:<laneId>".
+  collapsedLanes String[] @default([])
+  /// Liste als Tabelle (BARY-175): gezeigte Spalten in ihrer Reihenfolge.
+  /// Leer = die Vorgabe (`features/issues/list-columns.ts`).
+  columns        String[] @default([])
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -589,12 +658,135 @@ model MyIssuesViewPreference {
   hideEmptyGroups Boolean @default(false)
   /// Sub-Issues als eigene Karten zeigen — nur im Board, standardmäßig aus.
   showSubIssues Boolean @default(false)
+  /// Eigene Reihenfolge der Spalten/Gruppen (BARY-165), wie
+  /// `IssueViewPreference.groupOrder`.
+  groupOrder String[] @default([])
+
+  /// Swimlanes (BARY-173): Bahnen ohne Aufgabe ausblenden.
+  hideEmptyLanes Boolean  @default(false)
+  /// Eingeklappte Bahnen dieser Person, Einträge "<laneKey>:<laneId>".
+  collapsedLanes String[] @default([])
+  /// Liste als Tabelle (BARY-175): gezeigte Spalten in ihrer Reihenfolge.
+  /// Leer = die Vorgabe (`features/issues/list-columns.ts`).
+  columns        String[] @default([])
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@id([userId, workspaceId, view])
   @@index([workspaceId])
+}
+
+/// Wer eine gespeicherte Ansicht sieht (BARY-163). `PROJECT` gibt es nur an
+/// Views mit `projectId`, `WORKSPACE` nur an projektübergreifenden — geprüft
+/// in `features/views/access.ts`.
+enum ViewVisibility {
+  PRIVATE
+  PROJECT
+  WORKSPACE
+}
+
+/// Eine gespeicherte Ansicht (BARY-8): benannte Abfrage plus Darstellung.
+/// Board, Liste und Dashboard bleiben eingebaute System-Views ohne Zeile hier.
+///
+/// `filter` ist der Filterbaum aus `features/issues/filter.ts` (Ids, keine
+/// Slugs), `display` die Anzeige (`features/views/schema.ts`). Beides wird
+/// beim Schreiben validiert, nie roh übernommen.
+model SavedView {
+  id          String         @id
+  workspaceId String
+  /// `null` = projektübergreifend (wie „Meine Issues“).
+  projectId   String?
+  /// `null`, wenn das Konto gelöscht wurde — geteilte Views bleiben stehen.
+  ownerId     String?
+  visibility  ViewVisibility @default(PRIVATE)
+
+  name     String
+  /// Eindeutig im Workspace, Teil der Adresse (`…/view/<slug>`).
+  slug     String
+  /// System-View des Workspace (V8): "my-issues" | "created-by-me". Wird bei
+  /// Bedarf angelegt (`ensureSystemViews`), gehört niemandem, ist nicht
+  /// änderbar oder löschbar; der Name kommt aus den Übersetzungen.
+  systemKey String?
+  icon     String?
+  color    String?
+  /// Reihenfolge der Tabs; Float, damit Umsortieren nur eine Zeile ändert.
+  position Float   @default(0)
+
+  /// "board" | "list" | "dashboard" — `VIEW_LAYOUTS`.
+  layout     String
+  filter     Json    @default("{\"op\":\"and\",\"rules\":[]}")
+  /// `GROUP_KEYS`; `null` = Vorgabe des Layouts.
+  groupBy    String?
+  /// Zweite Gruppierung für Swimlanes (V13).
+  subGroupBy String?
+  /// `SORT_KEYS`.
+  sortBy     String  @default("manual")
+  /// "asc" | "desc".
+  sortDir    String  @default("asc")
+  display    Json    @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspace  Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project    Project?             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner      User?                @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  userStates SavedViewUserState[]
+
+  @@unique([workspaceId, slug])
+  @@unique([workspaceId, systemKey])
+  @@index([projectId])
+  @@index([ownerId])
+}
+
+/// Was an einer View nur eine Person betrifft (BARY-163): angeheftet,
+/// Favorit, eingeklappte Gruppen. Getrennt von `SavedView`, damit das
+/// Zuklappen einer Gruppe nicht die geteilte View für alle verstellt.
+model SavedViewUserState {
+  userId           String
+  viewId           String
+  pinned           Boolean  @default(false)
+  favorite         Boolean  @default(false)
+  /// Platz in der Favoriten-Liste der Sidebar (V7) — teilt sich die Reihe
+  /// mit `ProjectUserState.favoritePosition`.
+  favoritePosition Float?
+  /// Die Start-View des Projekts für diese Person (V7): ein Klick auf den
+  /// Projektnamen öffnet sie, wenn `projectLanding = "view"`. Höchstens eine
+  /// je Projekt und Person (`setViewUserState` räumt die anderen ab).
+  startView        Boolean  @default(false)
+  /// Eigene Wahl Board/Liste bei System-Views (V8): "board" | "list".
+  /// `null` = das Layout der View. Bei anderen Views gehört das Layout zur
+  /// View selbst.
+  layout           String?
+  /// Einträge "<groupKey>:<groupId>" wie `IssueViewPreference.hiddenGroups`.
+  collapsedGroups  String[] @default([])
+  /// Platz in der Tab-Leiste dieser Person (BARY-184); `null` = nach den
+  /// sortierten, in der Vorgabe-Reihenfolge.
+  tabPosition      Float?
+  /// Aus der Tab-Leiste dieser Person ausgeblendet (BARY-184).
+  tabHidden        Boolean  @default(false)
+
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  view SavedView @relation(fields: [viewId], references: [id], onDelete: Cascade)
+
+  @@id([userId, viewId])
+  @@index([viewId])
+}
+
+/// Der eigene Zustand an einem Projekt — bisher nur Favorit (V7).
+model ProjectUserState {
+  userId           String
+  projectId        String
+  favorite         Boolean @default(false)
+  /// Platz in der Favoriten-Liste, gemeinsam mit den Views.
+  favoritePosition Float?
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([userId, projectId])
+  @@index([projectId])
 }
 
 // ─── Auth.js (NextAuth) ─────────────────────────────────────────────────────────
@@ -727,10 +919,14 @@ model Project {
   roles         Role[]
   // Wie einzelne Personen das Dashboard dieses Projekts eingerichtet haben.
   dashboards    DashboardPreference[]
+  dashboardLayouts DashboardLayout[]
   // Wie einzelne Personen Board/Liste dieses Projekts eingerichtet haben
   // (BARY-33) — welche Kartenfelder sie zusätzlich zu Project.hiddenDetailFields
   // ausgeblendet haben.
   issueViewPreferences IssueViewPreference[]
+  // Gespeicherte Ansichten dieses Projekts (BARY-163).
+  savedViews    SavedView[]
+  userStates    ProjectUserState[]
   notifications Notification[]
   inviteLinks   InviteLink[]
 
@@ -864,6 +1060,17 @@ model InviteLink {
 
 // ─── Global config (shared across workspaces via join tables) ─────────────────
 
+/// Was ein Status bedeutet, unabhängig von seinem Namen (BARY-161). Daran
+/// hängt, ob ein Issue offen oder geschlossen ist (`Issue.closedAt`, die
+/// offenen Zahlen im Dashboard) — nicht an `Status.id`.
+enum StatusCategory {
+  backlog
+  unstarted
+  started
+  completed
+  canceled
+}
+
 model Status {
   id       String  @id
   name     String
@@ -871,8 +1078,32 @@ model Status {
   color    String
   isColumn Boolean @default(true)
   position Int
+  category StatusCategory @default(unstarted)
 
   workspaces WorkspaceStatus[]
+}
+
+/// Ein Statuswechsel eines Issues (BARY-171), auch der erste bei der Anlage
+/// (`fromStatus` leer). Schmal gehalten und nur angehängt, nie geändert: die
+/// Flussmetriken (Cumulative Flow, Cycle Time, Burndown) lesen daraus, wo
+/// ein Issue zu jedem Zeitpunkt stand. Die Kategorien sind zum Zeitpunkt des
+/// Wechsels eingefroren — eine später umgehängte Status-Kategorie schreibt
+/// die Vergangenheit nicht um, und die Metriken hängen nicht an Namen.
+model IssueStatusEvent {
+  id           String          @id @default(cuid())
+  issueId      String
+  fromStatus   String?
+  toStatus     String
+  fromCategory StatusCategory?
+  toCategory   StatusCategory
+  at           DateTime        @default(now())
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  /// Der Verlauf eines Issues, in Reihenfolge.
+  @@index([issueId, at])
+  /// „Was ist im Zeitraum passiert" — Cumulative Flow, Cycle Time.
+  @@index([at])
 }
 
 model WorkspaceStatus {
@@ -1181,6 +1412,9 @@ model Issue {
   /// Beziehungen, bei denen dieses Issue das Ziel ist — z. B. "wird von X
   /// blockiert".
   relationsTo   IssueRelation[] @relation("IssueRelationTarget")
+  /// Jeder Statuswechsel, ab der Anlage (BARY-171) — Grundlage der
+  /// Flussmetriken.
+  statusEvents  IssueStatusEvent[]
 
   @@unique([projectId, key])
   @@index([projectId, status])

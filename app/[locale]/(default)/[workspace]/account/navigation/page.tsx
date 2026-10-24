@@ -1,5 +1,6 @@
 import { AccountNavigation } from "@/features/account/components/AccountNavigation/AccountNavigation";
 import { getMyPreferences } from "@/features/account/queries";
+import { getStartViewChoices } from "@/features/views/queries";
 import { setCurrentWorkspaceId } from "@/lib/current-workspace";
 
 export const dynamic = "force-dynamic";
@@ -13,13 +14,17 @@ export default async function AccountNavigationPage({
   const { workspace } = await params;
   setCurrentWorkspaceId(workspace);
 
-  const preferences = await getMyPreferences();
+  const [preferences, viewChoices] = await Promise.all([
+    getMyPreferences(),
+    getStartViewChoices(workspace),
+  ]);
 
   return (
     <AccountNavigation
       values={{
         projectLanding: preferences.projectLanding,
         startPage: preferences.startPage,
+        startViewId: preferences.startViewId,
         issueOpenMode: preferences.issueOpenMode,
         issuePageOpenMode: preferences.issuePageOpenMode,
         defaultGrouping: preferences.defaultGrouping,
@@ -28,6 +33,7 @@ export default async function AccountNavigationPage({
         sidebarCollapsed: preferences.sidebarCollapsed,
         projectOrder: preferences.projectOrder,
       }}
+      viewChoices={viewChoices}
     />
   );
 }

@@ -139,3 +139,71 @@
     border-color: var(--tertiary);
   }
 }
+
+/* ── Moving a whole column (BARY-165) ── */
+
+/* The handle in the header — on hover, with a mouse (a phone or tablet
+   reorders through the display panel). */
+.columnHandle {
+  display: none;
+  place-items: center;
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  /* After the "+", or at the right edge without one. */
+  margin-left: auto;
+  border-radius: var(--radius-sm);
+  color: var(--on-surface-variant);
+  cursor: grab;
+
+  .headerAdd + & {
+    margin-left: 0;
+  }
+
+  &:hover {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  .colHeader:hover & {
+    @include bp.desktop {
+      display: grid;
+    }
+  }
+}
+
+/* The dragged column, waiting in the slot it would land in: an empty,
+   dashed frame — the column itself follows the pointer. */
+.col[data-column-dragging] {
+  border: 2px dashed var(--primary);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--primary) 6%, transparent);
+
+  & > * {
+    visibility: hidden;
+  }
+}
+
+/* Swimlanes (BARY-173): the head sits once above all lanes — just the
+   header; a cell is a column's cards within one lane, as tall as its
+   cards (the lanes scroll together, not each cell on its own). */
+.col[data-variant="head"] {
+  padding-top: 0.25rem;
+
+  .colHeader {
+    padding-bottom: 0.375rem;
+  }
+}
+
+.col[data-variant="cell"] {
+  .cards {
+    flex: none;
+    overflow: visible;
+    min-height: 4.5rem;
+    padding-top: 0.5rem;
+  }
+}

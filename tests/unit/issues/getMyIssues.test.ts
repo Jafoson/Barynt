@@ -109,7 +109,7 @@ describe("getMyIssues()", () => {
   it("takes the due date bucket filter from the URL (BARY-4)", async () => {
     await getMyIssues("u-1", "ws-1", { dueDate: "none" });
 
-    expect(lastWhere().OR).toEqual([{ dueDate: null }]);
+    expect(lastWhere().dueDate).toBeNull();
   });
 
   it("doesn't let `?assignee=` override who's assigned", async () => {
@@ -122,7 +122,10 @@ describe("getMyIssues()", () => {
 
   it("clips the project filter to the accessible projects", async () => {
     // `p-3` is not accessible — the filter must not be able to pull it in.
-    projectFindMany.mockResolvedValue([{ id: "p-2" }, { id: "p-3" }]);
+    projectFindMany.mockResolvedValue([
+      { id: "p-2", slug: "app" },
+      { id: "p-3", slug: "geheim" },
+    ]);
 
     await getMyIssues("u-1", "ws-1", { project: "app,geheim" });
 
@@ -130,7 +133,7 @@ describe("getMyIssues()", () => {
   });
 
   it("doesn't even ask when the project filter matches nothing accessible", async () => {
-    projectFindMany.mockResolvedValue([{ id: "p-3" }]);
+    projectFindMany.mockResolvedValue([{ id: "p-3", slug: "geheim" }]);
 
     expect(await getMyIssues("u-1", "ws-1", { project: "geheim" })).toEqual([]);
     expect(issueFindMany).not.toHaveBeenCalled();

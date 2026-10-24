@@ -61,6 +61,9 @@ export function WorkspaceWebhooks({ workspaceId, webhooks }: Props) {
     "issue.updated": t("webhooks.eventIssueUpdated"),
     "issue.deleted": t("webhooks.eventIssueDeleted"),
     "comment.created": t("webhooks.eventCommentCreated"),
+    "view.created": t("webhooks.eventViewCreated"),
+    "view.updated": t("webhooks.eventViewUpdated"),
+    "view.deleted": t("webhooks.eventViewDeleted"),
   };
 
   const run = (action: () => Promise<unknown>, failure: string) =>

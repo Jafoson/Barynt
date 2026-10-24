@@ -6,6 +6,13 @@
   margin: 0 -1px;
 }
 
+/* A menu that took over a bottom sheet as a page (`Popover`): the page
+   scrolls, the list takes all its height instead of a dropdown's. */
+:global([data-sheet-page]) .content {
+  max-height: none;
+  overflow: visible;
+}
+
 .menuItem {
   position: relative;
   display: flex;

@@ -1,0 +1,20 @@
+@use "breakpoints" as bp;
+
+/* Same height as the search field and the board/list switch next to it
+   (`--control-h`, which also grows to the touch minimum on coarse
+   pointers). Doubled class to outrank the Button's own `.btn.md` height. */
+.button.button {
+  flex: none;
+  height: var(--control-h);
+  /* An icon button: a square as tall as the bar's controls, the plus in
+     primary. */
+  width: var(--control-h);
+  padding: 0;
+  color: var(--primary);
+
+  /* Wherever the floating plus shows (phone and tablet, the same mixin as
+     `newIssueFab.module.scss`), it offers this action instead. */
+  @include bp.tablet-down {
+    display: none;
+  }
+}

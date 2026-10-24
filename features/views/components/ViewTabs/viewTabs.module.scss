@@ -1,0 +1,264 @@
+@use "breakpoints" as bp;
+
+/* The views sit in the tab row after Board · List · Dashboard, up to the
+   header's top border like those (BARY-177). Takes what room is left and
+   scrolls beyond it. */
+/* As tall as the tab row, like the other tab groups — so the active bar
+   sits on the header's top edge. Doubled class: the row centers every
+   child that isn't a `nav`. */
+.wrap.wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  align-self: stretch;
+  flex: 0 1 auto;
+  min-width: 0;
+
+  /* Phone and tablet: as wide as all its tabs — the row scrolls. */
+  @include bp.tablet-down {
+    flex: none;
+
+    .row {
+      flex: none;
+    }
+  }
+}
+
+.row {
+  flex: 0 1 auto;
+}
+
+/* "More ▾ 4": the views that don't fit (V8). */
+.overflow {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 0.375rem;
+  flex: none;
+  height: var(--control-h-sm);
+  padding: 0 0.625rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: -2px;
+  }
+}
+
+.overflowCount {
+  padding: 0 0.375rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xxs);
+}
+
+/* The hidden copy of all tabs the widths are read from. */
+.measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* The "…" isn't there at rest — the tab is as wide as its name. It appears
+   on hover, with the menu open, or with keyboard focus inside the tab, and
+   the tab grows to make room. Without hover (touch) it's always there, or
+   the menu would be out of reach. */
+.tab {
+  &:hover,
+  &[data-menu-open],
+  &:focus-within {
+    padding-right: 0.375rem;
+
+    .more {
+      display: grid;
+    }
+  }
+
+  @include bp.no-hover {
+    padding-right: 0.375rem;
+
+    .more {
+      display: grid;
+    }
+  }
+}
+
+.shared {
+  flex: none;
+  opacity: 0.7;
+}
+
+/* Unsaved changes: a dot after the name, like an edited file in a tab. */
+.dirty {
+  flex: none;
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 50%;
+  background: var(--amber);
+}
+
+.more {
+  display: none;
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, currentColor 12%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+  }
+}
+
+.menuHead {
+  padding: 0.5rem 0.75rem 0.25rem;
+  font-size: var(--text-xs);
+  color: var(--on-surface-variant);
+}
+
+/* Between the system views and the workspace's own (V8) — like the row's
+   other dividers. */
+.groupDivider {
+  flex: none;
+  align-self: center;
+  width: 1px;
+  height: 1.75rem;
+  margin: 0 0.375rem;
+  background: var(--outline-variant);
+}
+
+/* "Customize tabs" (BARY-184): after the row and "More". */
+.customize {
+  flex: none;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container-high);
+    color: var(--on-surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+  }
+
+  @include bp.touch-target(true);
+}
+
+/* The editor's lists. */
+.editHint {
+  margin: 0 0 0.75rem;
+  font-size: var(--text-sm);
+  color: var(--on-surface-variant);
+}
+
+.editHead {
+  display: block;
+  padding: 0.75rem 0.125rem 0.375rem;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+.editList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.editRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.75rem;
+  font-size: var(--text-sm);
+  background: var(--surface-container);
+
+  & + & {
+    border-top: 1px solid var(--outline-variant);
+  }
+
+  &[draggable="true"] {
+    cursor: grab;
+  }
+
+  &[data-drop] {
+    box-shadow: inset 0 2px 0 var(--primary);
+  }
+
+  &[data-off] {
+    color: var(--on-surface-variant);
+  }
+
+  @include bp.touch-target;
+}
+
+.editGrip {
+  flex: none;
+  color: var(--outline);
+}
+
+.editIcon {
+  flex: none;
+}
+
+.editName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editNote {
+  color: var(--on-surface-variant);
+}
+
+.editEmpty {
+  padding: 0.75rem;
+  font-size: var(--text-sm);
+  color: var(--on-surface-variant);
+}

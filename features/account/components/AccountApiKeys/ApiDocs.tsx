@@ -9,15 +9,15 @@ import styles from "./apiDocs.module.scss";
 import {
   API_DOC_ERRORS,
   API_DOC_GROUPS,
-  API_DOC_WEBHOOK_EVENTS,
-  API_DOC_WEBHOOK_SIGNATURE,
   type ApiDocEndpoint,
   type ApiDocGroupId,
   type ApiDocParam,
   type HttpMethod,
 } from "./apiDocsData";
+import { DocGuides } from "./DocGuides";
+import { useDocText } from "./docText";
 
-type DocTab = ApiDocGroupId | "webhooks";
+type DocTab = ApiDocGroupId;
 
 const METHOD_CLASS: Record<HttpMethod, string> = {
   GET: styles.methodGet,
@@ -34,6 +34,7 @@ function ParamList({
   params: ApiDocParam[];
 }) {
   const t = useTranslations();
+  const doc = useDocText();
   return (
     <div className={styles.section}>
       <span className={styles.sectionTitle}>{title}</span>
@@ -48,7 +49,7 @@ function ParamList({
               </Badge>
             )}
             {param.desc && (
-              <span className={styles.paramDesc}>{param.desc}</span>
+              <span className={styles.paramDesc}>{doc(param.desc)}</span>
             )}
           </div>
         ))}
@@ -76,6 +77,7 @@ function CodeBlock({ code }: { code: string }) {
 
 function Endpoint({ endpoint }: { endpoint: ApiDocEndpoint }) {
   const t = useTranslations();
+  const doc = useDocText();
   return (
     <article className={styles.endpoint}>
       <header className={styles.endpointHead}>
@@ -97,7 +99,7 @@ function Endpoint({ endpoint }: { endpoint: ApiDocEndpoint }) {
         </span>
       </header>
 
-      <p className={styles.endpointDesc}>{endpoint.desc}</p>
+      <p className={styles.endpointDesc}>{doc(endpoint.desc)}</p>
 
       {endpoint.pathParams && (
         <ParamList
@@ -136,61 +138,13 @@ function Endpoint({ endpoint }: { endpoint: ApiDocEndpoint }) {
 }
 
 /**
- * Not a request/response endpoint — an outbound push. Documents the
- * signature instead of a path, and one example payload per event type
- * (`API_DOC_WEBHOOK_EVENTS`, `lib/webhooks/deliver.ts`).
- */
-function WebhookDocs() {
-  const t = useTranslations();
-  return (
-    <div className={styles.endpoints}>
-      <article className={styles.endpoint}>
-        <p className={styles.endpointDesc}>{t("apiKeys.docsWebhookDesc")}</p>
-
-        <div className={styles.section}>
-          <span className={styles.sectionTitle}>
-            {t("apiKeys.docsSignature")}
-          </span>
-          <div className={styles.paramList}>
-            {API_DOC_WEBHOOK_SIGNATURE.headers.map((header) => (
-              <div key={header.name} className={styles.paramRow}>
-                <code className={styles.paramName}>{header.name}</code>
-                <span className={styles.paramDesc}>{header.desc}</span>
-              </div>
-            ))}
-          </div>
-          <CodeBlock code={API_DOC_WEBHOOK_SIGNATURE.formula} />
-          <CodeBlock code={API_DOC_WEBHOOK_SIGNATURE.verify} />
-        </div>
-      </article>
-
-      {API_DOC_WEBHOOK_EVENTS.map((event) => (
-        <article key={event.event} className={styles.endpoint}>
-          <header className={styles.endpointHead}>
-            <code className={styles.path}>{event.event}</code>
-          </header>
-          <p className={styles.endpointDesc}>{event.desc}</p>
-          <div className={styles.section}>
-            <span className={styles.sectionTitle}>
-              {t("apiKeys.docsPayloadExample")}
-            </span>
-            <CodeBlock code={event.payload} />
-          </div>
-        </article>
-      ))}
-    </div>
-  );
-}
-
-/**
  * Reference for the public REST API (`app/api/v1`), grouped the same way
  * the routes themselves are — workspaces, projects, issues, comments,
  * labels.
  *
- * Endpoint text stays in English regardless of the UI locale, same
- * convention as GitHub/Stripe/Jira: the wire format is the actual
- * contract, only the surrounding chrome is translated. Content lives in
- * `apiDocsData.ts`, kept in sync by hand with the real route handlers.
+ * Descriptions follow the UI language (`DocText`); paths, JSON and codes
+ * stay as they're sent. Content lives in `apiDocsData.ts`, kept in sync by
+ * hand with the real route handlers.
  */
 export function ApiDocs() {
   const t = useTranslations();
@@ -213,6 +167,9 @@ export function ApiDocs() {
         <p className={styles.desc}>{t("apiKeys.docsDesc")}</p>
       </div>
 
+      {/* What applies across endpoints — the tabs below are for endpoints. */}
+      <DocGuides guides={["auth", "paging", "filter", "webhooks"]} />
+
       <SegmentedControl
         items={[
           { value: "workspaces", label: t("apiKeys.docsTabWorkspaces") },
@@ -221,13 +178,13 @@ export function ApiDocs() {
           { value: "comments", label: t("apiKeys.docsTabComments") },
           { value: "labels", label: t("apiKeys.docsTabLabels") },
           { value: "members", label: t("apiKeys.docsTabMembers") },
-          { value: "webhooks", label: t("apiKeys.docsTabWebhooks") },
+          { value: "views", label: t("apiKeys.docsTabViews") },
         ]}
         value={tab}
         onChange={(value) => setTab(value as DocTab)}
       />
 
-      {active ? (
+      {active && (
         <div className={styles.endpoints}>
           {active.endpoints.map((endpoint) => (
             <Endpoint
@@ -236,8 +193,6 @@ export function ApiDocs() {
             />
           ))}
         </div>
-      ) : (
-        <WebhookDocs />
       )}
 
       <div className={styles.errors}>

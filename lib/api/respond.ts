@@ -58,3 +58,35 @@ export function rateLimited(info: RateLimitInfo): NextResponse {
   );
   return withRateLimitHeaders(res, info);
 }
+
+/** The caller sees the resource but may not change it — a shared view
+ *  someone else made, without `view.manage` (BARY-172). */
+export function forbiddenJson(): NextResponse {
+  return NextResponse.json({ error: { code: "forbidden" } }, { status: 403 });
+}
+
+/** A `MutationResult` as a response: 404 not visible, 403 not allowed,
+ *  422 bad input, else the data. */
+export function mutationJson<T>(
+  result: { ok: true; data: T } | { ok: false; status: 403 | 404 | 422 },
+  info: RateLimitInfo,
+  status = 200,
+): NextResponse {
+  if (result.ok) {
+    return withRateLimitHeaders(
+      NextResponse.json({ data: result.data }, { status }),
+      info,
+    );
+  }
+  return withRateLimitHeaders(
+    result.status === 404
+      ? notFoundJson()
+      : result.status === 403
+        ? forbiddenJson()
+        : NextResponse.json(
+            { error: { code: "invalid_body" } },
+            { status: 422 },
+          ),
+    info,
+  );
+}

@@ -7,7 +7,7 @@
  * not a string. That's why the shared parts live here.
  */
 
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
 export type TableAlign = "start" | "center" | "end";
 
@@ -39,6 +39,30 @@ export interface TableColumn<T> {
    * shouldn't look like it can either.
    */
   sortValue?: (row: T) => TableSortValue;
+  /**
+   * More in the header cell, after the title — a handle to resize the
+   * column, a menu. Sits beside the sort button, never inside it.
+   */
+  headerExtra?: ReactNode;
+  /** Attributes for the header cell itself — to drag the column, say. */
+  headerProps?: HTMLAttributes<HTMLTableCellElement>;
+  /**
+   * The column's sum — under each group and under the whole table, when
+   * the table is given `totals`. A column without one leaves its cell
+   * empty there.
+   */
+  total?: (rows: T[]) => ReactNode;
+}
+
+/** Sum rows below each group and the whole table. */
+export interface TableTotals<T> {
+  /** The column whose cell carries the row's name ("Total", the group). */
+  labelColumn: string;
+  label: (
+    scope: "group" | "all",
+    rows: T[],
+    group?: TableGroup<T>,
+  ) => ReactNode;
 }
 
 /**

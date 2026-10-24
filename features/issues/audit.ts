@@ -8,6 +8,7 @@ import type {
 } from "@/lib/audit/actions";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
+import { recordStatusEvent } from "@/lib/issue-status-events";
 import type { IssueRelationKind } from "@/types";
 
 // ─── Issue activity log ──────────────────────────────────────────────────────
@@ -161,14 +162,19 @@ export async function recordStatusChangeAudit(
     fromColor: fromInfo?.color ?? null,
     toColor: toInfo?.color ?? null,
   };
-  await recordIssueAudit(
-    "issue.status.changed",
-    id,
-    issue,
-    actorId,
-    `${fromInfo?.name ?? from} → ${toInfo?.name ?? to}`,
-    meta,
-  );
+  await Promise.all([
+    recordIssueAudit(
+      "issue.status.changed",
+      id,
+      issue,
+      actorId,
+      `${fromInfo?.name ?? from} → ${toInfo?.name ?? to}`,
+      meta,
+    ),
+    // Every path that changes a status passes here — the flow metrics'
+    // record (BARY-171) rides along.
+    recordStatusEvent(id, from, to),
+  ]);
 }
 
 /** Which labels were added and which were removed — not just "something changed". */

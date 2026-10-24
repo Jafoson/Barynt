@@ -29,6 +29,7 @@ type Values = Pick<
   BehaviorPreferences,
   | "projectLanding"
   | "startPage"
+  | "startViewId"
   | "issueOpenMode"
   | "issuePageOpenMode"
   | "defaultGrouping"
@@ -40,12 +41,15 @@ type Values = Pick<
 
 interface Props {
   values: Values;
+  /** The views a start page can point at (V7). */
+  viewChoices: { id: string; name: string; projectName: string }[];
 }
 
 const LANDING_LABEL = {
   board: "landingBoard",
   list: "landingList",
   dashboard: "landingDashboard",
+  view: "landingView",
 } as const;
 
 const START_LABEL = {
@@ -53,6 +57,7 @@ const START_LABEL = {
   my: "startMy",
   inbox: "startInbox",
   dashboard: "startDashboard",
+  view: "startView",
 } as const;
 
 const OPEN_LABEL = {
@@ -76,7 +81,7 @@ const ORDER_LABEL = { name: "orderName", newest: "orderNewest" } as const;
  * Everything takes effect immediately (`useBehavior`); the server reads the
  * same row on the next render.
  */
-export function AccountNavigation({ values }: Props) {
+export function AccountNavigation({ values, viewChoices }: Props) {
   const t = useTranslations();
   const [current, set] = useBehavior<keyof Values>(values);
 
@@ -97,7 +102,10 @@ export function AccountNavigation({ values }: Props) {
     {
       id: "projectLanding",
       label: t("behavior.projectLanding"),
-      desc: t("behavior.projectLandingDesc"),
+      desc:
+        current.projectLanding === "view"
+          ? `${t("behavior.projectLandingDesc")} ${t("behavior.landingViewHint")}`
+          : t("behavior.projectLandingDesc"),
       control: (
         <SegmentedControl
           items={PROJECT_LANDINGS.map((value) => ({
@@ -118,15 +126,55 @@ export function AccountNavigation({ values }: Props) {
       control: (
         <NativeSelect
           label={t("behavior.startPage")}
-          items={START_PAGES.map((value) => ({
+          items={START_PAGES.filter(
+            // "A view" only with one to pick.
+            (value) => value !== "view" || viewChoices.length > 0,
+          ).map((value) => ({
             value,
             label: t(`behavior.${START_LABEL[value]}`),
           }))}
           value={current.startPage}
-          onChange={(v) => set({ startPage: v as Values["startPage"] })}
+          onChange={(v) =>
+            v === "view"
+              ? set({
+                  startPage: "view",
+                  startViewId:
+                    viewChoices.find((c) => c.id === current.startViewId)?.id ??
+                    viewChoices[0]?.id ??
+                    null,
+                })
+              : set({ startPage: v as Values["startPage"] })
+          }
         />
       ),
     },
+    // Which view, once "a view" is chosen.
+    ...(current.startPage === "view"
+      ? [
+          {
+            id: "startView",
+            label: t("behavior.startViewPick"),
+            desc:
+              viewChoices.length === 0
+                ? t("behavior.startViewNone")
+                : undefined,
+            control: (
+              <NativeSelect
+                label={t("behavior.startViewPick")}
+                items={viewChoices.map((c) => ({
+                  value: c.id,
+                  // A cross-project view has no project to name (V8).
+                  label: c.projectName
+                    ? `${c.name} · ${c.projectName}`
+                    : c.name,
+                }))}
+                value={current.startViewId ?? ""}
+                onChange={(v) => set({ startViewId: v })}
+              />
+            ),
+          } satisfies SettingsRow,
+        ]
+      : []),
     {
       id: "projectOrder",
       label: t("behavior.projectOrder"),
@@ -202,7 +250,9 @@ export function AccountNavigation({ values }: Props) {
       control: (
         <NativeSelect
           label={t("behavior.defaultGrouping")}
-          items={GROUP_KEYS.map((value) => ({
+          // Not "project": a default for every board, and within a project
+          // there's only one.
+          items={GROUP_KEYS.filter((key) => key !== "project").map((value) => ({
             value,
             label: t(`fields.${value}`),
           }))}

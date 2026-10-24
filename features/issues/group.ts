@@ -10,6 +10,8 @@ export const GROUP_KEYS = [
   "type",
   "assignee",
   "storyPoints",
+  // Across projects only (V8) — moving a card between projects isn't a drag.
+  "project",
 ] as const;
 
 export type GroupKey = (typeof GROUP_KEYS)[number];
@@ -23,11 +25,31 @@ export function groupKeyFromParam(value: string | undefined): GroupKey {
   return value && isGroupKey(value) ? value : "status";
 }
 
+/**
+ * Reads `?lanes=` (BARY-173): the board's second grouping, as horizontal
+ * swimlanes. `null` for none, a stale value, or the same grouping as the
+ * columns — a lane per column value would only repeat the columns.
+ */
+export function laneKeyFromParam(
+  value: string | null | undefined,
+  groupKey: GroupKey,
+): GroupKey | null {
+  return value && isGroupKey(value) && value !== groupKey ? value : null;
+}
+
+/** A lane as stored in `collapsedLanes` — "<laneKey>:<laneId>", like the
+ *  `hidden-groups.ts` entries, so another lane grouping never matches. */
+export function laneEntry(key: GroupKey, id: string): string {
+  return `${key}:${id}`;
+}
+
 export interface GroupLookups {
   statuses: Status[];
   priorities: Priority[];
   issueTypes: IssueType[];
   members: User[];
+  /** Given only across projects (V8) — where grouping by project exists. */
+  projects?: { id: string; name: string; color: string }[];
 }
 
 export interface GroupLabels {
@@ -60,13 +82,15 @@ export function groupIdOf(issue: Issue, key: GroupKey): string {
       return issue.assignee ?? NONE;
     case "storyPoints":
       return issue.storyPoints === null ? NONE : String(issue.storyPoints);
+    case "project":
+      return issue.project;
   }
 }
 
 /** Every group that could exist for `key`, in display order. */
 export function groupDefs(
   key: GroupKey,
-  { statuses, priorities, issueTypes, members }: GroupLookups,
+  { statuses, priorities, issueTypes, members, projects = [] }: GroupLookups,
   labels: GroupLabels,
   issues: Issue[],
 ): GroupDef[] {
@@ -124,7 +148,21 @@ export function groupDefs(
         { key, id: NONE, label: labels.noStoryPoints, alwaysShow: true },
       ];
     }
+    case "project":
+      return projects.map((p) => ({
+        key,
+        id: p.id,
+        label: p.name,
+        color: p.color,
+        alwaysShow: false,
+      }));
   }
+}
+
+/** Whether a card can be dragged into another group of `key` — not across
+ *  projects (V8): that's a move with a new key, not a field change. */
+export function canMoveBetweenGroups(key: GroupKey): boolean {
+  return key !== "project";
 }
 
 /** The groups to actually draw: always-shown ones plus any with issues. */
@@ -148,5 +186,8 @@ export function groupPatch(key: GroupKey, id: string): IssuePatch {
       return { assignee: id === NONE ? null : id };
     case "storyPoints":
       return { storyPoints: id === NONE ? null : Number(id) };
+    case "project":
+      // Not a field change (`canMoveBetweenGroups`).
+      return {};
   }
 }

@@ -69,6 +69,12 @@ const mockWorkspaceMemberFindMany = mock();
 const mockWorkspaceMemberCreate = mock();
 const mockProjectMemberCreateMany = mock();
 const mockProjectMemberFindMany = mock();
+const mockWorkspaceStatusFindMany = mock();
+const mockViewFindMany = mock();
+const mockViewFindUnique = mock();
+const mockViewCreate = mock();
+const mockViewUpdate = mock();
+const mockViewDelete = mock();
 // Only exercised through `recordAudit`/`recordIssueAudit` (see
 // `features/issues/audit.ts`), now reached by the mutations this file
 // tests — not the subject of any test here, just needs to not be
@@ -123,7 +129,27 @@ const db = {
     update: mockWorkspaceUpdate,
     delete: mockWorkspaceDelete,
   },
-  workspaceStatus: { createMany: mockWorkspaceStatusCreateMany },
+  // `createIssueForUser` asks whether the initial status closes the issue
+  // (its category, BARY-161) — `null` = unknown id = open.
+  status: {
+    findUnique: mock(async () => null),
+    // `statusCategory` on every issue (BARY-172).
+    findMany: mock(async () => [{ id: "todo", category: "unstarted" }]),
+  },
+  issueStatusEvent: { create: mock(async () => ({})) },
+  workspaceStatus: {
+    createMany: mockWorkspaceStatusCreateMany,
+    findMany: mockWorkspaceStatusFindMany,
+  },
+  // Saved views in the API (BARY-172).
+  savedView: {
+    findMany: mockViewFindMany,
+    findUnique: mockViewFindUnique,
+    create: mockViewCreate,
+    update: mockViewUpdate,
+    delete: mockViewDelete,
+    aggregate: mock(async () => ({ _max: { position: 1 } })),
+  },
   workspacePriority: { createMany: mockWorkspacePriorityCreateMany },
   workspaceIssueType: { createMany: mockWorkspaceIssueTypeCreateMany },
   workspaceMember: {
@@ -179,6 +205,16 @@ import {
   PATCH as patchProject,
 } from "@/app/api/v1/projects/[id]/route";
 import {
+  GET as getProjectViews,
+  POST as postProjectView,
+} from "@/app/api/v1/projects/[id]/views/route";
+import { GET as getViewIssues } from "@/app/api/v1/views/[id]/issues/route";
+import {
+  DELETE as deleteView,
+  GET as getView,
+  PATCH as patchView,
+} from "@/app/api/v1/views/[id]/route";
+import {
   GET as getLabels,
   POST as postLabel,
 } from "@/app/api/v1/workspaces/[id]/labels/route";
@@ -188,6 +224,8 @@ import {
   DELETE as deleteWorkspace,
   PATCH as patchWorkspace,
 } from "@/app/api/v1/workspaces/[id]/route";
+import { GET as getStatuses } from "@/app/api/v1/workspaces/[id]/statuses/route";
+import { GET as getWorkspaceViews } from "@/app/api/v1/workspaces/[id]/views/route";
 import {
   GET as getWorkspaces,
   POST as postWorkspace,
@@ -280,6 +318,12 @@ function reset() {
     mockProjectMemberFindMany,
     mockTransaction,
     mockGetSystemSettings,
+    mockWorkspaceStatusFindMany,
+    mockViewFindMany,
+    mockViewFindUnique,
+    mockViewCreate,
+    mockViewUpdate,
+    mockViewDelete,
   ]) {
     m.mockReset();
   }
@@ -1128,5 +1172,372 @@ describe("GET /api/v1/projects/:id/members", () => {
         role: "contributor",
       },
     ]);
+  });
+});
+
+// ─── Views and statuses (BARY-172) ───────────────────────────────────────────
+
+const AUTH_VIEWS = {
+  userId: "u-1",
+  keyId: "k-1",
+  scopes: ["views:read", "views:write", "issues:read", "workspaces:read"],
+};
+
+/** A `viewSelect`-shaped row (`features/api-v1/views.ts`). */
+function viewRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "v-1",
+    name: "Urgent",
+    slug: "urgent",
+    systemKey: null,
+    workspaceId: "ws-1",
+    projectId: "p-1",
+    ownerId: "u-1",
+    visibility: "PRIVATE",
+    layout: "list",
+    icon: null,
+    color: null,
+    filter: { op: "and", rules: [] },
+    groupBy: null,
+    subGroupBy: null,
+    sortBy: "manual",
+    sortDir: "asc",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    project: { id: "p-1", name: "Project" },
+    owner: {
+      id: "u-1",
+      firstName: "Actor",
+      lastName: "Person",
+      handle: "actor",
+    },
+    userStates: [],
+    ...overrides,
+  };
+}
+
+/** `can()` for views: sees the project; `view.share`/`view.manage` as
+ *  given. */
+function allow({ share = false, manage = false } = {}) {
+  mockCan.mockImplementation(async (_user: string, permission: string) =>
+    permission === "view.share"
+      ? share
+      : permission === "view.manage"
+        ? manage
+        : true,
+  );
+  mockCanEnterWorkspace.mockResolvedValue(true);
+}
+
+function patchReq(body: unknown): Request {
+  return new Request("https://example.com/api/v1", {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+describe("GET /api/v1/projects/:id/views", () => {
+  beforeEach(reset);
+
+  it("403s a key without views:read", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_FULL);
+    const res = await getProjectViews(req(), params("p-1"));
+    expect(res.status).toBe(403);
+  });
+
+  it("404s without project.view", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    mockCan.mockResolvedValue(false);
+    const res = await getProjectViews(req(), params("p-1"));
+    expect(res.status).toBe(404);
+  });
+
+  it("lists shared views and only the caller's own private ones", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    allow();
+    mockProjectFindUnique.mockResolvedValue({ workspaceId: "ws-1" });
+    mockViewFindMany.mockResolvedValue([
+      viewRow({ id: "mine" }),
+      viewRow({ id: "theirs", ownerId: "u-2" }),
+      viewRow({ id: "shared", ownerId: "u-2", visibility: "PROJECT" }),
+    ]);
+    const res = await getProjectViews(req(), params("p-1"));
+    expect(res.status).toBe(200);
+    const { data } = await res.json();
+    expect(data.map((v: { id: string }) => v.id)).toEqual(["mine", "shared"]);
+    // Someone else's shared view: visible, not editable without view.manage.
+    expect(data[0].canEdit).toBe(true);
+    expect(data[1].canEdit).toBe(false);
+    expect(data[1].owner).toEqual({
+      id: "u-1",
+      name: "Actor Person",
+      handle: "actor",
+    });
+  });
+});
+
+describe("GET /api/v1/workspaces/:id/views", () => {
+  beforeEach(reset);
+
+  it("includes the built-in views under their English names", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    allow();
+    mockViewFindMany.mockImplementation(
+      async (args: { where: { systemKey?: unknown } }) =>
+        args.where.systemKey
+          ? // `ensureSystemViews`: both exist already, nothing to create.
+            [
+              { systemKey: "my-issues", slug: "my-issues" },
+              { systemKey: "created-by-me", slug: "created-by-me" },
+            ]
+          : [
+              viewRow({
+                id: "sys",
+                systemKey: "my-issues",
+                name: "my-issues",
+                ownerId: null,
+                owner: null,
+                projectId: null,
+                project: null,
+                visibility: "WORKSPACE",
+              }),
+            ],
+    );
+    const res = await getWorkspaceViews(req(), params("ws-1"));
+    expect(res.status).toBe(200);
+    const { data } = await res.json();
+    expect(data[0]).toMatchObject({
+      name: "My issues",
+      systemKey: "my-issues",
+      project: null,
+      canEdit: false,
+    });
+    expect(mockViewCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/v1/views/:id/issues", () => {
+  beforeEach(reset);
+
+  it("needs issues:read as well as views:read", async () => {
+    mockResolveApiUser.mockResolvedValue({
+      ...AUTH_VIEWS,
+      scopes: ["views:read"],
+    });
+    const res = await getViewIssues(req(), params("v-1"));
+    expect(res.status).toBe(403);
+  });
+
+  it("404s a private view of someone else", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    allow();
+    mockViewFindUnique.mockResolvedValue(viewRow({ ownerId: "u-2" }));
+    const res = await getViewIssues(req(), params("v-1"));
+    expect(res.status).toBe(404);
+  });
+
+  it("applies the view's filter with the caller's @me, in its project", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    allow();
+    mockViewFindUnique.mockResolvedValue(
+      viewRow({
+        filter: {
+          op: "and",
+          rules: [{ field: "assignee", is: "any", value: ["@me"] }],
+        },
+      }),
+    );
+    mockIssueFindMany.mockResolvedValue([issueRow()]);
+    const res = await getViewIssues(req(), params("v-1"));
+    expect(res.status).toBe(200);
+    const { data } = await res.json();
+    expect(data[0].statusCategory).toBeNull();
+    const where = JSON.stringify(mockIssueFindMany.mock.calls[0][0].where);
+    expect(where).toContain('"u-1"');
+    expect(where).not.toContain("@me");
+    expect(where).toContain('"projectId":"p-1"');
+  });
+
+  it("a built-in view keeps its fixed condition", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    allow();
+    mockViewFindUnique.mockResolvedValue(
+      viewRow({
+        systemKey: "created-by-me",
+        ownerId: null,
+        owner: null,
+        projectId: null,
+        project: null,
+        visibility: "WORKSPACE",
+      }),
+    );
+    // No visible project: nothing to ask the database for.
+    const res = await getViewIssues(req(), params("v-1"));
+    expect((await res.json()).data).toEqual([]);
+    expect(mockIssueFindMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("PATCH/DELETE /api/v1/views/:id", () => {
+  beforeEach(reset);
+
+  it("403s a shared view someone else made", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    allow({ share: true });
+    mockViewFindUnique.mockResolvedValue(
+      viewRow({ ownerId: "u-2", visibility: "PROJECT" }),
+    );
+    const res = await patchView(patchReq({ name: "Mine now" }), params("v-1"));
+    expect(res.status).toBe(403);
+    expect(mockViewUpdate).not.toHaveBeenCalled();
+  });
+
+  it("changes the caller's own view", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    allow();
+    mockViewFindUnique.mockResolvedValue(viewRow());
+    mockViewUpdate.mockResolvedValue(viewRow({ name: "Renamed" }));
+    const res = await patchView(patchReq({ name: "Renamed" }), params("v-1"));
+    expect(res.status).toBe(200);
+    expect(mockViewUpdate.mock.calls[0][0].data).toEqual({ name: "Renamed" });
+  });
+
+  it("422s an invalid change", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    allow();
+    const res = await patchView(patchReq({ layout: "kanban" }), params("v-1"));
+    expect(res.status).toBe(422);
+  });
+
+  it("can't delete a built-in view", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    allow({ manage: true });
+    mockViewFindUnique.mockResolvedValue(
+      viewRow({
+        systemKey: "my-issues",
+        ownerId: null,
+        visibility: "WORKSPACE",
+        projectId: null,
+      }),
+    );
+    const res = await deleteView(
+      new Request("https://example.com", { method: "DELETE" }),
+      params("v-1"),
+    );
+    expect(res.status).toBe(403);
+    expect(mockViewDelete).not.toHaveBeenCalled();
+  });
+
+  it("GET 404s an unknown view", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    mockViewFindUnique.mockResolvedValue(null);
+    const res = await getView(req(), params("nope"));
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("POST /api/v1/projects/:id/views", () => {
+  beforeEach(reset);
+
+  it("creates a private view in the path's project", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    allow();
+    mockProjectFindUnique.mockResolvedValue({ workspaceId: "ws-1" });
+    mockViewFindUnique.mockResolvedValueOnce(null); // slug is free
+    mockViewCreate.mockResolvedValue(viewRow());
+    mockViewFindUnique.mockResolvedValue(viewRow());
+    const res = await postProjectView(
+      req({ name: "Urgent", layout: "list", projectId: "elsewhere" }),
+      params("p-1"),
+    );
+    expect(res.status).toBe(201);
+    const data = mockViewCreate.mock.calls[0][0].data;
+    expect(data).toMatchObject({
+      projectId: "p-1",
+      workspaceId: "ws-1",
+      ownerId: "u-1",
+      visibility: "PRIVATE",
+    });
+  });
+
+  it("403s sharing without view.share", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    allow();
+    mockProjectFindUnique.mockResolvedValue({ workspaceId: "ws-1" });
+    const res = await postProjectView(
+      req({ name: "Team", layout: "list", visibility: "PROJECT" }),
+      params("p-1"),
+    );
+    expect(res.status).toBe(403);
+    expect(mockViewCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/v1/projects/:id/issues?filter=", () => {
+  beforeEach(reset);
+
+  it("422s a filter that isn't a valid tree", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    mockCan.mockResolvedValue(true);
+    const res = await getIssues(
+      new Request("https://example.com/api/v1?filter=%7Bnope"),
+      params("p-1"),
+    );
+    expect(res.status).toBe(422);
+  });
+
+  it("narrows by a filter tree", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    mockCan.mockResolvedValue(true);
+    mockIssueFindMany.mockResolvedValue([]);
+    const filter = encodeURIComponent(
+      JSON.stringify({
+        op: "and",
+        rules: [{ field: "priority", is: "gte", value: 3 }],
+      }),
+    );
+    const res = await getIssues(
+      new Request(`https://example.com/api/v1?filter=${filter}`),
+      params("p-1"),
+    );
+    expect(res.status).toBe(200);
+    const where = mockIssueFindMany.mock.calls[0][0].where;
+    expect(JSON.stringify(where)).toContain('"priority":{"gte":3}');
+    expect(where.projectId).toBe("p-1");
+  });
+});
+
+describe("GET /api/v1/workspaces/:id/statuses", () => {
+  beforeEach(reset);
+
+  it("lists statuses with their categories in board order", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    mockCanEnterWorkspace.mockResolvedValue(true);
+    const status = (id: string, category: string, position: number) => ({
+      status: {
+        id,
+        name: id,
+        short: id,
+        color: "#888888",
+        category,
+        isColumn: true,
+        position,
+      },
+    });
+    mockWorkspaceStatusFindMany.mockResolvedValue([
+      status("done", "completed", 3),
+      status("todo", "unstarted", 1),
+    ]);
+    const res = await getStatuses(req(), params("ws-1"));
+    const { data } = await res.json();
+    expect(data.map((s: { id: string }) => s.id)).toEqual(["todo", "done"]);
+    expect(data[0].category).toBe("unstarted");
+  });
+
+  it("404s outside the workspace", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    mockCanEnterWorkspace.mockResolvedValue(false);
+    const res = await getStatuses(req(), params("ws-1"));
+    expect(res.status).toBe(404);
   });
 });

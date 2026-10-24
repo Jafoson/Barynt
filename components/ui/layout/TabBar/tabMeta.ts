@@ -117,6 +117,18 @@ export function tabTitle(
   // which one it is.
   if (section === "issue") return decodeURIComponent(path.split("/")[3] ?? "");
 
+  // Across projects (V8): the workspace's board/list, and its views.
+  if (section === "issues") return t("nav.issues");
+  if (section === "view") {
+    // The system views have fixed addresses; any other view's name isn't
+    // known from the path alone.
+    const slug = path.split("/")[3] ?? "";
+    if (slug.startsWith("my-issues")) return t("nav.myIssues");
+    if (slug.startsWith("created-by-me"))
+      return t("views.system.created-by-me");
+    return t("views.tabTitle");
+  }
+
   const entry = findBySection(WORKSPACE_SECTIONS, section);
   return entry ? t(`nav.${entry.labelKey}`) : "Barynt";
 }
@@ -157,6 +169,14 @@ export function tabIcon(path: string): string {
   }
 
   if (section === "issue") return "lucide:circle-dot";
+  if (section === "issues")
+    return path.endsWith("/list") ? "lucide:list" : "lucide:layout-dashboard";
+  if (section === "view") {
+    const slug = path.split("/")[3] ?? "";
+    if (slug.startsWith("my-issues") || slug.startsWith("created-by-me"))
+      return "lucide:user";
+    return "lucide:layout-dashboard";
+  }
 
   // My Issues has two views like a project — the list carries its icon,
   // the board stays with the area's icon.

@@ -1,0 +1,47 @@
+@use "breakpoints" as bp;
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+/* On a phone the bar floats above the list instead of squeezing into the
+   filter row — clear of the keyboard and the safe area. */
+.bar {
+  @include bp.phone {
+    position: fixed;
+    z-index: 20;
+    left: calc(0.625rem + var(--safe-left, 0px));
+    right: calc(0.625rem + var(--safe-right, 0px));
+    bottom: calc(0.625rem + var(--safe-bottom, 0px) + var(--kb-inset, 0px));
+    padding: 0.5rem 0.625rem;
+    border-radius: var(--radius-lg);
+    background: var(--surface-container-highest);
+    box-shadow: 0 6px 24px rgb(0 0 0 / 0.25);
+  }
+}
+
+.badge {
+  padding: 0.125rem 0.5625rem;
+  border-radius: var(--radius-pill);
+  background: var(--secondary-container);
+  color: var(--on-secondary-container);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+
+  @include bp.phone {
+    margin-right: auto;
+  }
+}
+
+.hint {
+  font-size: var(--text-xs);
+  color: var(--on-surface-variant);
+
+  @include bp.phone {
+    flex: 1 1 100%;
+  }
+}

@@ -19,7 +19,9 @@ import {
   ESTIMATE_UNIT_ABBR,
   hoursToEstimate,
 } from "@/features/issues/estimate";
+import { sanitizeGroupOrder } from "@/features/issues/group-order";
 import { sanitizeHiddenGroups } from "@/features/issues/hidden-groups";
+import { sanitizeListColumns } from "@/features/issues/list-columns";
 import { searchWorkspaceIssues } from "@/features/issues/queries";
 import type { IssuePatch } from "@/features/issues/types";
 import { recordAudit } from "@/lib/audit";
@@ -32,6 +34,7 @@ import {
   issueShareUrl,
   newIssueShareToken,
 } from "@/lib/issue-share";
+import { recordStatusEvent } from "@/lib/issue-status-events";
 import { sendIssueShareLinkEmail } from "@/lib/mail";
 import { notify } from "@/lib/notify";
 import {
@@ -47,6 +50,7 @@ import { hostOf } from "@/lib/richtext/link";
 import { mentionedUserIds, toPlainText, toPreview } from "@/lib/richtext/text";
 import type { PMDoc } from "@/lib/richtext/types";
 import { slugify } from "@/lib/slug";
+import { isClosedStatus } from "@/lib/statuses";
 import {
   deleteAttachmentObject,
   finalizeAttachmentUpload,
@@ -57,7 +61,6 @@ import {
 import { uid } from "@/lib/utils/id";
 import { isValidEmail } from "@/lib/utils/parse-emails";
 import { fireWebhookEvent } from "@/lib/webhooks/deliver";
-import { isClosedStatus } from "@/lib/workspace-defaults";
 import type {
   EstimateUnit,
   IssueAttachment,
@@ -237,13 +240,13 @@ async function notifyMentions(
  * An empty object means "nothing to touch" and can be spread into `data`
  * unchanged.
  */
-function closedPatch(
+async function closedPatch(
   before: { status: string; closedAt: Date | null },
   next: string | undefined,
-): { closedAt?: Date | null } {
+): Promise<{ closedAt?: Date | null }> {
   if (next === undefined || next === before.status) return {};
 
-  if (isClosedStatus(next)) {
+  if (await isClosedStatus(next)) {
     // Already has a date? Then it stays as-is — see "Done" → "Canceled".
     return before.closedAt ? {} : { closedAt: new Date() };
   }
@@ -265,7 +268,7 @@ export async function moveIssue(id: string, status: string) {
   ]);
   await db.issue.update({
     where: { id },
-    data: { status, ...closedPatch(issue, status) },
+    data: { status, ...(await closedPatch(issue, status)) },
   });
   await notifyStatusChange(id, issue, actorId, status);
   if (status !== issue.status) {
@@ -293,7 +296,7 @@ export async function reorderIssue(id: string, status: string, rank: number) {
   ]);
   await db.issue.update({
     where: { id },
-    data: { status, rank, ...closedPatch(issue, status) },
+    data: { status, rank, ...(await closedPatch(issue, status)) },
   });
   await notifyStatusChange(id, issue, actorId, status);
   if (status !== issue.status) {
@@ -326,7 +329,7 @@ export async function updateIssue(id: string, patch: IssuePatch) {
     where: { id },
     data: {
       ...(patch.status !== undefined && { status: patch.status }),
-      ...closedPatch(issue, patch.status),
+      ...(await closedPatch(issue, patch.status)),
       ...(patch.priority !== undefined && { priority: patch.priority }),
       ...(patch.type !== undefined && { type: patch.type }),
       ...(patch.assignee !== undefined && { assigneeId: patch.assignee }),
@@ -778,7 +781,7 @@ export async function createIssue(data: {
       status: data.status,
       // Creating a task as already done — backfilled work — closes it in
       // the same second.
-      ...(isClosedStatus(data.status) ? { closedAt: new Date() } : {}),
+      ...((await isClosedStatus(data.status)) ? { closedAt: new Date() } : {}),
       priority: data.priority,
       assigneeId: data.assignee,
       labels: data.labels,
@@ -793,6 +796,7 @@ export async function createIssue(data: {
         data.estimateHours != null ? (data.estimateUnit ?? "hours") : null,
     },
   });
+  await recordStatusEvent(id, null, data.status);
 
   if (data.assignee && data.assignee !== userId) {
     await notify({
@@ -1857,6 +1861,14 @@ export interface ViewGroupsPatch {
   hideEmptyGroups?: boolean;
   /** Sub-issues as cards of their own (board only). */
   showSubIssues?: boolean;
+  /** Own order of the groups (BARY-165). */
+  groupOrder?: string[];
+  /** Swimlanes without an issue hide themselves (BARY-173). */
+  hideEmptyLanes?: boolean;
+  /** Lanes this person folded, "<laneKey>:<laneId>" (BARY-173). */
+  collapsedLanes?: string[];
+  /** The list's columns in order (BARY-175). */
+  columns?: string[];
 }
 
 function groupsData(patch: ViewGroupsPatch) {
@@ -1869,6 +1881,18 @@ function groupsData(patch: ViewGroupsPatch) {
     }),
     ...(patch.showSubIssues !== undefined && {
       showSubIssues: patch.showSubIssues === true,
+    }),
+    ...(patch.groupOrder !== undefined && {
+      groupOrder: sanitizeGroupOrder(patch.groupOrder),
+    }),
+    ...(patch.hideEmptyLanes !== undefined && {
+      hideEmptyLanes: patch.hideEmptyLanes === true,
+    }),
+    ...(patch.collapsedLanes !== undefined && {
+      collapsedLanes: sanitizeGroupOrder(patch.collapsedLanes),
+    }),
+    ...(patch.columns !== undefined && {
+      columns: sanitizeListColumns(patch.columns),
     }),
   };
 }
@@ -1916,4 +1940,19 @@ export async function setMyIssuesViewGroups(
 
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+/** A project list's columns as this person set them (BARY-175). */
+export async function setIssueListColumns(
+  projectId: string,
+  columns: string[],
+): Promise<{ ok: true } | { error: string }> {
+  return setIssueViewGroups(projectId, "list", { columns });
+}
+
+/** Same for the cross-project list. */
+export async function setMyIssuesListColumns(
+  columns: string[],
+): Promise<{ ok: true } | { error: string }> {
+  return setMyIssuesViewGroups("list", { columns });
 }

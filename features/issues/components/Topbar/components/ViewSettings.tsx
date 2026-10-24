@@ -2,10 +2,11 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { Chip } from "@/components/ui/atoms/Chip/Chip";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
+import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { Switch } from "@/components/ui/atoms/Switch/Switch";
 import { SheetHeader } from "@/components/ui/layout/Modal/components/SheetHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
@@ -15,7 +16,6 @@ import {
   type CardFieldKey,
   isCardFieldKey,
 } from "@/features/issues/card-fields";
-import { GroupIcon } from "@/features/issues/components/GroupIcon/GroupIcon";
 import {
   GROUP_KEYS,
   type GroupDef,
@@ -23,11 +23,13 @@ import {
   type GroupLookups,
   groupDefs,
 } from "@/features/issues/group";
+import { groupOrderEntries, orderGroups } from "@/features/issues/group-order";
 import {
   type GroupView,
   isGroupHidden,
   toggleGroupHidden,
 } from "@/features/issues/hidden-groups";
+import { useListColumnsControl } from "@/features/issues/list-columns-control";
 import { SORT_KEYS, type SortKey } from "@/features/issues/sort";
 import {
   type DetailFieldKey,
@@ -38,6 +40,7 @@ import { useModal } from "@/lib/context";
 import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useSwipeToClose } from "@/lib/utils/useSwipeToClose";
 import { FilterOptions } from "./FilterPopup";
+import { GroupOrderList } from "./GroupOrderList";
 import styles from "./viewSettings.module.scss";
 
 const FIELD_LABEL_KEY = {
@@ -75,7 +78,11 @@ const GROUP_LABEL_KEY = {
   type: "fields.type",
   assignee: "fields.assignee",
   storyPoints: "fields.storyPoints",
+  project: "fields.project",
 } as const satisfies Record<GroupKey, string>;
+
+/** "No lanes" in the lanes list — not a group key. */
+const LANES_NONE = "_none";
 
 /** Group keys that only make sense while the field they group by is shown. */
 const GROUP_KEY_FIELD: Partial<Record<GroupKey, DetailFieldKey>> = {
@@ -87,6 +94,8 @@ const GROUP_KEY_FIELD: Partial<Record<GroupKey, DetailFieldKey>> = {
 function availableKeys(
   projectHiddenFields: string[],
   hidden: Set<CardFieldKey>,
+  /** Across projects (V8) — only there can one group by project. */
+  crossProject: boolean,
 ) {
   const projectVisible = visibleDetailFields(projectHiddenFields);
   const sortKeys = SORT_KEYS.filter((key) => {
@@ -95,6 +104,7 @@ function availableKeys(
     return !(isCardFieldKey(field) && hidden.has(field));
   });
   const groupKeys = GROUP_KEYS.filter((key) => {
+    if (key === "project") return crossProject;
     const field = GROUP_KEY_FIELD[key];
     if (!field) return true;
     return (
@@ -107,6 +117,11 @@ function availableKeys(
 interface ViewSettingsProps {
   groupKey: GroupKey;
   onGroupChange: (key: GroupKey) => void;
+  /** The board's swimlanes (BARY-173); `null` = none. */
+  laneKey: GroupKey | null;
+  onLaneChange: (key: GroupKey | null) => void;
+  /** Lanes without an issue hide themselves. */
+  hideEmptyLanes: boolean;
   /** Fields the project (or, across projects, every project) hides. */
   projectHiddenFields: string[];
   sortKey: SortKey;
@@ -125,9 +140,14 @@ interface ViewSettingsProps {
   hideEmptyGroups: boolean;
   /** Sub-issues as cards of their own — only offered on the board. */
   showSubIssues: boolean;
+  /** Own order of the groups, `group-order.ts` entries (BARY-165). */
+  groupOrder: string[];
   onGroupsChange: (
     patch: ViewGroupsPatch,
   ) => Promise<{ ok: true } | { error: string }>;
+  /** Board or list, chosen at the panel's top (V8) — on every board and
+   *  list, the same place everywhere. */
+  onLayoutChange?: (view: GroupView) => void;
 }
 
 /**
@@ -141,6 +161,9 @@ interface ViewSettingsProps {
 export function ViewSettings({
   groupKey,
   onGroupChange,
+  laneKey,
+  onLaneChange,
+  hideEmptyLanes,
   projectHiddenFields,
   sortKey,
   onSortChange,
@@ -151,7 +174,9 @@ export function ViewSettings({
   hiddenGroups,
   hideEmptyGroups,
   showSubIssues,
+  groupOrder,
   onGroupsChange,
+  onLayoutChange,
 }: ViewSettingsProps) {
   const t = useTranslations();
   const router = useRouter();
@@ -161,10 +186,16 @@ export function ViewSettings({
   );
 
   const { sortKeys: availableSortKeys, groupKeys: availableGroupKeys } =
-    availableKeys(projectHiddenFields, hidden);
+    availableKeys(projectHiddenFields, hidden, Boolean(groupLookups.projects));
   const activeGroupKey = availableGroupKeys.includes(groupKey)
     ? groupKey
     : "status";
+  const activeLaneKey =
+    laneKey &&
+    laneKey !== activeGroupKey &&
+    availableGroupKeys.includes(laneKey)
+      ? laneKey
+      : null;
   const activeSortKey = availableSortKeys.includes(sortKey)
     ? sortKey
     : "manual";
@@ -181,13 +212,37 @@ export function ViewSettings({
 
   const [hideEmpty, setHideEmpty] = useState(hideEmptyGroups);
 
+  const [hideEmptyLaneList, setHideEmptyLanes] = useState(hideEmptyLanes);
+
   const [subIssues, setSubIssues] = useState(showSubIssues);
+
+  const [order, setOrder] = useState(groupOrder);
+
+  // The values come back from outside too — the stored preference catching
+  // up, or a saved view's address after "Discard" (BARY-165). Follow them.
+  const hiddenFieldsKey = hiddenFields.join(",");
+  const hiddenGroupsKey = hiddenGroups.join(",");
+  const groupOrderKey = groupOrder.join(",");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resync on new values only
+  useEffect(() => {
+    setHidden(new Set(hiddenFields.filter(isCardFieldKey)));
+  }, [hiddenFieldsKey]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resync on new values only
+  useEffect(() => setHiddenGroupList(hiddenGroups), [hiddenGroupsKey]);
+  useEffect(() => setHideEmpty(hideEmptyGroups), [hideEmptyGroups]);
+  useEffect(() => setHideEmptyLanes(hideEmptyLanes), [hideEmptyLanes]);
+  useEffect(() => setSubIssues(showSubIssues), [showSubIssues]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resync on new values only
+  useEffect(() => setOrder(groupOrder), [groupOrderKey]);
 
   const saveGroups = (patch: ViewGroupsPatch) => {
     if (patch.hiddenGroups) setHiddenGroupList(patch.hiddenGroups);
     if (patch.hideEmptyGroups !== undefined)
       setHideEmpty(patch.hideEmptyGroups);
     if (patch.showSubIssues !== undefined) setSubIssues(patch.showSubIssues);
+    if (patch.groupOrder) setOrder(patch.groupOrder);
+    if (patch.hideEmptyLanes !== undefined)
+      setHideEmptyLanes(patch.hideEmptyLanes);
     startTransition(async () => {
       await onGroupsChange(patch);
       router.refresh();
@@ -204,6 +259,15 @@ export function ViewSettings({
 
   const toggleSubIssues = () => saveGroups({ showSubIssues: !subIssues });
 
+  const toggleHideEmptyLanes = () =>
+    saveGroups({ hideEmptyLanes: !hideEmptyLaneList });
+
+  /** A new order of the groups — from the column list (BARY-165). */
+  const reorderGroups = (groups: GroupDef[]) =>
+    saveGroups({ groupOrder: groupOrderEntries(groups) });
+
+  const resetOrder = () => saveGroups({ groupOrder: [] });
+
   const toggleField = (key: CardFieldKey) => {
     const next = new Set(hidden);
     if (next.has(key)) next.delete(key);
@@ -217,12 +281,21 @@ export function ViewSettings({
   const reset = () => {
     onSortChange("manual");
     onGroupChange("status");
+    onLaneChange(null);
     save(new Set());
-    if (hiddenGroupList.length > 0 || hideEmpty || subIssues)
+    if (
+      hiddenGroupList.length > 0 ||
+      hideEmpty ||
+      subIssues ||
+      order.length ||
+      hideEmptyLaneList
+    )
       saveGroups({
         hiddenGroups: [],
         hideEmptyGroups: false,
         showSubIssues: false,
+        groupOrder: [],
+        hideEmptyLanes: false,
       });
   };
 
@@ -243,9 +316,16 @@ export function ViewSettings({
     hiddenGroups: hiddenGroupList,
     hideEmptyGroups: hideEmpty,
     showSubIssues: subIssues,
+    groupOrder: order,
+    laneKey: activeLaneKey,
+    hideEmptyLanes: hideEmptyLaneList,
     toggleGroup,
     toggleHideEmpty,
     toggleSubIssues,
+    toggleHideEmptyLanes,
+    setLanes: onLaneChange,
+    reorderGroups,
+    resetOrder,
     setGroup: onGroupChange,
     setSort: onSortChange,
     toggleField,
@@ -261,13 +341,21 @@ export function ViewSettings({
     hiddenGroups: hiddenGroupList,
     hideEmptyGroups: hideEmpty,
     showSubIssues: subIssues,
+    groupOrder: order,
+    laneKey: activeLaneKey,
+    hideEmptyLanes: hideEmptyLaneList,
     toggleGroup,
     toggleHideEmpty,
     toggleSubIssues,
+    toggleHideEmptyLanes,
+    setLanes: onLaneChange,
+    reorderGroups,
+    resetOrder,
     setGroup: onGroupChange,
     setSort: onSortChange,
     toggleField,
     reset,
+    layout: onLayoutChange,
   };
 
   const trigger = (
@@ -315,17 +403,25 @@ export function ViewSettings({
               hiddenGroups: hiddenGroupList,
               hideEmptyGroups: hideEmpty,
               showSubIssues: subIssues,
+              groupOrder: order,
+              laneKey: activeLaneKey,
+              hideEmptyLanes: hideEmptyLaneList,
             }}
             onGroup={onGroupChange}
+            onLanes={onLaneChange}
+            onToggleHideEmptyLanes={toggleHideEmptyLanes}
             onSort={onSortChange}
             onToggleField={toggleField}
             onToggleGroup={toggleGroup}
             onToggleHideEmpty={toggleHideEmpty}
             onToggleSubIssues={toggleSubIssues}
+            onReorderGroups={reorderGroups}
+            onResetOrder={resetOrder}
             onReset={reset}
             facet={facet}
             onFacetChange={setFacet}
             showBack
+            onLayout={onLayoutChange}
           />
         </div>
       )}
@@ -344,16 +440,24 @@ interface SheetSource {
   hiddenGroups: string[];
   hideEmptyGroups: boolean;
   showSubIssues: boolean;
+  groupOrder: string[];
+  laneKey: GroupKey | null;
+  hideEmptyLanes: boolean;
   toggleGroup: (group: GroupDef) => void;
   toggleHideEmpty: () => void;
   toggleSubIssues: () => void;
+  toggleHideEmptyLanes: () => void;
+  setLanes: (key: GroupKey | null) => void;
+  reorderGroups: (groups: GroupDef[]) => void;
+  resetOrder: () => void;
   setGroup: (key: GroupKey) => void;
   setSort: (key: SortKey) => void;
   toggleField: (key: CardFieldKey) => void;
   reset: () => void;
+  layout?: (view: GroupView) => void;
 }
 
-type DisplayFacet = "group" | "sort" | "groups";
+type DisplayFacet = "group" | "lanes" | "sort" | "groups";
 
 export interface DisplayState {
   groupKey: GroupKey;
@@ -366,6 +470,11 @@ export interface DisplayState {
   hideEmptyGroups: boolean;
   /** Sub-issues as cards of their own — the switch only shows on the board. */
   showSubIssues: boolean;
+  /** Own order of the groups (BARY-165). */
+  groupOrder: string[];
+  /** The board's swimlanes (BARY-173); `null` = none. */
+  laneKey: GroupKey | null;
+  hideEmptyLanes: boolean;
 }
 
 /**
@@ -387,6 +496,11 @@ function ViewSheet({
   const [hiddenGroups, setHiddenGroups] = useState(latest.current.hiddenGroups);
   const [hideEmpty, setHideEmpty] = useState(latest.current.hideEmptyGroups);
   const [subIssues, setSubIssues] = useState(latest.current.showSubIssues);
+  const [order, setOrder] = useState(latest.current.groupOrder);
+  const [laneKey, setLaneKey] = useState(latest.current.laneKey);
+  const [hideEmptyLanes, setHideEmptyLanes] = useState(
+    latest.current.hideEmptyLanes,
+  );
   const [facet, setFacet] = useState<DisplayFacet | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const swipe = useSwipeToClose(close, bodyRef);
@@ -401,15 +515,20 @@ function ViewSheet({
     hiddenGroups,
     hideEmptyGroups: hideEmpty,
     showSubIssues: subIssues,
+    groupOrder: order,
+    laneKey,
+    hideEmptyLanes,
   };
   const facetTitle =
     facet === "group"
       ? t("display.grouping")
-      : facet === "sort"
-        ? t("display.ordering")
-        : facet === "groups"
-          ? t("display.groupsTitle")
-          : null;
+      : facet === "lanes"
+        ? t("display.lanes")
+        : facet === "sort"
+          ? t("display.ordering")
+          : facet === "groups"
+            ? t("display.groupsTitle")
+            : null;
   const resetToDefaults = () => {
     setGroupKey("status");
     setSortKey("manual");
@@ -417,6 +536,9 @@ function ViewSheet({
     setHiddenGroups([]);
     setHideEmpty(false);
     setSubIssues(false);
+    setOrder([]);
+    setLaneKey(null);
+    setHideEmptyLanes(false);
     latest.current.reset();
   };
 
@@ -440,7 +562,16 @@ function ViewSheet({
             state={state}
             onGroup={(key) => {
               setGroupKey(key);
+              if (laneKey === key) setLaneKey(null);
               latest.current.setGroup(key);
+            }}
+            onLanes={(key) => {
+              setLaneKey(key);
+              latest.current.setLanes(key);
+            }}
+            onToggleHideEmptyLanes={() => {
+              setHideEmptyLanes((prev) => !prev);
+              latest.current.toggleHideEmptyLanes();
             }}
             onSort={(key) => {
               setSortKey(key);
@@ -471,12 +602,29 @@ function ViewSheet({
               setSubIssues((prev) => !prev);
               latest.current.toggleSubIssues();
             }}
+            onReorderGroups={(groups) => {
+              setOrder(groupOrderEntries(groups));
+              latest.current.reorderGroups(groups);
+            }}
+            onResetOrder={() => {
+              setOrder([]);
+              latest.current.resetOrder();
+            }}
             onReset={resetToDefaults}
             facet={facet}
             onFacetChange={setFacet}
             showBack={false}
             hideReset
             alwaysSearch={false}
+            onLayout={
+              latest.current.layout
+                ? (next) => {
+                    latest.current.layout?.(next);
+                    // The page underneath changes — the sheet goes with it.
+                    close();
+                  }
+                : undefined
+            }
           />
         </div>
       </ModalBody>
@@ -487,11 +635,16 @@ function ViewSheet({
 interface DisplayPanelProps {
   state: DisplayState;
   onGroup: (key: GroupKey) => void;
+  onLanes: (key: GroupKey | null) => void;
+  onToggleHideEmptyLanes: () => void;
   onSort: (key: SortKey) => void;
   onToggleField: (key: CardFieldKey) => void;
   onToggleGroup: (group: GroupDef) => void;
   onToggleHideEmpty: () => void;
   onToggleSubIssues: () => void;
+  /** The column list in a new order (BARY-165). */
+  onReorderGroups: (groups: GroupDef[]) => void;
+  onResetOrder: () => void;
   onReset: () => void;
   /** The list that's open, or `null` for the rows. */
   facet: DisplayFacet | null;
@@ -501,6 +654,8 @@ interface DisplayPanelProps {
   /** No reset button below — the sheet has it in its bar. */
   hideReset?: boolean;
   alwaysSearch?: boolean;
+  /** Board | List at the top (V8). */
+  onLayout?: (view: GroupView) => void;
 }
 
 /**
@@ -512,34 +667,45 @@ interface DisplayPanelProps {
 export function DisplayPanel({
   state,
   onGroup,
+  onLanes,
+  onToggleHideEmptyLanes,
   onSort,
   onToggleField,
   onToggleGroup,
   onToggleHideEmpty,
   onToggleSubIssues,
+  onReorderGroups,
+  onResetOrder,
   onReset,
   facet,
   onFacetChange,
   showBack,
   hideReset = false,
   alwaysSearch = false,
+  onLayout,
 }: DisplayPanelProps) {
   const t = useTranslations();
+  // The open list's columns (BARY-175) — the same switches as its "+".
+  const columns = useListColumnsControl();
   const { sortKeys, groupKeys } = availableKeys(
     state.projectHiddenFields,
     state.hidden,
+    Boolean(state.groupLookups.projects),
   );
 
   // The groups of the active grouping (BARY-47) — for statuses all of them,
   // Canceled included.
-  const groups: GroupDef[] = groupDefs(
-    state.groupKey,
-    state.groupLookups,
-    {
-      unassigned: t("fields.unassigned"),
-      noStoryPoints: t("fields.noStoryPoints"),
-    },
-    [],
+  const groups: GroupDef[] = orderGroups(
+    groupDefs(
+      state.groupKey,
+      state.groupLookups,
+      {
+        unassigned: t("fields.unassigned"),
+        noStoryPoints: t("fields.noStoryPoints"),
+      },
+      [],
+    ),
+    state.groupOrder,
   );
   const isHidden = (group: GroupDef) =>
     isGroupHidden(state.hiddenGroups, group, state.view);
@@ -560,21 +726,48 @@ export function DisplayPanel({
             {title}
           </button>
         )}
+        <GroupOrderList
+          groups={groups}
+          isHidden={isHidden}
+          onToggle={onToggleGroup}
+          onReorder={onReorderGroups}
+          onResetOrder={state.groupOrder.length > 0 ? onResetOrder : undefined}
+        />
+      </>
+    );
+  }
+
+  if (facet === "lanes") {
+    const title = t("display.lanes");
+    return (
+      <>
+        {showBack && (
+          <button
+            type="button"
+            className={styles.backRow}
+            onClick={() => onFacetChange(null)}
+          >
+            <Icon icon="lucide:chevron-left" width={18} />
+            {title}
+          </button>
+        )}
         <FilterOptions
+          single
           alwaysSearch={alwaysSearch}
           facet={{
             title,
-            options: groups.map((group) => ({
-              value: group.id,
-              label: group.label,
-              icon: <GroupIcon group={group} size={16} />,
-            })),
-            selected: visibleGroups.map((g) => g.id),
+            options: [
+              { value: LANES_NONE, label: t("display.lanesNone") },
+              // Never the columns' own grouping — it would repeat them.
+              ...groupKeys
+                .filter((key) => key !== state.groupKey)
+                .map((key) => ({ value: key, label: t(GROUP_LABEL_KEY[key]) })),
+            ],
+            selected: [state.laneKey ?? LANES_NONE],
           }}
-          // Several at a time: a tap toggles one and the list stays open.
           onToggle={(value) => {
-            const group = groups.find((g) => g.id === String(value));
-            if (group) onToggleGroup(group);
+            onLanes(value === LANES_NONE ? null : (value as GroupKey));
+            onFacetChange(null);
           }}
         />
       </>
@@ -625,11 +818,47 @@ export function DisplayPanel({
 
   return (
     <>
+      {/* Board or list first: everything below depends on it (V8). */}
+      {onLayout && (
+        <div className={styles.layoutSwitch}>
+          <SegmentedControl
+            variant="surface"
+            value={state.view}
+            onChange={(v) => onLayout(v as GroupView)}
+            items={[
+              {
+                value: "board",
+                label: t("nav.board"),
+                icon: <Icon icon="lucide:layout-dashboard" width={15} />,
+              },
+              {
+                value: "list",
+                label: t("views.layoutList"),
+                icon: <Icon icon="lucide:list" width={15} />,
+              },
+            ]}
+          />
+        </div>
+      )}
       <ChoiceRow
-        title={t("display.grouping")}
+        title={
+          state.view === "board" ? t("display.columns") : t("display.grouping")
+        }
         value={t(GROUP_LABEL_KEY[state.groupKey])}
         onOpen={() => onFacetChange("group")}
       />
+      {/* Swimlanes: a second grouping, the board only (BARY-173). */}
+      {state.view === "board" && (
+        <ChoiceRow
+          title={t("display.lanes")}
+          value={
+            state.laneKey
+              ? t(GROUP_LABEL_KEY[state.laneKey])
+              : t("display.lanesNone")
+          }
+          onOpen={() => onFacetChange("lanes")}
+        />
+      )}
       <ChoiceRow
         title={t("display.ordering")}
         value={t(SORT_LABEL_KEY[state.sortKey])}
@@ -658,6 +887,18 @@ export function DisplayPanel({
         />
       </div>
 
+      {state.view === "board" && state.laneKey && (
+        <div className={`${styles.row} ${styles.switchRow}`}>
+          <span className={styles.rowLabel}>{t("display.hideEmptyLanes")}</span>
+          <Switch
+            checked={state.hideEmptyLanes}
+            onChange={onToggleHideEmptyLanes}
+            label={t("display.hideEmptyLanes")}
+            labelHidden
+          />
+        </div>
+      )}
+
       {/* The list keeps sub-issues regardless — only the board can leave them out. */}
       {state.view === "board" && (
         <div className={`${styles.row} ${styles.switchRow}`}>
@@ -671,22 +912,57 @@ export function DisplayPanel({
         </div>
       )}
 
-      <div className={styles.section}>
-        <span className={styles.sectionTitle}>{t("display.fieldsTitle")}</span>
-        <div className={styles.chips}>
-          {CARD_FIELD_KEYS.map((key) => (
-            <Chip
-              key={key}
-              type="filter"
-              variant="text"
-              selected={!state.hidden.has(key)}
-              onClick={() => onToggleField(key)}
-            >
-              {t(FIELD_LABEL_KEY[key])}
-            </Chip>
-          ))}
+      {/* The list shows columns instead of card fields (BARY-175) — the
+          same switches as the "+" in its header. */}
+      {state.view === "list" && columns && (
+        <div className={styles.section}>
+          <span className={styles.sectionTitle}>
+            {t("issues.table.columnsTitle")}
+          </span>
+          <div className={styles.chips}>
+            {columns.offered.map((column) => {
+              const on = columns.shown.includes(column);
+              return (
+                <Chip
+                  key={column}
+                  type="filter"
+                  variant="text"
+                  selected={on}
+                  onClick={() =>
+                    columns.onChange(
+                      on
+                        ? columns.shown.filter((c) => c !== column)
+                        : [...columns.shown, column],
+                    )
+                  }
+                >
+                  {t(`issues.table.col_${column}`)}
+                </Chip>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
+      {state.view !== "list" && (
+        <div className={styles.section}>
+          <span className={styles.sectionTitle}>
+            {t("display.fieldsTitle")}
+          </span>
+          <div className={styles.chips}>
+            {CARD_FIELD_KEYS.map((key) => (
+              <Chip
+                key={key}
+                type="filter"
+                variant="text"
+                selected={!state.hidden.has(key)}
+                onClick={() => onToggleField(key)}
+              >
+                {t(FIELD_LABEL_KEY[key])}
+              </Chip>
+            ))}
+          </div>
+        </div>
+      )}
 
       {!hideReset && (
         <div className={styles.footer}>
