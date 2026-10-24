@@ -353,14 +353,17 @@ function SortSelect({
 }) {
   const [value, setValue] = useState(initial);
   return (
-    <NativeSelect
-      label={label}
-      value={value}
-      onChange={(v) => {
-        setValue(v);
-        onChange(v);
-      }}
-      items={options}
-    />
+    <div className={styles.row}>
+      <span>{label}</span>
+      <NativeSelect
+        label={label}
+        value={value}
+        onChange={(v) => {
+          setValue(v);
+          onChange(v);
+        }}
+        items={options}
+      />
+    </div>
   );
 }
