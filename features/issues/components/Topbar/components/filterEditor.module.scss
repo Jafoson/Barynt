@@ -291,6 +291,12 @@
   }
 }
 
+.extra {
+  flex: none;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--outline-variant);
+}
+
 .footer {
   flex: none;
   display: flex;

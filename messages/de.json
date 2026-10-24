@@ -1717,6 +1717,7 @@
     "rows": "Zeilen",
     "columns": "Spalten",
     "sort": "Sortierung",
+    "sort_urgency": "Dringlichkeit",
     "sort_updated": "Zuletzt geändert",
     "sort_created": "Neueste zuerst",
     "sort_dueDate": "Fälligkeit",

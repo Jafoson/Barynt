@@ -1134,7 +1134,14 @@ async function distribution(
   return { type: "distribution", slices: withHrefs, total };
 }
 
-async function attention(ctx: Ctx, where: Where): Promise<WidgetData> {
+async function attention(
+  ctx: Ctx,
+  where: Where,
+  sort: Widget["config"]["sort"],
+): Promise<WidgetData> {
+  // Ordered by a field, the list simply follows it; "urgency" (the
+  // default) ranks by the reason below (BARY-182).
+  const byField = sort !== undefined && sort !== "urgency";
   const today = todayStart();
   const staleBefore = new Date(Date.now() - STALE_DAYS * DAY);
   const scoped: Where = {
@@ -1154,8 +1161,10 @@ async function attention(ctx: Ctx, where: Where): Promise<WidgetData> {
     db.issue.findMany({
       where: scoped,
       select: ISSUE_SELECT,
-      orderBy: [{ priority: "desc" }, { updated: "asc" }],
-      take: 200,
+      orderBy: byField
+        ? issueOrder(sort)
+        : [{ priority: "desc" }, { updated: "asc" }],
+      take: byField ? LIST_LIMIT : 200,
     }),
     db.issue.count({ where: scoped }),
   ]);
@@ -1175,7 +1184,7 @@ async function attention(ctx: Ctx, where: Where): Promise<WidgetData> {
   };
   const picked = rows
     .map((row) => ({ row, reason: reasonOf(row) }))
-    .sort((a, b) => rank[a.reason] - rank[b.reason])
+    .sort((a, b) => (byField ? 0 : rank[a.reason] - rank[b.reason]))
     .slice(0, LIST_LIMIT);
   return {
     type: "attention",
@@ -1189,6 +1198,19 @@ async function attention(ctx: Ctx, where: Where): Promise<WidgetData> {
   };
 }
 
+/** A list widget's order — "updated" for anything else. */
+function issueOrder(
+  sort: Widget["config"]["sort"],
+): Prisma.IssueOrderByWithRelationInput[] {
+  return sort === "created"
+    ? [{ created: "desc" }]
+    : sort === "dueDate"
+      ? [{ dueDate: { sort: "asc", nulls: "last" } }, { priority: "desc" }]
+      : sort === "priority"
+        ? [{ priority: "desc" }, { updated: "desc" }]
+        : [{ updated: "desc" }];
+}
+
 async function issues(
   ctx: Ctx,
   where: Where,
@@ -1199,14 +1221,7 @@ async function issues(
   const scoped = openOnly
     ? { AND: [where, { status: { notIn: ctx.closed } }] }
     : where;
-  const orderBy: Prisma.IssueOrderByWithRelationInput[] =
-    sort === "created"
-      ? [{ created: "desc" }]
-      : sort === "dueDate"
-        ? [{ dueDate: { sort: "asc", nulls: "last" } }, { priority: "desc" }]
-        : sort === "priority"
-          ? [{ priority: "desc" }, { updated: "desc" }]
-          : [{ updated: "desc" }];
+  const orderBy = issueOrder(sort);
   const [rows, total] = await Promise.all([
     db.issue.findMany({
       where: scoped,
@@ -2440,7 +2455,7 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
         config.measure ?? "count",
       );
     case "attention":
-      return attention(ctx, where);
+      return attention(ctx, where, config.sort);
     case "issues":
       return issues(ctx, where, config.sort, config.openOnly ?? true, widget);
     case "flow":

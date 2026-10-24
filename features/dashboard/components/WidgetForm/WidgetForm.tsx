@@ -2,18 +2,21 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { Input } from "@/components/ui/atoms/Input/Input";
+import { NativeSelect } from "@/components/ui/atoms/NativeSelect/NativeSelect";
 import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
 import type { WidgetData } from "@/features/dashboard/types";
 import {
   ACCENTS,
+  ATTENTION_SORTS,
   accentOf,
   BACKGROUNDS,
   ELEMENTS,
+  ISSUE_SORTS,
   WIDGETS,
   type Widget,
   type WidgetConfig,
@@ -71,9 +74,20 @@ export function WidgetForm({
   };
   const { config } = widget;
 
-  const apply = onChange;
+  // The filter window keeps the `set` it was opened with: reading the
+  // latest widget from a ref keeps a change of order there from undoing a
+  // filter change made a moment before, and vice versa.
+  const latest = useRef(widget);
+  latest.current = widget;
+  const apply = (next: Widget) => {
+    latest.current = next;
+    onChange(next);
+  };
   const set = (patch: Partial<WidgetConfig>) =>
-    apply({ ...widget, config: { ...widget.config, ...patch } });
+    apply({
+      ...latest.current,
+      config: { ...latest.current.config, ...patch },
+    });
 
   const filterCount = config.filter?.rules.length ?? 0;
 
@@ -82,6 +96,7 @@ export function WidgetForm({
   const openFilter = (
     current: IssueFilter | undefined,
     save: (filter: IssueFilter | undefined) => void,
+    sort?: { extra: React.ReactNode; onCancel: () => void },
   ) =>
     openModal(
       ({ close: done }) => (
@@ -101,14 +116,45 @@ export function WidgetForm({
               lookups={lookups}
               area={area}
               onDone={done}
+              extra={sort?.extra}
+              onCancel={sort?.onCancel}
             />
           </ModalBody>
         </Modal>
       ),
       sheet ? { placement: "bottom" } : undefined,
     );
-  const editFilter = () =>
-    openFilter(config.filter, (filter) => set({ filter }));
+  // A widget that lists issues sets its order right beside its filter
+  // (BARY-182) — the same setting as in the panel for "Issues".
+  const sorts =
+    widget.type === "attention"
+      ? ATTENTION_SORTS
+      : widget.type === "issues"
+        ? ISSUE_SORTS
+        : null;
+  const editFilter = () => {
+    const initialSort = config.sort;
+    openFilter(
+      config.filter,
+      (filter) => set({ filter }),
+      sorts
+        ? {
+            extra: (
+              <SortSelect
+                label={t("sort")}
+                initial={config.sort ?? def.config.sort ?? sorts[0]}
+                options={sorts.map((s) => ({
+                  value: s,
+                  label: t(`sort_${s}`),
+                }))}
+                onChange={(sort) => set({ sort: sort as WidgetConfig["sort"] })}
+              />
+            ),
+            onCancel: () => set({ sort: initialSort }),
+          }
+        : undefined,
+    );
+  };
 
   return (
     <>
@@ -256,5 +302,32 @@ export function WidgetForm({
         </div>
       </fieldset>
     </>
+  );
+}
+
+/** The order inside the filter window — its own state, since the window
+ *  doesn't re-render with the widget. */
+function SortSelect({
+  label,
+  initial,
+  options,
+  onChange,
+}: {
+  label: string;
+  initial: string;
+  options: { value: string; label: string }[];
+  onChange: (sort: string) => void;
+}) {
+  const [value, setValue] = useState(initial);
+  return (
+    <NativeSelect
+      label={label}
+      value={value}
+      onChange={(v) => {
+        setValue(v);
+        onChange(v);
+      }}
+      items={options}
+    />
   );
 }

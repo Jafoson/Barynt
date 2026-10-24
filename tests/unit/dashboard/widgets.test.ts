@@ -30,6 +30,7 @@ import {
   WIDGET_TYPES,
   WIDGETS,
   type Widget,
+  widgetsSchema,
 } from "@/features/dashboard/widgets";
 
 // The dashboard's widget registry (BARY-169). Pure data and arithmetic — the
@@ -521,5 +522,17 @@ describe("Flow metrics (BARY-171)", () => {
       expect(offeredOn("cfd", kind)).toBe(true);
       expect(offeredOn("timeInStatus", kind)).toBe(true);
     }
+  });
+});
+
+describe("order of list widgets (BARY-182)", () => {
+  const attention = (sort: string) => [
+    { id: "w1", type: "attention", size: "L", config: { sort } },
+  ];
+
+  it("takes urgency and the issue orders, nothing else", () => {
+    expect(widgetsSchema.safeParse(attention("urgency")).success).toBe(true);
+    expect(widgetsSchema.safeParse(attention("dueDate")).success).toBe(true);
+    expect(widgetsSchema.safeParse(attention("random")).success).toBe(false);
   });
 });
