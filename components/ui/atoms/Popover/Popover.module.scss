@@ -1,12 +1,12 @@
-.menu{
-    background: var(--surface);
-    border: 1px solid var(--outline-variant);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-pop);
-    min-width: 12.5rem;
-    z-index: var(--z-popover);
-    padding: 0.3125rem;
-    animation: pop .12s ease;
+.menu {
+  background: var(--surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+  min-width: 12.5rem;
+  z-index: var(--z-popover);
+  padding: 0.3125rem;
+  animation: pop 0.12s ease;
 }
 
 /* Local, even though `pop` also exists globally in styles/globals.scss:
@@ -15,7 +15,10 @@
    anywhere — the animation silently ran into nothing. Values identical to
    the global `pop`. */
 @keyframes pop {
-  from { opacity: .2; transform: translateY(-0.25rem) scale(.985); }
+  from {
+    opacity: 0.2;
+    transform: translateY(-0.25rem) scale(0.985);
+  }
 }
 
 /* ── Phone: a bottom sheet instead of the floating menu ── */
@@ -27,7 +30,7 @@
   display: flex;
   align-items: flex-end;
   background: rgb(0, 0, 0, 0.32);
-  animation: fadeIn .16s ease both;
+  animation: fadeIn 0.16s ease both;
 }
 
 .sheet {
@@ -40,7 +43,7 @@
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   box-shadow: var(--shadow-pop);
   padding-bottom: var(--safe-bottom);
-  animation: slideUp .22s cubic-bezier(.22, .61, .36, 1);
+  animation: slideUp 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
 
   /* The grab handle. */
   &::before {
@@ -64,11 +67,23 @@
 }
 
 /* Local copies — keyframe names are hashed per module. */
-@keyframes fadeIn  { from { opacity: .35; } }
-@keyframes slideUp { from { opacity: .6; transform: translateY(100%); } }
+@keyframes fadeIn {
+  from {
+    opacity: 0.35;
+  }
+}
+@keyframes slideUp {
+  from {
+    opacity: 0.6;
+    transform: translateY(100%);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .sheetOverlay, .sheet { animation-duration: .01ms; }
+  .sheetOverlay,
+  .sheet {
+    animation-duration: 0.01ms;
+  }
 }
 
 /* ── Phone, opened from inside a bottom sheet: a page over the sheet ──
@@ -82,7 +97,7 @@
   display: flex;
   flex-direction: column;
   background: var(--surface-container);
-  animation: fadeIn .12s ease both;
+  animation: fadeIn 0.12s ease both;
 }
 
 .pageBar {

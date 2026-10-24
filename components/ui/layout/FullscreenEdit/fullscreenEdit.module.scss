@@ -4,11 +4,9 @@
   z-index: var(--z-overlay);
   display: flex;
   flex-direction: column;
-  padding:
-    calc(0.5rem + var(--safe-top, 0px))
+  padding: calc(0.5rem + var(--safe-top, 0px))
     calc(0.75rem + var(--safe-right, 0px))
-    calc(0.5rem + var(--safe-bottom, 0px))
-    calc(0.75rem + var(--safe-left, 0px));
+    calc(0.5rem + var(--safe-bottom, 0px)) calc(0.75rem + var(--safe-left, 0px));
   background: var(--surface);
 
   /* The caller's wrapper (e.g. the description's negative margin) gives up

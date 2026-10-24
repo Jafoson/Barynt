@@ -25,5 +25,7 @@
   background: var(--error);
   color: var(--on-error);
 
-  &::after { background: var(--on-error); }
+  &::after {
+    background: var(--on-error);
+  }
 }

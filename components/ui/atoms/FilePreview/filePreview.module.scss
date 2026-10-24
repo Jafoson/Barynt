@@ -38,7 +38,9 @@
   color: var(--outline);
   text-align: center;
 
-  & + & { margin-top: 0.125rem; }
+  & + & {
+    margin-top: 0.125rem;
+  }
 }
 
 .error {

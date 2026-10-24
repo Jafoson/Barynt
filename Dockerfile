@@ -56,7 +56,7 @@
 # `docker build --target runner` plus the full `bun run test` suite in an
 # `oven/bun:1.4.2-slim` container, specifically checking for the
 # module-cache race described below (none observed).
-ARG BUN_VERSION=1.4.2
+ARG BUN_VERSION=1.4.4
 
 # ---------------------------------------------------------------------------
 # deps: full install (build needs the TypeScript compiler etc.)

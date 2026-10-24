@@ -91,13 +91,29 @@
    label takes the whole line, the project and the use follow. */
 .content {
   @include bp.phone {
-    td[data-col="label"] { order: 1; flex: 1 1 calc(100% - 6.5rem); }
-    td[data-col="actions"] { order: 2; }
-    td[data-col="project"] { order: 3; }
-    td[data-col="usage"] { order: 4; }
-    td[data-col="hidden"] { order: 5; margin-inline-start: auto; }
+    td[data-col="label"] {
+      order: 1;
+      flex: 1 1 calc(100% - 6.5rem);
+    }
+    td[data-col="actions"] {
+      order: 2;
+    }
+    td[data-col="project"] {
+      order: 3;
+    }
+    td[data-col="usage"] {
+      order: 4;
+    }
+    td[data-col="hidden"] {
+      order: 5;
+      margin-inline-start: auto;
+    }
 
-    tr:has(td[data-col="project"]) td[data-col="label"] { flex-basis: 100%; }
-    tr:has(td[data-col="project"]) td[data-col="usage"] { margin-inline-start: auto; }
+    tr:has(td[data-col="project"]) td[data-col="label"] {
+      flex-basis: 100%;
+    }
+    tr:has(td[data-col="project"]) td[data-col="usage"] {
+      margin-inline-start: auto;
+    }
   }
 }

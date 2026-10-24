@@ -24,7 +24,8 @@
   background: var(--surface-container);
   border-radius: calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px) 0 0;
   /* Semi-transparent: the edge should structure the field, not cut through it. */
-  border-bottom: 1px solid color-mix(in oklab, var(--outline-variant) 60%, transparent);
+  border-bottom: 1px solid
+    color-mix(in oklab, var(--outline-variant) 60%, transparent);
 }
 
 /* Phone: one row that scrolls sideways instead of wrapping into several
@@ -69,7 +70,7 @@
   height: 1.75rem;
   border-radius: var(--radius);
   color: var(--on-surface-variant);
-  transition: background .12s ease, color .12s ease;
+  transition: background 0.12s ease, color 0.12s ease;
 
   &:hover {
     background: var(--surface-container-highest);

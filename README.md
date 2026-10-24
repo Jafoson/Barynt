@@ -40,21 +40,21 @@ Barynt is a Linear/Jira-style issue tracker you run yourself. Workspaces contain
 
 ## Tech stack
 
-| | |
-|---|---|
-| Framework | [Next.js 16](https://nextjs.org) (App Router), React 19 |
-| Language | TypeScript |
-| Database | PostgreSQL via [Prisma 7](https://www.prisma.io) |
-| Auth | [Auth.js](https://authjs.dev) (passkeys, OAuth, OIDC, email) |
-| Styling | SCSS Modules (no Tailwind) |
-| Rich text | [Tiptap](https://tiptap.dev) / ProseMirror |
-| Rate limiting | Redis |
-| Object storage | S3-compatible (RustFS bundled, or any AWS S3-compatible provider) |
-| AI integration | [Model Context Protocol](https://modelcontextprotocol.io) server (`/api/mcp`) |
-| i18n | [next-intl](https://next-intl.dev) |
-| Package manager / runtime | [Bun](https://bun.sh) |
-| Linting / formatting | [Biome](https://biomejs.dev) |
-| Testing | [Vitest](https://vitest.dev)/Bun test runner |
+|                           |                                                                               |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| Framework                 | [Next.js 16](https://nextjs.org) (App Router), React 19                       |
+| Language                  | TypeScript                                                                    |
+| Database                  | PostgreSQL via [Prisma 7](https://www.prisma.io)                              |
+| Auth                      | [Auth.js](https://authjs.dev) (passkeys, OAuth, OIDC, email)                  |
+| Styling                   | SCSS Modules (no Tailwind)                                                    |
+| Rich text                 | [Tiptap](https://tiptap.dev) / ProseMirror                                    |
+| Rate limiting             | Redis                                                                         |
+| Object storage            | S3-compatible (RustFS bundled, or any AWS S3-compatible provider)             |
+| AI integration            | [Model Context Protocol](https://modelcontextprotocol.io) server (`/api/mcp`) |
+| i18n                      | [next-intl](https://next-intl.dev)                                            |
+| Package manager / runtime | [Bun](https://bun.sh)                                                         |
+| Linting / formatting      | [Biome](https://biomejs.dev)                                                  |
+| Testing                   | [Vitest](https://vitest.dev)/Bun test runner                                  |
 
 ## Getting started (local development)
 
@@ -85,18 +85,18 @@ Open [http://localhost:3000](http://localhost:3000). Passkey login works with no
 
 ### Useful scripts
 
-| Command | What it does |
-|---|---|
-| `bun run dev` | Start the dev server |
-| `bun run build` / `bun run start` | Production build / start |
-| `bun run lint` / `bun run format` | Biome check / format |
-| `bun run test` | Run the full test suite (see [Testing](#testing)) |
-| `bun run test:watch` | Tests in watch mode |
-| `bun run db:up` | Start Postgres + Redis only |
-| `bun run db:dev` | Start services, migrate, and seed |
-| `bun run db:reset` | Drop volumes and rebuild from scratch |
-| `bun run db:logs` | Tail the Postgres container logs |
-| `bun prisma migrate dev --name <description>` | Create a new migration |
+| Command                                       | What it does                                      |
+| --------------------------------------------- | ------------------------------------------------- |
+| `bun run dev`                                 | Start the dev server                              |
+| `bun run build` / `bun run start`             | Production build / start                          |
+| `bun run lint` / `bun run format`             | Biome check / format                              |
+| `bun run test`                                | Run the full test suite (see [Testing](#testing)) |
+| `bun run test:watch`                          | Tests in watch mode                               |
+| `bun run db:up`                               | Start Postgres + Redis only                       |
+| `bun run db:dev`                              | Start services, migrate, and seed                 |
+| `bun run db:reset`                            | Drop volumes and rebuild from scratch             |
+| `bun run db:logs`                             | Tail the Postgres container logs                  |
+| `bun prisma migrate dev --name <description>` | Create a new migration                            |
 
 ## Deployment
 

@@ -20,9 +20,15 @@
     opacity: 0;
     transition: opacity 0.12s;
   }
-  &:hover:not(:disabled)::after { opacity: var(--opacity-hover); }
-  &:focus-visible:not(:disabled)::after { opacity: var(--opacity-focus); }
-  &:active:not(:disabled)::after { opacity: var(--opacity-active); }
+  &:hover:not(:disabled)::after {
+    opacity: var(--opacity-hover);
+  }
+  &:focus-visible:not(:disabled)::after {
+    opacity: var(--opacity-focus);
+  }
+  &:active:not(:disabled)::after {
+    opacity: var(--opacity-active);
+  }
 
   &:disabled {
     opacity: var(--opacity-disabled);
@@ -74,12 +80,16 @@
   border: 1px solid transparent;
   color: var(--on-primary);
 
-  &::after { background: var(--on-primary); }
+  &::after {
+    background: var(--on-primary);
+  }
 
   .subtitle {
     color: color-mix(in oklab, var(--on-primary) 70%, transparent);
   }
-  .chevron { color: var(--on-primary); }
+  .chevron {
+    color: var(--on-primary);
+  }
 }
 
 .outline {
@@ -87,5 +97,7 @@
   border: 1px solid var(--outline-variant);
   color: var(--on-surface);
 
-  &::after { background: var(--on-surface); }
+  &::after {
+    background: var(--on-surface);
+  }
 }

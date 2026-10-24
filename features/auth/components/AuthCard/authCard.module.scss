@@ -67,7 +67,9 @@
   /* Foreground, not just "on top of the background image": a light lift
      off the blurred blobs behind it keeps the mark reading as the nearest
      layer instead of blending into the mood underneath. */
-  filter: drop-shadow(0 0.125rem 0.625rem color-mix(in oklab, var(--shadow) 35%, transparent));
+  filter: drop-shadow(
+    0 0.125rem 0.625rem color-mix(in oklab, var(--shadow) 35%, transparent)
+  );
 }
 
 .heroCopy {
@@ -190,4 +192,3 @@
   justify-content: center;
   gap: 0.625rem;
 }
-

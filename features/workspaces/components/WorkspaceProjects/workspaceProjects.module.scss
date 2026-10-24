@@ -15,7 +15,6 @@
 
   @include card-rows.card-rows;
   @include card-rows.page-scroll-lists;
-
 }
 
 .project {
@@ -118,11 +117,23 @@
    the actions at the end. */
 .content {
   @include bp.phone {
-    td[data-col="project"] { order: 1; flex: 1 1 100%; }
-    td[data-col="visibility"] { order: 2; }
-    td[data-col="members"] { order: 3; }
-    td[data-col="issues"] { order: 4; }
-    td[data-col="actions"] { order: 5; margin-inline-start: auto; }
+    td[data-col="project"] {
+      order: 1;
+      flex: 1 1 100%;
+    }
+    td[data-col="visibility"] {
+      order: 2;
+    }
+    td[data-col="members"] {
+      order: 3;
+    }
+    td[data-col="issues"] {
+      order: 4;
+    }
+    td[data-col="actions"] {
+      order: 5;
+      margin-inline-start: auto;
+    }
   }
 }
 
