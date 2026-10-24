@@ -25,6 +25,24 @@ export function groupKeyFromParam(value: string | undefined): GroupKey {
   return value && isGroupKey(value) ? value : "status";
 }
 
+/**
+ * Reads `?lanes=` (BARY-173): the board's second grouping, as horizontal
+ * swimlanes. `null` for none, a stale value, or the same grouping as the
+ * columns — a lane per column value would only repeat the columns.
+ */
+export function laneKeyFromParam(
+  value: string | null | undefined,
+  groupKey: GroupKey,
+): GroupKey | null {
+  return value && isGroupKey(value) && value !== groupKey ? value : null;
+}
+
+/** A lane as stored in `collapsedLanes` — "<laneKey>:<laneId>", like the
+ *  `hidden-groups.ts` entries, so another lane grouping never matches. */
+export function laneEntry(key: GroupKey, id: string): string {
+  return `${key}:${id}`;
+}
+
 export interface GroupLookups {
   statuses: Status[];
   priorities: Priority[];

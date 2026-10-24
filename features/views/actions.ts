@@ -121,6 +121,16 @@ export async function deleteView(id: string): Promise<ViewResult<null>> {
   return result;
 }
 
+/** The swimlanes this person folded on a view's board (BARY-173) — their
+ *  own, not the view's: stored with their view state, like a pin. */
+export async function setViewCollapsedLanes(
+  id: string,
+  entries: string[],
+): Promise<ViewResult<null>> {
+  const result = await setViewUserState(id, { collapsedGroups: entries });
+  return result.ok ? { ok: true, data: null } : result;
+}
+
 /**
  * The tab order of one scope (a project, or the workspace's cross-project
  * views). `ids` is the new order; views the caller may not edit keep their
@@ -306,6 +316,11 @@ async function stateFromParams(
   return {
     filter: await resolveUrlFilter(state, scope),
     groupBy: state.group && isGroupKey(state.group) ? state.group : null,
+    // Swimlanes (BARY-173): never the same grouping as the columns.
+    subGroupBy:
+      state.lanes && isGroupKey(state.lanes) && state.lanes !== state.group
+        ? state.lanes
+        : null,
     sortBy: state.sort && isSortKey(state.sort) ? state.sort : "manual",
     layout: layoutFromParam(state.layout),
     display: displayFromParams(state),
@@ -370,6 +385,7 @@ export async function createViewFromParams(
     ...input,
     filter: state.filter,
     groupBy: state.groupBy,
+    subGroupBy: state.subGroupBy,
     sortBy: state.sortBy,
     display: widgets?.success
       ? { ...state.display, widgets: widgets.data }

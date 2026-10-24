@@ -6,7 +6,7 @@ import { BoardUnlessPhone } from "@/features/issues/components/Board/BoardUnless
 import { IssuePeek } from "@/features/issues/components/IssuePeek/IssuePeek";
 import { Topbar } from "@/features/issues/components/Topbar/Topbar";
 import { getIssueComposerData } from "@/features/issues/editor-data";
-import { groupKeyFromParam } from "@/features/issues/group";
+import { groupKeyFromParam, laneKeyFromParam } from "@/features/issues/group";
 import {
   getMyIssuesViewGroups,
   getMyIssuesViewPreference,
@@ -52,6 +52,8 @@ export default async function WorkspaceBoardPage({
   ]);
   if (!composer) notFound();
 
+  const groupKey = groupKeyFromParam(filters.group ?? defaults.defaultGrouping);
+
   return (
     <>
       <Topbar count={issues.length} view="board" />
@@ -66,9 +68,10 @@ export default async function WorkspaceBoardPage({
           groupOrder={groups.groupOrder}
           onGroupsChange={setMyIssuesViewGroups.bind(null, "board")}
           sortKey={sortKeyFromParam(filters.sort ?? defaults.defaultSort)}
-          groupKey={groupKeyFromParam(
-            filters.group ?? defaults.defaultGrouping,
-          )}
+          groupKey={groupKey}
+          laneKey={laneKeyFromParam(filters.lanes, groupKey)}
+          hideEmptyLanes={groups.hideEmptyLanes}
+          collapsedLanes={groups.collapsedLanes}
         />
       </BoardUnlessPhone>
       {/* Opens the clicked issue as a side panel (`?issue=` in the URL). */}

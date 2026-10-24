@@ -43,6 +43,8 @@ const state: DisplayState = {
   hideEmptyGroups: false,
   showSubIssues: false,
   groupOrder: [],
+  laneKey: null,
+  hideEmptyLanes: false,
 };
 
 function render(
@@ -52,6 +54,8 @@ function render(
     <DisplayPanel
       state={state}
       onGroup={() => {}}
+      onLanes={() => {}}
+      onToggleHideEmptyLanes={() => {}}
       onSort={() => {}}
       onToggleField={() => {}}
       onToggleGroup={() => {}}

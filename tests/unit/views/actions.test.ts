@@ -399,6 +399,8 @@ describe("saveViewState", () => {
         rules: [{ field: "status", is: "any", value: ["todo"] }],
       },
       groupBy: "assignee",
+      // No lanes in the address (BARY-173).
+      subGroupBy: null,
       sortBy: "dueDate",
       layout: "list",
       // Nothing in the address about display: the defaults (BARY-165).
@@ -408,8 +410,37 @@ describe("saveViewState", () => {
         hiddenFields: [],
         hideEmptyGroups: false,
         showSubIssues: false,
+        hideEmptyLanes: false,
       },
     });
+  });
+
+  it("stores the swimlanes of the address (BARY-173)", async () => {
+    rows = [viewRow()];
+    await saveViewState("v1", {
+      layout: "board",
+      group: "status",
+      lanes: "assignee",
+      emptylanes: "1",
+    });
+    expect(
+      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object }).data,
+    ).toMatchObject({
+      subGroupBy: "assignee",
+      display: { hideEmptyLanes: true },
+    });
+  });
+
+  it("never stores lanes by the columns' own grouping", async () => {
+    rows = [viewRow()];
+    await saveViewState("v1", {
+      layout: "board",
+      group: "assignee",
+      lanes: "assignee",
+    });
+    expect(
+      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object }).data,
+    ).toMatchObject({ subGroupBy: null });
   });
 
   it("stores the display settings of the address (BARY-165)", async () => {

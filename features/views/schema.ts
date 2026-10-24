@@ -35,6 +35,8 @@ export const viewDisplaySchema = z
     groupOrder: z.array(z.string().max(200)).max(500).optional(),
     hideEmptyGroups: z.boolean().optional(),
     showSubIssues: z.boolean().optional(),
+    /** Swimlanes without an issue hide themselves (BARY-173). */
+    hideEmptyLanes: z.boolean().optional(),
     /** A dashboard view's widgets (BARY-169). */
     widgets: widgetsSchema.optional(),
   })

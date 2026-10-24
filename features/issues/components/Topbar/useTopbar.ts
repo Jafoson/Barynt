@@ -12,12 +12,17 @@ import {
   type SlugLookups,
   slugToId,
 } from "@/features/issues/filter-url";
-import { type GroupKey, groupKeyFromParam } from "@/features/issues/group";
+import {
+  type GroupKey,
+  groupKeyFromParam,
+  laneKeyFromParam,
+} from "@/features/issues/group";
 import { type SortKey, sortKeyFromParam } from "@/features/issues/sort";
 import {
   layoutFromParam,
   VIEW_DEFAULT_GROUP,
   VIEW_DEFAULT_SORT,
+  VIEW_SETTING_KEYS,
 } from "@/features/views/url";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { usePreferences } from "@/lib/preferences/PreferencesContext";
@@ -214,6 +219,7 @@ export function useTopbar({
   const groupKey: GroupKey = groupKeyFromParam(
     searchParams.get("group") ?? defaultGrouping,
   );
+  const laneKey = laneKeyFromParam(searchParams.get("lanes"), groupKey);
 
   // Every URL write goes through here, so a navigation triggered by any other
   // control also flushes the search text still sitting in the debounce. `quiet`
@@ -299,9 +305,30 @@ export function useTopbar({
   }
 
   function setGroup(key: GroupKey) {
-    pushParams((p) =>
-      key === "status" ? p.delete("group") : p.set("group", key),
-    );
+    pushParams((p) => {
+      if (key === "status") p.delete("group");
+      else p.set("group", key);
+      // Lanes by the same field as the columns would only repeat them.
+      if (p.get("lanes") === key) p.delete("lanes");
+    });
+  }
+
+  /** The board's swimlanes (BARY-173) — `null` turns them off. */
+  function setLanes(key: GroupKey | null) {
+    pushParams((p) => (key ? p.set("lanes", key) : p.delete("lanes")));
+  }
+
+  /** Back to a fresh board or list: no filter, no grouping, order or lanes
+   *  of its own in the address — the search stays. */
+  function clearViewState() {
+    pushParams((p) => {
+      for (const key of [...p.keys()])
+        if (
+          (key !== "q" && isFilterParam(key)) ||
+          (VIEW_SETTING_KEYS as readonly string[]).includes(key)
+        )
+          p.delete(key);
+    });
   }
 
   function setSort(key: SortKey) {
@@ -342,6 +369,7 @@ export function useTopbar({
     groupOrder?: string[];
     hideEmptyGroups?: boolean;
     showSubIssues?: boolean;
+    hideEmptyLanes?: boolean;
   }) {
     const setList = (p: URLSearchParams, key: string, value: string[]) =>
       value.length ? p.set(key, value.join(",")) : p.delete(key);
@@ -353,6 +381,10 @@ export function useTopbar({
         patch.hideEmptyGroups ? p.set("empty", "1") : p.delete("empty");
       if (patch.showSubIssues !== undefined)
         patch.showSubIssues ? p.set("sub", "1") : p.delete("sub");
+      if (patch.hideEmptyLanes !== undefined)
+        patch.hideEmptyLanes
+          ? p.set("emptylanes", "1")
+          : p.delete("emptylanes");
     });
   }
 
@@ -368,6 +400,7 @@ export function useTopbar({
     searchValue: urlQuery,
     sortKey,
     groupKey,
+    laneKey,
     view,
     toggleFilter,
     setNegated,
@@ -377,7 +410,9 @@ export function useTopbar({
     search,
     setSort,
     setGroup,
+    setLanes,
     setView,
     setViewDisplay,
+    clearViewState,
   };
 }

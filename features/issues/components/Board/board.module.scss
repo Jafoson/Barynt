@@ -37,3 +37,108 @@
     scroll-padding-inline: 1rem;
   }
 }
+
+/* ── Swimlanes (BARY-173) ────────────────────────────────────────────────
+   The board scrolls both ways as one: column heads stay on top, each
+   lane's head stays at the left edge while its cells scroll sideways. */
+.laned {
+  display: block;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-top: 0;
+}
+
+.lanes {
+  width: max-content;
+  min-width: 100%;
+  padding-bottom: 1rem;
+}
+
+.laneHeads {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  padding-top: 0.75rem;
+  background: var(--surface);
+  box-shadow: 0 1px 0 var(--outline-variant);
+}
+
+.lane {
+  & + & {
+    border-top: 1px solid var(--outline-variant);
+  }
+
+  &[data-folded] .laneChevron {
+    rotate: -90deg;
+  }
+}
+
+.laneHead {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: calc(100vw - 2rem);
+  margin: 0.625rem 0 0.125rem;
+  padding: 0.3125rem 0.625rem 0.3125rem 0.375rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--on-surface);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-container-high);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: -2px;
+  }
+}
+
+.laneChevron {
+  flex: none;
+  color: var(--on-surface-variant);
+  transition: rotate 0.15s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.laneTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A folded lane still says what it holds, column by column. */
+.laneCounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-left: 0.375rem;
+
+  & > span {
+    padding: 0.0625rem 0.5rem;
+    border-radius: var(--radius-pill);
+    background: var(--surface-container-high);
+    color: var(--on-surface-variant);
+    font-size: var(--text-xs);
+    font-weight: 500;
+  }
+}
+
+.laneCells {
+  display: flex;
+  align-items: stretch;
+  padding-bottom: 0.5rem;
+}

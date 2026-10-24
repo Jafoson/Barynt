@@ -189,7 +189,11 @@
     "resetOrder": "Reihenfolge zurücksetzen",
     "moveGroup": "„{group}“ verschieben (Alt+↑/↓)",
     "moveUp": "„{group}“ nach oben",
-    "moveDown": "„{group}“ nach unten"
+    "moveDown": "„{group}“ nach unten",
+    "columns": "Spalten",
+    "lanes": "Bahnen",
+    "lanesNone": "Keine",
+    "hideEmptyLanes": "Leere Bahnen ausblenden"
   },
   "settings": {
     "title": "Einstellungen",
