@@ -515,3 +515,16 @@
   padding: 0 0.625rem;
   font-size: var(--text-sm);
 }
+
+/* A phone gives the list its whole width: no frame around it, no margin —
+   the group headers and dividers are structure enough. */
+.content {
+  @include bp.phone {
+    padding: 0;
+
+    & > :is(div, table) {
+      border: 0;
+      border-radius: 0;
+    }
+  }
+}
