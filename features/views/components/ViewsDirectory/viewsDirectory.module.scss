@@ -337,10 +337,6 @@
   /* Starred: lit in the primary color, filled. */
   &[data-on][data-kind="star"] {
     color: var(--primary);
-
-    svg {
-      fill: currentColor;
-    }
   }
 
   @include bp.coarse {

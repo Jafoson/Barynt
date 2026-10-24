@@ -302,7 +302,15 @@ export function ViewsDirectory({
               }
               onClick={() => toggle(v, "favorite")}
             >
-              <Icon icon="lucide:star" width={16} />
+              {/* Lucide's star is an outline only — starred, a filled one. */}
+              <Icon
+                icon={
+                  state.favorite
+                    ? "material-symbols:star-rounded"
+                    : "lucide:star"
+                }
+                width={state.favorite ? 18 : 16}
+              />
             </button>
             {/* Pinning puts a view under its project in the sidebar — a
                 workspace view has no project to sit under. */}
