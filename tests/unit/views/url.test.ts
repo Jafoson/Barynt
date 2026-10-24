@@ -201,6 +201,7 @@ describe("display in the address (BARY-165)", () => {
       hideEmptyGroups: true,
       showSubIssues: false,
       hideEmptyLanes: false,
+      columns: [],
     });
   });
 

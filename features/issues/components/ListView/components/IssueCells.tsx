@@ -2,6 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useFormatter, useTranslations } from "next-intl";
+import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { InlinePicker } from "@/components/ui/atoms/InlinePicker/InlinePicker";
 import { Input } from "@/components/ui/atoms/Input/Input";
 import { Label } from "@/components/ui/atoms/Label/Label";
@@ -16,6 +17,11 @@ import {
   TypeIcon,
 } from "@/features/issues/components/IssueIcons/IssueIcons";
 import { ValuePopover } from "@/features/issues/components/ValuePopover/ValuePopover";
+import {
+  ESTIMATE_UNIT_ABBR,
+  formatEstimateValue,
+  hoursToEstimate,
+} from "@/features/issues/estimate";
 import { useIssuePatch } from "@/features/issues/useIssuePatch";
 import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import type {
@@ -26,6 +32,7 @@ import type {
   Priority,
   Project,
   Status,
+  User,
 } from "@/types";
 import styles from "../listView.module.scss";
 
@@ -342,22 +349,63 @@ export function LabelsCell({
  * full timestamp is in the tooltip.
  */
 export function UpdatedCell({ issue }: { issue: Issue }) {
+  return <DateCell ts={issue.updated} />;
+}
+
+/** When the issue was created — the same short date (BARY-175). */
+export function CreatedCell({ issue }: { issue: Issue }) {
+  return <DateCell ts={issue.created} />;
+}
+
+function DateCell({ ts }: { ts: number }) {
   const format = useFormatter();
   const { dateFormat } = usePreferences();
 
   if (dateFormat === "absolute") {
-    return <Stamp className={styles.date} ts={issue.updated} />;
+    return <Stamp className={styles.date} ts={ts} />;
   }
 
   return (
     <span
       className={styles.date}
-      title={format.dateTime(issue.updated, {
+      title={format.dateTime(ts, {
         dateStyle: "long",
         timeStyle: "short",
       })}
     >
-      {format.dateTime(issue.updated, { month: "short", day: "numeric" })}
+      {format.dateTime(ts, { month: "short", day: "numeric" })}
+    </span>
+  );
+}
+
+/** The estimate in the unit it was entered in — `8 h`, `2 d` (BARY-175). */
+export function EstimateCell({ issue }: { issue: Issue }) {
+  if (issue.estimateHours === null) return null;
+  const unit = issue.estimateUnit ?? "hours";
+  return (
+    <span className={styles.number}>
+      {formatEstimateValue(hoursToEstimate(issue.estimateHours, unit))}{" "}
+      {ESTIMATE_UNIT_ABBR[unit]}
+    </span>
+  );
+}
+
+/** Who created the issue (BARY-175). */
+export function ReporterCell({
+  issue,
+  members,
+}: {
+  issue: Issue;
+  members: User[];
+}) {
+  const member = members.find((m) => m.id === issue.reporter);
+  if (!member) return null;
+  return (
+    <span className={styles.person}>
+      <Avatar avatar={member} size={20} />
+      <span className={styles.personName}>
+        {`${member.firstName} ${member.lastName}`.trim()}
+      </span>
     </span>
   );
 }

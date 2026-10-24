@@ -322,6 +322,8 @@ async function stateFromParams(
         ? state.lanes
         : null,
     sortBy: state.sort && isSortKey(state.sort) ? state.sort : "manual",
+    // The order turned round from a list header (BARY-175).
+    sortDir: state.dir === "desc" ? "desc" : "asc",
     layout: layoutFromParam(state.layout),
     display: displayFromParams(state),
   } as const;

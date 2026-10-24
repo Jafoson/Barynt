@@ -1,9 +1,15 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useOptimistic, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { EmptyState } from "@/components/ui/atoms/EmptyState/EmptyState";
 import {
   Table,
@@ -14,13 +20,15 @@ import {
   type TableDndAnnouncement,
   useTableDnd,
 } from "@/components/ui/layout/Table/useTableDnd";
+import type { TableSort } from "@/components/ui/layout/Table/useTableSort";
+import { updateBehavior } from "@/features/account/actions";
 import { reorderIssue, updateIssue } from "@/features/issues/actions";
-import {
-  isCardFieldKey,
-  visibleCardFields,
-} from "@/features/issues/card-fields";
 import { AssigneePicker } from "@/features/issues/components/AssigneePicker/AssigneePicker";
 import { IssueTitleField } from "@/features/issues/components/IssueTitleField/IssueTitleField";
+import {
+  ESTIMATE_UNIT_ABBR,
+  formatEstimateValue,
+} from "@/features/issues/estimate";
 import {
   type GroupKey,
   groupDefs,
@@ -31,6 +39,16 @@ import {
 import { orderGroups } from "@/features/issues/group-order";
 import { isGroupHidden } from "@/features/issues/hidden-groups";
 import { useIssueOpen } from "@/features/issues/issue-links";
+import {
+  COLUMN_SORT,
+  columnOfSort,
+  DEFAULT_LIST_COLUMNS,
+  FIXED_LIST_COLUMNS,
+  type ListColumn,
+  listColumns,
+  SUMMED_LIST_COLUMNS,
+  UNSIZED_LIST_COLUMNS,
+} from "@/features/issues/list-columns";
 import { rankBetween } from "@/features/issues/rank";
 import { type SortKey, sortByKey } from "@/features/issues/sort";
 import type { IssueComposerData } from "@/features/issues/types";
@@ -39,16 +57,22 @@ import {
   visibleDetailFields,
 } from "@/features/projects/detail-fields";
 import { useHasOpenModal } from "@/lib/context";
+import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import { useUI } from "@/lib/ui-store";
 import { COMPACT_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import type { IssueDetail } from "@/types";
+import { ColumnPicker } from "./components/ColumnPicker";
+import { ColumnTools } from "./components/ColumnTools";
 import {
   CommentsCell,
+  CreatedCell,
   DueDateCell,
+  EstimateCell,
   LabelsCell,
   PriorityCell,
   ProjectCell,
+  ReporterCell,
   StatusCell,
   StoryPointsCell,
   TypeCell,
@@ -87,7 +111,38 @@ interface ListViewProps {
   groupOrder?: string[];
   /** What's shown instead of the empty table. Default: "No tasks". */
   emptyTitle?: string;
+  /** The list's own columns in order (BARY-175); empty: the default. */
+  columns?: string[];
+  /** Stores a new column choice or order — the person's own list. */
+  onColumnsChange?: (columns: string[]) => void;
+  /** A saved view's columns live in its address (`?cols=`), like the rest
+   *  of its display — changing them makes it unsaved. */
+  columnsInUrl?: boolean;
+  /** The order turned round (`?dir=desc`, a header's second click). */
+  sortReversed?: boolean;
 }
+
+/** Columns as narrow as their content — no `max-content` track. */
+const NARROW_LIST_COLUMNS: readonly ListColumn[] = [
+  "priority",
+  "identifier",
+  "status",
+  "type",
+  "assignee",
+];
+
+/** Columns aligned to the end: values to compare down a column. */
+const END_LIST_COLUMNS: readonly ListColumn[] = [
+  "labels",
+  "comments",
+  "assignee",
+  "storyPoints",
+  "estimate",
+  "dueDate",
+  "created",
+  "updated",
+  "reporter",
+];
 
 /**
  * Issues as a table, grouped by status. A row opens the issue, the pickers
@@ -106,11 +161,17 @@ export function ListView({
   hideEmptyGroups,
   groupOrder = [],
   emptyTitle,
+  columns: storedColumns = [],
+  onColumnsChange,
+  columnsInUrl = false,
+  sortReversed = false,
 }: ListViewProps) {
   const { projects, members, labels, statuses, priorities, issueTypes } =
     composer;
   const t = useTranslations();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const issueOpen = useIssueOpen(composer.workspaceId);
   const [, startTransition] = useTransition();
   // Collapsed groups are purely a view concern — nothing the URL or the
@@ -149,18 +210,13 @@ export function ListView({
   const identifier = (issue: IssueDetail) =>
     `${projects.find((p) => p.id === issue.project)?.prefix ?? "?"}-${issue.key}`;
 
-  // This person's own choice (BARY-33) applies to every row the same way —
-  // computed once, unlike the project-level check below.
-  const userVisibleFields = visibleCardFields(hiddenCardFields);
-
   // Per row, not once for the whole table — a cross-project list ("my
   // issues") can mix projects with different field visibility.
   const isFieldVisible = (issue: IssueDetail, key: DetailFieldKey) => {
     const project = projects.find((p) => p.id === issue.project);
-    if (!visibleDetailFields(project?.hiddenDetailFields ?? []).has(key)) {
-      return false;
-    }
-    return isCardFieldKey(key) ? userVisibleFields.has(key) : true;
+    // This person's own choice is the columns (BARY-175) — what's left is
+    // whether the project uses the field at all.
+    return visibleDetailFields(project?.hiddenDetailFields ?? []).has(key);
   };
 
   // The open issue is stored as an identifier in the URL — the detail view
@@ -199,6 +255,7 @@ export function ListView({
       shown.filter((issue) => groupIdOf(issue, groupKey) === group.id),
       sortKey,
       { statuses, issueTypes, members },
+      sortReversed,
     );
     return {
       id: group.id,
@@ -308,124 +365,307 @@ export function ListView({
     });
   };
 
-  const columns: TableColumn<IssueDetail>[] = [
-    {
-      id: "priority",
-      cell: (issue) =>
-        isFieldVisible(issue, "priority") ? (
-          <PriorityCell issue={issue} priorities={priorities} />
-        ) : null,
+  // ── Columns (BARY-175): chosen, ordered and sized by the person ──
+  const [ownColumns, setOwnColumns] = useState(storedColumns);
+  const storedKey = storedColumns.join(",");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resync on a new stored list only
+  useEffect(() => setOwnColumns(storedColumns), [storedKey]);
+  const chosen = listColumns(ownColumns, hiddenCardFields).filter(
+    // Within one project every row would name the same one.
+    (id) => id !== "project" || projectId === undefined,
+  );
+  const saveColumns = (next: ListColumn[]) => {
+    setOwnColumns(next);
+    if (columnsInUrl) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("cols", next.join(","));
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    } else onColumnsChange?.(next);
+  };
+
+  // A phone or tablet shows card rows: only the columns those are laid out
+  // for, plus the comment count.
+  const shownColumns: ListColumn[] = isCompact
+    ? (() => {
+        const base = chosen.filter((id) => DEFAULT_LIST_COLUMNS.includes(id));
+        const at = base.indexOf("assignee");
+        base.splice(at < 0 ? base.length : at, 0, "comments");
+        return base;
+      })()
+    : // Grouped by status, every row of a group says the same.
+      chosen.filter((id) => id !== "status" || groupKey !== "status");
+
+  // Widths are the person's own, the same in every list; a drag shows at
+  // once and is stored on release.
+  const { listColumnWidths } = usePreferences();
+  const [widths, setWidths] = useState(listColumnWidths);
+  const commitWidths = (next: Record<string, number>) => {
+    setWidths(next);
+    void updateBehavior({ listColumnWidths: next });
+  };
+
+  // A column dragged by its header to another place.
+  const dragColumn = useRef<ListColumn | null>(null);
+  const [dropAt, setDropAt] = useState<{
+    column: ListColumn;
+    side: "before" | "after";
+  } | null>(null);
+  const moveColumn = (
+    column: ListColumn,
+    target: ListColumn,
+    side: "before" | "after",
+  ) => {
+    if (column === target) return;
+    const next = chosen.filter((c) => c !== column);
+    const at = next.indexOf(target) + (side === "after" ? 1 : 0);
+    next.splice(at, 0, column);
+    saveColumns(next);
+  };
+
+  // Sorting from a header writes the address, like the order picker in the
+  // display panel: `?sort=` and, turned round, `?dir=desc`.
+  const sortedColumn = columnOfSort(sortKey);
+  const setSortFrom = (
+    column: ListColumn,
+    state: "natural" | "reversed" | "off",
+  ) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const key = COLUMN_SORT[column];
+    if (state === "off" || !key) {
+      params.set("sort", "manual");
+      params.delete("dir");
+    } else {
+      params.set("sort", key);
+      if (state === "reversed") params.set("dir", "desc");
+      else params.delete("dir");
+    }
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+  const tableSort: TableSort = {
+    columnId: sortedColumn,
+    direction: sortReversed ? "desc" : "asc",
+    toggle: (id) => {
+      const column = id as ListColumn;
+      if (sortedColumn !== column) setSortFrom(column, "natural");
+      else if (!sortReversed) setSortFrom(column, "reversed");
+      else setSortFrom(column, "off");
     },
-    {
-      id: "identifier",
-      cell: (issue) => (
-        <span className={styles.identifier}>{identifier(issue)}</span>
-      ),
-    },
-    // Only where the rows come from different projects — otherwise every
-    // row would show the same thing.
-    ...(projectId === undefined
-      ? [
-          {
-            id: "project",
-            width: "max-content",
-            cell: (issue: IssueDetail) => (
-              <ProjectCell issue={issue} projects={projects} />
-            ),
-          },
-        ]
-      : []),
-    {
-      id: "status",
-      cell: (issue) => <StatusCell issue={issue} statuses={statuses} />,
-    },
-    {
-      id: "type",
-      cell: (issue) => <TypeCell issue={issue} issueTypes={issueTypes} />,
-    },
-    {
-      id: "title",
-      width: "minmax(0, 1fr)",
-      // The title is its own trigger: click and type. It therefore sits
-      // above the row link — the issue is opened via the rest of the row.
-      //
-      // Without issue.update.any/.own it stays plain text: the server
-      // would reject the patch anyway (`updateIssue`), and a button that
-      // triggers nothing is just a false invitation.
-      cell: (issue) =>
-        editing === issue.id && issue.access.canEdit ? (
-          <IssueTitleField
-            className={styles.titleEdit}
-            value={issue.title}
-            onSave={(value) => saveTitle(issue, value)}
-            onDone={() => setEditing(null)}
+  };
+
+  const cellOf = (id: ListColumn): TableColumn<IssueDetail>["cell"] => {
+    switch (id) {
+      case "priority":
+        return (issue) =>
+          isFieldVisible(issue, "priority") ? (
+            <PriorityCell issue={issue} priorities={priorities} />
+          ) : null;
+      case "identifier":
+        return (issue) => (
+          <span className={styles.identifier}>{identifier(issue)}</span>
+        );
+      case "project":
+        return (issue) => <ProjectCell issue={issue} projects={projects} />;
+      case "status":
+        return (issue) => <StatusCell issue={issue} statuses={statuses} />;
+      case "type":
+        return (issue) => <TypeCell issue={issue} issueTypes={issueTypes} />;
+      case "title":
+        // The title is its own trigger: click and type. It therefore sits
+        // above the row link — the issue is opened via the rest of the row.
+        //
+        // Without issue.update.any/.own it stays plain text: the server
+        // would reject the patch anyway (`updateIssue`), and a button that
+        // triggers nothing is just a false invitation.
+        return (issue) =>
+          editing === issue.id && issue.access.canEdit ? (
+            <IssueTitleField
+              className={styles.titleEdit}
+              value={issue.title}
+              onSave={(value) => saveTitle(issue, value)}
+              onDone={() => setEditing(null)}
+            />
+          ) : issue.access.canEdit && !isCompact ? (
+            <button
+              type="button"
+              className={styles.title}
+              title={t("actions.editTitle")}
+              onClick={() => setEditing(issue.id)}
+            >
+              {issue.title}
+            </button>
+          ) : (
+            <span className={styles.title} data-readonly>
+              {issue.title}
+            </span>
+          );
+      case "labels":
+        return (issue) =>
+          isFieldVisible(issue, "labels") ? (
+            <LabelsCell issue={issue} labels={labels} />
+          ) : null;
+      case "comments":
+        return (issue) => <CommentsCell issue={issue} />;
+      case "assignee":
+        return (issue) => (
+          <AssigneePicker
+            issue={issue}
+            members={members}
+            readOnly={isCompact}
           />
-        ) : issue.access.canEdit && !isCompact ? (
-          <button
-            type="button"
-            className={styles.title}
-            title={t("actions.editTitle")}
-            onClick={() => setEditing(issue.id)}
-          >
-            {issue.title}
-          </button>
-        ) : (
-          <span className={styles.title} data-readonly>
-            {issue.title}
+        );
+      case "storyPoints":
+        return (issue) =>
+          isFieldVisible(issue, "storyPoints") ? (
+            <StoryPointsCell issue={issue} />
+          ) : null;
+      case "estimate":
+        return (issue) =>
+          isFieldVisible(issue, "estimateHours") ? (
+            <EstimateCell issue={issue} />
+          ) : null;
+      case "dueDate":
+        return (issue) =>
+          isFieldVisible(issue, "dueDate") ? (
+            <DueDateCell issue={issue} />
+          ) : null;
+      case "created":
+        return (issue) => <CreatedCell issue={issue} />;
+      case "updated":
+        return (issue) => <UpdatedCell issue={issue} />;
+      case "reporter":
+        return (issue) => <ReporterCell issue={issue} members={members} />;
+    }
+  };
+
+  /** Sums under each group and the whole list. */
+  const totalOf = (id: ListColumn) => {
+    if (id === "storyPoints")
+      return (rows: IssueDetail[]) => {
+        const points = rows.filter((r) => r.storyPoints !== null);
+        return points.length ? (
+          <span className={styles.number}>
+            {points.reduce((sum, r) => sum + (r.storyPoints ?? 0), 0)}
           </span>
+        ) : null;
+      };
+    if (id === "estimate")
+      return (rows: IssueDetail[]) => {
+        const hours = rows.filter((r) => r.estimateHours !== null);
+        return hours.length ? (
+          <span className={styles.number}>
+            {formatEstimateValue(
+              hours.reduce((sum, r) => sum + (r.estimateHours ?? 0), 0),
+            )}{" "}
+            {ESTIMATE_UNIT_ABBR.hours}
+          </span>
+        ) : null;
+      };
+    return undefined;
+  };
+
+  const columns = shownColumns.map((id): TableColumn<IssueDetail> => {
+    const label = t(`issues.table.col_${id}`);
+    const width = widths[id];
+    const sortable = COLUMN_SORT[id] !== undefined;
+    const fixed = FIXED_LIST_COLUMNS.includes(id);
+    const resizable = !UNSIZED_LIST_COLUMNS.includes(id);
+    return {
+      id,
+      width:
+        id === "title"
+          ? "minmax(0, 1fr)"
+          : width
+            ? `${width}px`
+            : NARROW_LIST_COLUMNS.includes(id)
+              ? undefined
+              : "max-content",
+      align: END_LIST_COLUMNS.includes(id) ? "end" : undefined,
+      cell: cellOf(id),
+      ...(SUMMED_LIST_COLUMNS.includes(id) && { total: totalOf(id) }),
+      // A phone's card rows have no header row.
+      ...(!isCompact && {
+        header: <span className={styles.columnLabel}>{label}</span>,
+        ...(sortable && { sortValue: () => null }),
+        headerExtra: (
+          <ColumnTools
+            label={label}
+            sort={
+              sortable
+                ? { active: sortedColumn === id, reversed: sortReversed }
+                : null
+            }
+            onSort={(state) => setSortFrom(id, state)}
+            onHide={
+              fixed
+                ? undefined
+                : () => saveColumns(chosen.filter((c) => c !== id))
+            }
+            resize={
+              resizable
+                ? {
+                    width,
+                    custom: width !== undefined,
+                    onChange: (w) => setWidths((cur) => ({ ...cur, [id]: w })),
+                    onCommit: (w) => commitWidths({ ...widths, [id]: w }),
+                    onReset: () => {
+                      const { [id]: _gone, ...rest } = widths;
+                      commitWidths(rest);
+                    },
+                  }
+                : undefined
+            }
+          />
         ),
-    },
-    {
-      id: "labels",
-      width: "max-content",
-      align: "end",
-      cell: (issue) =>
-        isFieldVisible(issue, "labels") ? (
-          <LabelsCell issue={issue} labels={labels} />
-        ) : null,
-    },
-    // Only in the card rows of a phone/tablet — on a desktop the table has no
-    // column for it.
-    ...(isCompact
-      ? [
-          {
-            id: "comments",
-            width: "max-content",
-            align: "end" as const,
-            cell: (issue: IssueDetail) => <CommentsCell issue={issue} />,
+        headerProps: {
+          draggable: true,
+          "data-drop": dropAt?.column === id ? dropAt.side : undefined,
+          onDragStart: (e: React.DragEvent) => {
+            dragColumn.current = id;
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", label);
           },
-        ]
-      : []),
-    {
-      id: "assignee",
+          onDragOver: (e: React.DragEvent<HTMLTableCellElement>) => {
+            if (!dragColumn.current) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const rect = e.currentTarget.getBoundingClientRect();
+            const side =
+              e.clientX < rect.left + rect.width / 2 ? "before" : "after";
+            if (dropAt?.column !== id || dropAt.side !== side)
+              setDropAt({ column: id, side });
+          },
+          onDrop: (e: React.DragEvent) => {
+            if (!dragColumn.current) return;
+            e.preventDefault();
+            e.stopPropagation();
+            if (dropAt) moveColumn(dragColumn.current, id, dropAt.side);
+            dragColumn.current = null;
+            setDropAt(null);
+          },
+          onDragEnd: () => {
+            dragColumn.current = null;
+            setDropAt(null);
+          },
+        } as React.HTMLAttributes<HTMLTableCellElement>,
+      }),
+    };
+  });
+
+  // The "+" at the end of the header row — every column to switch on.
+  if (!isCompact)
+    columns.push({
+      id: "_columns",
+      width: "2.5rem",
       align: "end",
-      cell: (issue) => (
-        <AssigneePicker issue={issue} members={members} readOnly={isCompact} />
+      header: (
+        <ColumnPicker
+          shown={chosen}
+          crossProject={projectId === undefined}
+          onChange={saveColumns}
+        />
       ),
-    },
-    {
-      id: "storyPoints",
-      width: "max-content",
-      align: "end",
-      cell: (issue) =>
-        isFieldVisible(issue, "storyPoints") ? (
-          <StoryPointsCell issue={issue} />
-        ) : null,
-    },
-    {
-      id: "dueDate",
-      width: "max-content",
-      align: "end",
-      cell: (issue) =>
-        isFieldVisible(issue, "dueDate") ? <DueDateCell issue={issue} /> : null,
-    },
-    {
-      id: "updated",
-      width: "max-content",
-      align: "end",
-      cell: (issue) => <UpdatedCell issue={issue} />,
-    },
-  ];
+      cell: () => null,
+    });
 
   // What the screen reader hears when reordering via keyboard. The table
   // knows neither language nor status — it only supplies row, group, and
@@ -488,6 +728,23 @@ export function ListView({
         groups={groups}
         getRowKey={(issue) => issue.id}
         dnd={isCompact ? undefined : dnd}
+        sort={isCompact ? undefined : tableSort}
+        totals={
+          isCompact
+            ? undefined
+            : {
+                labelColumn: "title",
+                label: (scope, rows, group) => (
+                  <span className={styles.totalLabel}>
+                    {scope === "all"
+                      ? t("issues.table.total", { count: rows.length })
+                      : t("issues.table.totalGroup", {
+                          group: group?.label ?? "",
+                        })}
+                  </span>
+                ),
+              }
+        }
         isRowActive={(issue) => identifier(issue) === openIssue}
         isRowFocused={(issue) => issue.id === focusedId}
         rowOverlay={(issue) => (

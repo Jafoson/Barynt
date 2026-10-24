@@ -1258,6 +1258,8 @@ export interface ViewGroupPreference {
   hideEmptyLanes: boolean;
   /** Lanes this person folded, "<laneKey>:<laneId>" (BARY-173). */
   collapsedLanes: string[];
+  /** The list's columns in order (BARY-175); empty: the default. */
+  columns: string[];
 }
 
 const NO_GROUP_PREFERENCE: ViewGroupPreference = {
@@ -1267,6 +1269,7 @@ const NO_GROUP_PREFERENCE: ViewGroupPreference = {
   groupOrder: [],
   hideEmptyLanes: false,
   collapsedLanes: [],
+  columns: [],
 };
 
 /**
@@ -1302,6 +1305,7 @@ export const getIssueViewGroups = cache(
         groupOrder: true,
         hideEmptyLanes: true,
         collapsedLanes: true,
+        columns: true,
       },
     });
     return pref ?? (await groupDefaults(userId));
@@ -1323,6 +1327,7 @@ export const getMyIssuesViewGroups = cache(
         groupOrder: true,
         hideEmptyLanes: true,
         collapsedLanes: true,
+        columns: true,
       },
     });
     return pref ?? (await groupDefaults(userId));

@@ -10,6 +10,7 @@ import {
 } from "@/features/issues/filter-url";
 import { sanitizeGroupOrder } from "@/features/issues/group-order";
 import { sanitizeHiddenGroups } from "@/features/issues/hidden-groups";
+import { sanitizeListColumns } from "@/features/issues/list-columns";
 import type { SavedView, ViewDisplay, ViewLayout } from "./schema";
 
 /**
@@ -47,6 +48,9 @@ export const VIEW_SETTING_KEYS = [
   "sub",
   "lanes",
   "emptylanes",
+  // The list as a table (BARY-175): its columns, and the order turned round.
+  "cols",
+  "dir",
 ] as const;
 
 /** Missing `group`/`sort` mean these — on a view page they don't fall back
@@ -65,6 +69,7 @@ export function viewParams(
   > & {
     systemKey?: SavedView["systemKey"];
     subGroupBy?: SavedView["subGroupBy"];
+    sortDir?: SavedView["sortDir"];
   },
   lookups: SlugLookups,
 ): URLSearchParams {
@@ -77,6 +82,7 @@ export function viewParams(
   if (view.groupBy && view.groupBy !== VIEW_DEFAULT_GROUP)
     params.set("group", view.groupBy);
   if (view.sortBy !== VIEW_DEFAULT_SORT) params.set("sort", view.sortBy);
+  if (view.sortDir === "desc") params.set("dir", "desc");
   if (view.subGroupBy) params.set("lanes", view.subGroupBy);
   params.set("layout", view.layout);
   for (const [key, value] of displayParams(view.display))
@@ -97,6 +103,7 @@ export function displayParams(display: SavedView["display"]): URLSearchParams {
   if (display.hideEmptyGroups) params.set("empty", "1");
   if (display.showSubIssues) params.set("sub", "1");
   if (display.hideEmptyLanes) params.set("emptylanes", "1");
+  if (display.columns?.length) params.set("cols", display.columns.join(","));
   return params;
 }
 
@@ -128,8 +135,11 @@ function normalized(source: ParamSource, key: string): string {
   if (key === "layout") return layoutFromParam(raw);
   if (key === "empty" || key === "sub" || key === "emptylanes")
     return raw === "1" ? "1" : "0";
-  // The order of columns is the point of `order` — don't sort it away.
-  if (key === "order") return raw.split(",").filter(Boolean).join(",");
+  if (key === "dir") return raw === "desc" ? "desc" : "asc";
+  // The order of columns is the point of `order` and `cols` — don't sort
+  // it away.
+  if (key === "order" || key === "cols")
+    return raw.split(",").filter(Boolean).join(",");
   return raw.split(",").filter(Boolean).sort().join(",");
 }
 
@@ -216,5 +226,6 @@ export function displayFromParams(
     hideEmptyGroups: read(source, "empty") === "1",
     showSubIssues: read(source, "sub") === "1",
     hideEmptyLanes: read(source, "emptylanes") === "1",
+    columns: sanitizeListColumns(list("cols")),
   };
 }

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getMyPreferences } from "@/features/account/queries";
+import { setIssueListColumns } from "@/features/issues/actions";
 import { IssuePeek } from "@/features/issues/components/IssuePeek/IssuePeek";
 import { ListView } from "@/features/issues/components/ListView/ListView";
 import { Topbar } from "@/features/issues/components/Topbar/Topbar";
@@ -54,6 +55,9 @@ export default async function ListPage({
         groupOrder={groups.groupOrder}
         sortKey={sortKeyFromParam(filters.sort ?? defaults.defaultSort)}
         groupKey={groupKeyFromParam(filters.group ?? defaults.defaultGrouping)}
+        sortReversed={filters.dir === "desc"}
+        columns={groups.columns}
+        onColumnsChange={setIssueListColumns.bind(null, project.id)}
       />
       {/* Opens the clicked issue as a side panel (`?issue=` in the URL). */}
       <IssuePeek data={composer} />

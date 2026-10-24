@@ -909,22 +909,27 @@ export function DisplayPanel({
         </div>
       )}
 
-      <div className={styles.section}>
-        <span className={styles.sectionTitle}>{t("display.fieldsTitle")}</span>
-        <div className={styles.chips}>
-          {CARD_FIELD_KEYS.map((key) => (
-            <Chip
-              key={key}
-              type="filter"
-              variant="text"
-              selected={!state.hidden.has(key)}
-              onClick={() => onToggleField(key)}
-            >
-              {t(FIELD_LABEL_KEY[key])}
-            </Chip>
-          ))}
+      {/* The list chooses its columns in its own header (BARY-175). */}
+      {state.view !== "list" && (
+        <div className={styles.section}>
+          <span className={styles.sectionTitle}>
+            {t("display.fieldsTitle")}
+          </span>
+          <div className={styles.chips}>
+            {CARD_FIELD_KEYS.map((key) => (
+              <Chip
+                key={key}
+                type="filter"
+                variant="text"
+                selected={!state.hidden.has(key)}
+                onClick={() => onToggleField(key)}
+              >
+                {t(FIELD_LABEL_KEY[key])}
+              </Chip>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {!hideReset && (
         <div className={styles.footer}>

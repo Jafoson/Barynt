@@ -128,6 +128,9 @@ export default async function WorkspaceViewPage({
       groupOrder={display.groupOrder}
       sortKey={sortKey}
       groupKey={groupKey}
+      sortReversed={filters.dir === "desc"}
+      columns={display.columns}
+      columnsInUrl
     />
   );
 

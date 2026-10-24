@@ -106,6 +106,7 @@ export const getMyPreferences = cache(async (): Promise<Preferences> => {
     timeZone,
     shortcutOverrides,
     confirmDestructive,
+    listColumnWidths,
     ...notifications
   } = row;
   return {
@@ -126,6 +127,7 @@ export const getMyPreferences = cache(async (): Promise<Preferences> => {
       timeZone,
       shortcutOverrides,
       confirmDestructive,
+      listColumnWidths,
     }),
     theme: theme as Preferences["theme"],
     adminNoticeHidden,

@@ -5,7 +5,12 @@ import {
   type ReactNode,
 } from "react";
 import styles from "./table.module.scss";
-import { FLAT_GROUP_ID, type TableColumn, type TableGroup } from "./types";
+import {
+  FLAT_GROUP_ID,
+  type TableColumn,
+  type TableGroup,
+  type TableTotals,
+} from "./types";
 import type { TableDnd } from "./useTableDnd";
 import type { TableSort } from "./useTableSort";
 
@@ -14,6 +19,7 @@ export type {
   TableColumn,
   TableGroup,
   TableSortValue,
+  TableTotals,
 } from "./types";
 
 interface TableBaseProps<T> {
@@ -64,6 +70,11 @@ interface TableBaseProps<T> {
    * are sorted by the caller before they arrive here.
    */
   sort?: TableSort;
+  /**
+   * Sum rows: one under each group (when the table has groups) and one
+   * under all rows — only drawn when a column has a `total`.
+   */
+  totals?: TableTotals<T>;
   className?: string;
 }
 
@@ -137,6 +148,7 @@ export function Table<T>({
   variant = "plain",
   dnd,
   sort,
+  totals,
   className,
   rows,
   groups,
@@ -146,6 +158,29 @@ export function Table<T>({
     { id: FLAT_GROUP_ID, rows: rows ?? [] },
   ];
   const showHead = columns.some((column) => column.header !== undefined);
+  const showTotals =
+    totals !== undefined && columns.some((column) => column.total);
+
+  const totalRow = (
+    scope: "group" | "all",
+    totalRows: T[],
+    group?: TableGroup<T>,
+  ) => (
+    <tr className={styles.totalRow} role="row" data-scope={scope}>
+      {columns.map((column) => (
+        <td
+          key={column.id}
+          className={cellClass(column)}
+          data-col={column.id}
+          role="cell"
+        >
+          {column.id === totals?.labelColumn
+            ? totals.label(scope, totalRows, group)
+            : column.total?.(totalRows)}
+        </td>
+      ))}
+    </tr>
+  );
   const isEmpty = sections.every((section) => section.rows.length === 0);
 
   const cellClass = (column: TableColumn<T>) =>
@@ -243,6 +278,7 @@ export function Table<T>({
               return (
                 <th
                   key={column.id}
+                  {...column.headerProps}
                   className={cellClass(column)}
                   // Which column this is — for a caller's own layout of the
                   // row (the issue list re-arranges its cells on a phone).
@@ -300,6 +336,7 @@ export function Table<T>({
                   ) : (
                     column.header
                   )}
+                  {column.headerExtra}
                 </th>
               );
             })}
@@ -389,8 +426,22 @@ export function Table<T>({
                 </tr>
               );
             })}
+
+          {showTotals &&
+            groups &&
+            !section.collapsed &&
+            totalRow("group", section.rows, section)}
         </tbody>
       ))}
+
+      {showTotals && (
+        <tbody className={styles.group} role="rowgroup">
+          {totalRow(
+            "all",
+            sections.flatMap((section) => section.rows),
+          )}
+        </tbody>
+      )}
 
       {footer && (
         <tfoot className={styles.footerGroup} role="rowgroup">
