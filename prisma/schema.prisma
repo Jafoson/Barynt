@@ -446,6 +446,9 @@ model UserPreferences {
   /// Breiten der Listenspalten in px, `{ spalte: breite }` (BARY-175) —
   /// persönlich, in jeder Liste dieselben.
   listColumnWidths Json @default("{}")
+  /// Wie die Liste als Tabelle aussieht (BARY-175): "modern" ohne,
+  /// "classic" mit durchgehenden Spaltenlinien.
+  listStyle String @default("modern")
 
   /// Vor dem Löschen und anderen unumkehrbaren Aktionen nachfragen.
   confirmDestructive Boolean @default(true)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import type { ListStyle } from "@/features/account/preferences";
 import type { ListColumn } from "./list-columns";
 
 /**
@@ -17,6 +18,9 @@ export interface ListColumnsControl {
   /** What can be switched on here at all. */
   offered: ListColumn[];
   onChange: (next: ListColumn[]) => void;
+  /** Modern, or classic with lines between the columns — the person's own. */
+  style: ListStyle;
+  onStyleChange: (next: ListStyle) => void;
 }
 
 let current: ListColumnsControl | null = null;

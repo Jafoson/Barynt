@@ -528,3 +528,24 @@
     }
   }
 }
+
+/* Classic (BARY-175): a line between the columns, through the header and
+   every row — the cells meet at it instead of keeping a gap. */
+.content[data-table-style="classic"] table {
+  --table-gap: 0;
+
+  :is(th, td)[data-col] {
+    align-self: stretch;
+    padding-inline: 0.625rem;
+    border-inline-end: 1px solid var(--outline-variant);
+  }
+
+  :is(th, td)[data-col="_columns"] {
+    border-inline-end: 0;
+  }
+
+  /* Rows get their line too, so the cells read as a grid. */
+  tbody tr {
+    border-bottom: 1px solid var(--outline-variant);
+  }
+}

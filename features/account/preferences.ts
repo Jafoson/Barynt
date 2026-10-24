@@ -43,6 +43,11 @@ export type IssuePageOpenMode = (typeof ISSUE_PAGE_OPEN_MODES)[number];
 export const PROJECT_ORDERS = ["name", "newest"] as const;
 export type ProjectOrder = (typeof PROJECT_ORDERS)[number];
 
+/** The list as a table (BARY-175): without or with lines between the
+ *  columns in every row. */
+export const LIST_STYLES = ["modern", "classic"] as const;
+export type ListStyle = (typeof LIST_STYLES)[number];
+
 export const DATE_FORMATS = ["relative", "absolute"] as const;
 export type DateFormat = (typeof DATE_FORMATS)[number];
 
@@ -95,6 +100,7 @@ export interface BehaviorPreferences {
   confirmDestructive: boolean;
   /** The list's column widths in px (BARY-175) — the same in every list. */
   listColumnWidths: Record<string, number>;
+  listStyle: ListStyle;
 }
 
 export const DEFAULT_BEHAVIOR: BehaviorPreferences = {
@@ -114,6 +120,7 @@ export const DEFAULT_BEHAVIOR: BehaviorPreferences = {
   shortcutOverrides: {},
   confirmDestructive: true,
   listColumnWidths: {},
+  listStyle: "modern",
 };
 
 const oneOf = <T extends string>(
@@ -174,5 +181,6 @@ export function toBehavior(
         ? row.confirmDestructive
         : d.confirmDestructive,
     listColumnWidths: sanitizeColumnWidths(row.listColumnWidths),
+    listStyle: oneOf(LIST_STYLES, row.listStyle, d.listStyle),
   };
 }

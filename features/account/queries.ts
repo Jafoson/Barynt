@@ -107,6 +107,7 @@ export const getMyPreferences = cache(async (): Promise<Preferences> => {
     shortcutOverrides,
     confirmDestructive,
     listColumnWidths,
+    listStyle,
     ...notifications
   } = row;
   return {
@@ -128,6 +129,7 @@ export const getMyPreferences = cache(async (): Promise<Preferences> => {
       shortcutOverrides,
       confirmDestructive,
       listColumnWidths,
+      listStyle,
     }),
     theme: theme as Preferences["theme"],
     adminNoticeHidden,
