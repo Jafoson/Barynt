@@ -45,11 +45,13 @@ import {
   COLUMN_SORT,
   columnOfSort,
   FIXED_LIST_COLUMNS,
+  LIST_COLUMNS,
   type ListColumn,
   listColumns,
   SUMMED_LIST_COLUMNS,
   UNSIZED_LIST_COLUMNS,
 } from "@/features/issues/list-columns";
+import { setListColumnsControl } from "@/features/issues/list-columns-control";
 import { rankBetween } from "@/features/issues/rank";
 import { type SortKey, sortByKey } from "@/features/issues/sort";
 import type { IssueComposerData } from "@/features/issues/types";
@@ -402,6 +404,29 @@ export function ListView({
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
     } else onColumnsChange?.(next);
   };
+
+  // The display panel offers the same switches as the "+" (BARY-175).
+  const offeredColumns = LIST_COLUMNS.filter(
+    (c) => !FIXED_LIST_COLUMNS.includes(c) && available(c),
+  );
+  const saveRef = useRef(saveColumns);
+  saveRef.current = saveColumns;
+  const chosenKey = chosen.join(",");
+  const offeredKey = offeredColumns.join(",");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-register on a new choice only
+  useEffect(() => {
+    // A phone's card rows have no columns to choose.
+    setListColumnsControl(
+      isCompact
+        ? null
+        : {
+            shown: chosen,
+            offered: offeredColumns,
+            onChange: (next) => saveRef.current(next),
+          },
+    );
+  }, [chosenKey, offeredKey, isCompact]);
+  useEffect(() => () => setListColumnsControl(null), []);
 
   // A phone or tablet keeps its card rows as they were — the fields the
   // person shows on cards, not the table's own columns — plus the comment

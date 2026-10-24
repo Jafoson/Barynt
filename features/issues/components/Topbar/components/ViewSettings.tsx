@@ -29,6 +29,7 @@ import {
   isGroupHidden,
   toggleGroupHidden,
 } from "@/features/issues/hidden-groups";
+import { useListColumnsControl } from "@/features/issues/list-columns-control";
 import { SORT_KEYS, type SortKey } from "@/features/issues/sort";
 import {
   type DetailFieldKey,
@@ -684,6 +685,8 @@ export function DisplayPanel({
   onLayout,
 }: DisplayPanelProps) {
   const t = useTranslations();
+  // The open list's columns (BARY-175) — the same switches as its "+".
+  const columns = useListColumnsControl();
   const { sortKeys, groupKeys } = availableKeys(
     state.projectHiddenFields,
     state.hidden,
@@ -909,7 +912,37 @@ export function DisplayPanel({
         </div>
       )}
 
-      {/* The list chooses its columns in its own header (BARY-175). */}
+      {/* The list shows columns instead of card fields (BARY-175) — the
+          same switches as the "+" in its header. */}
+      {state.view === "list" && columns && (
+        <div className={styles.section}>
+          <span className={styles.sectionTitle}>
+            {t("issues.table.columnsTitle")}
+          </span>
+          <div className={styles.chips}>
+            {columns.offered.map((column) => {
+              const on = columns.shown.includes(column);
+              return (
+                <Chip
+                  key={column}
+                  type="filter"
+                  variant="text"
+                  selected={on}
+                  onClick={() =>
+                    columns.onChange(
+                      on
+                        ? columns.shown.filter((c) => c !== column)
+                        : [...columns.shown, column],
+                    )
+                  }
+                >
+                  {t(`issues.table.col_${column}`)}
+                </Chip>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {state.view !== "list" && (
         <div className={styles.section}>
           <span className={styles.sectionTitle}>
