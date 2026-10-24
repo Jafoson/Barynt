@@ -12,8 +12,10 @@ import styles from "../widget.module.scss";
  *
  * The frame gets as little as the page needs to work: its own scripts,
  * cookies, forms and popups — but no way to navigate the dashboard itself
- * (no `allow-top-navigation`), no camera, microphone or location, and no
- * referrer telling it which dashboard it sits on. A page that refuses to be
+ * (no `allow-top-navigation`), no camera, microphone or location. It
+ * learns which site it sits on but not which dashboard: only the origin
+ * goes along as referrer — YouTube's player refuses to play without one
+ * (error 153). A page that refuses to be
  * framed (checked on the server, `lib/net/embed-check`) shows a way to open
  * it instead of an empty box. In edit mode the dashboard's cover sits above
  * the frame, so dragging the widget isn't swallowed by the page.
@@ -79,7 +81,7 @@ function EmbedFrame({
       className={styles.embedFrame}
       sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
       allow="fullscreen"
-      referrerPolicy="no-referrer"
+      referrerPolicy="strict-origin"
       loading="lazy"
     />
   );

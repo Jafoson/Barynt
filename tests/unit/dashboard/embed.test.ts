@@ -69,6 +69,18 @@ describe("an embed's address", () => {
       "https://grafana.example.com/d/x",
     );
     expect(normalizeEmbedUrl("http://example.com")).toBeNull();
+  });
+
+  it("turns a YouTube video's page into its embed address", () => {
+    const embed = "https://www.youtube.com/embed/dQw4w9WgXcQ";
+    expect(
+      normalizeEmbedUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
+    ).toBe(embed);
+    expect(normalizeEmbedUrl("youtu.be/dQw4w9WgXcQ")).toBe(embed);
+    expect(normalizeEmbedUrl("https://youtube.com/shorts/dQw4w9WgXcQ")).toBe(
+      embed,
+    );
+    expect(normalizeEmbedUrl(embed)).toBe(embed);
     expect(normalizeEmbedUrl("javascript:alert(1)")).toBeNull();
   });
 

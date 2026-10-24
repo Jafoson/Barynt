@@ -174,7 +174,29 @@ export type EmbedRefresh = (typeof EMBED_REFRESH)[number];
  */
 export function normalizeEmbedUrl(input: string): string | null {
   const url = normalizeLinkUrl(input);
-  return url?.startsWith("https://") ? url : null;
+  if (!url?.startsWith("https://")) return null;
+  return embeddableForm(url);
+}
+
+/**
+ * Some sites refuse framing on their ordinary pages but offer an embed
+ * address of their own — a YouTube video's watch page is one. Pasted as
+ * it's copied from the address bar, it becomes the form that works.
+ */
+function embeddableForm(url: string): string {
+  const u = new URL(url);
+  const host = u.hostname.replace(/^(www\.|m\.)/, "");
+  const youtube =
+    host === "youtu.be"
+      ? u.pathname.slice(1)
+      : host === "youtube.com" && u.pathname === "/watch"
+        ? u.searchParams.get("v")
+        : host === "youtube.com" && u.pathname.startsWith("/shorts/")
+          ? u.pathname.split("/")[2]
+          : null;
+  if (youtube && /^[\w-]{6,20}$/.test(youtube))
+    return `https://www.youtube.com/embed/${youtube}`;
+  return url;
 }
 
 /**
