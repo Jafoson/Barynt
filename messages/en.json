@@ -1582,6 +1582,10 @@
     "place": "Place"
   },
   "widgets": {
+    "discardTitle": "Discard changes?",
+    "discardBody": "The dashboard goes back to its saved state.",
+    "discard": "Discard",
+    "keepEditing": "Keep editing",
     "add": "Add widget",
     "addSized": "Add {size}",
     "edit": "Edit",

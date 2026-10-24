@@ -1582,6 +1582,10 @@
     "place": "Ort"
   },
   "widgets": {
+    "discardTitle": "Änderungen verwerfen?",
+    "discardBody": "Das Dashboard kehrt zum gespeicherten Stand zurück.",
+    "discard": "Verwerfen",
+    "keepEditing": "Weiter bearbeiten",
     "add": "Widget hinzufügen",
     "addSized": "{size} hinzufügen",
     "edit": "Bearbeiten",
