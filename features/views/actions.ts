@@ -403,3 +403,51 @@ export async function listSwitchableViews(
   if (typeof workspaceId !== "string") return [];
   return getVisibleViews(workspaceId);
 }
+
+// ─── The tab row (BARY-184) ─────────────────────────────────────────────────
+
+/**
+ * The viewer's own tab row: `shown` in their order, `hidden` left out. Only
+ * views the person can see are touched; the views themselves stay as they
+ * are for everyone else.
+ */
+export async function saveViewTabs(
+  shown: string[],
+  hidden: string[],
+): Promise<ViewResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  const ids = [...new Set([...shown, ...hidden])].slice(0, 200);
+  const visible: string[] = [];
+  for (const id of ids) {
+    const loaded = await loadView(id, userId);
+    if (loaded && canSeeView(loaded.row, loaded.facts)) visible.push(id);
+  }
+  const hiddenSet = new Set(hidden);
+  await db.$transaction(
+    visible.map((viewId) => {
+      const data = hiddenSet.has(viewId)
+        ? { tabHidden: true, tabPosition: null }
+        : { tabHidden: false, tabPosition: shown.indexOf(viewId) };
+      return db.savedViewUserState.upsert({
+        where: { userId_viewId: { userId, viewId } },
+        create: { userId, viewId, ...data },
+        update: data,
+      });
+    }),
+  );
+  revalidatePath("/", "layout");
+  return { ok: true, data: null };
+}
+
+/** Back to the default row: every view shown, in the usual order. */
+export async function resetViewTabs(ids: string[]): Promise<ViewResult<null>> {
+  const userId = await currentUserId();
+  if (!userId) return fail("unauthenticated");
+  await db.savedViewUserState.updateMany({
+    where: { userId, viewId: { in: ids.slice(0, 200) } },
+    data: { tabPosition: null, tabHidden: false },
+  });
+  revalidatePath("/", "layout");
+  return { ok: true, data: null };
+}

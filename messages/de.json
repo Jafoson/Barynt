@@ -873,7 +873,19 @@
     "whereWorkspaceHint": "Aufgaben aus allen Projekten",
     "whereProject": "Projekt",
     "whereProjectHint": "Nur ein Projekt",
-    "layoutDashboard": "Dashboard"
+    "layoutDashboard": "Dashboard",
+    "tabs": {
+      "customizeTabs": "Tabs anpassen",
+      "tabsHintProject": "Nur für dich, in diesem Projekt. Ziehen oder Pfeile ändern die Reihenfolge.",
+      "tabsHintWorkspace": "Nur für dich, im Workspace. Ziehen oder Pfeile ändern die Reihenfolge.",
+      "tabsShown": "Angezeigt",
+      "tabsHidden": "Ausgeblendet",
+      "tabsNoneShown": "Keine View in der Leiste.",
+      "tabsReset": "Auf Standard zurücksetzen",
+      "moveTabEarlier": "Nach vorne",
+      "moveTabLater": "Nach hinten",
+      "done": "Fertig"
+    }
   },
   "realtime": {
     "staleGlobal": "Es gibt Änderungen.",

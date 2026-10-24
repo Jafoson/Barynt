@@ -160,6 +160,10 @@ export interface SavedView {
   pinned: boolean;
   favorite: boolean;
   favoritePosition: number | null;
+  /** The viewer's own place for it in the tab row (BARY-184). */
+  tabPosition: number | null;
+  /** Left out of the viewer's tab row (BARY-184). */
+  tabHidden: boolean;
   /** The caller's start view of its project (V7). */
   startView: boolean;
   collapsedGroups: string[];

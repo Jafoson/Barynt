@@ -761,6 +761,11 @@ model SavedViewUserState {
   layout           String?
   /// Einträge "<groupKey>:<groupId>" wie `IssueViewPreference.hiddenGroups`.
   collapsedGroups  String[] @default([])
+  /// Platz in der Tab-Leiste dieser Person (BARY-184); `null` = nach den
+  /// sortierten, in der Vorgabe-Reihenfolge.
+  tabPosition      Float?
+  /// Aus der Tab-Leiste dieser Person ausgeblendet (BARY-184).
+  tabHidden        Boolean  @default(false)
 
   user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   view SavedView @relation(fields: [viewId], references: [id], onDelete: Cascade)

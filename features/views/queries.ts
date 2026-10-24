@@ -95,6 +95,8 @@ export function mapView(row: ViewRow, facts: ViewAccessFacts): SavedView {
     pinned: state?.pinned ?? false,
     favorite: state?.favorite ?? false,
     favoritePosition: state?.favoritePosition ?? null,
+    tabPosition: state?.tabPosition ?? null,
+    tabHidden: state?.tabHidden ?? false,
     startView: state?.startView ?? false,
     collapsedGroups: state?.collapsedGroups ?? [],
     canEdit: canEditView(row, facts),
