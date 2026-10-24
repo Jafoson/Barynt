@@ -42,7 +42,6 @@ import { useIssueOpen } from "@/features/issues/issue-links";
 import {
   COLUMN_SORT,
   columnOfSort,
-  DEFAULT_LIST_COLUMNS,
   FIXED_LIST_COLUMNS,
   type ListColumn,
   listColumns,
@@ -383,11 +382,14 @@ export function ListView({
     } else onColumnsChange?.(next);
   };
 
-  // A phone or tablet shows card rows: only the columns those are laid out
-  // for, plus the comment count.
+  // A phone or tablet keeps its card rows as they were — the fields the
+  // person shows on cards, not the table's own columns — plus the comment
+  // count.
   const shownColumns: ListColumn[] = isCompact
     ? (() => {
-        const base = chosen.filter((id) => DEFAULT_LIST_COLUMNS.includes(id));
+        const base = listColumns(undefined, hiddenCardFields).filter(
+          (id) => id !== "project" || projectId === undefined,
+        );
         const at = base.indexOf("assignee");
         base.splice(at < 0 ? base.length : at, 0, "comments");
         return base;
