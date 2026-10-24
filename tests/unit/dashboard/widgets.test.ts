@@ -530,9 +530,10 @@ describe("order of list widgets (BARY-182)", () => {
     { id: "w1", type: "attention", size: "L", config: { sort } },
   ];
 
-  it("takes urgency and the issue orders, nothing else", () => {
+  it("takes urgency, oldest and the issue orders, nothing else", () => {
     expect(widgetsSchema.safeParse(attention("urgency")).success).toBe(true);
     expect(widgetsSchema.safeParse(attention("dueDate")).success).toBe(true);
     expect(widgetsSchema.safeParse(attention("random")).success).toBe(false);
+    expect(widgetsSchema.safeParse(attention("oldest")).success).toBe(true);
   });
 });

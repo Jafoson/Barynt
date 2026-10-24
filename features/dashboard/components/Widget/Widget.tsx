@@ -66,7 +66,10 @@ export function useWidgetTitle() {
     }
     if (widget.type === "issues") {
       const sort = widget.config.sort;
-      return t(`issuesTitle_${sort && sort !== "urgency" ? sort : "updated"}`);
+      // "urgency"/"oldest" belong to other widgets — never set here.
+      return t(
+        `issuesTitle_${sort && sort !== "urgency" && sort !== "oldest" ? sort : "updated"}`,
+      );
     }
     if (widget.type === "distribution")
       return t(`group_${widget.config.groupBy ?? "status"}`) + measure;

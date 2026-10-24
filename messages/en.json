@@ -1717,6 +1717,7 @@
     "rows": "Rows",
     "columns": "Columns",
     "sort": "Order",
+    "sort_oldest": "Oldest first",
     "sort_urgency": "Urgency",
     "sort_updated": "Recently changed",
     "sort_created": "Newest first",

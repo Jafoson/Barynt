@@ -1796,14 +1796,21 @@ async function matrix(
 /** Upper bounds of the age buckets, in days. */
 const AGE_BOUNDS = [7, 14, 28, 90];
 
-async function age(ctx: Ctx, where: Where): Promise<WidgetData> {
+async function age(
+  ctx: Ctx,
+  where: Where,
+  sort: Widget["config"]["sort"],
+): Promise<WidgetData> {
   const scoped: Where = { AND: [where, { status: { notIn: ctx.closed } }] };
   const [dates, oldest] = await Promise.all([
     db.issue.findMany({ where: scoped, select: { created: true } }),
     db.issue.findMany({
       where: scoped,
       select: ISSUE_SELECT,
-      orderBy: { created: "asc" },
+      orderBy:
+        sort === undefined || sort === "oldest"
+          ? { created: "asc" }
+          : issueOrder(sort),
       take: 5,
     }),
   ]);
@@ -2480,7 +2487,7 @@ async function widgetData(ctx: Ctx, widget: Widget): Promise<WidgetData> {
         config.measure ?? "count",
       );
     case "age":
-      return age(ctx, where);
+      return age(ctx, where, config.sort);
     case "about":
       return {
         type: "about",

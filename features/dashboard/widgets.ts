@@ -144,10 +144,12 @@ export const ISSUE_SORTS = [
   "priority",
 ] as const;
 export type IssueSort = (typeof ISSUE_SORTS)[number];
-/** "Needs attention" can also order by why an issue needs it — its own
- *  default, the order it always had (BARY-182). */
+/** "Needs attention" can also order by why an issue needs it, "Age" by how
+ *  old — each its own default, the order it always had (BARY-182). */
 export const ATTENTION_SORTS = ["urgency", ...ISSUE_SORTS] as const;
-export type WidgetSort = (typeof ATTENTION_SORTS)[number];
+export const AGE_SORTS = ["oldest", ...ISSUE_SORTS] as const;
+const WIDGET_SORTS = ["urgency", "oldest", ...ISSUE_SORTS] as const;
+export type WidgetSort = (typeof WIDGET_SORTS)[number];
 
 /** What a widget adds up (BARY-170): issues, or their story points or
  *  estimated hours. Custom number fields join here later (BARY-129). */
@@ -1352,7 +1354,7 @@ const baseConfigShape = z.object({
   splitBy: z.enum(GROUP_FIELDS).optional(),
   seriesChart: z.enum(SERIES_CHARTS).optional(),
   openOnly: z.boolean().optional(),
-  sort: z.enum(ATTENTION_SORTS).optional(),
+  sort: z.enum(WIDGET_SORTS).optional(),
   labels: labelsSchema.optional(),
   background: z.enum(BACKGROUNDS).optional(),
   accent: z.enum(ACCENTS).optional(),
