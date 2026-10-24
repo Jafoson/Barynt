@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
 import type { ISelectItem } from "@/components/ui/atoms/SelectMenu/SelectMenu";
 import { useConfirm } from "@/components/ui/layout/ConfirmDialog/ConfirmDialog";
+import { updateBehavior } from "@/features/account/actions";
 import {
   deleteView,
   duplicateView,
@@ -14,6 +15,7 @@ import type { ViewLayout, ViewVisibility } from "@/features/views/schema";
 import { viewPath } from "@/features/views/url";
 import { useOpenViewModal } from "@/features/views/useOpenViewModal";
 import { getPathname, useRouter } from "@/i18n/navigation";
+import { usePreferences } from "@/lib/preferences/PreferencesContext";
 import { useUI } from "@/lib/ui-store";
 
 /** What a view's menu needs to know about it. */
@@ -53,6 +55,10 @@ export function useViewMenu({
   /** An "Open" item first (the views page). */
   withOpen?: boolean;
 }) {
+  const preferences = usePreferences();
+  /** A workspace view the app starts on — the person's start page (V7). */
+  const isWorkspaceStart = (view: { id: string }) =>
+    preferences.startPage === "view" && preferences.startViewId === view.id;
   const t = useTranslations();
   const locale = useLocale();
   const router = useRouter();
@@ -79,13 +85,22 @@ export function useViewMenu({
         ]
       : []),
     // The viewer's own switches (V7), each saying what a click does now.
-    {
-      value: "pin",
-      label: view.pinned ? t("views.unpin") : t("views.pin"),
-      icon: (
-        <Icon icon={view.pinned ? "lucide:pin-off" : "lucide:pin"} width={15} />
-      ),
-    },
+    // Pinning puts it under its project in the sidebar — not for a
+    // workspace view, which has none.
+    ...(view.projectId
+      ? [
+          {
+            value: "pin",
+            label: view.pinned ? t("views.unpin") : t("views.pin"),
+            icon: (
+              <Icon
+                icon={view.pinned ? "lucide:pin-off" : "lucide:pin"}
+                width={15}
+              />
+            ),
+          },
+        ]
+      : []),
     {
       value: "favorite",
       label: view.favorite ? t("views.unfavorite") : t("views.favorite"),
@@ -98,7 +113,15 @@ export function useViewMenu({
     },
     {
       value: "startView",
-      label: view.startView ? t("views.unsetStartView") : t("views.startView"),
+      // A project's start view opens with the project; a workspace view's
+      // is where the app starts (the person's start page, V7).
+      label: view.projectId
+        ? view.startView
+          ? t("views.unsetStartView")
+          : t("views.startView")
+        : isWorkspaceStart(view)
+          ? t("views.tabs.start.unset")
+          : t("views.tabs.start.set"),
       icon: <Icon icon="lucide:house" width={15} />,
     },
     ...(view.canEdit
@@ -158,6 +181,18 @@ export function useViewMenu({
         { favorite: !view.favorite },
         view.favorite ? t("views.unfavorited") : t("views.favorited"),
       );
+    } else if (action === "startView" && !view.projectId) {
+      const on = !isWorkspaceStart(view);
+      startTransition(async () => {
+        const result = await updateBehavior(
+          on
+            ? { startPage: "view", startViewId: view.id }
+            : { startPage: "workspace", startViewId: null },
+        );
+        if ("error" in result) return toast(result.error);
+        toast(on ? t("views.tabs.start.on") : t("views.tabs.start.off"));
+        router.refresh();
+      });
     } else if (action === "startView") {
       setState(
         view,

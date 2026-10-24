@@ -17,13 +17,21 @@ import {
 } from "@/features/issues/components/Topbar/filterLabels";
 import { isGroup } from "@/features/issues/filter";
 import { setViewUserState } from "@/features/views/actions";
+import {
+  type TabEntry,
+  ViewTabsEditor,
+} from "@/features/views/components/ViewTabs/ViewTabsEditor";
 import { viewIconOf } from "@/features/views/icons";
 import { setNewViewAction } from "@/features/views/newViewAction";
 import type { ViewEntry } from "@/features/views/queries";
+import { tabOrder } from "@/features/views/tab-order";
 import { viewPath } from "@/features/views/url";
 import { useOpenViewModal } from "@/features/views/useOpenViewModal";
 import { type MenuView, useViewMenu } from "@/features/views/useViewMenu";
 import { Link, useRouter } from "@/i18n/navigation";
+import { useModal } from "@/lib/context";
+import { usePreferences } from "@/lib/preferences/PreferencesContext";
+import { PHONE_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import { useTimeAgo } from "@/lib/utils/useTimeAgo";
 import type { Project } from "@/types";
 import styles from "./viewsDirectory.module.scss";
@@ -203,6 +211,41 @@ export function ViewsDirectory({
         ? t("viewsPage.workspace")
         : (projects.find((p) => p.id === id)?.name ?? "");
 
+  // The tab row of a place, as the person set it (BARY-184) — from here as
+  // much as from the row itself.
+  const { openModal } = useModal();
+  const isPhone = useMediaQuery(PHONE_QUERY);
+  // Which view the app — or a project — starts on (V7), for its card.
+  const preferences = usePreferences();
+  const customizeTabs = (placeId: string) => {
+    const entries: TabEntry[] = tabOrder(
+      views.filter((v) => (v.projectId ?? "") === placeId),
+    ).map((v) => ({
+      id: v.id,
+      name:
+        v.systemKey === "my-issues" || v.systemKey === "created-by-me"
+          ? t(`views.systemTab.${v.systemKey}`)
+          : v.name,
+      icon: v.icon,
+      color: v.color,
+      layout: v.layout,
+      hidden: v.tabHidden,
+      sharedBy:
+        v.visibility !== "PRIVATE" && v.ownerId !== me ? v.ownerName : null,
+    }));
+    openModal(
+      ({ close }) => (
+        <ViewTabsEditor
+          views={entries}
+          scope={placeId ? "project" : "workspace"}
+          close={close}
+          sheet={isPhone}
+        />
+      ),
+      isPhone ? { placement: "bottom" } : undefined,
+    );
+  };
+
   const card = (v: DirectoryView) => {
     const state = stateOf(v);
     const vis = visibilityOf(v);
@@ -231,7 +274,18 @@ export function ViewsDirectory({
             <Icon icon={viewIconOf(v)} width={17} />
           </span>
           <span className={styles.cardTitle}>
-            <span className={styles.cardName}>{v.name}</span>
+            <span className={styles.cardName}>
+              {v.name}
+              {v.tabHidden && (
+                <Icon
+                  icon="lucide:eye-off"
+                  width={13}
+                  className={styles.cardHidden}
+                  role="img"
+                  aria-label={t("views.tabs.hiddenMark")}
+                />
+              )}
+            </span>
             <span className={styles.cardSummary} title={summaryOf(v)}>
               {summaryOf(v)}
             </span>
@@ -251,19 +305,31 @@ export function ViewsDirectory({
               }
               onClick={() => toggle(v, "favorite")}
             >
-              <Icon icon="lucide:star" width={16} />
+              {/* Lucide's star is an outline only — starred, a filled one. */}
+              <Icon
+                icon={
+                  state.favorite
+                    ? "material-symbols:star-rounded"
+                    : "lucide:star"
+                }
+                width={state.favorite ? 18 : 16}
+              />
             </button>
-            <button
-              type="button"
-              className={styles.iconButton}
-              data-on={state.pinned || undefined}
-              aria-pressed={state.pinned}
-              aria-label={state.pinned ? t("views.unpin") : t("views.pin")}
-              title={state.pinned ? t("views.unpin") : t("views.pin")}
-              onClick={() => toggle(v, "pinned")}
-            >
-              <Icon icon="lucide:pin" width={16} />
-            </button>
+            {/* Pinning puts a view under its project in the sidebar — a
+                workspace view has no project to sit under. */}
+            {v.projectId && (
+              <button
+                type="button"
+                className={styles.iconButton}
+                data-on={state.pinned || undefined}
+                aria-pressed={state.pinned}
+                aria-label={state.pinned ? t("views.unpin") : t("views.pin")}
+                title={state.pinned ? t("views.unpin") : t("views.pin")}
+                onClick={() => toggle(v, "pinned")}
+              >
+                <Icon icon="lucide:pin" width={16} />
+              </button>
+            )}
             <InlinePicker
               width={240}
               align="end"
@@ -295,6 +361,15 @@ export function ViewsDirectory({
           </span>
         </div>
         <div className={styles.tags}>
+          {(v.projectId
+            ? v.startView
+            : preferences.startPage === "view" &&
+              preferences.startViewId === v.id) && (
+            <span className={styles.tag} data-kind="start">
+              <Icon icon="lucide:house" width={12} />
+              {t("views.tabs.start.badge")}
+            </span>
+          )}
           {v.systemKey && (
             <span className={styles.tag} data-kind="system">
               {t("views.systemBadge")}
@@ -544,6 +619,14 @@ export function ViewsDirectory({
                       : t("viewsPage.addInWorkspace")}
                   </span>
                 </button>
+                <Button
+                  variant="elevated"
+                  size="sm"
+                  icon={<Icon icon="lucide:sliders-horizontal" width={14} />}
+                  onClick={() => customizeTabs(s.id)}
+                >
+                  {t("views.tabs.customizeTabs")}
+                </Button>
               </header>
               {s.views.length ? (
                 <div className={styles.cards}>{s.views.map(card)}</div>

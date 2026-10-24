@@ -16,6 +16,7 @@ import type { ViewTab } from "@/features/views/components/ViewTabs/ViewTabs";
 import { getProjectViews, getWorkspaceViews } from "@/features/views/queries";
 import type { SavedView } from "@/features/views/schema";
 import { ensureSystemViews } from "@/features/views/system";
+import { tabOrder } from "@/features/views/tab-order";
 import { type SlugLookups, viewParams, viewPath } from "@/features/views/url";
 import {
   getCurrentWorkspace,
@@ -174,10 +175,8 @@ async function loadTopbarViews({
   // Across projects (V8) the system views come first and say what sets
   // them apart ("Assigned", "Created by me"); the workspace's own follow.
   const t = projectId ? null : await getTranslations();
-  const shown = [
-    ...views.filter((v) => v.systemKey),
-    ...views.filter((v) => !v.systemKey),
-  ];
+  // In the person's own tab order (BARY-184).
+  const shown = tabOrder(views);
 
   const hrefOf = (v: SavedView) =>
     `${viewPath(workspaceId, projectSlug, v.slug)}?${viewParams(v, lookups).toString()}`;
@@ -204,6 +203,7 @@ async function loadTopbarViews({
     pinned: v.pinned,
     favorite: v.favorite,
     startView: v.startView,
+    hidden: v.tabHidden,
   }));
 
   return {

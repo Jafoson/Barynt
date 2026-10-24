@@ -873,7 +873,27 @@
     "whereWorkspaceHint": "Issues from every project",
     "whereProject": "Project",
     "whereProjectHint": "One project only",
-    "layoutDashboard": "Dashboard"
+    "layoutDashboard": "Dashboard",
+    "tabs": {
+      "customizeTabs": "Customize tabs",
+      "tabsHintProject": "Only for you, in this project. Drag or use the arrows to reorder.",
+      "tabsHintWorkspace": "Only for you, in the workspace. Drag or use the arrows to reorder.",
+      "tabsShown": "Shown",
+      "tabsHidden": "Hidden",
+      "tabsNoneShown": "No view in the row.",
+      "tabsReset": "Reset to default",
+      "moveTabEarlier": "Move earlier",
+      "moveTabLater": "Move later",
+      "done": "Done",
+      "hiddenMark": "Not in the tab row",
+      "start": {
+        "set": "Make the workspace's start view",
+        "unset": "No longer the start view",
+        "on": "Now opens at start",
+        "off": "No start view anymore",
+        "badge": "Start view"
+      }
+    }
   },
   "realtime": {
     "staleGlobal": "There are changes.",

@@ -95,6 +95,8 @@ export function mapView(row: ViewRow, facts: ViewAccessFacts): SavedView {
     pinned: state?.pinned ?? false,
     favorite: state?.favorite ?? false,
     favoritePosition: state?.favoritePosition ?? null,
+    tabPosition: state?.tabPosition ?? null,
+    tabHidden: state?.tabHidden ?? false,
     startView: state?.startView ?? false,
     collapsedGroups: state?.collapsedGroups ?? [],
     canEdit: canEditView(row, facts),
@@ -341,6 +343,9 @@ export interface ViewEntry {
   favorite: boolean;
   pinned: boolean;
   startView: boolean;
+  /** The viewer's own tab row (BARY-184). */
+  tabPosition: number | null;
+  tabHidden: boolean;
   visibility: ViewVisibility;
   ownerId: string | null;
   /** May the viewer edit or delete it (`canEditView`). */
@@ -371,7 +376,13 @@ export async function getVisibleViews(
       project: { select: { slug: true, name: true } },
       userStates: {
         where: { userId },
-        select: { favorite: true, pinned: true, startView: true },
+        select: {
+          favorite: true,
+          pinned: true,
+          startView: true,
+          tabPosition: true,
+          tabHidden: true,
+        },
       },
     },
     orderBy: ORDER,
@@ -411,6 +422,8 @@ export async function getVisibleViews(
             favorite: row.userStates[0]?.favorite ?? false,
             pinned: row.userStates[0]?.pinned ?? false,
             startView: row.userStates[0]?.startView ?? false,
+            tabPosition: row.userStates[0]?.tabPosition ?? null,
+            tabHidden: row.userStates[0]?.tabHidden ?? false,
             visibility: row.visibility,
             ownerId: row.ownerId,
             canEdit: row.canEdit,

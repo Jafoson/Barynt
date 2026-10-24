@@ -11,7 +11,13 @@ import { viewIconOf } from "@/features/views/icons";
 import type { ViewLayout, ViewVisibility } from "@/features/views/schema";
 import { type MenuView, useViewMenu } from "@/features/views/useViewMenu";
 import { useRouter } from "@/i18n/navigation";
-import { COMPACT_QUERY } from "@/lib/utils/useMediaQuery";
+import { useModal } from "@/lib/context";
+import {
+  COMPACT_QUERY,
+  PHONE_QUERY,
+  useMediaQuery,
+} from "@/lib/utils/useMediaQuery";
+import { ViewTabsEditor } from "./ViewTabsEditor";
 import styles from "./viewTabs.module.scss";
 
 /** Never fewer view tabs than this, room or not — "More" holds the rest. */
@@ -39,6 +45,8 @@ export interface ViewTab {
   pinned: boolean;
   favorite: boolean;
   startView: boolean;
+  /** Left out of this person's tab row (BARY-184) — shown only while open. */
+  hidden: boolean;
 }
 
 interface ViewTabsProps {
@@ -66,10 +74,27 @@ export function ViewTabs({
   projectId,
   projectSlug,
   canShare,
-  views,
+  views: allViews,
   activeId,
   dirty,
 }: ViewTabsProps) {
+  // The person's own row (BARY-184): what they hid stays out — unless it's
+  // the one open right now.
+  const views = allViews.filter((v) => !v.hidden || v.id === activeId);
+  const { openModal } = useModal();
+  const isPhone = useMediaQuery(PHONE_QUERY);
+  const customize = () =>
+    openModal(
+      ({ close }) => (
+        <ViewTabsEditor
+          views={allViews}
+          scope={projectId ? "project" : "workspace"}
+          close={close}
+          sheet={isPhone}
+        />
+      ),
+      isPhone ? { placement: "bottom" } : undefined,
+    );
   const t = useTranslations();
   const router = useRouter();
   const menu = useViewMenu({
@@ -140,7 +165,7 @@ export function ViewTabs({
     return () => observer.disconnect();
   }, [views, activeId]);
 
-  if (views.length === 0) return null;
+  if (allViews.length === 0) return null;
 
   const asMenuView = (view: ViewTab): MenuView => ({
     ...view,
@@ -301,6 +326,15 @@ export function ViewTabs({
           )}
         </InlinePicker>
       )}
+      <button
+        type="button"
+        className={styles.customize}
+        aria-label={t("views.tabs.customizeTabs")}
+        title={t("views.tabs.customizeTabs")}
+        onClick={customize}
+      >
+        <Icon icon="lucide:sliders-horizontal" width={15} />
+      </button>
       {/* Every tab once more, out of sight, to know their widths. */}
       <div className={styles.measure} ref={measureRef} aria-hidden="true" inert>
         {views.map((view) => tabOf(view, true))}
