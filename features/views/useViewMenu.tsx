@@ -79,13 +79,22 @@ export function useViewMenu({
         ]
       : []),
     // The viewer's own switches (V7), each saying what a click does now.
-    {
-      value: "pin",
-      label: view.pinned ? t("views.unpin") : t("views.pin"),
-      icon: (
-        <Icon icon={view.pinned ? "lucide:pin-off" : "lucide:pin"} width={15} />
-      ),
-    },
+    // Pinning puts it under its project in the sidebar — not for a
+    // workspace view, which has none.
+    ...(view.projectId
+      ? [
+          {
+            value: "pin",
+            label: view.pinned ? t("views.unpin") : t("views.pin"),
+            icon: (
+              <Icon
+                icon={view.pinned ? "lucide:pin-off" : "lucide:pin"}
+                width={15}
+              />
+            ),
+          },
+        ]
+      : []),
     {
       value: "favorite",
       label: view.favorite ? t("views.unfavorite") : t("views.favorite"),

@@ -304,17 +304,21 @@ export function ViewsDirectory({
             >
               <Icon icon="lucide:star" width={16} />
             </button>
-            <button
-              type="button"
-              className={styles.iconButton}
-              data-on={state.pinned || undefined}
-              aria-pressed={state.pinned}
-              aria-label={state.pinned ? t("views.unpin") : t("views.pin")}
-              title={state.pinned ? t("views.unpin") : t("views.pin")}
-              onClick={() => toggle(v, "pinned")}
-            >
-              <Icon icon="lucide:pin" width={16} />
-            </button>
+            {/* Pinning puts a view under its project in the sidebar — a
+                workspace view has no project to sit under. */}
+            {v.projectId && (
+              <button
+                type="button"
+                className={styles.iconButton}
+                data-on={state.pinned || undefined}
+                aria-pressed={state.pinned}
+                aria-label={state.pinned ? t("views.unpin") : t("views.pin")}
+                title={state.pinned ? t("views.unpin") : t("views.pin")}
+                onClick={() => toggle(v, "pinned")}
+              >
+                <Icon icon="lucide:pin" width={16} />
+              </button>
+            )}
             <InlinePicker
               width={240}
               align="end"

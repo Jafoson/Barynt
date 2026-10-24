@@ -334,8 +334,9 @@
     color: var(--on-surface);
   }
 
+  /* Starred: lit in the primary color, filled. */
   &[data-on][data-kind="star"] {
-    color: var(--amber);
+    color: var(--primary);
 
     svg {
       fill: currentColor;
