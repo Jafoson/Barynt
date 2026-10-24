@@ -586,14 +586,6 @@ export function ViewsDirectory({
                 <button
                   type="button"
                   className={styles.sectionAdd}
-                  onClick={() => customizeTabs(s.id)}
-                >
-                  <Icon icon="lucide:sliders-horizontal" width={14} />
-                  <span>{t("views.tabs.customizeTabs")}</span>
-                </button>
-                <button
-                  type="button"
-                  className={styles.sectionAdd}
                   onClick={() => openNew(s.project?.id ?? null)}
                 >
                   <Icon icon="lucide:plus" width={14} />
@@ -603,6 +595,14 @@ export function ViewsDirectory({
                       : t("viewsPage.addInWorkspace")}
                   </span>
                 </button>
+                <Button
+                  variant="elevated"
+                  size="sm"
+                  icon={<Icon icon="lucide:sliders-horizontal" width={14} />}
+                  onClick={() => customizeTabs(s.id)}
+                >
+                  {t("views.tabs.customizeTabs")}
+                </Button>
               </header>
               {s.views.length ? (
                 <div className={styles.cards}>{s.views.map(card)}</div>
