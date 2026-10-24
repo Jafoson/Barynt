@@ -402,6 +402,7 @@ describe("saveViewState", () => {
       // No lanes in the address (BARY-173).
       subGroupBy: null,
       sortBy: "dueDate",
+      sortDir: "asc",
       layout: "list",
       // Nothing in the address about display: the defaults (BARY-165).
       display: {
@@ -411,6 +412,7 @@ describe("saveViewState", () => {
         hideEmptyGroups: false,
         showSubIssues: false,
         hideEmptyLanes: false,
+        columns: [],
       },
     });
   });
@@ -424,7 +426,7 @@ describe("saveViewState", () => {
       emptylanes: "1",
     });
     expect(
-      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object }).data,
+      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object })?.data,
     ).toMatchObject({
       subGroupBy: "assignee",
       display: { hideEmptyLanes: true },
@@ -439,7 +441,7 @@ describe("saveViewState", () => {
       lanes: "assignee",
     });
     expect(
-      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object }).data,
+      (db.savedView.update.mock.calls.at(-1)?.[0] as { data: object })?.data,
     ).toMatchObject({ subGroupBy: null });
   });
 

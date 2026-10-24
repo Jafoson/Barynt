@@ -37,6 +37,8 @@ export const viewDisplaySchema = z
     showSubIssues: z.boolean().optional(),
     /** Swimlanes without an issue hide themselves (BARY-173). */
     hideEmptyLanes: z.boolean().optional(),
+    /** The list's columns in order (BARY-175). */
+    columns: z.array(z.string().max(40)).max(40).optional(),
     /** A dashboard view's widgets (BARY-169). */
     widgets: widgetsSchema.optional(),
   })

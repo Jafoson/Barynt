@@ -4,6 +4,7 @@
 // browser and in tests alike.
 
 import { GROUP_KEYS } from "@/features/issues/group";
+import { sanitizeColumnWidths } from "@/features/issues/list-columns";
 import { SORT_KEYS } from "@/features/issues/sort";
 
 /** Where a click on a project's name in the sidebar leads. */
@@ -92,6 +93,8 @@ export interface BehaviorPreferences {
   timeZone: string | null;
   shortcutOverrides: ShortcutOverrides;
   confirmDestructive: boolean;
+  /** The list's column widths in px (BARY-175) — the same in every list. */
+  listColumnWidths: Record<string, number>;
 }
 
 export const DEFAULT_BEHAVIOR: BehaviorPreferences = {
@@ -110,6 +113,7 @@ export const DEFAULT_BEHAVIOR: BehaviorPreferences = {
   timeZone: null,
   shortcutOverrides: {},
   confirmDestructive: true,
+  listColumnWidths: {},
 };
 
 const oneOf = <T extends string>(
@@ -169,5 +173,6 @@ export function toBehavior(
       typeof row.confirmDestructive === "boolean"
         ? row.confirmDestructive
         : d.confirmDestructive,
+    listColumnWidths: sanitizeColumnWidths(row.listColumnWidths),
   };
 }

@@ -443,6 +443,9 @@ model UserPreferences {
 
   /// Eigene Tastenkürzel: `{ "<Standard-Kürzel>": "<eigenes Kürzel>" }`.
   shortcutOverrides Json @default("{}")
+  /// Breiten der Listenspalten in px, `{ spalte: breite }` (BARY-175) —
+  /// persönlich, in jeder Liste dieselben.
+  listColumnWidths Json @default("{}")
 
   /// Vor dem Löschen und anderen unumkehrbaren Aktionen nachfragen.
   confirmDestructive Boolean @default(true)
@@ -627,6 +630,9 @@ model IssueViewPreference {
   hideEmptyLanes Boolean  @default(false)
   /// Eingeklappte Bahnen dieser Person, Einträge "<laneKey>:<laneId>".
   collapsedLanes String[] @default([])
+  /// Liste als Tabelle (BARY-175): gezeigte Spalten in ihrer Reihenfolge.
+  /// Leer = die Vorgabe (`features/issues/list-columns.ts`).
+  columns        String[] @default([])
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -660,6 +666,9 @@ model MyIssuesViewPreference {
   hideEmptyLanes Boolean  @default(false)
   /// Eingeklappte Bahnen dieser Person, Einträge "<laneKey>:<laneId>".
   collapsedLanes String[] @default([])
+  /// Liste als Tabelle (BARY-175): gezeigte Spalten in ihrer Reihenfolge.
+  /// Leer = die Vorgabe (`features/issues/list-columns.ts`).
+  columns        String[] @default([])
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)

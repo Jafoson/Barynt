@@ -163,3 +163,28 @@ describe("sortByKey", () => {
     expect(input.map((i) => i.id)).toEqual(["b", "a"]);
   });
 });
+
+describe("sorting turned round (BARY-175)", () => {
+  const lookups = { statuses: [], issueTypes: [], members: [] };
+  const issue = (id: string, priority: number, dueDate: number | null) =>
+    ({ id, priority, dueDate, rank: 0 }) as unknown as Parameters<
+      typeof sortByKey
+    >[0][number];
+
+  test("reverses the order, empty values still last", () => {
+    const rows = [issue("a", 1, 3), issue("b", 3, null), issue("c", 2, 1)];
+    expect(sortByKey(rows, "priority", lookups).map((r) => r.id)).toEqual([
+      "b",
+      "c",
+      "a",
+    ]);
+    expect(sortByKey(rows, "priority", lookups, true).map((r) => r.id)).toEqual(
+      ["a", "c", "b"],
+    );
+    expect(sortByKey(rows, "dueDate", lookups, true).map((r) => r.id)).toEqual([
+      "a",
+      "c",
+      "b",
+    ]);
+  });
+});

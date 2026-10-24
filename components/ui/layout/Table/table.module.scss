@@ -638,3 +638,29 @@ tbody.group {
   border: none;
   border-radius: 0;
 }
+
+/* Sum rows (`totals`): under a group quiet, under the whole table a little
+   stronger — the same columns as the rows above. */
+.totalRow {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  min-height: 2.25rem;
+  padding-inline: var(--table-pad);
+  font-size: var(--text-xs);
+  color: var(--on-surface-variant);
+  font-variant-numeric: tabular-nums;
+
+  &[data-scope="all"] {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    min-height: 2.75rem;
+    background: var(--surface-container);
+    border-radius: var(--table-radius);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--on-surface);
+  }
+}

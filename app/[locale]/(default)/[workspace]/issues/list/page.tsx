@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getMyPreferences } from "@/features/account/queries";
+import { setMyIssuesListColumns } from "@/features/issues/actions";
 import { IssuePeek } from "@/features/issues/components/IssuePeek/IssuePeek";
 import { ListView } from "@/features/issues/components/ListView/ListView";
 import { Topbar } from "@/features/issues/components/Topbar/Topbar";
@@ -33,12 +34,14 @@ export default async function WorkspaceListPage({
   const session = await getSession();
   if (!session) redirect(`/${locale}/login`);
 
-  const [issues, composer, hiddenCardFields, groups] = await Promise.all([
-    getWorkspaceIssues(session.userId, workspace, filters),
-    getIssueComposerData(),
-    getMyIssuesViewPreference("list"),
-    getMyIssuesViewGroups("list"),
-  ]);
+  const [issues, composer, hiddenCardFields, boardHiddenFields, groups] =
+    await Promise.all([
+      getWorkspaceIssues(session.userId, workspace, filters),
+      getIssueComposerData(),
+      getMyIssuesViewPreference("list"),
+      getMyIssuesViewPreference("board"),
+      getMyIssuesViewGroups("list"),
+    ]);
   if (!composer) notFound();
 
   return (
@@ -48,11 +51,15 @@ export default async function WorkspaceListPage({
         issues={issues}
         composer={composer}
         hiddenCardFields={hiddenCardFields}
+        boardHiddenFields={boardHiddenFields}
         hiddenGroups={groups.hiddenGroups}
         hideEmptyGroups={groups.hideEmptyGroups}
         groupOrder={groups.groupOrder}
         sortKey={sortKeyFromParam(filters.sort ?? defaults.defaultSort)}
         groupKey={groupKeyFromParam(filters.group ?? defaults.defaultGrouping)}
+        sortReversed={filters.dir === "desc"}
+        columns={groups.columns}
+        onColumnsChange={setMyIssuesListColumns}
       />
       {/* Opens the clicked issue as a side panel (`?issue=` in the URL). */}
       <IssuePeek data={composer} />

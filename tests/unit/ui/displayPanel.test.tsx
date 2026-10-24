@@ -83,10 +83,14 @@ describe("DisplayPanel", () => {
     expect(html).not.toContain("<select");
   });
 
-  it("shows the fields as chips, the hidden ones not selected", () => {
-    const html = render();
+  it("shows the board's fields as chips, the hidden ones not selected", () => {
+    const html = render({ state: { ...state, view: "board" } });
     expect(html).toContain("display.fieldsTitle");
     expect(html).toContain("fields.labels");
+  });
+
+  it("leaves the fields to the list's own column header (BARY-175)", () => {
+    expect(render()).not.toContain("display.fieldsTitle");
   });
 
   it("shows the groups as a row with how many are shown (BARY-47)", () => {

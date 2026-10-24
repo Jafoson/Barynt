@@ -23,6 +23,7 @@ import {
   type NotificationKey,
   type Theme,
 } from "@/features/account/types";
+import { sanitizeColumnWidths } from "@/features/issues/list-columns";
 import { getVisibleViewById } from "@/features/views/queries";
 import { type ApiScope, isApiScope } from "@/lib/api/scopes";
 import { hashApiToken } from "@/lib/api-auth";
@@ -65,7 +66,10 @@ const NOTIFICATION_KEYS = new Set<string>(
  */
 async function writePreferences(
   userId: string,
-  data: Record<string, string | boolean | null | Record<string, string>>,
+  data: Record<
+    string,
+    string | boolean | null | Record<string, string> | Record<string, number>
+  >,
 ): Promise<void> {
   await db.userPreferences.upsert({
     where: { userId },
@@ -260,7 +264,7 @@ export async function updateBehavior(
 
   const write: Record<
     string,
-    string | boolean | null | Record<string, string>
+    string | boolean | null | Record<string, string> | Record<string, number>
   > = {};
 
   for (const [key, allowed] of Object.entries(BEHAVIOR_CHOICES)) {
@@ -313,6 +317,9 @@ export async function updateBehavior(
     }
     write.shortcutOverrides = overrides;
   }
+
+  if (data.listColumnWidths !== undefined)
+    write.listColumnWidths = sanitizeColumnWidths(data.listColumnWidths);
 
   if (Object.keys(write).length === 0) return { ok: true };
 

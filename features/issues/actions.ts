@@ -21,6 +21,7 @@ import {
 } from "@/features/issues/estimate";
 import { sanitizeGroupOrder } from "@/features/issues/group-order";
 import { sanitizeHiddenGroups } from "@/features/issues/hidden-groups";
+import { sanitizeListColumns } from "@/features/issues/list-columns";
 import { searchWorkspaceIssues } from "@/features/issues/queries";
 import type { IssuePatch } from "@/features/issues/types";
 import { recordAudit } from "@/lib/audit";
@@ -1866,6 +1867,8 @@ export interface ViewGroupsPatch {
   hideEmptyLanes?: boolean;
   /** Lanes this person folded, "<laneKey>:<laneId>" (BARY-173). */
   collapsedLanes?: string[];
+  /** The list's columns in order (BARY-175). */
+  columns?: string[];
 }
 
 function groupsData(patch: ViewGroupsPatch) {
@@ -1887,6 +1890,9 @@ function groupsData(patch: ViewGroupsPatch) {
     }),
     ...(patch.collapsedLanes !== undefined && {
       collapsedLanes: sanitizeGroupOrder(patch.collapsedLanes),
+    }),
+    ...(patch.columns !== undefined && {
+      columns: sanitizeListColumns(patch.columns),
     }),
   };
 }
@@ -1934,4 +1940,19 @@ export async function setMyIssuesViewGroups(
 
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+/** A project list's columns as this person set them (BARY-175). */
+export async function setIssueListColumns(
+  projectId: string,
+  columns: string[],
+): Promise<{ ok: true } | { error: string }> {
+  return setIssueViewGroups(projectId, "list", { columns });
+}
+
+/** Same for the cross-project list. */
+export async function setMyIssuesListColumns(
+  columns: string[],
+): Promise<{ ok: true } | { error: string }> {
+  return setMyIssuesViewGroups("list", { columns });
 }
