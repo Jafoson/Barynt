@@ -664,3 +664,33 @@ tbody.group {
     color: var(--on-surface);
   }
 }
+
+/* `columnLines`: the group header becomes a row of the table's columns, its
+   content laid over the empty cells that carry the lines. The content's
+   parts get the header's surface, so a line passes behind them, not
+   through the text. */
+.groupRow[data-lines] {
+  display: grid;
+  grid-template-columns: subgrid;
+
+  & > .groupCell {
+    position: relative;
+    z-index: 1;
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    pointer-events: none;
+
+    & > * {
+      pointer-events: auto;
+      background: var(--surface-container);
+    }
+  }
+}
+
+.lineCell {
+  grid-row: 1;
+  align-self: stretch;
+}

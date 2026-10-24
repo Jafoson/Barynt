@@ -797,6 +797,7 @@ export function ListView({
         getRowKey={(issue) => issue.id}
         dnd={isCompact ? undefined : dnd}
         sort={isCompact ? undefined : tableSort}
+        columnLines={!isCompact && tableStyle === "classic"}
         totals={
           isCompact
             ? undefined

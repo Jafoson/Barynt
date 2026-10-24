@@ -544,6 +544,12 @@
     border-inline-end: 0;
   }
 
+  /* The column lines already mark the edges — the drag handle's own quiet
+     divider only shows under the pointer. */
+  .resizeHandle:not(:hover, :focus-visible, :active)::after {
+    background: transparent;
+  }
+
   /* Rows get their line too, so the cells read as a grid. */
   tbody tr {
     border-bottom: 1px solid var(--outline-variant);
