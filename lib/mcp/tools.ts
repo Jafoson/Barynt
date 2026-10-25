@@ -635,7 +635,8 @@ export function registerBaryntTools(server: McpServer): void {
     "get_issue",
     {
       title: "Get issue",
-      description: 'Fetch a single issue by internal id or "PREFIX-123" ref.',
+      description:
+        'Fetch a single issue by internal id or "PREFIX-123" ref. Comments are not embedded: `commentCount` says how many there are. When it is above 0, also call list_comments for this issue — the discussion often holds context the description lacks.',
       inputSchema: z.object({
         issueId: z.string().describe('Internal id, or a ref like "ENG-123".'),
         fields: z
@@ -651,7 +652,13 @@ export function registerBaryntTools(server: McpServer): void {
       if (!auth.ok) return auth.result;
       const issue = await getIssueForUser(auth.auth.userId, issueId);
       if (!issue) return notFoundResult();
-      return jsonResult(pickFields(issue, fields ?? null));
+      return jsonResult({
+        ...pickFields(issue, fields ?? null),
+        // Outside `pickFields` so a `fields` allowlist can't hide it.
+        ...(issue.commentCount > 0 && {
+          hint: `This issue has ${issue.commentCount} comment(s). Call list_comments with this issue before acting on it.`,
+        }),
+      });
     },
   );
 

@@ -23,6 +23,7 @@ export {
 export { fromMarkdown } from "./fromMarkdown";
 export { guessImageMimeType } from "./imageMime";
 export { mentionedUserIds, toPlainText, toPreview } from "./text";
+export { toMarkdown } from "./toMarkdown";
 export type {
   DateChipAttrs,
   EmojiAttrs,
