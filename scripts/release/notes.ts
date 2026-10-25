@@ -278,10 +278,21 @@ export function rewriteImagePaths(
     );
 }
 
+/** Removes HTML comments — repeatedly, so `<!<!-- x -->-- y -->` can't leave
+ *  a comment behind after the inner one is gone. */
+function stripComments(markdown: string): string {
+  const comment = /<!--(?!\s*changes:)[\s\S]*?-->/g;
+  let text = markdown;
+  for (let previous = ""; previous !== text; ) {
+    previous = text;
+    text = text.replace(comment, "");
+  }
+  return text;
+}
+
 function body(markdown: string, repo: string, tag: string): string {
   return rewriteImagePaths(
-    markdown
-      .replace(/<!--(?!\s*changes:)[\s\S]*?-->/g, "")
+    stripComments(markdown)
       .replace(CHANGES_START, "")
       .replace(CHANGES_END, "")
       .replace(/^# .*\n+/, "")

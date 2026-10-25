@@ -197,6 +197,16 @@ describe("release body", () => {
     expect(out).not.toContain("# Barynt");
   });
 
+  test("nested comments don't survive", () => {
+    const out = renderReleaseBody({
+      en: "# B 1.0.0\n\nHello <!<!-- x -->-- y --> there\n",
+      de: null,
+      repo: "o/r",
+      tag: "v1.0.0",
+    });
+    expect(out).not.toContain("<!--");
+  });
+
   test("without a German file the body is just the English one", () => {
     const out = renderReleaseBody({
       en: "# B 1.0.0\n\nHello\n",
