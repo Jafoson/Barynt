@@ -111,6 +111,7 @@ function issue(overrides: Partial<Record<string, unknown>> = {}) {
     subIssues: [],
     relationsFrom: [],
     relationsTo: [],
+    _count: { comments: 0 },
   };
 }
 

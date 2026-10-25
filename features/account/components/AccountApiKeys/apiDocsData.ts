@@ -446,6 +446,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
       "storyPoints": 5,
       "estimateHours": 8,
       "estimateUnit": "days",
+      "commentCount": 0,
       "parent": null,
       "children": [],
       "relations": []
@@ -577,6 +578,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
     "storyPoints": null,
     "estimateHours": null,
     "estimateUnit": null,
+    "commentCount": 0,
     "parent": null,
     "children": [],
     "relations": []
@@ -588,8 +590,8 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
         path: "/api/v1/issues/{id}",
         scope: "issues:read",
         desc: {
-          en: 'Get a single issue by internal id or "PREFIX-123" ref (e.g. "WEB-42") — tried as an id first, so a ref is only resolved once a matching id lookup misses.',
-          de: 'Holt ein einzelnes Issue über die interne ID oder die Kennung "PREFIX-123" (z. B. "WEB-42") — zuerst wird es als ID versucht, als Kennung nur, wenn keine ID passt.',
+          en: 'Get a single issue by internal id or "PREFIX-123" ref (e.g. "WEB-42") — tried as an id first, so a ref is only resolved once a matching id lookup misses. `description` is Markdown, the same dialect it\'s written in. Comments aren\'t embedded: `commentCount` says how many there are (0 = none) — when it\'s above 0, fetch them from GET /api/v1/issues/{id}/comments.',
+          de: 'Holt ein einzelnes Issue über die interne ID oder die Kennung "PREFIX-123" (z. B. "WEB-42") — zuerst wird es als ID versucht, als Kennung nur, wenn keine ID passt. `description` ist Markdown, im selben Dialekt, in dem sie geschrieben wird. Kommentare sind nicht eingebettet: `commentCount` nennt ihre Anzahl (0 = keine) — ist sie größer als 0, hole sie über GET /api/v1/issues/{id}/comments.',
         },
         pathParams: [idParam("issue")],
         queryParams: [
@@ -624,6 +626,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
     "storyPoints": 5,
     "estimateHours": 8,
     "estimateUnit": "days",
+    "commentCount": 1,
     "parent": null,
     "children": [
       { "id": "i_2b7c4d", "ref": "WEB-51", "title": "Safari-only regression", "status": "todo" }
