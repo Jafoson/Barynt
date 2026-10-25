@@ -1,0 +1,66 @@
+name: Release
+
+# Legt Tag vX.Y.Z und das GitHub-Release an, sobald auf main eine package.json-
+# Version steht, zu der es noch kein Tag gibt — also nach dem Merge des
+# Release-PRs (release-pr.yml). Body des Releases: releases/<version>.md,
+# darunter aufklappbar die deutsche Fassung; relative Bildpfade werden auf
+# den Tag umgeschrieben (scripts/release/notes.ts).
+#
+# Die Docker-Images baut weiterhin docker-build.yml von Hand (workflow_dispatch).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - package.json
+      - "releases/**"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Tag and publish release
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - name: Is this version already released?
+        id: version
+        run: |
+          version=$(bun -e 'console.log(require("./package.json").version)')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v${version}" >/dev/null; then
+            echo "v${version} already exists - nothing to do."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          elif [ ! -f "releases/${version}.md" ]; then
+            echo "::warning::package.json says ${version}, but releases/${version}.md is missing - no release."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build release body
+        if: steps.version.outputs.publish == 'true'
+        run: bun scripts/release/cli.ts body "${{ steps.version.outputs.version }}" --out "$RUNNER_TEMP/body.md"
+
+      - name: Create tag and release
+        if: steps.version.outputs.publish == 'true'
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          gh release create "v${version}" \
+            --target "$GITHUB_SHA" \
+            --title "v${version}" \
+            --notes-file "$RUNNER_TEMP/body.md" \
+            --latest

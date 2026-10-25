@@ -40,6 +40,29 @@ pick ticket → in_progress → work → in_review → (user OK) → done
   user's OK), set the sub-ticket to `done`. The parent ticket goes to `done`
   only after its own PR into `main` is approved and merged.
 
+## Releases (BARY-189)
+
+Versions and release notes are automated, see `releases/README.md`.
+
+- **Commits are Conventional** — `type(scope): summary`, `!` or a
+  `BREAKING CHANGE:` footer for a breaking change. The type decides the
+  version bump (`fix` patch, `feat` minor, breaking major; below 1.0 breaking
+  and `feat` both bump the minor); `chore`/`docs`/`test`/… alone release
+  nothing.
+- `.github/workflows/release-pr.yml` keeps the PR `release/next` current
+  (`releases/<version>.md` + `.de.md`, `package.json` bump) after every merge
+  to `main`; merging it runs `release.yml`, which tags `vX.Y.Z` and creates the
+  GitHub release. Both call `scripts/release/cli.ts`; the logic is in
+  `scripts/release/notes.ts` (tests: `tests/unit/release/`).
+- Never edit `package.json`'s `version` by hand outside that PR, and never
+  edit the generated block between the `changes:` markers.
+- The release PR is created with `GITHUB_TOKEN` unless the secret
+  `RELEASE_TOKEN` (a PAT) exists — a `GITHUB_TOKEN` PR doesn't start
+  `tests.yml`. The repository needs "Allow GitHub Actions to create and
+  approve pull requests" switched on.
+- The sidebar's update card (`lib/update-check.ts`) looks at the latest GitHub
+  release; `UPDATE_CHECK=false` turns the check off.
+
 ## Stack
 
 - **Next.js 16** (App Router) with TypeScript
