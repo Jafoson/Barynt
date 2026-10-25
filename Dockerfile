@@ -26,19 +26,17 @@
 # and the standalone server crashes on its first request. See the comment
 # there for why.
 #
-# `prisma migrate deploy` deliberately does NOT run from the runtime image:
-# the `prisma` CLI package drags in engine binaries and Prisma Studio's own
-# UI toolchain that the running app itself never needs — it only ever talks
-# to Postgres through `@prisma/client` + the `pg` driver adapter, no engine
-# binary involved. Migrations instead run from the dedicated `migrate` stage
-# below (see docker-compose.yml's `migrate` service, `build.target: migrate`,
-# behind the "app" profile) — its own isolated dependency set
-# (`docker/migrate/package.json` + `bun.lock`), entirely separate from the
-# app's, so next/react/tiptap/sass etc. never end up in it. Reusing the
-# app's `builder` stage as-is used to be the previous approach; that put the
-# full node_modules tree (~1GB, everything the app itself needs) plus the
-# entire built app into an image whose only job is to run two one-shot CLI
-# commands, ballooning it to ~1.9GB.
+# `prisma migrate deploy` runs when the app container starts (`docker/
+# entrypoint.sh`), so changing the image tag also updates the database. The
+# `prisma` CLI drags in engine binaries and Prisma Studio's own UI toolchain
+# that the running app itself never needs — it only talks to Postgres through
+# `@prisma/client` + the `pg` driver adapter — which is why the CLI and the
+# migrations live in their own isolated dependency set (`docker/migrate/
+# package.json` + `bun.lock`, the `migrate-deps` stage) under /opt/migrate,
+# apart from the app's node_modules. The same set also builds the small
+# `migrate` stage below, a standalone image for deployments that migrate in a
+# separate job (docker-compose.yml's `migrate` service, the Helm chart's init
+# container); set MIGRATE_ON_START=false on the app there.
 
 # Pinned, not the floating "1" major tag: a `docker build` on a later date
 # would otherwise silently pull whatever the newest 1.x is at build time —
@@ -94,54 +92,6 @@ RUN bun prisma generate
 RUN bun run build
 
 # ---------------------------------------------------------------------------
-# runner: standalone output only, non-root
-# ---------------------------------------------------------------------------
-FROM oven/bun:${BUN_VERSION}-slim AS runner
-WORKDIR /app
-# `next start` isn't used here — the standalone server.js is a self-
-# contained entrypoint with its own env handling: `hostname =
-# process.env.HOSTNAME || '0.0.0.0'`. Docker sets HOSTNAME to the
-# container ID for every container unless overridden, which server.js
-# then dutifully binds to instead of the "|| '0.0.0.0'" fallback —
-# reachable from the host (its published-port NAT target happens to
-# resolve the same way) but NOT from 127.0.0.1 inside the container
-# itself, which silently broke this image's own HEALTHCHECK and anything
-# depending on it (e.g. Caddy's `depends_on: condition: service_healthy`)
-# until caught here. Must be set explicitly.
-ENV NODE_ENV=production \
-    HOSTNAME=0.0.0.0 \
-    PORT=3000
-
-# oven/bun:*-slim pins a Debian snapshot at publish time, so it drifts
-# behind Debian's own security updates (gzip, perl-base, libsqlite3-0,
-# libpcre2-8-0 CVEs — all "fixed" upstream but not yet in the base image)
-# between Bun releases. `apt-get upgrade` pulls those patched packages in
-# at build time instead of waiting on the next Bun bump; the Trivy scan in
-# docker-build.yml (`ignore-unfixed: true`) fails the build on exactly
-# this class of gap, since a fix is available even though Bun hasn't
-# republished the base image yet.
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
-
-# The base image already ships an unprivileged "bun" user (uid/gid 1000).
-# Chown the still-empty WORKDIR and switch to it *before* copying anything
-# in: a `RUN chown -R` after the fact would force an overlayfs copy-up of
-# every file already in the image onto a new layer, silently doubling the
-# image size for no reason. `--chown` on each COPY avoids that.
-RUN chown bun:bun /app
-USER bun
-
-COPY --chown=bun:bun --from=builder /app/.next/standalone ./
-COPY --chown=bun:bun --from=builder /app/.next/static ./.next/static
-COPY --chown=bun:bun --from=builder /app/public ./public
-
-EXPOSE 3000
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD bun -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000),{redirect:'manual'}).then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
-
-CMD ["bun", "server.js"]
-
-# ---------------------------------------------------------------------------
 # migrate-deps: isolated install for the one-shot migration image — its own
 # package.json + bun.lock (docker/migrate/), not the app's. Keep the pinned
 # versions there in sync with the matching entries in the root package.json.
@@ -184,6 +134,67 @@ COPY lib/rbac ./lib/rbac
 # generate` reads the schema, not a live database.
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
 RUN bun prisma generate
+
+# ---------------------------------------------------------------------------
+# runner: standalone output only, non-root
+# ---------------------------------------------------------------------------
+FROM oven/bun:${BUN_VERSION}-slim AS runner
+WORKDIR /app
+# `next start` isn't used here — the standalone server.js is a self-
+# contained entrypoint with its own env handling: `hostname =
+# process.env.HOSTNAME || '0.0.0.0'`. Docker sets HOSTNAME to the
+# container ID for every container unless overridden, which server.js
+# then dutifully binds to instead of the "|| '0.0.0.0'" fallback —
+# reachable from the host (its published-port NAT target happens to
+# resolve the same way) but NOT from 127.0.0.1 inside the container
+# itself, which silently broke this image's own HEALTHCHECK and anything
+# depending on it (e.g. Caddy's `depends_on: condition: service_healthy`)
+# until caught here. Must be set explicitly.
+ENV NODE_ENV=production \
+    HOSTNAME=0.0.0.0 \
+    PORT=3000
+
+# oven/bun:*-slim pins a Debian snapshot at publish time, so it drifts
+# behind Debian's own security updates (gzip, perl-base, libsqlite3-0,
+# libpcre2-8-0 CVEs — all "fixed" upstream but not yet in the base image)
+# between Bun releases. `apt-get upgrade` pulls those patched packages in
+# at build time instead of waiting on the next Bun bump; the Trivy scan in
+# docker-build.yml (`ignore-unfixed: true`) fails the build on exactly
+# this class of gap, since a fix is available even though Bun hasn't
+# republished the base image yet.
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+
+# The base image already ships an unprivileged "bun" user (uid/gid 1000).
+# Chown the still-empty WORKDIR and switch to it *before* copying anything
+# in: a `RUN chown -R` after the fact would force an overlayfs copy-up of
+# every file already in the image onto a new layer, silently doubling the
+# image size for no reason. `--chown` on each COPY avoids that.
+RUN chown bun:bun /app
+USER bun
+
+COPY --chown=bun:bun --from=builder /app/.next/standalone ./
+COPY --chown=bun:bun --from=builder /app/.next/static ./.next/static
+COPY --chown=bun:bun --from=builder /app/public ./public
+
+# The migrations and what runs them (`prisma migrate deploy` +
+# `prisma/bootstrap.ts`, with the isolated dependency set of `migrate-deps`)
+# travel with the app image, in their own directory so they never mix with the
+# standalone build's node_modules. The entrypoint applies pending migrations
+# before the server starts — changing the image tag is the whole update.
+COPY --chown=bun:bun --from=migrate-deps /app/node_modules /opt/migrate/node_modules
+COPY --chown=bun:bun --from=migrate-deps /app/prisma.config.ts /app/tsconfig.json /opt/migrate/
+COPY --chown=bun:bun --from=migrate-deps /app/prisma /opt/migrate/prisma
+COPY --chown=bun:bun --from=migrate-deps /app/lib /opt/migrate/lib
+COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/barynt-entrypoint
+
+EXPOSE 3000
+
+# The start period covers a first start that has migrations to apply.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD bun -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000),{redirect:'manual'}).then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
+
+ENTRYPOINT ["barynt-entrypoint"]
+CMD ["bun", "server.js"]
 
 # ---------------------------------------------------------------------------
 # migrate: runs `prisma migrate deploy` + `prisma/bootstrap.ts` once against
