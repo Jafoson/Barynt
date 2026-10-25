@@ -9,12 +9,10 @@ fullnameOverride: ""
 image:
   app:
     repository: ghcr.io/jafoson/barynt
-    # Leer = .Chart.AppVersion. In Produktion auf einen Commit-SHA oder Tag
-    # pinnen statt "latest" zu übernehmen — reproduzierbare Rollouts/Rollbacks.
-    tag: ""
-    pullPolicy: IfNotPresent
-  migrate:
-    repository: ghcr.io/jafoson/barynt-migrate
+    # Leer = .Chart.AppVersion (die Release-Version, z. B. "1.0.10"). Das App-Image
+    # migriert die Datenbank beim Start selbst (docker/entrypoint.sh) — ein
+    # Update ist nur ein anderes Tag. In Produktion auf ein Release pinnen statt
+    # "latest" zu übernehmen — reproduzierbare Rollouts/Rollbacks.
     tag: ""
     pullPolicy: IfNotPresent
 
@@ -34,7 +32,7 @@ podAnnotations: {}
 # und gehört auf den Pod, nicht in den Container-securityContext — die
 # Kubernetes-API kennt `allowPrivilegeEscalation`/`capabilities` nur auf
 # Container-Ebene, seccompProfile dagegen auf beiden; einmal hier gesetzt
-# gilt es für alle Container im Pod (App + `migrate`-initContainer), ohne
+# gilt es für alle Container im Pod (App + `rustfs-init`-initContainer), ohne
 # Wiederholung.
 podSecurityContext:
   runAsNonRoot: true
@@ -87,6 +85,12 @@ probes:
   initialDelaySeconds: 10
   periodSeconds: 10
   failureThreshold: 3
+  # Der Container migriert beim Start die Datenbank, bevor der Server hochfährt
+  # (dauert nach einem Update mit vielen Migrationen). Der startupProbe hält
+  # Liveness/Readiness solange zurück: periodSeconds x failureThreshold =
+  # maximale Startzeit (Standard 5 Minuten).
+  startupPeriodSeconds: 5
+  startupFailureThreshold: 60
 
 # AUTH_URL: Basis-URL der Anwendung (Auth.js-Callbacks, Einladungslinks).
 # In Produktion erforderlich — ohne echten Wert zeigen Links auf localhost.
@@ -305,25 +309,19 @@ smtp:
   companyName: ""
   companyAddress: ""
 
-# Migrations-Job (Helm-Hook, siehe templates/migration-job.yaml) — Backoff
-# bewusst 0: eine fehlgeschlagene Migration soll einen Menschen holen, nicht
-# automatisch erneut versuchen.
-migration:
-  backoffLimit: 0
-  ttlSecondsAfterFinished: 300
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      memory: 512Mi
+# Ressourcen der Init-Container (rustfs-init).
+initResources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi
 
 # Generische Escape-Hatches für alles, was der Chart nicht selbst abbildet
 # (z. B. ein interner CA-Trust-Anchor, ein Split-Horizon-DNS-Eintrag für
 # einen internen IdP) — werden unverändert an alle Container des Pods
-# durchgereicht (app, migrate-initContainer, rustfs-init), da migrate und
-# rustfs-init dieselbe Datenbank/denselben Endpunkt ansprechen und damit
-# praktisch immer dieselbe Konfiguration brauchen. extraVolumes hängt schon
+# durchgereicht (app, rustfs-init), da beide dasselbe Netz/denselben
+# Endpunkt ansprechen und damit praktisch immer dieselbe Konfiguration brauchen. extraVolumes hängt schon
 # am Pod und gilt damit ohnehin für alle Container. Bleiben bewusst generisch
 # statt eine konkrete Installation (z. B. einen bestimmten IdP-Hostnamen)
 # fest zu verdrahten.

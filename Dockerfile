@@ -33,10 +33,9 @@
 # `@prisma/client` + the `pg` driver adapter — which is why the CLI and the
 # migrations live in their own isolated dependency set (`docker/migrate/
 # package.json` + `bun.lock`, the `migrate-deps` stage) under /opt/migrate,
-# apart from the app's node_modules. The same set also builds the small
-# `migrate` stage below, a standalone image for deployments that migrate in a
-# separate job (docker-compose.yml's `migrate` service, the Helm chart's init
-# container); set MIGRATE_ON_START=false on the app there.
+# apart from the app's node_modules. There is one image: no separate migrate
+# image or job. Set MIGRATE_ON_START=false if the database is migrated
+# elsewhere.
 
 # Pinned, not the floating "1" major tag: a `docker build` on a later date
 # would otherwise silently pull whatever the newest 1.x is at build time —
@@ -92,7 +91,8 @@ RUN bun prisma generate
 RUN bun run build
 
 # ---------------------------------------------------------------------------
-# migrate-deps: isolated install for the one-shot migration image — its own
+# migrate-deps: the isolated install for the migrations the app image runs on
+# start (/opt/migrate) — its own
 # package.json + bun.lock (docker/migrate/), not the app's. Keep the pinned
 # versions there in sync with the matching entries in the root package.json.
 # ---------------------------------------------------------------------------
@@ -195,23 +195,3 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
 
 ENTRYPOINT ["barynt-entrypoint"]
 CMD ["bun", "server.js"]
-
-# ---------------------------------------------------------------------------
-# migrate: runs `prisma migrate deploy` + `prisma/bootstrap.ts` once against
-# a real database (see docker-compose.yml's `migrate` service). Non-root,
-# same as `runner`.
-# ---------------------------------------------------------------------------
-FROM oven/bun:${BUN_VERSION}-slim AS migrate
-WORKDIR /app
-
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
-
-RUN chown bun:bun /app
-USER bun
-
-COPY --chown=bun:bun --from=migrate-deps /app/node_modules ./node_modules
-COPY --chown=bun:bun --from=migrate-deps /app/prisma.config.ts /app/tsconfig.json ./
-COPY --chown=bun:bun --from=migrate-deps /app/prisma ./prisma
-COPY --chown=bun:bun --from=migrate-deps /app/lib ./lib
-
-CMD ["sh", "-c", "bun prisma migrate deploy && bun prisma/bootstrap.ts"]
