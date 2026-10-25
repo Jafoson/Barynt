@@ -62,6 +62,15 @@ Versions and release notes are semi-automated, see `releases/README.md`.
   may bypass it).
 - The sidebar's update card (`lib/update-check.ts`) looks at the latest GitHub
   release; `UPDATE_CHECK=false` turns the check off.
+- **Release notes in the app (BARY-191):** the version line under the user card
+  opens a window with the notes (`features/releases`, tabs per version up to the
+  running one). It reads `releases/<version>.md` / `.de.md` at runtime
+  (`lib/releases`; `releases/` is in `outputFileTracingIncludes`), shows the
+  hand-written part only (the generated `changes:` block, the heading and HTML
+  comments are dropped) and serves images from `releases/assets/` through
+  `/api/release-assets/<version>/<file>`. Notes of a version above
+  `package.json`'s are hidden. After an update the window opens once on its own:
+  the cookie `barynt_seen_release` holds the version this browser has seen.
 
 ## Stack
 

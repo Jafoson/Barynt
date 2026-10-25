@@ -76,6 +76,11 @@
 /* Version line under the user card — quiet, but a link to the repository.
    Hidden on the collapsed rail, where there's no room for text. */
 .about {
+  /* A link, or a button when the version has release notes. */
+  border: 0;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
   flex: none;
   display: flex;
   align-items: center;

@@ -39,3 +39,9 @@ empty — images are linked as `![Board](assets/0.2.0/board.png)`.
 `fix:` bumps the patch, `feat:` the minor, `feat!:` / `BREAKING CHANGE:` the
 major (below 1.0: the minor). With only `chore:`, `docs:`, `test:` since the
 last tag there is nothing to propose — give a `version` to release anyway.
+
+The part you write is also what the app shows: the version line under the user
+card opens a window with these notes, one tab per version, in the viewer's
+language. The generated change block, the heading and HTML comments stay out of
+it; images are served from `releases/assets/`. After an update the window opens
+once by itself.

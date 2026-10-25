@@ -1,4 +1,12 @@
 {
+  "releases": {
+    "title": "Release notes",
+    "open": "Show the release notes",
+    "close": "Close",
+    "loading": "Loading …",
+    "empty": "There are no release notes for this version.",
+    "allChanges": "All changes on GitHub"
+  },
   "nav": {
     "openMenu": "Open menu",
     "resizeSidebar": "Resize sidebar",
