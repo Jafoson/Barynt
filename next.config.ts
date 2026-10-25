@@ -39,8 +39,8 @@ const nextConfig: NextConfig = {
   // crashes on its first Prisma query. Deliberately NOT including the
   // `prisma` CLI package here — it drags in ~200MB of engine binaries
   // (schema engine, Prisma Studio) that the running app never needs;
-  // `prisma migrate deploy` instead runs from the `builder` stage as a
-  // separate one-off step (see docker-compose.prod.yml's `migrate` service).
+  // `prisma migrate deploy` runs from its own isolated install under
+  // /opt/migrate in the image (see the Dockerfile and docker/entrypoint.sh).
   outputFileTracingIncludes: {
     "/*": [
       "lib/generated/prisma/**/*",

@@ -1,16 +1,15 @@
 {{/*
-Migrationen laufen bewusst NICHT als separater pre-install/pre-upgrade-Hook-
-Job (der naheliegende Standard-Pattern aus der Recherche im Ticket):
-Postgres ist bei postgresql.enabled Teil desselben Charts, und ein
-pre-install-Hook läuft VOR allen normalen Chart-Ressourcen — bei der
-allerersten Installation existiert die Postgres-StatefulSet zu dem
-Zeitpunkt noch gar nicht, der Hook würde gegen eine nicht existierende
-Datenbank laufen. initContainer auf dem App-Pod selbst umgeht das: sie
-laufen erst, wenn der Pod tatsächlich gestartet wird, Prismas
-`migrate deploy` ist über eine Advisory-Lock idempotent und
+Migrationen laufen im App-Container selbst: das Image führt beim Start
+`prisma migrate deploy` und `prisma/bootstrap.ts` aus (docker/entrypoint.sh),
+bevor der Server hochfährt — ein Update ist nur ein anderes Image-Tag. Es
+gibt weder ein separates Migrate-Image noch einen Hook-Job oder initContainer
+dafür: ein pre-install-Hook liefe vor allen normalen Chart-Ressourcen, bei der
+allerersten Installation gäbe es die gebündelte Postgres-StatefulSet noch gar
+nicht. Prismas `migrate deploy` ist über eine Advisory-Lock idempotent und
 nebenläufig-sicher (mehrere Replicas dürfen gleichzeitig starten),
 `prisma/bootstrap.ts` nutzt `skipDuplicates` — beide vertragen es
-problemlos, bei jedem Rollout erneut zu laufen.
+problemlos, bei jedem Rollout erneut zu laufen. Der startupProbe der App
+gibt ihnen die Zeit.
 */}}
 apiVersion: apps/v1
 kind: Deployment
@@ -43,55 +42,15 @@ spec:
       hostAliases:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if and .Values.rustfs.enabled (not .Values.s3.existingSecret) }}
       initContainers:
-        - name: migrate
-          image: "{{ .Values.image.migrate.repository }}:{{ .Values.image.migrate.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.migrate.pullPolicy }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          command:
-            - sh
-            - -c
-            # Kurze Warteschleife auf Postgres, bevor Prisma überhaupt
-            # versucht zu verbinden — sonst nur abhängig vom initialen
-            # Kubernetes-Backoff (startet bei ~10s), was bei einer frisch
-            # provisionierten Postgres-PVC unnötig lange bis zum ersten
-            # erfolgreichen Versuch dauern kann.
-            - |
-              set -e
-              host=$(echo "$DATABASE_URL" | sed -E 's#.*@([^:/]+).*#\1#')
-              for i in $(seq 1 30); do
-                (echo > /dev/tcp/$host/5432) >/dev/null 2>&1 && break
-                echo "warte auf $host:5432 ($i/30)"; sleep 2
-              done
-              bun prisma migrate deploy
-              bun prisma/bootstrap.ts
-          {{- with .Values.extraEnvFrom }}
-          envFrom:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          env:
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  {{- include "barynt.databaseUrlRef" . | nindent 18 }}
-            {{- with .Values.extraEnv }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
-          {{- with .Values.extraVolumeMounts }}
-          volumeMounts:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          resources:
-            {{- toYaml .Values.migration.resources | nindent 12 }}
-        {{- if and .Values.rustfs.enabled (not .Values.s3.existingSecret) }}
         - name: rustfs-init
           # Gleiches Image wie der `rustfs-init`-Service in docker-compose.yml:
           # legt die beiden Buckets an und setzt die CORS-Policy, die
           # Presigned-Upload-URLs aus dem Browser erfordern. `|| true` macht
           # den Schritt sicher wiederholbar, wie im Compose-Pendant.
           image: amazon/aws-cli:latest
-          # Gleicher Container-securityContext wie App/migrate — die
+          # Gleicher Container-securityContext wie die App — die
           # runAsUser/-Group des Pods (Values.podSecurityContext, uid/gid
           # 1000) reichen: aws-cli braucht keinen bestimmten UID/GID, läuft
           # unter jeder nicht-root-UID unverändert (per `docker run --user
@@ -138,7 +97,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           resources:
-            {{- toYaml .Values.migration.resources | nindent 12 }}
+            {{- toYaml .Values.initResources | nindent 12 }}
         {{- end }}
       containers:
         - name: app
@@ -198,6 +157,14 @@ spec:
           # Kein dedizierter Health-Endpunkt (siehe values.yaml `probes`) —
           # spiegelt exakt den bestehenden Docker-HEALTHCHECK: GET "/",
           # < 500 gilt als gesund.
+          # Hält Liveness/Readiness zurück, solange der Container beim Start noch
+          # die Datenbank migriert (siehe Kommentar oben).
+          startupProbe:
+            httpGet:
+              path: {{ .Values.probes.path }}
+              port: http
+            periodSeconds: {{ .Values.probes.startupPeriodSeconds }}
+            failureThreshold: {{ .Values.probes.startupFailureThreshold }}
           readinessProbe:
             httpGet:
               path: {{ .Values.probes.path }}

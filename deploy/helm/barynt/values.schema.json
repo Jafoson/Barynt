@@ -4,31 +4,33 @@
   "type": "object",
   "additionalProperties": true,
   "properties": {
-    "replicaCount": { "type": "integer", "minimum": 1 },
+    "replicaCount": {
+      "type": "integer",
+      "minimum": 1
+    },
     "image": {
       "type": "object",
       "properties": {
         "app": {
           "type": "object",
-          "required": ["repository"],
+          "required": [
+            "repository"
+          ],
           "properties": {
-            "repository": { "type": "string", "minLength": 1 },
-            "tag": { "type": "string" },
+            "repository": {
+              "type": "string",
+              "minLength": 1
+            },
+            "tag": {
+              "type": "string"
+            },
             "pullPolicy": {
               "type": "string",
-              "enum": ["Always", "IfNotPresent", "Never"]
-            }
-          }
-        },
-        "migrate": {
-          "type": "object",
-          "required": ["repository"],
-          "properties": {
-            "repository": { "type": "string", "minLength": 1 },
-            "tag": { "type": "string" },
-            "pullPolicy": {
-              "type": "string",
-              "enum": ["Always", "IfNotPresent", "Never"]
+              "enum": [
+                "Always",
+                "IfNotPresent",
+                "Never"
+              ]
             }
           }
         }
@@ -39,23 +41,46 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["ClusterIP", "NodePort", "LoadBalancer"]
+          "enum": [
+            "ClusterIP",
+            "NodePort",
+            "LoadBalancer"
+          ]
         },
-        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
-        "targetPort": { "type": "integer", "minimum": 1, "maximum": 65535 }
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "targetPort": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
       }
     },
     "ingress": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "className": { "type": "string" },
-        "host": { "type": "string", "minLength": 1 },
+        "enabled": {
+          "type": "boolean"
+        },
+        "className": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1
+        },
         "tls": {
           "type": "object",
           "properties": {
-            "enabled": { "type": "boolean" },
-            "secretName": { "type": "string" }
+            "enabled": {
+              "type": "boolean"
+            },
+            "secretName": {
+              "type": "string"
+            }
           }
         }
       }
@@ -63,16 +88,28 @@
     "resources": {
       "type": "object",
       "properties": {
-        "requests": { "type": "object" },
-        "limits": { "type": "object" }
+        "requests": {
+          "type": "object"
+        },
+        "limits": {
+          "type": "object"
+        }
       }
     },
     "autoscaling": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "minReplicas": { "type": "integer", "minimum": 1 },
-        "maxReplicas": { "type": "integer", "minimum": 1 },
+        "enabled": {
+          "type": "boolean"
+        },
+        "minReplicas": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxReplicas": {
+          "type": "integer",
+          "minimum": 1
+        },
         "targetCPUUtilizationPercentage": {
           "type": "integer",
           "minimum": 1,
@@ -83,41 +120,77 @@
     "auth": {
       "type": "object",
       "properties": {
-        "existingSecret": { "type": "string" },
-        "existingSecretKey": { "type": "string" },
+        "existingSecret": {
+          "type": "string"
+        },
+        "existingSecretKey": {
+          "type": "string"
+        },
         "oidc": {
           "type": "object",
           "properties": {
-            "issuer": { "type": "string" },
-            "clientId": { "type": "string" },
-            "name": { "type": "string" },
-            "existingSecret": { "type": "string" },
-            "existingSecretKey": { "type": "string" }
+            "issuer": {
+              "type": "string"
+            },
+            "clientId": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "existingSecret": {
+              "type": "string"
+            },
+            "existingSecretKey": {
+              "type": "string"
+            }
           }
         },
-        "registrationEnabled": { "type": "boolean" },
-        "passkeyLoginEnabled": { "type": "boolean" },
-        "passkeyRegistrationEnabled": { "type": "boolean" }
+        "registrationEnabled": {
+          "type": "boolean"
+        },
+        "passkeyLoginEnabled": {
+          "type": "boolean"
+        },
+        "passkeyRegistrationEnabled": {
+          "type": "boolean"
+        }
       }
     },
     "postgresql": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
+        "enabled": {
+          "type": "boolean"
+        },
         "auth": {
           "type": "object",
           "properties": {
-            "username": { "type": "string", "minLength": 1 },
-            "database": { "type": "string", "minLength": 1 },
-            "existingSecret": { "type": "string" },
-            "existingSecretPasswordKey": { "type": "string" }
+            "username": {
+              "type": "string",
+              "minLength": 1
+            },
+            "database": {
+              "type": "string",
+              "minLength": 1
+            },
+            "existingSecret": {
+              "type": "string"
+            },
+            "existingSecretPasswordKey": {
+              "type": "string"
+            }
           }
         },
         "persistence": {
           "type": "object",
           "properties": {
-            "enabled": { "type": "boolean" },
-            "size": { "type": "string" }
+            "enabled": {
+              "type": "boolean"
+            },
+            "size": {
+              "type": "string"
+            }
           }
         }
       }
@@ -125,45 +198,80 @@
     "externalDatabase": {
       "type": "object",
       "properties": {
-        "existingSecret": { "type": "string" },
-        "existingSecretUrlKey": { "type": "string" }
+        "existingSecret": {
+          "type": "string"
+        },
+        "existingSecretUrlKey": {
+          "type": "string"
+        }
       }
     },
     "redis": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" }
+        "enabled": {
+          "type": "boolean"
+        }
       }
     },
     "externalRedis": {
       "type": "object",
       "properties": {
-        "host": { "type": "string" },
-        "port": { "type": "integer", "minimum": 1, "maximum": 65535 }
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
       }
     },
     "s3": {
       "type": "object",
       "properties": {
-        "region": { "type": "string", "minLength": 1 },
-        "bucketAvatars": { "type": "string", "minLength": 1 },
-        "bucketIssues": { "type": "string", "minLength": 1 },
-        "existingSecret": { "type": "string" }
+        "region": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bucketAvatars": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bucketIssues": {
+          "type": "string",
+          "minLength": 1
+        },
+        "existingSecret": {
+          "type": "string"
+        }
       }
     },
     "rustfs": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" }
+        "enabled": {
+          "type": "boolean"
+        }
       }
     },
     "smtp": {
       "type": "object",
       "properties": {
-        "host": { "type": "string" },
-        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
-        "secure": { "type": "boolean" },
-        "existingSecret": { "type": "string" }
+        "host": {
+          "type": "string"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "secure": {
+          "type": "boolean"
+        },
+        "existingSecret": {
+          "type": "string"
+        }
       }
     }
   }

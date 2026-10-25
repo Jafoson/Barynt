@@ -11,7 +11,7 @@ name: orbit
 #   still start postgres alone, unchanged. The app itself runs via
 #   `bun run dev` on the host, not in a container.
 # - Production: `docker compose --profile app up -d --build` additionally
-#   builds and starts `migrate` (once) and `app`.
+#   builds and starts `app`, which applies pending migrations when it starts.
 #
 # Every credential below is overridable from a ".env" next to this file
 # (see example.env for the full, commented list of app-level config —
@@ -21,7 +21,7 @@ name: orbit
 # with the literal password "postgres" is fine on a laptop, not on a
 # server with an exposed port.
 #
-# `app`/`migrate` default to a DATABASE_URL built from POSTGRES_USER/
+# `app` defaults to a DATABASE_URL built from POSTGRES_USER/
 # PASSWORD/DB below (the bundled `postgres` service). This deliberately
 # does NOT key off .env's own DATABASE_URL — that name already means
 # something else there (the *host*-side connection string `bun run dev`
@@ -47,10 +47,10 @@ name: orbit
 # from inside the containers. Don't want file storage at all? Run with
 # `--scale rustfs=0 --scale rustfs-init=0`.
 #
-# Multi-arch app image: `app`/`migrate` below default to the prebuilt,
-# multi-arch images CI publishes to ghcr.io (.github/workflows/docker-build.yml)
+# Multi-arch app image: `app` below defaults to the prebuilt,
+# multi-arch image CI publishes to ghcr.io (.github/workflows/docker-build.yml)
 # — `docker compose --profile app up -d` alone is enough, no build step, no
-# full source checkout. Uncomment the `build:` lines on both services instead
+# full source checkout. Uncomment the `build:` lines on `app` instead
 # to build your own changes locally (natively for whatever architecture the
 # host actually is), e.g. while working on Barynt itself.
 #
@@ -130,37 +130,6 @@ services:
       - "127.0.0.1:1025:1025"
       - "127.0.0.1:8025:8025"
 
-  # One-off: applies pending migrations, then bootstraps the system data
-  # migrations alone don't cover — the global Status/Priority/IssueType rows
-  # and RBAC permissions/system roles every workspace needs (see
-  # prisma/bootstrap.ts; skipped here, a fresh instance could migrate clean
-  # and still fail its very first "Create workspace" on a foreign-key
-  # violation). Pulls the dedicated `migrate` stage (Dockerfile) from the
-  # registry rather than the `app` image itself — that image only ships
-  # Next's pruned standalone output and deliberately has no `prisma` CLI —
-  # and rather than building locally: a `next build` is the one step in this
-  # whole stack that genuinely needs real CPU/RAM (a small VPS can
-  # swap-thrash or crash trying), and CI already produced this exact image.
-  # `migrate`'s own dependency set (docker/migrate/package.json) is isolated
-  # from the app's, so this pull stays small instead of dragging in
-  # next/react/tiptap/sass and the rest of the app's node_modules. `app`
-  # waits for this to exit 0 before starting.
-  migrate:
-    profiles: ["app"]
-    image: ghcr.io/jafoson/barynt-migrate:latest
-    # build:                        # uncomment to build from source instead
-    #   context: .
-    #   dockerfile: Dockerfile
-    #   target: migrate
-    command:
-      ["sh", "-c", "bun prisma migrate deploy && bun prisma/bootstrap.ts"]
-    restart: "no"
-    environment:
-      DATABASE_URL: "${COMPOSE_DATABASE_URL:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-IssueTracker}}"
-    depends_on:
-      postgres:
-        condition: service_healthy
-
   # Self-hosted, S3-compatible object storage for avatars/attachments —
   # see the header comment above for why it's bundled and how to opt out
   # or replace it with real S3.
@@ -236,9 +205,13 @@ services:
   app:
     profiles: ["app"]
     # Prebuilt, multi-arch, Trivy-scanned, cosign-signed image from CI — no
-    # local build needed to self-host this (see `migrate` above for why that
-    # matters on a small box). Uncomment `build:` below instead if you're
-    # working on Barynt itself and want your own changes reflected.
+    # local build needed to self-host this: a `next build` is the one step in
+    # this whole stack that genuinely needs real CPU/RAM (a small VPS can
+    # swap-thrash or crash trying). The container applies pending migrations
+    # and bootstraps the system data every workspace needs (prisma/
+    # bootstrap.ts) before the server starts (docker/entrypoint.sh).
+    # Uncomment `build:` below instead if you're working on Barynt itself
+    # and want your own changes reflected.
     image: ghcr.io/jafoson/barynt:latest
     # build:
     #   context: .
@@ -297,8 +270,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
       rustfs-init:
         condition: service_completed_successfully
 

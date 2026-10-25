@@ -7,6 +7,11 @@ on:
         description: "Image tag (defaults to the short commit SHA)"
         required: false
         type: string
+      latest:
+        description: "Also move the `latest` tag (a build from a git tag always does)"
+        required: false
+        type: boolean
+        default: false
       platforms:
         description: "Target platforms"
         required: false
@@ -23,45 +28,36 @@ jobs:
       tag: ${{ steps.vars.outputs.tag }}
       image: ${{ steps.vars.outputs.image }}
       tags: ${{ steps.vars.outputs.tags }}
-      migrate_image: ${{ steps.vars.outputs.migrate_image }}
-      migrate_tags: ${{ steps.vars.outputs.migrate_tags }}
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
       - name: Determine image tag and name
         id: vars
         run: |
+          # The tag is the bare version — "1.0.10", never "v1.0.10": a leading
+          # "v" (the git tag's own, or typed in) is dropped.
           if [ -n "${{ inputs.tag }}" ]; then
             tag="${{ inputs.tag }}"
+            tag="${tag#v}"
           elif [ "${{ github.ref_type }}" = "tag" ]; then
             tag="${{ github.ref_name }}"
+            tag="${tag#v}"
           else
             tag="$(echo "${{ github.sha }}" | cut -c1-7)"
           fi
           image="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
-          # Separate image, not just a tag suffix on the app image: the
-          # `latest` tag stays a plain, unambiguous "the app" reference for
-          # anyone pulling by hand, and docker-compose.yml's `image:` lines
-          # for `app`/`migrate` read the same either way.
-          migrate_image="${image}-migrate"
 
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "image=$image" >> "$GITHUB_OUTPUT"
-          echo "migrate_image=$migrate_image" >> "$GITHUB_OUTPUT"
 
+          # `latest` is the newest release: only a build from a git tag, or one
+          # asked to (`latest` input), moves it. A plain build from a branch (a
+          # test image) only gets its own tag, so it can't replace what
+          # `latest` points to.
           {
             echo "tags<<EOF"
             echo "$image:$tag"
-            if [ "${{ github.ref_type }}" != "tag" ]; then
+            if [ "${{ github.ref_type }}" = "tag" ] || [ "${{ inputs.latest }}" = "true" ]; then
               echo "$image:latest"
-            fi
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-          {
-            echo "migrate_tags<<EOF"
-            echo "$migrate_image:$tag"
-            if [ "${{ github.ref_type }}" != "tag" ]; then
-              echo "$migrate_image:latest"
             fi
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
@@ -183,14 +179,8 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          # Explicit, matching the `migrate` step below — without it, a
-          # multi-stage build with no --target builds the *last* stage in
-          # the Dockerfile, which is `migrate`, not `runner` (the app).
-          # That shipped the migrate image's content as `barynt:latest` on
-          # 2026-09-14 (no HEALTHCHECK, CMD running `prisma migrate deploy`
-          # instead of the server) — likely masked by GHA cache reuse in
-          # every build since the `migrate` stage was added (BARY-27) until
-          # this one finally missed the cache.
+          # Explicit: without it a multi-stage build builds the *last* stage
+          # of the Dockerfile, not necessarily `runner` (the app).
           target: runner
           platforms: ${{ matrix.platform }}
           provenance: true
@@ -213,42 +203,6 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      # The dedicated `migrate` stage, published as its own image so
-      # docker-compose.yml's `migrate` service can run `prisma migrate
-      # deploy` + the system-data bootstrap (prisma/bootstrap.ts) straight
-      # from the registry — no git clone, no local `next build`, on whatever
-      # box someone self-hosts this on. `migrate`/`migrate-deps` have their
-      # own isolated dependency set (docker/migrate/package.json + bun.lock,
-      # not the app's), so this doesn't share a cache scope with the app
-      # build above the way the old `builder`-stage reuse did — there's
-      # nothing in common to warm.
-      - name: Build and push migrate image by digest
-        id: build-migrate
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          target: migrate
-          platforms: ${{ matrix.platform }}
-          provenance: true
-          sbom: true
-          outputs: type=image,name=${{ needs.vars.outputs.migrate_image }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=${{ matrix.slug }}-migrate
-          cache-to: type=gha,mode=max,scope=${{ matrix.slug }}-migrate
-
-      - name: Export migrate digest
-        run: |
-          mkdir -p /tmp/migrate-digests
-          digest="${{ steps.build-migrate.outputs.digest }}"
-          touch "/tmp/migrate-digests/${digest#sha256:}"
-
-      - name: Upload migrate digest
-        uses: actions/upload-artifact@v7
-        with:
-          name: migrate-digests-${{ matrix.slug }}
-          path: /tmp/migrate-digests/*
-          if-no-files-found: error
-          retention-days: 1
-
   merge:
     name: Merge manifest & sign
     needs: [vars, build]
@@ -264,13 +218,6 @@ jobs:
         with:
           path: /tmp/digests
           pattern: digests-*
-          merge-multiple: true
-
-      - name: Download migrate digests
-        uses: actions/download-artifact@v8
-        with:
-          path: /tmp/migrate-digests
-          pattern: migrate-digests-*
           merge-multiple: true
 
       - name: Set up Docker Buildx
@@ -294,17 +241,6 @@ jobs:
           docker buildx imagetools create "${tag_args[@]}" \
             $(printf '${{ needs.vars.outputs.image }}@sha256:%s ' *)
 
-      - name: Create migrate manifest list and push
-        working-directory: /tmp/migrate-digests
-        run: |
-          tag_args=()
-          while IFS= read -r t; do
-            [ -n "$t" ] && tag_args+=(-t "$t")
-          done <<< "${{ needs.vars.outputs.migrate_tags }}"
-
-          docker buildx imagetools create "${tag_args[@]}" \
-            $(printf '${{ needs.vars.outputs.migrate_image }}@sha256:%s ' *)
-
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
 
@@ -313,4 +249,3 @@ jobs:
       - name: Sign image (keyless)
         run: |
           cosign sign --yes "${{ needs.vars.outputs.image }}:${{ needs.vars.outputs.tag }}"
-          cosign sign --yes "${{ needs.vars.outputs.migrate_image }}:${{ needs.vars.outputs.tag }}"

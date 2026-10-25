@@ -9,9 +9,7 @@ replicaCount: 3
 
 image:
   app:
-    tag: "695d477" # in Produktion immer auf einen konkreten Commit/Tag pinnen, nie "latest"
-  migrate:
-    tag: "695d477"
+    tag: "1.0.10" # in Produktion immer auf ein konkretes Release pinnen, nie "latest"
 
 ingress:
   enabled: true

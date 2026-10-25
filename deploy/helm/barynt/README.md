@@ -1,8 +1,8 @@
 # barynt (Helm-Chart)
 
-Rollt dieselben Images aus, die `docker-compose.yml` auf einem
-Single-Host-Deployment fährt (`ghcr.io/jafoson/barynt` +
-`ghcr.io/jafoson/barynt-migrate`), für einen Kubernetes-Cluster. Siehe
+Rollt dasselbe Image aus, das `docker-compose.yml` auf einem
+Single-Host-Deployment fährt (`ghcr.io/jafoson/barynt`), für einen
+Kubernetes-Cluster. Das Image migriert die Datenbank beim Start selbst. Siehe
 BARY-22.
 
 ## Schnellstart
@@ -38,29 +38,27 @@ DB/Redis/S3, Ingress+TLS) als Ausgangspunkt nehmen.
 | Compose-Service     | Hier                                             |
 | -------------------- | ------------------------------------------------ |
 | `app`                 | `Deployment` + `Service` (+ optional `Ingress`, `HPA`) |
-| `migrate`             | initContainer auf dem App-Pod (siehe unten, **nicht** als Hook-Job) |
 | `postgres`            | eigene `StatefulSet` (`postgresql.enabled`) oder `externalDatabase.*` |
 | `redis`               | eigene `StatefulSet` (`redis.enabled`) oder `externalRedis.*` |
 | `rustfs`/`rustfs-init` | eigenes `Deployment`+`PVC` (`rustfs.enabled`), Bucket/CORS-Setup als initContainer |
 | `caddy`               | entfällt — `Ingress` + cert-manager übernehmen automatisches HTTPS |
 
-## Warum Migrationen als initContainer, nicht als Helm-Hook-Job
+## Migrationen: der App-Container migriert beim Start selbst
 
-Der naheliegende Standard-Pattern für DB-Migrationen in Helm ist ein
-`pre-install,pre-upgrade`-Hook-Job. Das funktioniert sauber, **solange die
-Datenbank nicht Teil desselben Charts ist** — bei uns per Default aber
-schon (`postgresql.enabled: true`). Ein `pre-install`-Hook läuft *vor* allen
-normalen Chart-Ressourcen; bei der allerersten Installation gäbe es die
-Postgres-`StatefulSet` zu dem Zeitpunkt noch gar nicht, der Hook liefe gegen
-eine nicht existierende Datenbank.
+Es gibt weder ein Migrate-Image noch einen Hook-Job oder initContainer dafür.
+Das App-Image führt beim Start `prisma migrate deploy && bun
+prisma/bootstrap.ts` aus (`docker/entrypoint.sh`), bevor der Server hochfährt —
+ein Update ist nur ein anderes Image-Tag. Ein `pre-install`-Hook-Job kam nicht
+in Frage: Er läuft vor allen normalen Chart-Ressourcen, bei der allerersten
+Installation existierte die gebündelte Postgres-`StatefulSet` noch gar nicht.
 
-Migrationen laufen deshalb als initContainer auf dem App-Pod selbst (Image:
-`barynt-migrate`, Befehl unverändert: `bun prisma migrate deploy && bun
-prisma/bootstrap.ts`, mit kurzer TCP-Warteschleife davor). Das ist sicher,
-weil beide Befehle idempotent/nebenläufig-sicher sind — `prisma migrate
-deploy` nimmt eine Advisory-Lock, `bootstrap.ts` nutzt `skipDuplicates` —,
-läuft also unbeschadet mehrfach (mehrere Replicas, jeder Rollout), ohne die
-Hook-Ordnungsproblematik gegen eine gebündelte Datenbank zu haben.
+Das ist sicher, weil beide Befehle idempotent/nebenläufig-sicher sind —
+`prisma migrate deploy` nimmt eine Advisory-Lock, `bootstrap.ts` nutzt
+`skipDuplicates` —, läuft also unbeschadet mehrfach (mehrere Replicas, jeder
+Rollout). Der `startupProbe` der App (`probes.startup*`, Standard 5 Minuten)
+hält Liveness/Readiness zurück, solange noch migriert wird. Wird die Datenbank
+anderswo migriert, setzt man `MIGRATE_ON_START=false` per `extraEnv`;
+`MIGRATE_DATABASE_URL` nimmt einen Datenbank-User mit Schema-Rechten.
 
 ## Warum keine Bitnami-Subcharts für Postgres/Redis
 
@@ -230,10 +228,9 @@ hostAliases:
 ```
 
 `extraEnv`/`extraEnvFrom`/`extraVolumeMounts` landen auf allen Containern
-des Pods (App, `migrate`-initContainer, `rustfs-init`) — unverändert
-durchgereicht, keine Chart-seitige Sonderlogik. `migrate` und `rustfs-init`
-sprechen dieselbe Datenbank bzw. denselben Endpunkt an wie der App-Container
-und brauchen deshalb praktisch immer dieselbe Konfiguration, z. B. einen
+des Pods (App, `rustfs-init`) — unverändert durchgereicht, keine
+Chart-seitige Sonderlogik. Beide sprechen dasselbe Netz bzw. denselben
+Endpunkt an und brauchen deshalb praktisch immer dieselbe Konfiguration, z. B. einen
 internen CA-Trust-Anchor per `NODE_EXTRA_CA_CERTS` gegen ein Postgres mit
 selbstsigniertem Zertifikat. `extraVolumes`/`hostAliases` landen ohnehin am
 App-Pod und gelten damit schon für alle Container.
@@ -242,7 +239,7 @@ App-Pod und gelten damit schon für alle Container.
 
 Läuft standardmäßig gegen einen Namespace mit
 `pod-security.kubernetes.io/enforce=restricted` (Cilium/Gateway-API-Cluster
-o.ä.). Jeder Container (App, `migrate`-initContainer, `rustfs-init`,
+o.ä.). Jeder Container (App, `rustfs-init`,
 Postgres, Redis, RustFS) startet `runAsNonRoot`, ohne
 `allowPrivilegeEscalation`, mit `capabilities.drop: ["ALL"]` und
 `seccompProfile.type: RuntimeDefault`.
@@ -259,7 +256,7 @@ nicht geraten:
 | `postgres:17-alpine`      | 70 / 70     |
 | `redis:7-alpine`          | 999 / 1000  |
 | `rustfs/rustfs:latest`    | 10001/10001 |
-| `amazon/aws-cli:latest` (`rustfs-init`) | beliebig, läuft unter jeder Nicht-root-UID — bekommt denselben Container-`securityContext` wie App/`migrate` (uid/gid 1000) |
+| `amazon/aws-cli:latest` (`rustfs-init`) | beliebig, läuft unter jeder Nicht-root-UID — bekommt denselben Container-`securityContext` wie die App (uid/gid 1000) |
 
 Abnahme in einem echten Cluster (kind reicht):
 
@@ -280,9 +277,10 @@ Läuft auch automatisiert in CI, siehe `.github/workflows/helm-lint.yml`
 ## Versionierung
 
 Chart-Version (`Chart.yaml: version`, SemVer) und `appVersion` sind getrennte
-Zähler. `image.app.tag`/`image.migrate.tag` fallen auf `appVersion` zurück,
-wenn leer — in Produktion trotzdem explizit auf einen Commit-SHA oder
-Release-Tag pinnen statt `latest`, für reproduzierbare Rollouts/Rollbacks.
+Zähler (seit 1.0.10 laufen sie gleich: Chart `1.0.10`, `appVersion` `"1.0.10"`).
+`image.app.tag` fällt auf `appVersion` zurück, wenn leer — in Produktion
+trotzdem explizit auf ein Release pinnen (z. B. `1.0.10`, kein `v`-Präfix)
+statt `latest`, für reproduzierbare Rollouts/Rollbacks.
 
 ## Chart veröffentlichen
 

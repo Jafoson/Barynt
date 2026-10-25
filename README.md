@@ -114,11 +114,11 @@ bunx auth secret   # paste the result into AUTH_SECRET in .env
 docker compose --profile app up -d
 ```
 
-This pulls and starts the app, a one-off migration runner (applies pending migrations, then bootstraps the system data every workspace needs — see [prisma/bootstrap.ts](prisma/bootstrap.ts)), bundled RustFS object storage, and [Caddy](https://caddyserver.com) as a reverse proxy with automatic Let's Encrypt HTTPS once `DOMAIN` points at the host. Every service besides Caddy binds to `127.0.0.1` by default — only ports 80/443 are meant to be exposed publicly. See the comments at the top of [docker-compose.yml](docker-compose.yml) and [example.env](example.env) for the full set of options (external Postgres/S3/SMTP, custom ports, etc.).
+This pulls and starts the app, the app (which applies pending migrations and bootstraps the system data every workspace needs — see [prisma/bootstrap.ts](prisma/bootstrap.ts) — before it starts), bundled RustFS object storage, and [Caddy](https://caddyserver.com) as a reverse proxy with automatic Let's Encrypt HTTPS once `DOMAIN` points at the host. Every service besides Caddy binds to `127.0.0.1` by default — only ports 80/443 are meant to be exposed publicly. See the comments at the top of [docker-compose.yml](docker-compose.yml) and [example.env](example.env) for the full set of options (external Postgres/S3/SMTP, custom ports, etc.).
 
-**Updating** is changing the image tag (or `docker compose pull`) and restarting: the app container applies pending database migrations itself before the server starts (`docker/entrypoint.sh`), so there is nothing to run separately. Set `MIGRATE_ON_START=false` on the app if your database is migrated elsewhere (the standalone `barynt-migrate` image, a job), and `MIGRATE_DATABASE_URL` if migrations need a database user other than the app's `DATABASE_URL`.
+**Updating** is changing the image tag (or `docker compose pull`) and restarting: the app container applies pending database migrations itself before the server starts (`docker/entrypoint.sh`), so there is nothing to run separately. Set `MIGRATE_ON_START=false` on the app if your database is migrated elsewhere, and `MIGRATE_DATABASE_URL` if migrations need a database user other than the app's `DATABASE_URL`.
 
-Working on Barynt itself? Clone the repo and uncomment the `build:` lines on `app`/`migrate` in `docker-compose.yml` to run your own changes instead: `docker compose --profile app up -d --build`.
+Working on Barynt itself? Clone the repo and uncomment the `build:` lines on `app` in `docker-compose.yml` to run your own changes instead: `docker compose --profile app up -d --build`.
 
 ## Testing
 
