@@ -111,9 +111,9 @@ describe("renderChanges", () => {
     expect(renderChanges(ctx(many))).toContain("All changes (13)");
   });
 
-  test("the first release has no list", () => {
-    expect(renderChanges({ ...ctx([]), previous: null })).toBe(
-      "First release.",
+  test("the first release has no generated list", () => {
+    expect(renderChanges({ ...ctx([parsed("feat: x")]), previous: null })).toBe(
+      "",
     );
   });
 });

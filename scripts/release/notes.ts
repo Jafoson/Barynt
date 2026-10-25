@@ -110,7 +110,6 @@ const TITLES: Record<Lang, Record<string, string>> = {
     maintenance: "Maintenance",
     previous: "Previous version",
     changelog: "Full changelog",
-    first: "First release.",
     all: "All changes",
   },
   de: {
@@ -121,7 +120,6 @@ const TITLES: Record<Lang, Record<string, string>> = {
     maintenance: "Wartung",
     previous: "Vorherige Version",
     changelog: "Alle Änderungen",
-    first: "Erstes Release.",
     all: "Alle Änderungen",
   },
 };
@@ -149,9 +147,9 @@ export function renderChanges(ctx: RenderContext): string {
   const t = TITLES[ctx.lang];
   const out: string[] = [];
 
-  if (ctx.previous === null) {
-    out.push(t.first);
-  } else {
+  // The first tagged release has nothing to compare with — its notes are
+  // written by hand, the generated block stays empty.
+  if (ctx.previous !== null) {
     const prev = `v${ctx.previous.replace(/^v/, "")}`;
     const sections: string[] = [];
     const section = (title: string, list: ParsedCommit[]) => {
