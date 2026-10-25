@@ -11,6 +11,8 @@ import {
   renderChanges,
   renderReleaseBody,
   rewriteImagePaths,
+  unescapeInput,
+  withHighlights,
 } from "@/scripts/release/notes";
 
 const commit = (subject: string, body = ""): Commit => ({
@@ -203,5 +205,38 @@ describe("release body", () => {
       tag: "v1.0.0",
     });
     expect(out).toBe("Hello\n");
+  });
+});
+
+describe("withHighlights", () => {
+  const fresh = mergeReleaseFile(null, {
+    lang: "en",
+    repo: "o/r",
+    version: "0.2.0",
+    previous: "0.1.0",
+    commits: [parsed("feat: x")],
+  });
+
+  test("replaces the template hint", () => {
+    const out = withHighlights(fresh, "Big news.");
+    expect(out).toContain("Big news.");
+    expect(out).not.toContain("Write the highlights");
+    expect(out).toContain(CHANGES_START);
+  });
+
+  test("goes above existing prose when the hint is gone", () => {
+    const out = withHighlights("# Barynt 0.2.0\n\nOld prose\n", "New text");
+    expect(out.indexOf("New text")).toBeLessThan(out.indexOf("Old prose"));
+    expect(out).toStartWith("# Barynt 0.2.0");
+  });
+
+  test("empty input leaves the file alone", () => {
+    expect(withHighlights(fresh, "  ")).toBe(fresh);
+  });
+
+  test("\\n in a one-line input becomes a line break", () => {
+    expect(unescapeInput("Line one\\n\\n- a\\n- b")).toBe(
+      "Line one\n\n- a\n- b",
+    );
   });
 });

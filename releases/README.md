@@ -10,26 +10,32 @@ releases/
   assets/0.2.0/screenshot.png
 ```
 
-Nothing here is written from scratch. After every merge to `main`, the
-**Release PR** workflow keeps a pull request `release/next` up to date: it
-proposes the next version from the Conventional Commits since the last tag,
-creates the two files and bumps `package.json`. Edit the files in that PR:
+## Releasing
 
-- Write the highlights above the `<!-- changes:start -->` marker — text,
-  screenshots (`![Board](assets/0.2.0/board.png)`), whatever makes the release
-  read well. This part is never touched again.
-- The list between `changes:start` and `changes:end` is generated (grouped by
-  `feat`/`fix`/…, with the previous version and a compare link) and rewritten
-  on every run. Don't edit it.
-- The German file gets the same generated list (commit messages are English)
-  and your German prose.
+Actions → **Release** → _Run workflow_ (from `main`):
 
-Merging the PR creates the tag `vX.Y.Z` and the GitHub release (`release.yml`):
-the English text, the German one folded underneath, relative image paths
-rewritten to the tag's raw files. The sidebar's update card compares against
-that release.
+| Input                             | Meaning                                                                                                                |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `version`                         | e.g. `0.2.0`. Empty: proposed from the Conventional Commits since the last tag                                         |
+| `highlights_en` / `highlights_de` | The text at the top of the notes, Markdown, `\n` for a line break. Empty: a file already in `releases/` stays as it is |
+| `publish`                         | Off: preview only, shown in the job summary, nothing is written. On: release                                           |
 
-To release a different version than proposed, rename the two files (and
-`assets/<version>/`) and set `package.json` to match in the PR. `fix:` bumps the
-patch, `feat:` the minor, `feat!:` / `BREAKING CHANGE:` the major (below 1.0:
-the minor). `chore:`, `docs:`, `test:` alone don't make a release.
+Run it without `publish` first, read the preview, fix the inputs, run again with
+`publish`. The run then commits `package.json` and `releases/` to `main`, tags
+`vX.Y.Z` and creates the GitHub release: the English notes, the German ones
+folded underneath, relative image paths rewritten to the tag's raw files. The
+sidebar's update card compares against that release.
+
+Each file is the highlights you wrote (text, screenshots) above a generated
+block between `<!-- changes:start -->` and `<!-- changes:end -->`: the changes
+grouped by `feat`/`fix`/…, the previous version and a compare link. The block
+is rewritten on every run, everything else is kept. The German file gets the
+same list (commit messages are English).
+
+Longer notes or screenshots: commit `releases/<version>.md` (+ `.de.md`) and
+`releases/assets/<version>/` in a normal PR beforehand and leave the inputs
+empty — images are linked as `![Board](assets/0.2.0/board.png)`.
+
+`fix:` bumps the patch, `feat:` the minor, `feat!:` / `BREAKING CHANGE:` the
+major (below 1.0: the minor). With only `chore:`, `docs:`, `test:` since the
+last tag there is nothing to propose — give a `version` to release anyway.

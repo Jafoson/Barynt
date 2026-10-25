@@ -42,24 +42,24 @@ pick ticket → in_progress → work → in_review → (user OK) → done
 
 ## Releases (BARY-189)
 
-Versions and release notes are automated, see `releases/README.md`.
+Versions and release notes are semi-automated, see `releases/README.md`.
 
 - **Commits are Conventional** — `type(scope): summary`, `!` or a
   `BREAKING CHANGE:` footer for a breaking change. The type decides the
-  version bump (`fix` patch, `feat` minor, breaking major; below 1.0 breaking
-  and `feat` both bump the minor); `chore`/`docs`/`test`/… alone release
+  proposed bump (`fix` patch, `feat` minor, breaking major; below 1.0 breaking
+  and `feat` both bump the minor); `chore`/`docs`/`test`/… alone propose
   nothing.
-- `.github/workflows/release-pr.yml` keeps the PR `release/next` current
-  (`releases/<version>.md` + `.de.md`, `package.json` bump) after every merge
-  to `main`; merging it runs `release.yml`, which tags `vX.Y.Z` and creates the
-  GitHub release. Both call `scripts/release/cli.ts`; the logic is in
-  `scripts/release/notes.ts` (tests: `tests/unit/release/`).
-- Never edit `package.json`'s `version` by hand outside that PR, and never
-  edit the generated block between the `changes:` markers.
-- The release PR is created with `GITHUB_TOKEN` unless the secret
-  `RELEASE_TOKEN` (a PAT) exists — a `GITHUB_TOKEN` PR doesn't start
-  `tests.yml`. The repository needs "Allow GitHub Actions to create and
-  approve pull requests" switched on.
+- A release is started by hand: Actions → **Release** (`release.yml`,
+  `workflow_dispatch`) with optional `version`, `highlights_en`/`highlights_de`
+  and `publish` (off = preview in the job summary). It writes
+  `releases/<version>.md` + `.de.md`, bumps `package.json`, commits to `main`,
+  tags `vX.Y.Z` and creates the GitHub release. The logic is in
+  `scripts/release/notes.ts` (tests: `tests/unit/release/`), the I/O in
+  `scripts/release/cli.ts`.
+- Don't edit `package.json`'s `version` by hand, and never the generated block
+  between the `changes:` markers.
+- If `main` is protected the push needs the secret `RELEASE_TOKEN` (a PAT that
+  may bypass it).
 - The sidebar's update card (`lib/update-check.ts`) looks at the latest GitHub
   release; `UPDATE_CHECK=false` turns the check off.
 

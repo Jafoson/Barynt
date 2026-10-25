@@ -231,6 +231,30 @@ export function mergeReleaseFile(
   return `${text.trimEnd()}\n\n${block}\n`;
 }
 
+/** The release workflow's text inputs are a single line — `\n` stands for a
+ *  line break there. */
+export function unescapeInput(text: string): string {
+  return text.replace(/\\n/g, "\n").trim();
+}
+
+const HINT = /<!--\s*(?:Write the highlights|Hier die Highlights)[\s\S]*?-->/;
+
+/**
+ * Puts `text` into a release file as its highlights: in place of the
+ * template hint, otherwise right under the heading — above any prose that is
+ * already there. An empty `text` leaves the file alone.
+ */
+export function withHighlights(file: string, text: string): string {
+  const highlights = text.trim();
+  if (!highlights) return file;
+  if (HINT.test(file)) return file.replace(HINT, () => highlights);
+  const firstBreak = file.indexOf("\n");
+  if (file.startsWith("# ") && firstBreak !== -1) {
+    return `${file.slice(0, firstBreak)}\n\n${highlights}\n${file.slice(firstBreak)}`;
+  }
+  return `${highlights}\n\n${file}`;
+}
+
 // ─── The GitHub release body ─────────────────────────────────────────────────
 
 /** Relative `assets/…` image paths don't resolve in a GitHub release — point

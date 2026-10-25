@@ -5,11 +5,12 @@
  *   bun scripts/release/cli.ts prepare          propose the next version, write
  *                                               releases/<v>.md + .de.md, bump
  *                                               package.json
+ *       env: RELEASE_VERSION (instead of the proposal), HIGHLIGHTS_EN,
+ *            HIGHLIGHTS_DE (text for the top of the notes; `\n` = line break)
  *   bun scripts/release/cli.ts body <version>   print the GitHub release body
  *
- * `prepare` is idempotent: it works from the working tree, so hand edits in
- * `releases/` (the workflow restores them from the open release branch
- * before calling it) survive a re-run — only the generated block moves.
+ * `prepare` works from the working tree, so notes already committed under
+ * `releases/` survive — only the generated block moves.
  */
 import { execFileSync } from "node:child_process";
 import {
@@ -31,6 +32,8 @@ import {
   parseCommit,
   parseVersion,
   renderReleaseBody,
+  unescapeInput,
+  withHighlights,
 } from "./notes";
 
 const git = (...args: string[]) =>
@@ -92,18 +95,28 @@ function prepare() {
   const tag = lastTag();
   const base = tag?.replace(/^v/, "") ?? null;
 
-  let version: string;
+  const requested = process.env.RELEASE_VERSION?.trim().replace(/^v/, "");
+  if (requested && !parseVersion(requested)) {
+    throw new Error(`"${requested}" is not a version like 1.2.3`);
+  }
+  if (requested && base && compareVersions(requested, base) <= 0) {
+    throw new Error(`${requested} is not above the last release (${base})`);
+  }
+
   const commits = tag ? commitsSince(tag).map(parseCommit) : [];
-  if (base === null) {
+  let version: string;
+  if (requested) {
+    version = requested;
+  } else if (base === null) {
     // Nothing has been released yet: the first release is whatever
     // package.json says, with no list of changes to speak of.
     version = current;
   } else {
     const bump = bumpFor(commits, base);
     if (!bump) {
-      output("changed", "false");
-      console.log("Nothing user-visible since", tag);
-      return;
+      throw new Error(
+        `Nothing user-visible since ${tag} (only chore/docs/test commits) — give a version to release anyway.`,
+      );
     }
     version = nextVersion(base, bump);
   }
@@ -125,12 +138,20 @@ function prepare() {
   for (const lang of ["en", "de"] as const) {
     const path = fileFor(version, lang);
     const existing = existsSync(path) ? readFileSync(path, "utf8") : null;
+    const merged = mergeReleaseFile(
+      existing,
+      { lang, repo, version, previous: base, commits },
+      pending ?? null,
+    );
     writeFileSync(
       path,
-      mergeReleaseFile(
-        existing,
-        { lang, repo, version, previous: base, commits },
-        pending ?? null,
+      withHighlights(
+        merged,
+        unescapeInput(
+          (lang === "de"
+            ? process.env.HIGHLIGHTS_DE
+            : process.env.HIGHLIGHTS_EN) ?? "",
+        ),
       ),
     );
   }
@@ -142,7 +163,6 @@ function prepare() {
     );
   }
 
-  output("changed", "true");
   output("version", version);
   output("previous", base ?? "");
 }
