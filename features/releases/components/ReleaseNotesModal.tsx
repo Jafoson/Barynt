@@ -4,9 +4,9 @@ import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { RichText } from "@/components/ui/atoms/RichText/RichText";
-import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
 import { ModalHeader } from "@/components/ui/layout/Modal/components/ModalHeader";
 import { Modal, ModalBody } from "@/components/ui/layout/Modal/Modal";
+import { Tab, Tabs } from "@/components/ui/layout/Tabs/Tabs";
 import type { PMDoc } from "@/lib/richtext/types";
 import { loadReleaseNotes } from "../actions";
 import styles from "./releaseNotesModal.module.scss";
@@ -14,6 +14,8 @@ import styles from "./releaseNotesModal.module.scss";
 interface ReleaseNotesModalProps {
   /** Every version with notes, newest first. */
   versions: string[];
+  /** The running version — marked in its tab. */
+  current: string;
   githubUrl: string;
   close: () => void;
 }
@@ -26,6 +28,7 @@ interface ReleaseNotesModalProps {
  */
 export function ReleaseNotesModal({
   versions,
+  current,
   githubUrl,
   close,
 }: ReleaseNotesModalProps) {
@@ -57,16 +60,21 @@ export function ReleaseNotesModal({
         closeLabel={t("close")}
       />
       <div className={styles.tabs}>
-        <SegmentedControl
-          items={versions.map((v) => ({ value: v, label: `v${v}` }))}
-          value={active}
-          onChange={setActive}
-        />
+        <Tabs label={t("versions")}>
+          {versions.map((v) => (
+            <Tab key={v} active={v === active} onSelect={() => setActive(v)}>
+              v{v}
+              {v === current && (
+                <span className={styles.current}>{t("current")}</span>
+              )}
+            </Tab>
+          ))}
+        </Tabs>
       </div>
       <ModalBody>
         <div className={styles.notes}>
           {doc ? (
-            <RichText value={doc} />
+            <RichText value={doc} className={styles.prose} />
           ) : (
             <p className={styles.status}>
               {active in notes ? t("empty") : t("loading")}

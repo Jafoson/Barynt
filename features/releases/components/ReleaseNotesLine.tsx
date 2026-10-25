@@ -39,6 +39,7 @@ export function ReleaseNotesLine({
       ({ close }) => (
         <ReleaseNotesModal
           versions={versions}
+          current={version}
           githubUrl={githubUrl}
           close={close}
         />

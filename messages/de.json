@@ -1,6 +1,8 @@
 {
   "releases": {
     "title": "Release Notes",
+    "versions": "Versionen",
+    "current": "aktuell",
     "open": "Release Notes anzeigen",
     "close": "Schließen",
     "loading": "Lädt …",

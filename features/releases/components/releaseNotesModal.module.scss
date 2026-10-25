@@ -1,20 +1,85 @@
+/* The version tabs — the same ones as the view tabs — in a bar of their own
+   under the title, with a divider underneath. */
 .tabs {
   flex: none;
-  padding: 0.75rem 1.25rem 0;
-  overflow-x: auto;
+  height: 2.75rem;
+  padding: 0 0.75rem;
+  border-bottom: 1px solid var(--outline-variant);
+  display: flex;
+  align-items: stretch;
+}
+
+.current {
+  padding: 0.0625rem 0.4375rem;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--primary);
+  font-size: var(--text-xxs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .notes {
-  /* Screenshots from the notes never outgrow the window. */
+  padding: 0.5rem 0.25rem 1rem;
+}
+
+/* The notes' own look: a lead paragraph, sections that breathe, screenshots
+   as cards. Doubled class to win over the rich text's own element rules. */
+.prose.prose {
+  font-size: var(--text-base);
+  line-height: 1.65;
+
+  & > p:first-child {
+    font-size: var(--text-md);
+    line-height: 1.55;
+    color: var(--on-surface);
+    padding-bottom: 0.25rem;
+  }
+
+  & h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 2rem 0 0.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--outline-variant);
+    font-size: var(--text-lg);
+  }
+
+  & h2:first-of-type {
+    margin-top: 1.25rem;
+  }
+
+  & ul {
+    display: grid;
+    gap: 0.375rem;
+    margin: 0.75rem 0;
+    padding-left: 1.25rem;
+  }
+
+  & li > p {
+    margin: 0;
+  }
+
+  & li::marker {
+    color: var(--primary);
+  }
+
   & img {
+    display: block;
     max-width: 100%;
     height: auto;
+    margin: 1rem 0;
     border: 1px solid var(--outline-variant);
     border-radius: var(--radius);
+    box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
   }
 }
 
 .status {
+  padding: 2rem 0;
+  text-align: center;
   color: var(--on-surface-variant);
 }
 
