@@ -216,6 +216,38 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
   ]
 }`,
       },
+      {
+        method: "GET",
+        path: "/api/v1/workspaces/{id}/priorities",
+        scope: "workspaces:read",
+        desc: {
+          en: "List a workspace's priorities in order. The `id` is the number `priority` takes when you create or update an issue.",
+          de: "Listet die Prioritäten eines Workspace in Reihenfolge. Die `id` ist die Zahl, die `priority` beim Anlegen oder Ändern eines Issues erwartet.",
+        },
+        pathParams: [idParam("workspace")],
+        response: `{
+  "data": [
+    { "id": 0, "key": "none", "name": "No priority", "color": "#b8bcc4", "position": 0 },
+    { "id": 3, "key": "high", "name": "High", "color": "#e0992b", "position": 3 }
+  ]
+}`,
+      },
+      {
+        method: "GET",
+        path: "/api/v1/workspaces/{id}/issue-types",
+        scope: "workspaces:read",
+        desc: {
+          en: "List a workspace's issue types in order. The `id` is what `type` takes when you create or update an issue.",
+          de: "Listet die Issue-Typen eines Workspace in Reihenfolge. Die `id` ist das, was `type` beim Anlegen oder Ändern eines Issues erwartet.",
+        },
+        pathParams: [idParam("workspace")],
+        response: `{
+  "data": [
+    { "id": "feature", "name": "Feature", "color": "#4a9d6f", "position": 1 },
+    { "id": "bug", "name": "Bug", "color": "#d1495b", "position": 2 }
+  ]
+}`,
+      },
     ],
   },
   {

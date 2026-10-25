@@ -287,6 +287,22 @@ export const MCP_TOOL_GROUPS: McpToolGroup[] = [
           de: "Die Status eines Workspace in Board-Reihenfolge, jeweils mit Kategorie (backlog, unstarted, started, completed, canceled).",
         },
       },
+      {
+        name: "list_priorities",
+        scope: "workspaces:read",
+        desc: {
+          en: "A workspace's priorities in order. Use an `id` as `priority` in create_issue / update_issue.",
+          de: "Die Prioritäten eines Workspace in Reihenfolge. Eine `id` dient als `priority` in create_issue / update_issue.",
+        },
+      },
+      {
+        name: "list_issue_types",
+        scope: "workspaces:read",
+        desc: {
+          en: "A workspace's issue types in order. Use an `id` as `type` in create_issue / update_issue.",
+          de: "Die Issue-Typen eines Workspace in Reihenfolge. Eine `id` dient als `type` in create_issue / update_issue.",
+        },
+      },
     ],
   },
 ];
