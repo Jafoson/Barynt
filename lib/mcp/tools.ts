@@ -21,6 +21,10 @@ import {
   updateWorkspaceForUser,
 } from "@/features/api-v1/mutations";
 import {
+  listIssueTypesForUser,
+  listPrioritiesForUser,
+} from "@/features/api-v1/options";
+import {
   getIssueForUser,
   listCommentsForUser,
   listIssuesForUser,
@@ -491,6 +495,44 @@ export function registerBaryntTools(server: McpServer): void {
     },
   );
 
+  server.registerTool(
+    "list_priorities",
+    {
+      title: "List priorities",
+      description:
+        "List a workspace's priorities in order. Use an `id` from here as `priority` in create_issue / update_issue.",
+      inputSchema: z.object({ workspaceId: z.string() }),
+    },
+    async ({ workspaceId }, ctx) => {
+      const auth = await authorize(ctx, "workspaces:read");
+      if (!auth.ok) return auth.result;
+      const priorities = await listPrioritiesForUser(
+        auth.auth.userId,
+        workspaceId,
+      );
+      return priorities ? jsonResult(priorities) : notFoundResult();
+    },
+  );
+
+  server.registerTool(
+    "list_issue_types",
+    {
+      title: "List issue types",
+      description:
+        "List a workspace's issue types in order. Use an `id` from here as `type` in create_issue / update_issue.",
+      inputSchema: z.object({ workspaceId: z.string() }),
+    },
+    async ({ workspaceId }, ctx) => {
+      const auth = await authorize(ctx, "workspaces:read");
+      if (!auth.ok) return auth.result;
+      const issueTypes = await listIssueTypesForUser(
+        auth.auth.userId,
+        workspaceId,
+      );
+      return issueTypes ? jsonResult(issueTypes) : notFoundResult();
+    },
+  );
+
   // ─── Issues ────────────────────────────────────────────────────────────
 
   server.registerTool(
@@ -587,11 +629,21 @@ export function registerBaryntTools(server: McpServer): void {
           .describe(
             "Markdown. `@handle` mentions a workspace member (notifies them); `#PREFIX-123` links another issue; `//2026-08-14` (or `//14.8.2026`) becomes a date chip; `[label|https://...]` (or bare `[https://...]`) becomes a link chip. All resolved server-side; unresolved ones are left as plain text.",
           ),
-        status: z.string().optional(),
-        priority: z.number().int().optional(),
+        status: z
+          .string()
+          .optional()
+          .describe("A status id — see list_statuses."),
+        priority: z
+          .number()
+          .int()
+          .optional()
+          .describe("A priority id — see list_priorities."),
         assignee: z.string().nullable().optional().describe("User id."),
         labels: z.array(z.string()).optional().describe("Label ids."),
-        type: z.string().optional(),
+        type: z
+          .string()
+          .optional()
+          .describe("An issue type id — see list_issue_types."),
         parentId: z
           .string()
           .nullable()
@@ -677,11 +729,21 @@ export function registerBaryntTools(server: McpServer): void {
           .describe(
             "Markdown. `@handle` mentions a workspace member (notifies them); `#PREFIX-123` links another issue; `//2026-08-14` (or `//14.8.2026`) becomes a date chip; `[label|https://...]` (or bare `[https://...]`) becomes a link chip. All resolved server-side; unresolved ones are left as plain text.",
           ),
-        status: z.string().optional(),
-        priority: z.number().int().optional(),
+        status: z
+          .string()
+          .optional()
+          .describe("A status id — see list_statuses."),
+        priority: z
+          .number()
+          .int()
+          .optional()
+          .describe("A priority id — see list_priorities."),
         assignee: z.string().nullable().optional().describe("User id."),
         labels: z.array(z.string()).optional().describe("Label ids."),
-        type: z.string().optional(),
+        type: z
+          .string()
+          .optional()
+          .describe("An issue type id — see list_issue_types."),
         parentId: z
           .string()
           .nullable()

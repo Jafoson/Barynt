@@ -175,6 +175,7 @@ export function ApiDocs() {
           { value: "workspaces", label: t("apiKeys.docsTabWorkspaces") },
           { value: "projects", label: t("apiKeys.docsTabProjects") },
           { value: "issues", label: t("apiKeys.docsTabIssues") },
+          { value: "options", label: t("apiKeys.docsTabOptions") },
           { value: "comments", label: t("apiKeys.docsTabComments") },
           { value: "labels", label: t("apiKeys.docsTabLabels") },
           { value: "members", label: t("apiKeys.docsTabMembers") },

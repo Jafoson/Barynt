@@ -13,6 +13,7 @@ export type McpToolGroupId =
   | "workspaces"
   | "projects"
   | "issues"
+  | "options"
   | "comments"
   | "labels"
   | "members"
@@ -137,6 +138,35 @@ export const MCP_TOOL_GROUPS: McpToolGroup[] = [
         desc: {
           en: "Update an issue's title, description, status, priority, assignee, labels, or type. The description supports the same @mention/#issue-link/date/link-chip syntax as create_issue.",
           de: "Ändert Titel, Beschreibung, Status, Priorität, Zuständigen, Labels oder Typ eines Issues. Die Beschreibung kennt dieselbe Syntax für Erwähnung, Issue-Link, Datum und Link-Chip wie create_issue.",
+        },
+      },
+    ],
+  },
+  {
+    id: "options",
+    tools: [
+      {
+        name: "list_statuses",
+        scope: "workspaces:read",
+        desc: {
+          en: "A workspace's statuses in board order, each with its category (backlog, unstarted, started, completed, canceled).",
+          de: "Die Status eines Workspace in Board-Reihenfolge, jeweils mit Kategorie (backlog, unstarted, started, completed, canceled).",
+        },
+      },
+      {
+        name: "list_priorities",
+        scope: "workspaces:read",
+        desc: {
+          en: "A workspace's priorities in order. Use an `id` as `priority` in create_issue / update_issue.",
+          de: "Die Prioritäten eines Workspace in Reihenfolge. Eine `id` dient als `priority` in create_issue / update_issue.",
+        },
+      },
+      {
+        name: "list_issue_types",
+        scope: "workspaces:read",
+        desc: {
+          en: "A workspace's issue types in order. Use an `id` as `type` in create_issue / update_issue.",
+          de: "Die Issue-Typen eines Workspace in Reihenfolge. Eine `id` dient als `type` in create_issue / update_issue.",
         },
       },
     ],
@@ -277,14 +307,6 @@ export const MCP_TOOL_GROUPS: McpToolGroup[] = [
         desc: {
           en: "Delete a view. Built-in views can't be deleted.",
           de: "Löscht eine View. Eingebaute Views lassen sich nicht löschen.",
-        },
-      },
-      {
-        name: "list_statuses",
-        scope: "workspaces:read",
-        desc: {
-          en: "A workspace's statuses in board order, each with its category (backlog, unstarted, started, completed, canceled).",
-          de: "Die Status eines Workspace in Board-Reihenfolge, jeweils mit Kategorie (backlog, unstarted, started, completed, canceled).",
         },
       },
     ],

@@ -64,6 +64,8 @@ const mockWorkspaceUpdate = mock();
 const mockWorkspaceDelete = mock();
 const mockWorkspaceStatusCreateMany = mock();
 const mockWorkspacePriorityCreateMany = mock();
+const mockWorkspacePriorityFindMany = mock();
+const mockWorkspaceIssueTypeFindMany = mock();
 const mockWorkspaceIssueTypeCreateMany = mock();
 const mockWorkspaceMemberFindMany = mock();
 const mockWorkspaceMemberCreate = mock();
@@ -150,8 +152,14 @@ const db = {
     delete: mockViewDelete,
     aggregate: mock(async () => ({ _max: { position: 1 } })),
   },
-  workspacePriority: { createMany: mockWorkspacePriorityCreateMany },
-  workspaceIssueType: { createMany: mockWorkspaceIssueTypeCreateMany },
+  workspacePriority: {
+    createMany: mockWorkspacePriorityCreateMany,
+    findMany: mockWorkspacePriorityFindMany,
+  },
+  workspaceIssueType: {
+    createMany: mockWorkspaceIssueTypeCreateMany,
+    findMany: mockWorkspaceIssueTypeFindMany,
+  },
   workspaceMember: {
     findMany: mockWorkspaceMemberFindMany,
     create: mockWorkspaceMemberCreate,
@@ -214,11 +222,13 @@ import {
   GET as getView,
   PATCH as patchView,
 } from "@/app/api/v1/views/[id]/route";
+import { GET as getIssueTypes } from "@/app/api/v1/workspaces/[id]/issue-types/route";
 import {
   GET as getLabels,
   POST as postLabel,
 } from "@/app/api/v1/workspaces/[id]/labels/route";
 import { GET as getWorkspaceMembers } from "@/app/api/v1/workspaces/[id]/members/route";
+import { GET as getPriorities } from "@/app/api/v1/workspaces/[id]/priorities/route";
 import { POST as postProject } from "@/app/api/v1/workspaces/[id]/projects/route";
 import {
   DELETE as deleteWorkspace,
@@ -319,6 +329,8 @@ function reset() {
     mockTransaction,
     mockGetSystemSettings,
     mockWorkspaceStatusFindMany,
+    mockWorkspacePriorityFindMany,
+    mockWorkspaceIssueTypeFindMany,
     mockViewFindMany,
     mockViewFindUnique,
     mockViewCreate,
@@ -1552,5 +1564,47 @@ describe("GET /api/v1/workspaces/:id/statuses", () => {
     mockCanEnterWorkspace.mockResolvedValue(false);
     const res = await getStatuses(req(), params("ws-1"));
     expect(res.status).toBe(404);
+  });
+});
+
+describe("GET /api/v1/workspaces/:id/priorities and /issue-types", () => {
+  beforeEach(reset);
+
+  it("lists the priorities in order, with the id that priority takes", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    mockCanEnterWorkspace.mockResolvedValue(true);
+    const row = (id: number, key: string, position: number) => ({
+      priority: { id, key, name: key, color: "#888888", position },
+    });
+    mockWorkspacePriorityFindMany.mockResolvedValue([
+      row(3, "high", 3),
+      row(1, "low", 1),
+    ]);
+    const res = await getPriorities(req(), params("ws-1"));
+    const { data } = await res.json();
+    expect(data.map((p: { id: number }) => p.id)).toEqual([1, 3]);
+    expect(data[0].key).toBe("low");
+  });
+
+  it("lists the issue types in order", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    mockCanEnterWorkspace.mockResolvedValue(true);
+    const row = (id: string, position: number) => ({
+      issueType: { id, name: id, color: "#888888", position },
+    });
+    mockWorkspaceIssueTypeFindMany.mockResolvedValue([
+      row("bug", 2),
+      row("feature", 1),
+    ]);
+    const res = await getIssueTypes(req(), params("ws-1"));
+    const { data } = await res.json();
+    expect(data.map((t: { id: string }) => t.id)).toEqual(["feature", "bug"]);
+  });
+
+  it("404s both outside the workspace", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_VIEWS);
+    mockCanEnterWorkspace.mockResolvedValue(false);
+    expect((await getPriorities(req(), params("ws-1"))).status).toBe(404);
+    expect((await getIssueTypes(req(), params("ws-1"))).status).toBe(404);
   });
 });
