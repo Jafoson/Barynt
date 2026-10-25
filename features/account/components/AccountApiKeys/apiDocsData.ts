@@ -39,6 +39,7 @@ export type ApiDocGroupId =
   | "workspaces"
   | "projects"
   | "issues"
+  | "options"
   | "comments"
   | "labels"
   | "members"
@@ -182,70 +183,6 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
         pathParams: [idParam("workspace")],
         response: `{
   "data": { "id": "acme" }
-}`,
-      },
-      {
-        method: "GET",
-        path: "/api/v1/workspaces/{id}/statuses",
-        scope: "workspaces:read",
-        desc: {
-          en: "List a workspace's statuses in board order, each with its category — backlog, unstarted, started, completed or canceled. Categories are the same in every workspace; status ids and names are not.",
-          de: "Listet die Status eines Workspace in Board-Reihenfolge, jeweils mit Kategorie — backlog, unstarted, started, completed oder canceled. Die Kategorien sind in jedem Workspace gleich, Status-IDs und -Namen nicht.",
-        },
-        pathParams: [idParam("workspace")],
-        response: `{
-  "data": [
-    {
-      "id": "todo",
-      "name": "Todo",
-      "short": "Todo",
-      "color": "#b8bcc4",
-      "category": "unstarted",
-      "isColumn": true,
-      "position": 1
-    },
-    {
-      "id": "in_progress",
-      "name": "In Progress",
-      "short": "Doing",
-      "color": "#e0992b",
-      "category": "started",
-      "isColumn": true,
-      "position": 2
-    }
-  ]
-}`,
-      },
-      {
-        method: "GET",
-        path: "/api/v1/workspaces/{id}/priorities",
-        scope: "workspaces:read",
-        desc: {
-          en: "List a workspace's priorities in order. The `id` is the number `priority` takes when you create or update an issue.",
-          de: "Listet die Prioritäten eines Workspace in Reihenfolge. Die `id` ist die Zahl, die `priority` beim Anlegen oder Ändern eines Issues erwartet.",
-        },
-        pathParams: [idParam("workspace")],
-        response: `{
-  "data": [
-    { "id": 0, "key": "none", "name": "No priority", "color": "#b8bcc4", "position": 0 },
-    { "id": 3, "key": "high", "name": "High", "color": "#e0992b", "position": 3 }
-  ]
-}`,
-      },
-      {
-        method: "GET",
-        path: "/api/v1/workspaces/{id}/issue-types",
-        scope: "workspaces:read",
-        desc: {
-          en: "List a workspace's issue types in order. The `id` is what `type` takes when you create or update an issue.",
-          de: "Listet die Issue-Typen eines Workspace in Reihenfolge. Die `id` ist das, was `type` beim Anlegen oder Ändern eines Issues erwartet.",
-        },
-        pathParams: [idParam("workspace")],
-        response: `{
-  "data": [
-    { "id": "feature", "name": "Feature", "color": "#4a9d6f", "position": 1 },
-    { "id": "bug", "name": "Bug", "color": "#d1495b", "position": 2 }
-  ]
 }`,
       },
     ],
@@ -822,6 +759,75 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
         pathParams: [idParam("relation")],
         response: `{
   "data": { "id": "ir_8n3k2m" }
+}`,
+      },
+    ],
+  },
+  {
+    id: "options",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/v1/workspaces/{id}/statuses",
+        scope: "workspaces:read",
+        desc: {
+          en: "List a workspace's statuses in board order, each with its category — backlog, unstarted, started, completed or canceled. Categories are the same in every workspace; status ids and names are not.",
+          de: "Listet die Status eines Workspace in Board-Reihenfolge, jeweils mit Kategorie — backlog, unstarted, started, completed oder canceled. Die Kategorien sind in jedem Workspace gleich, Status-IDs und -Namen nicht.",
+        },
+        pathParams: [idParam("workspace")],
+        response: `{
+  "data": [
+    {
+      "id": "todo",
+      "name": "Todo",
+      "short": "Todo",
+      "color": "#b8bcc4",
+      "category": "unstarted",
+      "isColumn": true,
+      "position": 1
+    },
+    {
+      "id": "in_progress",
+      "name": "In Progress",
+      "short": "Doing",
+      "color": "#e0992b",
+      "category": "started",
+      "isColumn": true,
+      "position": 2
+    }
+  ]
+}`,
+      },
+      {
+        method: "GET",
+        path: "/api/v1/workspaces/{id}/priorities",
+        scope: "workspaces:read",
+        desc: {
+          en: "List a workspace's priorities in order. The `id` is the number `priority` takes when you create or update an issue.",
+          de: "Listet die Prioritäten eines Workspace in Reihenfolge. Die `id` ist die Zahl, die `priority` beim Anlegen oder Ändern eines Issues erwartet.",
+        },
+        pathParams: [idParam("workspace")],
+        response: `{
+  "data": [
+    { "id": 0, "key": "none", "name": "No priority", "color": "#b8bcc4", "position": 0 },
+    { "id": 3, "key": "high", "name": "High", "color": "#e0992b", "position": 3 }
+  ]
+}`,
+      },
+      {
+        method: "GET",
+        path: "/api/v1/workspaces/{id}/issue-types",
+        scope: "workspaces:read",
+        desc: {
+          en: "List a workspace's issue types in order. The `id` is what `type` takes when you create or update an issue.",
+          de: "Listet die Issue-Typen eines Workspace in Reihenfolge. Die `id` ist das, was `type` beim Anlegen oder Ändern eines Issues erwartet.",
+        },
+        pathParams: [idParam("workspace")],
+        response: `{
+  "data": [
+    { "id": "feature", "name": "Feature", "color": "#4a9d6f", "position": 1 },
+    { "id": "bug", "name": "Bug", "color": "#d1495b", "position": 2 }
+  ]
 }`,
       },
     ],
