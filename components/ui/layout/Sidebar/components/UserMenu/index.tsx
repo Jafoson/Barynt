@@ -2,11 +2,13 @@ import { auth } from "@/auth";
 import type { PersonAvatarData } from "@/components/ui/atoms/Avatar/Avatar";
 import { getUnreadNotificationCount } from "@/features/notifications/queries";
 import { getMyWorkspaces } from "@/features/workspaces/queries";
+import { APP_VERSION, GITHUB_URL } from "@/lib/app-info";
 import { getCurrentWorkspaceId } from "@/lib/current-workspace";
 import { db } from "@/lib/db";
 import { accountPath, adminPath, workspacePath } from "@/lib/nav";
 import { getAccess, PLATFORM } from "@/lib/permissions";
 import { resolveAvatarUrl } from "@/lib/storage";
+import { getAvailableUpdate } from "@/lib/update-check";
 import UserMenuClient from "./UserMenuClient";
 
 export async function UserMenu() {
@@ -53,6 +55,9 @@ export async function UserMenu() {
   const access = await getAccess(PLATFORM);
   const adminHref = access.has("platform.access") ? adminPath("") : null;
 
+  // Only for those who can act on it, like the admin entry above.
+  const update = adminHref ? await getAvailableUpdate() : null;
+
   return (
     <UserMenuClient
       me={me}
@@ -60,6 +65,9 @@ export async function UserMenu() {
       inboxHref={workspaceId ? workspacePath(workspaceId, "inbox") : null}
       adminHref={adminHref}
       unreadCount={unreadCount}
+      version={APP_VERSION}
+      githubUrl={GITHUB_URL}
+      update={update}
     />
   );
 }
