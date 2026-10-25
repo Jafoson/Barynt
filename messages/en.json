@@ -14,6 +14,8 @@
     "projects": "Projects",
     "signOut": "Sign out",
     "openOnGithub": "Open on GitHub",
+    "updateAvailable": "Update available",
+    "updateVersion": "Version {version} is out",
     "admin": "Admin",
     "adminSettings": "Admin Settings",
     "general": "General",

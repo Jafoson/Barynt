@@ -14,6 +14,7 @@ import { Popover } from "@/components/ui/atoms/Popover/Popover";
 import { NavLink } from "@/components/ui/layout/NavLink/NavLink";
 import { logout } from "@/features/auth/actions";
 import { Link } from "@/i18n/navigation";
+import type { AvailableUpdate } from "@/lib/update-check";
 import { fullName } from "@/lib/utils/string";
 import styles from "./UserMenu.module.scss";
 
@@ -38,6 +39,8 @@ interface UserMenuClientProps {
   version: string;
   /** The repository the version line links to. */
   githubUrl: string;
+  /** A newer release, for platform admins; `null` when up to date or unknown. */
+  update: AvailableUpdate | null;
 }
 
 /**
@@ -56,6 +59,7 @@ function UserMenuClient({
   unreadCount,
   version,
   githubUrl,
+  update,
 }: UserMenuClientProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);

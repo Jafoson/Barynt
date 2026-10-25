@@ -14,6 +14,8 @@
     "projects": "Projekte",
     "signOut": "Abmelden",
     "openOnGithub": "Auf GitHub öffnen",
+    "updateAvailable": "Update verfügbar",
+    "updateVersion": "Version {version} ist erschienen",
     "admin": "Admin",
     "adminSettings": "Admin Einstellungen",
     "general": "Allgemein",

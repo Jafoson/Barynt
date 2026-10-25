@@ -94,3 +94,41 @@
     display: none;
   }
 }
+
+/* "Update available" card, above the user card. Hidden on the rail — a
+   card with text doesn't fit there, and the version line is gone too. */
+.update {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--on-surface);
+  text-decoration: none;
+
+  &:hover {
+    background: color-mix(in srgb, var(--primary) 20%, transparent);
+  }
+
+  @include bp.rail {
+    display: none;
+  }
+}
+
+.updateText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--text-xs);
+  color: var(--on-surface-variant);
+
+  & > strong {
+    font-size: var(--text-sm);
+    color: var(--on-surface);
+  }
+}
