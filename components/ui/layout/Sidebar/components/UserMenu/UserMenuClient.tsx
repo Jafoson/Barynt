@@ -173,26 +173,28 @@ function UserMenuClient({
           </Button>
         </Popover>
       </div>
-      {releaseVersions.length > 0 ? (
-        <ReleaseNotesLine
-          className={styles.about}
-          version={version}
-          versions={releaseVersions}
-          githubUrl={githubUrl}
-          autoOpen={showReleaseNotes}
-        />
-      ) : (
+      <div className={styles.footer}>
         <a
-          className={styles.about}
+          className={styles.footerLink}
           href={githubUrl}
           target="_blank"
           rel="noopener noreferrer"
           title={t("openOnGithub")}
+          aria-label={t("openOnGithub")}
         >
-          <Icon icon="lucide:github" height={12} />
-          <span>Barynt v{version}</span>
+          <Icon icon="lucide:github" height={14} />
         </a>
-      )}
+        <span className={styles.footerVersion}>Barynt v{version}</span>
+        {releaseVersions.length > 0 && (
+          <ReleaseNotesLine
+            className={styles.footerLink}
+            version={version}
+            versions={releaseVersions}
+            githubUrl={githubUrl}
+            autoOpen={showReleaseNotes}
+          />
+        )}
+      </div>
     </>
   );
 }

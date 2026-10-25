@@ -1,6 +1,5 @@
 "use client";
 
-import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import { useModal } from "@/lib/context";
@@ -18,8 +17,8 @@ interface ReleaseNotesLineProps {
 }
 
 /**
- * The "Barynt v1.0.10" line under the user card: a click opens the release
- * notes. After an update the window opens by itself the first time the app is
+ * The "Release Notes" link in the footer under the user card: a click opens
+ * the release notes. After an update the window opens by itself the first time the app is
  * loaded, and not again — opening it, either way, marks the running version as
  * seen (`markReleaseSeen`, a cookie).
  */
@@ -66,8 +65,7 @@ export function ReleaseNotesLine({
       onClick={open}
       title={t("open")}
     >
-      <Icon icon="lucide:sparkles" height={12} />
-      <span>Barynt v{version}</span>
+      {t("title")}
     </button>
   );
 }
