@@ -34,6 +34,10 @@ interface UserMenuClientProps {
   adminHref: string | null;
   /** Unread notifications in the active workspace. */
   unreadCount: number;
+  /** The running app version (`package.json`). */
+  version: string;
+  /** The repository the version line links to. */
+  githubUrl: string;
 }
 
 /**
@@ -50,6 +54,8 @@ function UserMenuClient({
   inboxHref,
   adminHref,
   unreadCount,
+  version,
+  githubUrl,
 }: UserMenuClientProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -138,6 +144,17 @@ function UserMenuClient({
         >
           {t("signOut")}
         </Button>
+        <hr className={styles.divider} />
+        <a
+          className={styles.about}
+          href={githubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={t("openOnGithub")}
+        >
+          <Icon icon="lucide:github" height={14} />
+          <span>Barynt v{version}</span>
+        </a>
       </Popover>
     </div>
   );

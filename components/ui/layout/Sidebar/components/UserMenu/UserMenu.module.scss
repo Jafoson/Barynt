@@ -72,3 +72,20 @@
     font-size: var(--text-xxs);
   }
 }
+
+/* Version line at the foot of the menu — quiet, but a link to the repository. */
+.about {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius);
+  color: var(--on-surface-variant);
+  font-size: var(--text-xs);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--on-surface);
+    background: var(--surface-container-high);
+  }
+}
