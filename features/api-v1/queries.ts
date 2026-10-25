@@ -435,6 +435,26 @@ async function resolveIssueRef(
   return null;
 }
 
+/**
+ * An issue's internal id for whatever the caller sent — an id or a
+ * "PREFIX-123" ref. Anything that isn't ref-shaped passes through untouched
+ * (no query), and a ref-shaped string is tried as an id first, like
+ * `getIssueForUser`. When nothing matches the input comes back as it was, so
+ * the caller's own lookup produces its usual 404.
+ */
+export async function resolveIssueId(
+  userId: string,
+  idOrRef: string,
+): Promise<string> {
+  if (!REF_PATTERN.test(idOrRef)) return idOrRef;
+  const byId = await db.issue.findUnique({
+    where: { id: idOrRef },
+    select: { id: true },
+  });
+  if (byId) return idOrRef;
+  return (await resolveIssueRef(userId, idOrRef)) ?? idOrRef;
+}
+
 /** `null` means "not visible to this user" — routes turn that into a 404,
  *  same as a project that doesn't exist. */
 export async function listIssuesForUser(
@@ -597,8 +617,9 @@ function mapApiComment(
  *  that into a 404. */
 export async function listCommentsForUser(
   userId: string,
-  issueId: string,
+  idOrRef: string,
 ): Promise<ApiComment[] | null> {
+  const issueId = await resolveIssueId(userId, idOrRef);
   const issue = await db.issue.findUnique({
     where: { id: issueId },
     select: { projectId: true },
