@@ -1,12 +1,15 @@
+import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import type { PersonAvatarData } from "@/components/ui/atoms/Avatar/Avatar";
 import { getUnreadNotificationCount } from "@/features/notifications/queries";
+import { SEEN_RELEASE_COOKIE } from "@/features/releases/constants";
 import { getMyWorkspaces } from "@/features/workspaces/queries";
 import { APP_VERSION, GITHUB_URL } from "@/lib/app-info";
 import { getCurrentWorkspaceId } from "@/lib/current-workspace";
 import { db } from "@/lib/db";
 import { accountPath, adminPath, workspacePath } from "@/lib/nav";
 import { getAccess, PLATFORM } from "@/lib/permissions";
+import { listReleaseVersions } from "@/lib/releases";
 import { resolveAvatarUrl } from "@/lib/storage";
 import { getAvailableUpdate } from "@/lib/update-check";
 import UserMenuClient from "./UserMenuClient";
@@ -58,6 +61,13 @@ export async function UserMenu() {
   // Only for those who can act on it, like the admin entry above.
   const update = adminHref ? await getAvailableUpdate() : null;
 
+  // The release notes up to the running version. The window opens on its own
+  // when the running version has notes this browser hasn't seen yet.
+  const releaseVersions = await listReleaseVersions(APP_VERSION);
+  const seenRelease = (await cookies()).get(SEEN_RELEASE_COOKIE)?.value;
+  const showReleaseNotes =
+    releaseVersions.includes(APP_VERSION) && seenRelease !== APP_VERSION;
+
   return (
     <UserMenuClient
       me={me}
@@ -68,6 +78,8 @@ export async function UserMenu() {
       version={APP_VERSION}
       githubUrl={GITHUB_URL}
       update={update}
+      releaseVersions={releaseVersions}
+      showReleaseNotes={showReleaseNotes}
     />
   );
 }

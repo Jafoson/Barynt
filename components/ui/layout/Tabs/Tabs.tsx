@@ -35,7 +35,10 @@ export function Tabs({
 
 interface TabProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, "children"> {
-  href: string;
+  /** Where the tab leads. Without one the tab is a button that calls
+   *  `onSelect` instead — tabs inside a window, switching what it shows. */
+  href?: string;
+  onSelect?: () => void;
   active?: boolean;
   icon?: React.ReactNode;
   /** After the label, outside the link — e.g. a menu button. Sits above the
@@ -46,9 +49,11 @@ interface TabProps
   children: React.ReactNode;
 }
 
-/** One tab: a link over the whole tab, plus an optional trailing control. */
+/** One tab: a link (or, without `href`, a button) over the whole tab, plus an
+ *  optional trailing control. */
 export function Tab({
   href,
+  onSelect,
   active = false,
   icon,
   trailing,
@@ -63,15 +68,27 @@ export function Tab({
       data-active={active || undefined}
       {...rest}
     >
-      <Link
-        href={href}
-        className={styles.link}
-        aria-current={active ? "page" : undefined}
-        onContextMenu={onLinkContextMenu}
-      >
-        {icon && <span className={styles.icon}>{icon}</span>}
-        <span className={styles.label}>{children}</span>
-      </Link>
+      {href !== undefined ? (
+        <Link
+          href={href}
+          className={styles.link}
+          aria-current={active ? "page" : undefined}
+          onContextMenu={onLinkContextMenu}
+        >
+          {icon && <span className={styles.icon}>{icon}</span>}
+          <span className={styles.label}>{children}</span>
+        </Link>
+      ) : (
+        <button
+          type="button"
+          className={styles.link}
+          aria-current={active ? "true" : undefined}
+          onClick={onSelect}
+        >
+          {icon && <span className={styles.icon}>{icon}</span>}
+          <span className={styles.label}>{children}</span>
+        </button>
+      )}
       {trailing && <span className={styles.trailing}>{trailing}</span>}
     </div>
   );

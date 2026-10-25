@@ -1,4 +1,14 @@
 {
+  "releases": {
+    "title": "Release Notes",
+    "versions": "Versionen",
+    "current": "aktuell",
+    "open": "Release Notes anzeigen",
+    "close": "Schließen",
+    "loading": "Lädt …",
+    "empty": "Zu dieser Version gibt es keine Release Notes.",
+    "allChanges": "Alle Änderungen auf GitHub"
+  },
   "nav": {
     "openMenu": "Menü öffnen",
     "resizeSidebar": "Breite der Seitenleiste ändern",

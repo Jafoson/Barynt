@@ -44,6 +44,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/*": [
       "lib/generated/prisma/**/*",
+      // The release notes the in-app window shows (lib/releases).
+      "releases/**/*",
       "node_modules/pg-*/**/*",
       "node_modules/@prisma/client-*/**/*",
     ],

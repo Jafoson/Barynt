@@ -13,6 +13,7 @@ import buttonStyles from "@/components/ui/atoms/Button/button.module.scss";
 import { Popover } from "@/components/ui/atoms/Popover/Popover";
 import { NavLink } from "@/components/ui/layout/NavLink/NavLink";
 import { logout } from "@/features/auth/actions";
+import { ReleaseNotesLine } from "@/features/releases/components/ReleaseNotesLine";
 import { Link } from "@/i18n/navigation";
 import type { AvailableUpdate } from "@/lib/update-check";
 import { fullName } from "@/lib/utils/string";
@@ -41,6 +42,10 @@ interface UserMenuClientProps {
   githubUrl: string;
   /** A newer release, for platform admins; `null` when up to date or unknown. */
   update: AvailableUpdate | null;
+  /** Versions that have release notes, newest first — empty: none. */
+  releaseVersions: string[];
+  /** Open the release notes on their own (a version new to this browser). */
+  showReleaseNotes: boolean;
 }
 
 /**
@@ -60,13 +65,15 @@ function UserMenuClient({
   version,
   githubUrl,
   update,
+  releaseVersions,
+  showReleaseNotes,
 }: UserMenuClientProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const t = useTranslations("nav");
 
   return (
-    <>
+    <div className={styles.menu}>
       {update && (
         <a
           className={styles.update}
@@ -166,17 +173,29 @@ function UserMenuClient({
           </Button>
         </Popover>
       </div>
-      <a
-        className={styles.about}
-        href={githubUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        title={t("openOnGithub")}
-      >
-        <Icon icon="lucide:github" height={12} />
-        <span>Barynt v{version}</span>
-      </a>
-    </>
+      <div className={styles.footer}>
+        <a
+          className={styles.footerLink}
+          href={githubUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={t("openOnGithub")}
+          aria-label={t("openOnGithub")}
+        >
+          <Icon icon="lucide:github" height={14} />
+        </a>
+        <span className={styles.footerVersion}>Barynt v{version}</span>
+        {releaseVersions.length > 0 && (
+          <ReleaseNotesLine
+            className={styles.footerLink}
+            version={version}
+            versions={releaseVersions}
+            githubUrl={githubUrl}
+            autoOpen={showReleaseNotes}
+          />
+        )}
+      </div>
+    </div>
   );
 }
 
