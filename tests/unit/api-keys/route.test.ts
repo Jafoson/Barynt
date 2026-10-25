@@ -611,6 +611,27 @@ describe("GET/POST /api/v1/issues/:id/comments", () => {
     expect(res.status).toBe(404);
   });
 
+  it("accepts a PREFIX-123 ref in place of the id", async () => {
+    mockResolveApiUser.mockResolvedValue(AUTH_READ_ONLY);
+    mockCan.mockResolvedValue(true);
+    mockProjectFindMany.mockResolvedValue([{ id: "p-1" }]);
+    mockIssueFindUnique.mockImplementation(
+      async ({ where }: { where: Record<string, unknown> }) =>
+        where.projectId_key
+          ? { id: "i-1" }
+          : where.id === "i-1"
+            ? { projectId: "p-1" }
+            : null,
+    );
+    mockCommentFindMany.mockResolvedValue([]);
+
+    const res = await getComments(req(), params("PRJ-1"));
+    expect(res.status).toBe(200);
+    expect(mockCommentFindMany.mock.calls[0][0].where).toEqual({
+      issueId: "i-1",
+    });
+  });
+
   it("403s a key without comments:write scope on POST", async () => {
     mockResolveApiUser.mockResolvedValue(AUTH_READ_ONLY);
     const res = await postComment(req({ body: "hi" }), params("i-1"));

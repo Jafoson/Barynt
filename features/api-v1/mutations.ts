@@ -9,6 +9,7 @@ import {
   type ApiWorkspace,
   getCommentUnchecked,
   getIssueUnchecked,
+  resolveIssueId,
 } from "@/features/api-v1/queries";
 import { richTextFromApiMarkdown } from "@/features/api-v1/richtext";
 import {
@@ -229,13 +230,19 @@ export interface CreateIssueInput {
 export async function createIssueForUser(
   userId: string,
   projectId: string,
-  input: CreateIssueInput,
+  rawInput: CreateIssueInput,
   /** Which of the two public-API surfaces made this call — never `APP`,
    *  the web app's own `createIssue()` (`features/issues/actions.ts`)
    *  doesn't go through here and leaves `Issue.source` at its `APP`
    *  default instead. */
   source: Exclude<ApiContentSource, "APP">,
 ): Promise<MutationResult<ApiIssue>> {
+  const input = {
+    ...rawInput,
+    ...(rawInput.parentId && {
+      parentId: await resolveIssueId(userId, rawInput.parentId),
+    }),
+  };
   if (!(await can(userId, "issue.create", { projectId }))) return fail(404);
 
   const title = input.title?.trim();
@@ -371,9 +378,16 @@ export interface UpdateIssueInput {
 
 export async function updateIssueForUser(
   userId: string,
-  issueId: string,
-  patch: UpdateIssueInput,
+  idOrRef: string,
+  input: UpdateIssueInput,
 ): Promise<MutationResult<{ id: string }>> {
+  const issueId = await resolveIssueId(userId, idOrRef);
+  const patch = {
+    ...input,
+    ...(input.parentId && {
+      parentId: await resolveIssueId(userId, input.parentId),
+    }),
+  };
   const issue = await db.issue.findUnique({
     where: { id: issueId },
     select: {
@@ -732,10 +746,13 @@ export interface AddIssueRelationInput {
  */
 export async function addIssueRelationForUser(
   userId: string,
-  issueId: string,
+  idOrRef: string,
   input: AddIssueRelationInput,
 ): Promise<MutationResult<{ id: string }>> {
-  const relatedId = input.relatedId;
+  const issueId = await resolveIssueId(userId, idOrRef);
+  const relatedId = input.relatedId
+    ? await resolveIssueId(userId, input.relatedId)
+    : input.relatedId;
   if (!relatedId || relatedId === issueId) return fail(422);
 
   const issue = await db.issue.findUnique({
@@ -903,11 +920,12 @@ export interface CreateCommentInput {
 
 export async function createCommentForUser(
   userId: string,
-  issueId: string,
+  idOrRef: string,
   input: CreateCommentInput,
   /** See `createIssueForUser`'s parameter of the same name. */
   source: Exclude<ApiContentSource, "APP">,
 ): Promise<MutationResult<ApiComment>> {
+  const issueId = await resolveIssueId(userId, idOrRef);
   const issue = await db.issue.findUnique({
     where: { id: issueId },
     select: {
