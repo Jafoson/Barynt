@@ -67,6 +67,21 @@ function UserMenuClient({
 
   return (
     <>
+      {update && (
+        <a
+          className={styles.update}
+          href={update.url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Icon icon="lucide:sparkles" height={18} />
+          <span className={styles.updateText}>
+            <strong>{t("updateAvailable")}</strong>
+            <span>{t("updateVersion", { version: update.version })}</span>
+          </span>
+          <Icon icon="lucide:arrow-up-right" height={14} />
+        </a>
+      )}
       <div className={styles.wrapper} ref={ref}>
         <Button
           onClick={() => setOpen(!open)}

@@ -104,14 +104,14 @@
   gap: 0.625rem;
   margin-bottom: 0.5rem;
   padding: 0.625rem 0.75rem;
-  border: 1px solid var(--primary);
+  border: 1px solid var(--secondary);
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  background: color-mix(in srgb, var(--secondary) 12%, transparent);
   color: var(--on-surface);
   text-decoration: none;
 
   &:hover {
-    background: color-mix(in srgb, var(--primary) 20%, transparent);
+    background: color-mix(in srgb, var(--secondary) 20%, transparent);
   }
 
   @include bp.rail {
