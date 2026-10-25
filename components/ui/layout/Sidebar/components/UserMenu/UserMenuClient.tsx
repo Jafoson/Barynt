@@ -62,101 +62,102 @@ function UserMenuClient({
   const t = useTranslations("nav");
 
   return (
-    <div className={styles.wrapper} ref={ref}>
-      <Button
-        onClick={() => setOpen(!open)}
-        variant="elevated"
-        full
-        textAlign="left"
-        icon={<Avatar avatar={me} size={28} />}
-        className={styles.trigger}
-        style={{ height: "48px", borderRadius: "var(--radius)" }}
-      >
-        <span className={styles.title}>
-          {fullName(me) || (me.handle ? `@${me.handle}` : "")}
-        </span>
-      </Button>
+    <>
+      <div className={styles.wrapper} ref={ref}>
+        <Button
+          onClick={() => setOpen(!open)}
+          variant="elevated"
+          full
+          textAlign="left"
+          icon={<Avatar avatar={me} size={28} />}
+          className={styles.trigger}
+          style={{ height: "48px", borderRadius: "var(--radius)" }}
+        >
+          <span className={styles.title}>
+            {fullName(me) || (me.handle ? `@${me.handle}` : "")}
+          </span>
+        </Button>
 
-      {inboxHref && (
-        <span className={styles.bellSlot}>
-          <Link
-            href={inboxHref}
-            aria-label={t("inbox")}
-            className={[
-              buttonStyles.btn,
-              buttonStyles.ghost,
-              buttonStyles.md,
-              buttonStyles.iconOnly,
-            ].join(" ")}
-          >
-            <Icon icon="lucide:bell" height={20} />
-          </Link>
-          {unreadCount > 0 && (
-            <Badge size="sm" active className={styles.bellBadge}>
-              <span>{unreadCount > 99 ? "99+" : unreadCount}</span>
-            </Badge>
-          )}
-        </span>
-      )}
-      <Popover
-        open={open}
-        onClose={() => setOpen(false)}
-        anchorRef={ref}
-        side="bottom"
-        width={210}
-      >
-        {(settingsHref || adminHref) && (
-          <>
-            {/* The same row as in the sidebar and the settings navs — a
+        {inboxHref && (
+          <span className={styles.bellSlot}>
+            <Link
+              href={inboxHref}
+              aria-label={t("inbox")}
+              className={[
+                buttonStyles.btn,
+                buttonStyles.ghost,
+                buttonStyles.md,
+                buttonStyles.iconOnly,
+              ].join(" ")}
+            >
+              <Icon icon="lucide:bell" height={20} />
+            </Link>
+            {unreadCount > 0 && (
+              <Badge size="sm" active className={styles.bellBadge}>
+                <span>{unreadCount > 99 ? "99+" : unreadCount}</span>
+              </Badge>
+            )}
+          </span>
+        )}
+        <Popover
+          open={open}
+          onClose={() => setOpen(false)}
+          anchorRef={ref}
+          side="bottom"
+          width={210}
+        >
+          {(settingsHref || adminHref) && (
+            <>
+              {/* The same row as in the sidebar and the settings navs — a
                 menu entry that leads elsewhere is a link and should behave
                 like one too (middle-click, "open in new tab"). */}
-            {settingsHref && (
-              <NavLink
-                href={settingsHref}
-                activeHref={`${settingsHref}/*`}
-                icon="lucide:settings"
-                label={t("settings")}
-                onClick={() => setOpen(false)}
-              />
-            )}
-            {adminHref && (
-              <NavLink
-                href={adminHref}
-                activeHref={`${adminHref}/*`}
-                icon="lucide:shield"
-                label={t("admin")}
-                onClick={() => setOpen(false)}
-              />
-            )}
-            <hr className={styles.divider} />
-          </>
-        )}
-        <Button
-          variant="ghost"
-          size="lg"
-          full
-          icon={<Icon icon="lucide:log-out" height={16} />}
-          textAlign="left"
-          onClick={() => {
-            logout();
-            setOpen(false);
-          }}
-        >
-          {t("signOut")}
-        </Button>
-        <hr className={styles.divider} />
-        <a
-          className={styles.about}
-          href={githubUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          title={t("openOnGithub")}
-        >
-          <Icon icon="lucide:github" height={14} />
-          <span>Barynt v{version}</span>
-        </a>
-      </Popover>
-    </div>
+              {settingsHref && (
+                <NavLink
+                  href={settingsHref}
+                  activeHref={`${settingsHref}/*`}
+                  icon="lucide:settings"
+                  label={t("settings")}
+                  onClick={() => setOpen(false)}
+                />
+              )}
+              {adminHref && (
+                <NavLink
+                  href={adminHref}
+                  activeHref={`${adminHref}/*`}
+                  icon="lucide:shield"
+                  label={t("admin")}
+                  onClick={() => setOpen(false)}
+                />
+              )}
+              <hr className={styles.divider} />
+            </>
+          )}
+          <Button
+            variant="ghost"
+            size="lg"
+            full
+            icon={<Icon icon="lucide:log-out" height={16} />}
+            textAlign="left"
+            onClick={() => {
+              logout();
+              setOpen(false);
+            }}
+          >
+            {t("signOut")}
+          </Button>
+        </Popover>
+      </div>
+      <a
+        className={styles.about}
+        href={githubUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={t("openOnGithub")}
+      >
+        <Icon icon="lucide:github" height={12} />
+        <span>Barynt v{version}</span>
+      </a>
+    </>
   );
 }
 

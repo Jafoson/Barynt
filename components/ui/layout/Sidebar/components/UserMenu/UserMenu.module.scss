@@ -73,19 +73,24 @@
   }
 }
 
-/* Version line at the foot of the menu — quiet, but a link to the repository. */
+/* Version line under the user card — quiet, but a link to the repository.
+   Hidden on the collapsed rail, where there's no room for text. */
 .about {
+  flex: none;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.75rem;
-  border-radius: var(--radius);
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
   color: var(--on-surface-variant);
   font-size: var(--text-xs);
   text-decoration: none;
 
   &:hover {
     color: var(--on-surface);
-    background: var(--surface-container-high);
+  }
+
+  @include bp.rail {
+    display: none;
   }
 }
