@@ -73,7 +73,7 @@ function UserMenuClient({
   const t = useTranslations("nav");
 
   return (
-    <>
+    <div className={styles.menu}>
       {update && (
         <a
           className={styles.update}
@@ -195,7 +195,7 @@ function UserMenuClient({
           />
         )}
       </div>
-    </>
+    </div>
   );
 }
 
