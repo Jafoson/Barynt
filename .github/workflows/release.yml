@@ -1,0 +1,116 @@
+name: Release
+
+# Manuell starten (Actions → Release → Run workflow). Der Lauf schlägt die
+# nächste Version aus den Conventional Commits seit dem letzten Tag vor (oder
+# nimmt die eingegebene), erzeugt releases/<version>.md (EN) und .de.md (DE)
+# mit den Highlights, die du hier eintippst (oder die schon im Repo liegen)
+# plus der automatischen Änderungsliste samt vorheriger Version, und zeigt
+# das Ergebnis im Job-Summary.
+#
+# Ohne Haken bei „publish“ ist das nur eine Vorschau — nichts wird geschrieben.
+# Mit Haken: package.json + releases/ werden als Commit auf main gepusht, Tag
+# vX.Y.Z und das GitHub-Release angelegt (Englisch, darunter aufklappbar
+# Deutsch; relative Bildpfade zeigen auf den Tag).
+#
+# Ist main geschützt, braucht der Push das Secret RELEASE_TOKEN (PAT mit
+# Bypass-Recht); sonst reicht der Standard-Token.
+#
+# Die Docker-Images baut weiterhin docker-build.yml von Hand.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version, z. B. 0.2.0 (leer = aus den Commits vorgeschlagen)"
+        required: false
+        type: string
+      highlights_en:
+        description: "Highlights EN, Markdown (\\n = Zeilenumbruch). Leer = bestehende Datei bleibt"
+        required: false
+        type: string
+      highlights_de:
+        description: "Highlights DE, Markdown (\\n = Zeilenumbruch). Leer = bestehende Datei bleibt"
+        required: false
+        type: string
+      publish:
+        description: "Wirklich veröffentlichen (aus = nur Vorschau im Job-Summary)"
+        required: true
+        type: boolean
+        default: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Prepare and publish release
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Only from main
+        if: ${{ inputs.publish && github.ref != 'refs/heads/main' }}
+        run: |
+          echo "::error::Veröffentlichen geht nur von main aus (gewählt: ${GITHUB_REF_NAME})."
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      # Eingaben über die Umgebung, nicht in den Shell-Text eingesetzt.
+      - name: Prepare release files
+        id: release
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          HIGHLIGHTS_EN: ${{ inputs.highlights_en }}
+          HIGHLIGHTS_DE: ${{ inputs.highlights_de }}
+        run: bun scripts/release/cli.ts prepare
+
+      - name: Build release body
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          bun scripts/release/cli.ts body "$VERSION" --out "$RUNNER_TEMP/body.md"
+          {
+            echo "## Release v${VERSION}"
+            if [ "${{ inputs.publish }}" = "true" ]; then
+              echo "_Wird veröffentlicht._"
+            else
+              echo "_Nur Vorschau — nichts wurde geschrieben. Zum Veröffentlichen den Lauf mit „publish“ wiederholen. Bilder erscheinen erst im fertigen Release._"
+            fi
+            echo
+            cat "$RUNNER_TEMP/body.md"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit, tag and publish
+        if: ${{ inputs.publish }}
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/v${VERSION}" >/dev/null; then
+            echo "::error::v${VERSION} existiert schon."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json releases
+          git commit -m "chore(release): v${VERSION}" || echo "Nothing to commit"
+          git push origin HEAD:main
+          gh release create "v${VERSION}" \
+            --target "$(git rev-parse HEAD)" \
+            --title "v${VERSION}" \
+            --notes-file "$RUNNER_TEMP/body.md" \
+            --latest

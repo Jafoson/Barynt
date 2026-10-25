@@ -40,6 +40,29 @@ pick ticket → in_progress → work → in_review → (user OK) → done
   user's OK), set the sub-ticket to `done`. The parent ticket goes to `done`
   only after its own PR into `main` is approved and merged.
 
+## Releases (BARY-189)
+
+Versions and release notes are semi-automated, see `releases/README.md`.
+
+- **Commits are Conventional** — `type(scope): summary`, `!` or a
+  `BREAKING CHANGE:` footer for a breaking change. The type decides the
+  proposed bump (`fix` patch, `feat` minor, breaking major; below 1.0 breaking
+  and `feat` both bump the minor); `chore`/`docs`/`test`/… alone propose
+  nothing.
+- A release is started by hand: Actions → **Release** (`release.yml`,
+  `workflow_dispatch`) with optional `version`, `highlights_en`/`highlights_de`
+  and `publish` (off = preview in the job summary). It writes
+  `releases/<version>.md` + `.de.md`, bumps `package.json`, commits to `main`,
+  tags `vX.Y.Z` and creates the GitHub release. The logic is in
+  `scripts/release/notes.ts` (tests: `tests/unit/release/`), the I/O in
+  `scripts/release/cli.ts`.
+- Don't edit `package.json`'s `version` by hand, and never the generated block
+  between the `changes:` markers.
+- If `main` is protected the push needs the secret `RELEASE_TOKEN` (a PAT that
+  may bypass it).
+- The sidebar's update card (`lib/update-check.ts`) looks at the latest GitHub
+  release; `UPDATE_CHECK=false` turns the check off.
+
 ## Stack
 
 - **Next.js 16** (App Router) with TypeScript
