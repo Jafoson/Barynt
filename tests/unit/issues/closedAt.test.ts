@@ -95,6 +95,7 @@ function issue(status: string, closedAt: Date | null) {
     subIssues: [],
     relationsFrom: [],
     relationsTo: [],
+    _count: { comments: 0 },
   };
 }
 

@@ -128,8 +128,8 @@ export const MCP_TOOL_GROUPS: McpToolGroup[] = [
         name: "get_issue",
         scope: "issues:read",
         desc: {
-          en: "Fetch a single issue by id.",
-          de: "Holt ein einzelnes Issue über seine ID.",
+          en: "Fetch a single issue by id or ref. Includes `commentCount`; when it is above 0 the response also carries a `hint` telling the agent to call `list_comments` before acting.",
+          de: "Holt ein einzelnes Issue über ID oder Kennung. Enthält `commentCount`; ist es größer als 0, steht in der Antwort zusätzlich ein `hint`, der den Agenten anweist, vor dem Handeln `list_comments` aufzurufen.",
         },
       },
       {

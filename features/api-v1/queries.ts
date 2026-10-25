@@ -9,6 +9,7 @@ import {
   can,
   canEnterWorkspace,
 } from "@/lib/permissions";
+import { mentionedUserIds, toMarkdown } from "@/lib/richtext";
 import type { StatusCategory } from "@/lib/status-category";
 import { fullName } from "@/lib/utils/string";
 
@@ -222,7 +223,7 @@ export const issueSelect = {
   /** Kept alongside the `project` relation below — `can()` checks
    *  (`project.view`) need the plain FK, not the full embedded object. */
   projectId: true,
-  descriptionText: true,
+  description: true,
   created: true,
   updated: true,
   closedAt: true,
@@ -233,6 +234,7 @@ export const issueSelect = {
   source: true,
   project: { select: projectRefSelect },
   parent: { select: issueRefSelect },
+  _count: { select: { comments: true } },
   subIssues: { select: issueRefSelect, orderBy: { created: "asc" } },
   relationsFrom: {
     select: { id: true, type: true, related: { select: issueRefSelect } },
@@ -262,8 +264,9 @@ export interface ApiIssue {
   assignee: ApiUserRef | null;
   reporter: ApiUserRef;
   project: ApiProjectRef;
-  /** Plain text, not the internal ProseMirror document — that's an editor
-   *  format, not a public API contract. */
+  /** Markdown, the same dialect `description` is written in — not the
+   *  internal ProseMirror document, which is an editor format, not a public
+   *  API contract. */
   description: string;
   created: Date;
   updated: Date;
@@ -275,6 +278,9 @@ export interface ApiIssue {
    *  display hint for `estimateHours`, which itself always stays a
    *  normalized hour value. */
   estimateUnit: string | null;
+  /** How many comments the issue has (replies included). They aren't
+   *  embedded — fetch them from the comments endpoint when this is > 0. */
+  commentCount: number;
   source: ApiContentSource;
   /** `null` for a top-level issue. */
   parent: ApiIssueRef | null;
@@ -297,11 +303,27 @@ export async function statusCategories(
   return new Map(statuses.map((s) => [s.id, s.category]));
 }
 
+/** Member id → `handle` for every mention in `docs` — one query per
+ *  response, so `toMarkdown` can write `@handle` (what the API accepts back)
+ *  instead of the display name. */
+async function resolveMentionHandles(
+  docs: unknown[],
+): Promise<Map<string, string>> {
+  const ids = [...new Set(docs.flatMap((doc) => mentionedUserIds(doc)))];
+  if (ids.length === 0) return new Map();
+  const users = await db.user.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, handle: true },
+  });
+  return new Map(users.map((u) => [u.id, u.handle]));
+}
+
 export async function mapApiIssue(
   row: IssueRow,
   labelMap: Map<string, ApiLabel>,
   canView: (projectId: string) => Promise<boolean>,
   categories: Map<string, StatusCategory>,
+  handles: Map<string, string>,
 ): Promise<ApiIssue> {
   const [parent, children, relations] = await Promise.all([
     row.parent ? toApiIssueRef(row.parent, canView) : Promise.resolve(null),
@@ -336,7 +358,9 @@ export async function mapApiIssue(
     assignee: row.assignee ? mapUserRef(row.assignee) : null,
     reporter: mapUserRef(row.reporter),
     project: { id: row.project.id, name: row.project.name },
-    description: row.descriptionText,
+    description: toMarkdown(row.description, {
+      mentionHandle: (id) => handles.get(id),
+    }),
     created: row.created,
     updated: row.updated,
     closedAt: row.closedAt,
@@ -344,6 +368,7 @@ export async function mapApiIssue(
     storyPoints: row.storyPoints,
     estimateHours: row.estimateHours,
     estimateUnit: row.estimateUnit,
+    commentCount: row._count.comments,
     source: row.source,
     parent,
     children,
@@ -356,13 +381,14 @@ export async function mapApiIssues(
   userId: string,
   rows: IssueRow[],
 ): Promise<ApiIssue[]> {
-  const [labelMap, categories] = await Promise.all([
+  const [labelMap, categories, handles] = await Promise.all([
     resolveLabels(rows.map((row) => row.labels)),
     statusCategories(rows),
+    resolveMentionHandles(rows.map((row) => row.description)),
   ]);
   const canView = makeProjectVisibility(userId);
   return Promise.all(
-    rows.map((row) => mapApiIssue(row, labelMap, canView, categories)),
+    rows.map((row) => mapApiIssue(row, labelMap, canView, categories, handles)),
   );
 }
 
@@ -488,11 +514,12 @@ export async function getIssueForUser(
 
   const canView = makeProjectVisibility(userId);
   if (!(await canView(row.projectId))) return null;
-  const [labelMap, categories] = await Promise.all([
+  const [labelMap, categories, handles] = await Promise.all([
     resolveLabels([row.labels]),
     statusCategories([row]),
+    resolveMentionHandles([row.description]),
   ]);
-  return mapApiIssue(row, labelMap, canView, categories);
+  return mapApiIssue(row, labelMap, canView, categories, handles);
 }
 
 /**
@@ -512,11 +539,18 @@ export async function getIssueForUser(
 export async function getIssueUnchecked(id: string): Promise<ApiIssue | null> {
   const row = await db.issue.findUnique({ where: { id }, select: issueSelect });
   if (!row) return null;
-  const [labelMap, categories] = await Promise.all([
+  const [labelMap, categories, handles] = await Promise.all([
     resolveLabels([row.labels]),
     statusCategories([row]),
+    resolveMentionHandles([row.description]),
   ]);
-  return mapApiIssue(row, labelMap, () => Promise.resolve(true), categories);
+  return mapApiIssue(
+    row,
+    labelMap,
+    () => Promise.resolve(true),
+    categories,
+    handles,
+  );
 }
 
 export interface ApiComment {
@@ -535,7 +569,7 @@ const commentSelect = {
   issueId: true,
   author: { select: userRefSelect },
   parentId: true,
-  bodyText: true,
+  body: true,
   created: true,
   updated: true,
   source: true,
@@ -543,13 +577,16 @@ const commentSelect = {
 
 type CommentRow = Prisma.CommentGetPayload<{ select: typeof commentSelect }>;
 
-function mapApiComment(row: CommentRow): ApiComment {
+function mapApiComment(
+  row: CommentRow,
+  handles: Map<string, string>,
+): ApiComment {
   return {
     id: row.id,
     issueId: row.issueId,
     author: mapUserRef(row.author),
     parentId: row.parentId,
-    body: row.bodyText,
+    body: toMarkdown(row.body, { mentionHandle: (id) => handles.get(id) }),
     created: row.created,
     updated: row.updated,
     source: row.source,
@@ -575,7 +612,8 @@ export async function listCommentsForUser(
     orderBy: { created: "asc" },
     select: commentSelect,
   });
-  return rows.map(mapApiComment);
+  const handles = await resolveMentionHandles(rows.map((r) => r.body));
+  return rows.map((row) => mapApiComment(row, handles));
 }
 
 /** Same shape as `listCommentsForUser`'s rows, without the permission
@@ -589,7 +627,8 @@ export async function getCommentUnchecked(
     where: { id },
     select: commentSelect,
   });
-  return row ? mapApiComment(row) : null;
+  if (!row) return null;
+  return mapApiComment(row, await resolveMentionHandles([row.body]));
 }
 
 /** A label, with enough to tell where it applies — unlike the minimal

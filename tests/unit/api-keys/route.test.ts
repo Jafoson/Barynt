@@ -384,7 +384,17 @@ function issueRow(overrides: Record<string, unknown> = {}) {
     labels: [],
     assignee: null,
     reporter: { id: "u-2", firstName: "Rep", lastName: "Orter" },
-    descriptionText: "",
+    description: {
+      type: "doc",
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 2 },
+          content: [{ type: "text", text: "Hi" }],
+        },
+      ],
+    },
+    _count: { comments: 3 },
     created: new Date(),
     updated: new Date(),
     closedAt: null,
@@ -487,6 +497,9 @@ describe("GET/PATCH /api/v1/issues/:id", () => {
     expect(body.data.ref).toBe("PRJ-1");
     expect(body.data.reporter).toEqual({ id: "u-2", name: "Rep Orter" });
     expect(body.data.project).toEqual({ id: "p-1", name: "Project" });
+    // Markdown, not the flattened search text; comments only counted.
+    expect(body.data.description).toBe("## Hi");
+    expect(body.data.commentCount).toBe(3);
   });
 
   it("403s a key without issues:read scope on GET", async () => {
