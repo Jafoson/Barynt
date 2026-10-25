@@ -123,7 +123,7 @@ services:
   # (.devcontainer/devcontainer.json) starts it with `--profile dev`.
   mailpit:
     profiles: ["dev"]
-    image: axllent/mailpit:v1.27
+    image: axllent/mailpit:v1.32
     container_name: barynt-mailpit
     restart: unless-stopped
     ports:
