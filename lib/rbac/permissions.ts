@@ -80,6 +80,10 @@ export const PERMISSIONS = {
     desc: "Suspend and unsuspend workspaces",
     scopes: PLATFORM_ONLY,
   },
+  "plugin.manage": {
+    desc: "Manage plugins platform-wide: add directories, install, update, block and remove plugins",
+    scopes: PLATFORM_ONLY,
+  },
   "mail.template.manage": {
     desc: "Edit the subject, heading, and intro text of the mail templates",
     scopes: PLATFORM_ONLY,
@@ -131,6 +135,10 @@ export const PERMISSIONS = {
   "config.manage": {
     desc: "Manage statuses, priorities, and issue types",
     scopes: WORKSPACE_ONLY,
+  },
+  "plugin.enable": {
+    desc: "Switch installed plugins on and off and configure them, confirming what they may do",
+    scopes: WORKSPACE_AND_PROJECT,
   },
   "webhook.manage": {
     desc: "Create, edit, and delete the workspace's webhooks",

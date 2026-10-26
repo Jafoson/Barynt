@@ -44,29 +44,30 @@ model Workspace {
   /// beim Initialen-Avatar.
   avatarKey String?
 
-  members       WorkspaceMember[]
-  projects      Project[]
-  labels        Label[]
-  teams         Team[]
-  invitations   Invitation[]
-  statuses      WorkspaceStatus[]
-  priorities    WorkspacePriority[]
-  issueTypes    WorkspaceIssueType[]
-  roles         Role[]
+  members                  WorkspaceMember[]
+  projects                 Project[]
+  labels                   Label[]
+  teams                    Team[]
+  invitations              Invitation[]
+  statuses                 WorkspaceStatus[]
+  priorities               WorkspacePriority[]
+  issueTypes               WorkspaceIssueType[]
+  roles                    Role[]
   // Wie einzelne Personen das Dashboard dieses Workspace eingerichtet haben.
-  dashboards    WorkspaceDashboardPreference[]
-  dashboardLayouts DashboardLayout[]
-  customWidgets    CustomWidget[]
+  dashboards               WorkspaceDashboardPreference[]
+  dashboardLayouts         DashboardLayout[]
+  customWidgets            CustomWidget[]
   // Wie einzelne Personen Board/Liste der projektübergreifenden "Meine
   // Issues"-Ansicht eingerichtet haben (BARY-33).
-  myIssuesViewPreferences MyIssuesViewPreference[]
-  savedViews    SavedView[]
+  myIssuesViewPreferences  MyIssuesViewPreference[]
+  savedViews               SavedView[]
   // Wichtige externe Adressen — Dokumentation, Repository, Chat.
-  links         WorkspaceLink[]
-  notifications Notification[]
-  domains       WorkspaceDomain[]
-  inviteLinks   InviteLink[]
-  webhooks      Webhook[]
+  links                    WorkspaceLink[]
+  notifications            Notification[]
+  domains                  WorkspaceDomain[]
+  inviteLinks              InviteLink[]
+  webhooks                 Webhook[]
+  pluginActivations        PluginActivation[]
   // Zeigt hierher, wenn dieser Workspace als globaler Default eingetragen ist
   // (SystemSettings.defaultWorkspaceId) — siehe dort.
   defaultForSystemSettings SystemSettings[]
@@ -160,38 +161,41 @@ model User {
   /// die Einladung selbst bleibt dadurch reibungslos, ohne Zwischenschritt.
   onboardedAt   DateTime?
 
-  workspaces          WorkspaceMember[]
-  assignedIssues      Issue[]                        @relation("IssueAssignee")
-  reportedIssues      Issue[]                        @relation("IssueReporter")
-  sharedIssues        Issue[]                        @relation("IssueSharedBy")
-  comments            Comment[]
-  commentReactions    CommentReaction[]
-  attachments         Attachment[]
-  leadingTeams        Team[]                         @relation("TeamLead")
-  teamMemberships     TeamMember[]
-  projectMemberships  ProjectMember[]
-  createdProjects     Project[]                      @relation("ProjectCreator")
-  accounts            Account[]
-  sessions            Session[]
-  authenticators      Authenticator[]
-  invitations         Invitation[]
-  invitationsSent     Invitation[]                   @relation("InvitationInvitedBy")
-  inviteLinksCreated  InviteLink[]                   @relation("InviteLinkCreatedBy")
-  preferences         UserPreferences?
-  dashboards          DashboardPreference[]
-  workspaceDashboards WorkspaceDashboardPreference[]
-  dashboardLayouts    DashboardLayout[]
-  dashboardNotes      DashboardNote[]
-  customWidgets       CustomWidget[]
-  issueViewPreferences   IssueViewPreference[]
+  workspaces              WorkspaceMember[]
+  assignedIssues          Issue[]                        @relation("IssueAssignee")
+  reportedIssues          Issue[]                        @relation("IssueReporter")
+  sharedIssues            Issue[]                        @relation("IssueSharedBy")
+  comments                Comment[]
+  commentReactions        CommentReaction[]
+  attachments             Attachment[]
+  leadingTeams            Team[]                         @relation("TeamLead")
+  teamMemberships         TeamMember[]
+  projectMemberships      ProjectMember[]
+  createdProjects         Project[]                      @relation("ProjectCreator")
+  accounts                Account[]
+  sessions                Session[]
+  authenticators          Authenticator[]
+  invitations             Invitation[]
+  invitationsSent         Invitation[]                   @relation("InvitationInvitedBy")
+  inviteLinksCreated      InviteLink[]                   @relation("InviteLinkCreatedBy")
+  preferences             UserPreferences?
+  dashboards              DashboardPreference[]
+  workspaceDashboards     WorkspaceDashboardPreference[]
+  dashboardLayouts        DashboardLayout[]
+  dashboardNotes          DashboardNote[]
+  customWidgets           CustomWidget[]
+  issueViewPreferences    IssueViewPreference[]
   myIssuesViewPreferences MyIssuesViewPreference[]
-  savedViews             SavedView[]
-  savedViewStates        SavedViewUserState[]
-  projectStates          ProjectUserState[]
-  notifications       Notification[]                 @relation("NotificationRecipient")
-  notificationsCaused Notification[]                 @relation("NotificationActor")
-  apiKeys             ApiKey[]
-  webhooksCreated     Webhook[]                       @relation("WebhookCreatedBy")
+  savedViews              SavedView[]
+  savedViewStates         SavedViewUserState[]
+  projectStates           ProjectUserState[]
+  notifications           Notification[]                 @relation("NotificationRecipient")
+  notificationsCaused     Notification[]                 @relation("NotificationActor")
+  apiKeys                 ApiKey[]
+  webhooksCreated         Webhook[]                      @relation("WebhookCreatedBy")
+  pluginSourcesAdded      PluginSource[]                 @relation("PluginSourceAddedBy")
+  pluginsInstalled        Plugin[]                       @relation("PluginInstalledBy")
+  pluginActivationsMade   PluginActivation[]             @relation("PluginActivatedBy")
   oauthAuthorizationCodes OAuthAuthorizationCode[]
   oauthAccessTokens       OAuthAccessToken[]
   oauthRefreshTokens      OAuthRefreshToken[]
@@ -205,23 +209,23 @@ model User {
 /// RBAC-Prüfung entscheidet zusätzlich pro Ressource, genau wie bei einer
 /// Session.
 model ApiKey {
-  id     String @id @default(cuid())
-  userId String
+  id         String    @id @default(cuid())
+  userId     String
   /// Frei gewählt, erscheint in der Liste — "CI-Pipeline", "Zapier" usw.
-  name   String
+  name       String
   /// Die ersten ~12 Zeichen des rohen Tokens, im Klartext für die maskierte
   /// Anzeige ("bry_a1b2c3d4…") — der einzige Teil des Secrets, der nach der
   /// Erstellung je wieder sichtbar ist.
-  prefix String
+  prefix     String
   /// SHA-256-Hex-Digest des vollen rohen Tokens. `@unique`, das ist der
   /// Lookup-Schlüssel (`lib/api-auth.ts`) — kein gehärteter Passwort-Hash, das
   /// rohe Token trägt bereits 256 Bit CSPRNG-Entropie.
-  tokenHash String   @unique
+  tokenHash  String    @unique
   /// Granulare Scopes im Jira-Stil ("issues:read", "comments:write", …) statt
   /// eines groben READ/WRITE — die Werte sind die Schlüssel aus
   /// `lib/api/scopes.ts#API_SCOPES`, hier bewusst als freier String statt Enum,
   /// damit ein neuer Scope keine Migration braucht.
-  scopes     String[] @default([])
+  scopes     String[]  @default([])
   lastUsedAt DateTime?
   expiresAt  DateTime?
   createdAt  DateTime  @default(now())
@@ -240,9 +244,9 @@ model ApiKey {
 /// kein `clientSecret`, PKCE ist im Autorisierungscode-Flow Pflicht
 /// (`lib/oauth/`).
 model OAuthClient {
-  id String @id @default(cuid())
+  id           String   @id @default(cuid())
   /// Vom Client selbst angegeben (RFC 7591 `client_name`), z. B. "Claude".
-  name String
+  name         String
   /// Exakter Abgleich ist Pflicht (Spec-Vorgabe gegen Open Redirect) —
   /// mehrere erlaubt, für Desktop-Clients mit wechselndem Loopback-Port.
   redirectUris String[]
@@ -269,11 +273,11 @@ model OAuthAuthorizationCode {
   /// Token gebunden wird. Optional, weil nicht jeder Client den Parameter
   /// mitschickt (nur MUST für den Client laut Spec, nicht für den Server,
   /// solche zu verlangen).
-  resource  String?
-  scopes    String[]  @default([])
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
+  resource            String?
+  scopes              String[]  @default([])
+  expiresAt           DateTime
+  usedAt              DateTime?
+  createdAt           DateTime  @default(now())
 
   client OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
   user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -340,10 +344,10 @@ model Webhook {
   /// Klartext, nicht gehasht wie `ApiKey.tokenHash` — wird bei jeder
   /// Zustellung zum Signieren gebraucht (HMAC-SHA256), ist also kein reiner
   /// Lookup-Wert, sondern muss lesbar bleiben.
-  secret String
+  secret      String
   /// Werte aus `lib/webhooks/events.ts#WEBHOOK_EVENTS`, z.B. "issue.created".
-  events  String[]
-  enabled Boolean  @default(true)
+  events      String[]
+  enabled     Boolean  @default(true)
 
   createdById String
   createdAt   DateTime @default(now())
@@ -445,7 +449,7 @@ model UserPreferences {
   shortcutOverrides Json @default("{}")
   /// Breiten der Listenspalten in px, `{ spalte: breite }` (BARY-175) —
   /// persönlich, in jeder Liste dieselben.
-  listColumnWidths Json @default("{}")
+  listColumnWidths  Json @default("{}")
 
   /// Vor dem Löschen und anderen unumkehrbaren Aktionen nachfragen.
   confirmDestructive Boolean @default(true)
@@ -453,25 +457,25 @@ model UserPreferences {
   // Benachrichtigungen, je Anlass einmal für die App und einmal für die Mail.
   // Es gibt noch keinen Mailversand; die Spalten stehen trotzdem hier, damit die
   // Wahl schon getroffen werden kann und nicht später nachgeholt werden muss.
-  assignedInApp    Boolean @default(true)
-  assignedEmail    Boolean @default(true)
-  mentionedInApp   Boolean @default(true)
-  mentionedEmail   Boolean @default(true)
-  commentInApp     Boolean @default(true)
-  commentEmail     Boolean @default(false)
+  assignedInApp     Boolean @default(true)
+  assignedEmail     Boolean @default(true)
+  mentionedInApp    Boolean @default(true)
+  mentionedEmail    Boolean @default(true)
+  commentInApp      Boolean @default(true)
+  commentEmail      Boolean @default(false)
   // Antwort auf einen eigenen Kommentar (nicht bloß ein neuer Kommentar am
   // selben Issue) — direkter adressiert als der allgemeine `comment`-Anlass,
   // deshalb wie bei `mentioned` per Default auch per Mail an.
   commentReplyInApp Boolean @default(true)
   commentReplyEmail Boolean @default(true)
-  statusInApp      Boolean @default(true)
-  statusEmail      Boolean @default(false)
-  inviteInApp      Boolean @default(true)
-  inviteEmail      Boolean @default(true)
-  roleInApp        Boolean @default(true)
-  roleEmail        Boolean @default(true)
-  issueSharedInApp Boolean @default(true)
-  issueSharedEmail Boolean @default(true)
+  statusInApp       Boolean @default(true)
+  statusEmail       Boolean @default(false)
+  inviteInApp       Boolean @default(true)
+  inviteEmail       Boolean @default(true)
+  roleInApp         Boolean @default(true)
+  roleEmail         Boolean @default(true)
+  issueSharedInApp  Boolean @default(true)
+  issueSharedEmail  Boolean @default(true)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -615,16 +619,16 @@ model IssueViewPreference {
   /// Gruppen (Board-Spalten / Listengruppen), die diese Person ausgeblendet
   /// hat — Einträge "<groupKey>:<groupId>", damit ein Wechsel der Gruppierung
   /// nichts Falsches trifft (`features/issues/hidden-groups.ts`, BARY-47).
-  hiddenGroups String[] @default([])
+  hiddenGroups    String[] @default([])
   /// Leere Gruppen automatisch ausblenden (BARY-47).
-  hideEmptyGroups Boolean @default(false)
+  hideEmptyGroups Boolean  @default(false)
   /// Sub-Issues (`Issue.parentId` gesetzt) als eigene Karten zeigen — nur im
   /// Board wirksam, standardmäßig aus.
-  showSubIssues Boolean @default(false)
+  showSubIssues   Boolean  @default(false)
   /// Eigene Reihenfolge der Spalten/Gruppen, Einträge "<groupKey>:<groupId>"
   /// wie `hiddenGroups` (BARY-165). Was fehlt, behält seinen Platz aus der
   /// Vorgabe (`features/issues/group-order.ts`).
-  groupOrder String[] @default([])
+  groupOrder      String[] @default([])
 
   /// Swimlanes (BARY-173): Bahnen ohne Aufgabe ausblenden.
   hideEmptyLanes Boolean  @default(false)
@@ -652,15 +656,15 @@ model MyIssuesViewPreference {
   /// "board" | "list".
   view        String
 
-  hiddenFields String[] @default([])
-  hiddenGroups String[] @default([])
+  hiddenFields    String[] @default([])
+  hiddenGroups    String[] @default([])
   /// Leere Gruppen automatisch ausblenden (BARY-47).
-  hideEmptyGroups Boolean @default(false)
+  hideEmptyGroups Boolean  @default(false)
   /// Sub-Issues als eigene Karten zeigen — nur im Board, standardmäßig aus.
-  showSubIssues Boolean @default(false)
+  showSubIssues   Boolean  @default(false)
   /// Eigene Reihenfolge der Spalten/Gruppen (BARY-165), wie
   /// `IssueViewPreference.groupOrder`.
-  groupOrder String[] @default([])
+  groupOrder      String[] @default([])
 
   /// Swimlanes (BARY-173): Bahnen ohne Aufgabe ausblenden.
   hideEmptyLanes Boolean  @default(false)
@@ -701,17 +705,17 @@ model SavedView {
   ownerId     String?
   visibility  ViewVisibility @default(PRIVATE)
 
-  name     String
+  name      String
   /// Eindeutig im Workspace, Teil der Adresse (`…/view/<slug>`).
-  slug     String
+  slug      String
   /// System-View des Workspace (V8): "my-issues" | "created-by-me". Wird bei
   /// Bedarf angelegt (`ensureSystemViews`), gehört niemandem, ist nicht
   /// änderbar oder löschbar; der Name kommt aus den Übersetzungen.
   systemKey String?
-  icon     String?
-  color    String?
+  icon      String?
+  color     String?
   /// Reihenfolge der Tabs; Float, damit Umsortieren nur eine Zeile ändert.
-  position Float   @default(0)
+  position  Float   @default(0)
 
   /// "board" | "list" | "dashboard" — `VIEW_LAYOUTS`.
   layout     String
@@ -870,21 +874,21 @@ model WorkspaceMember {
 // ─── Projects ────────────────────────────────────────────────────────────────
 
 model Project {
-  id           String            @id
-  workspaceId  String
-  name         String
-  slug         String
-  prefix       String
-  color        String
+  id                 String            @id
+  workspaceId        String
+  name               String
+  slug               String
+  prefix             String
+  color              String
   /// Wozu das Projekt da ist, in einem Satz. Steht in der Projektübersicht
   /// neben dem Namen; leer heißt schlicht, dass es niemand gesagt hat.
-  desc         String            @default("")
-  lastIssueKey Int               @default(0)
-  visibility   ProjectVisibility @default(public)
+  desc               String            @default("")
+  lastIssueKey       Int               @default(0)
+  visibility         ProjectVisibility @default(public)
   /// Objektschlüssel im `avatars`-Bucket (`lib/storage`) für ein selbst
   /// hochgeladenes Bild. Ohne S3-Konfiguration oder ohne Upload bleibt es
   /// beim Initialen-Avatar.
-  avatarKey    String?
+  avatarKey          String?
   /// Welche Felder der Issue-Detailansicht in diesem Projekt ausgeblendet
   /// sind (BARY-31) — Keys aus `DETAIL_FIELD_KEYS`
   /// (`features/projects/detail-fields.ts`). Nur die *ausgeblendeten*
@@ -894,7 +898,7 @@ model Project {
   /// `description` darf hier nie auftauchen (in der Server Action gefiltert);
   /// alle anderen Keys sind für neue Projekte per Default schon enthalten
   /// (`DEFAULT_HIDDEN_DETAIL_FIELDS`), nicht per Spalten-Default hier.
-  hiddenDetailFields String[] @default([])
+  hiddenDetailFields String[]          @default([])
 
   /// Wann es angelegt wurde.
   createdAt   DateTime  @default(now())
@@ -907,28 +911,30 @@ model Project {
   createdById String?
   createdBy   User?     @relation("ProjectCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
-  workspace     Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  issues        Issue[]
-  teams         TeamProject[]
-  labels        Label[]
-  members       ProjectMember[]
-  invitations   Invitation[]
+  workspace            Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  issues               Issue[]
+  teams                TeamProject[]
+  labels               Label[]
+  members              ProjectMember[]
+  invitations          Invitation[]
   // Workspace-Labels, die in diesem Projekt nicht angeboten werden.
-  hiddenLabels  ProjectHiddenLabel[]
+  hiddenLabels         ProjectHiddenLabel[]
   // Projektlokale Rollen (Role.scope = PROJECT mit gesetztem projectId).
-  roles         Role[]
+  roles                Role[]
   // Wie einzelne Personen das Dashboard dieses Projekts eingerichtet haben.
-  dashboards    DashboardPreference[]
-  dashboardLayouts DashboardLayout[]
+  dashboards           DashboardPreference[]
+  dashboardLayouts     DashboardLayout[]
   // Wie einzelne Personen Board/Liste dieses Projekts eingerichtet haben
   // (BARY-33) — welche Kartenfelder sie zusätzlich zu Project.hiddenDetailFields
   // ausgeblendet haben.
   issueViewPreferences IssueViewPreference[]
   // Gespeicherte Ansichten dieses Projekts (BARY-163).
-  savedViews    SavedView[]
-  userStates    ProjectUserState[]
-  notifications Notification[]
-  inviteLinks   InviteLink[]
+  savedViews           SavedView[]
+  userStates           ProjectUserState[]
+  notifications        Notification[]
+  inviteLinks          InviteLink[]
+
+  pluginActivations PluginActivation[]
 
   @@unique([workspaceId, prefix])
   @@unique([workspaceId, slug])
@@ -1072,11 +1078,11 @@ enum StatusCategory {
 }
 
 model Status {
-  id       String  @id
+  id       String         @id
   name     String
   short    String
   color    String
-  isColumn Boolean @default(true)
+  isColumn Boolean        @default(true)
   position Int
   category StatusCategory @default(unstarted)
 
@@ -1354,7 +1360,7 @@ model Issue {
   /// Story Points: ganzzahlig, üblicherweise Fibonacci (1/2/3/5/8/13) —
   /// nicht als Enum/Katalog modelliert, da die Skala nicht pro Workspace
   /// konfigurierbar ist (anders als `priority`/`status`/`type`).
-  storyPoints Int?
+  storyPoints   Int?
   /// Zeitschätzung, normalisiert auf Stunden (z. B. 2.5) — die eine
   /// gespeicherte Wahrheit fürs Filtern/Sortieren/Reporting, unabhängig
   /// davon, in welcher Einheit sie eingegeben wurde.
@@ -1364,7 +1370,7 @@ model Issue {
   /// Anzeige-Information für die Rückumrechnung (z. B. "2 Tage" statt "16
   /// Stunden"), verändert `estimateHours` selbst nicht. `null` genau dann,
   /// wenn `estimateHours` auch `null` ist.
-  estimateUnit String?
+  estimateUnit  String?
 
   /// Token für den öffentlichen Lese-Link (`issue.share.manage`). `null` heißt
   /// Teilen aus. Ein Feld statt eines eigenen Modells: es gibt nur einen
@@ -1397,21 +1403,21 @@ model Issue {
   /// hier je nach Aufrufer explizit `API`/`MCP` setzen.
   source ContentSource @default(APP)
 
-  assignee      User?           @relation("IssueAssignee", fields: [assigneeId], references: [id])
-  reporter      User            @relation("IssueReporter", fields: [reporterId], references: [id])
-  sharedBy      User?           @relation("IssueSharedBy", fields: [shareTokenCreatedById], references: [id], onDelete: SetNull)
-  project       Project         @relation(fields: [projectId], references: [id])
-  parent        Issue?          @relation("IssueParent", fields: [parentId], references: [id], onDelete: SetNull)
-  subIssues     Issue[]         @relation("IssueParent")
+  assignee      User?              @relation("IssueAssignee", fields: [assigneeId], references: [id])
+  reporter      User               @relation("IssueReporter", fields: [reporterId], references: [id])
+  sharedBy      User?              @relation("IssueSharedBy", fields: [shareTokenCreatedById], references: [id], onDelete: SetNull)
+  project       Project            @relation(fields: [projectId], references: [id])
+  parent        Issue?             @relation("IssueParent", fields: [parentId], references: [id], onDelete: SetNull)
+  subIssues     Issue[]            @relation("IssueParent")
   comments      Comment[]
   attachments   Attachment[]
   notifications Notification[]
   /// Beziehungen, bei denen dieses Issue die Quelle ist — z. B. "blockiert
   /// X" (siehe `IssueRelation`).
-  relationsFrom IssueRelation[] @relation("IssueRelationSource")
+  relationsFrom IssueRelation[]    @relation("IssueRelationSource")
   /// Beziehungen, bei denen dieses Issue das Ziel ist — z. B. "wird von X
   /// blockiert".
-  relationsTo   IssueRelation[] @relation("IssueRelationTarget")
+  relationsTo   IssueRelation[]    @relation("IssueRelationTarget")
   /// Jeder Statuswechsel, ab der Anlage (BARY-171) — Grundlage der
   /// Flussmetriken.
   statusEvents  IssueStatusEvent[]
@@ -1459,17 +1465,17 @@ model IssueRelation {
 // ─── Comments ────────────────────────────────────────────────────────────────
 
 model Comment {
-  id       String    @id
+  id           String                   @id
   // Wie `Issue.description`: ProseMirror-Dokument plus abgeleiteter Fließtext
   // für Vorschauen (Inbox) und spätere Suche.
-  body     Json
-  bodyText String    @default("")
+  body         Json
+  bodyText     String                   @default("")
   /// Wie `Issue.searchVector`, aus `bodyText` — lässt `searchIssueIds` auch
   /// über Kommentare hinweg treffen, nicht nur über Titel/Beschreibung.
   searchVector Unsupported("tsvector")?
-  created  DateTime  @default(now())
+  created      DateTime                 @default(now())
   /// `null` = nie bearbeitet — steuert den „bearbeitet"-Hinweis in der UI.
-  updated  DateTime?
+  updated      DateTime?
 
   issueId  String
   authorId String
@@ -1763,4 +1769,129 @@ model SystemSettings {
   updatedAt DateTime @updatedAt
 
   @@index([defaultWorkspaceId])
+}
+
+// ─── Plugins (BARY-130) ──────────────────────────────────────────────────────
+//
+// Plugins werden einmal von der Plattform installiert (`plugin.manage`) und
+// dann pro Workspace oder Projekt eingeschaltet (`plugin.enable`). Das
+// Manifest-Schema steht in `lib/plugins/manifest.ts`. Dritt-Code läuft nie im
+// Serverprozess; hier liegen nur Verwaltungsdaten.
+
+enum PluginStatus {
+  /// Die Version, die gerade gilt. Pro `pluginId` höchstens eine.
+  active
+  /// Frühere Version, bleibt für den Rollback stehen.
+  superseded
+  /// Vom Plattform-Admin gesperrt (Kill-Switch): wird nirgends geladen.
+  blocked
+}
+
+/// Ein Verzeichnis (`plugins.json`), aus dem Plugins gelistet werden. Mehrere
+/// Quellen sind möglich; eine weitere Quelle gibt nie automatisch Code frei.
+model PluginSource {
+  id          String  @id @default(cuid())
+  name        String
+  url         String  @unique
+  /// Zugriffstoken für private Verzeichnisse und Plugin-Repos — nie im
+  /// Klartext. Wie es versiegelt wird, legt der Verzeichnis-Client fest (B3).
+  tokenCipher String?
+  enabled     Boolean @default(true)
+
+  lastSyncAt    DateTime?
+  /// Fehlertext des letzten Abgleichs; leer heißt, er ist gelungen.
+  lastSyncError String?
+
+  addedById String?
+  createdAt DateTime @default(now())
+
+  addedBy User?    @relation("PluginSourceAddedBy", fields: [addedById], references: [id], onDelete: SetNull)
+  plugins Plugin[]
+}
+
+/// Eine installierte Version eines Plugins. `pluginId` ist die Id aus dem
+/// Manifest, nicht die Zeilen-Id; pro Version eine Zeile.
+model Plugin {
+  id       String       @id @default(cuid())
+  pluginId String
+  version  String
+  /// `declarative`, `sandbox` oder `service` — aus dem Manifest, hier für
+  /// Abfragen herausgezogen.
+  kind     String
+  /// SHA-256 der geladenen Release-Dateien, vom Verzeichnis-Client geprüft.
+  hash     String
+  /// Das geprüfte Manifest, wie es installiert wurde.
+  manifest Json
+  status   PluginStatus @default(active)
+
+  sourceId      String?
+  installedById String?
+  installedAt   DateTime @default(now())
+
+  source      PluginSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  installedBy User?         @relation("PluginInstalledBy", fields: [installedById], references: [id], onDelete: SetNull)
+
+  @@unique([pluginId, version])
+  @@index([pluginId, status])
+  @@index([sourceId])
+}
+
+/// Ein Plugin ist in einem Workspace oder in einem Projekt eingeschaltet.
+/// `workspaceId` ist immer gesetzt (Löschen des Workspace räumt mit auf);
+/// `projectId` nur bei einer Projekt-Aktivierung. Zeigt auf `pluginId`, nicht
+/// auf eine Version, damit ein Update die Aktivierung behält.
+model PluginActivation {
+  id          String  @id @default(cuid())
+  pluginId    String
+  workspaceId String
+  projectId   String?
+  /// `ws:<workspaceId>` oder `pr:<projectId>` — macht „einmal je Ebene"
+  /// eindeutig, was `@@unique` mit einer NULL-Spalte nicht leisten würde
+  /// (`lib/plugins/activation.ts#activationScopeKey`).
+  scopeKey    String
+  enabled     Boolean @default(true)
+
+  /// Die Fähigkeiten, die beim Einschalten bestätigt wurden. Sie sind der
+  /// Maßstab, nicht das Manifest: kommt eine neue hinzu, wartet die Aktivierung
+  /// auf eine erneute Bestätigung.
+  capabilities String[]
+
+  activatedById String?
+  activatedAt   DateTime @default(now())
+
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project     Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  activatedBy User?           @relation("PluginActivatedBy", fields: [activatedById], references: [id], onDelete: SetNull)
+  settings    PluginSettings?
+  storage     PluginStorage[]
+
+  @@unique([pluginId, scopeKey])
+  @@index([workspaceId])
+  @@index([projectId])
+}
+
+/// Die Werte des Einstellungsformulars; das Formular kommt aus dem Manifest
+/// und wird serverseitig dagegen validiert.
+model PluginSettings {
+  activationId String   @id
+  values       Json     @default("{}")
+  updatedAt    DateTime @updatedAt
+
+  activation PluginActivation @relation(fields: [activationId], references: [id], onDelete: Cascade)
+}
+
+/// Schlüssel-Wert-Speicher eines Plugins (`storage:own`), je Aktivierung
+/// getrennt. `size` ist die Länge des serialisierten Werts in Bytes, damit die
+/// Quote ohne Summieren der Werte prüfbar bleibt.
+model PluginStorage {
+  id           String   @id @default(cuid())
+  activationId String
+  key          String
+  value        Json
+  size         Int
+  updatedAt    DateTime @updatedAt
+
+  activation PluginActivation @relation(fields: [activationId], references: [id], onDelete: Cascade)
+
+  @@unique([activationId, key])
 }
