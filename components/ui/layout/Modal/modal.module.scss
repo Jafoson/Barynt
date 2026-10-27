@@ -124,7 +124,10 @@
   flex: none;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.875rem var(--modal-pad-x) 0.625rem;
+  /* The block padding can be set from outside — a panel docked next to a
+     page bar lines its bottom edge up with that bar's. */
+  padding: var(--modal-head-pt, 0.875rem) var(--modal-pad-x)
+    var(--modal-head-pb, 0.625rem);
   background-color: var(--surface-container-high);
 }
 

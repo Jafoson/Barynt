@@ -2,7 +2,7 @@
 
 import { Icon } from "@iconify/react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { IssueComposerData, IssuePatch } from "@/features/issues/types";
 import type { DetailFieldKey } from "@/features/projects/detail-fields";
 import type { PMDoc } from "@/lib/richtext/types";
@@ -45,6 +45,32 @@ function PropertiesGroup({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * True once `target` has scrolled out past the top edge of `root`. Not when
+ * it's merely below the fold, and not while it has no size — a collapsed
+ * `PropertiesGroup` hides it, and then there's nothing to stand in for.
+ */
+function useScrolledPast(root: HTMLElement | null, target: HTMLElement | null) {
+  const [past, setPast] = useState(false);
+  useEffect(() => {
+    if (!root || !target) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const top = entry.rootBounds?.top ?? 0;
+        setPast(
+          !entry.isIntersecting &&
+            entry.boundingClientRect.height > 0 &&
+            entry.boundingClientRect.bottom <= top,
+        );
+      },
+      { root },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [root, target]);
+  return past;
+}
+
 interface IssueStackedBodyProps {
   issue: IssueDetail;
   data: IssueComposerData;
@@ -61,6 +87,10 @@ interface IssueStackedBodyProps {
  * Everything of an issue in one column, in the order you'd read it: what it's
  * about, how it's categorized, what was said about it. The side panel uses it,
  * and on a phone so does the full page — a second column has no room there.
+ *
+ * Once type/status/priority/assignee have scrolled away, a compact copy of
+ * them slides in under the header, so they stay in reach while reading the
+ * description or the comments.
  */
 export function IssueStackedBody({
   issue,
@@ -76,99 +106,124 @@ export function IssueStackedBody({
   const showAttachments = visibleFields.has("attachments");
   const showLabels = visibleFields.has("labels");
 
+  // Elements, not refs: the observer has to start over once either exists.
+  const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
+  const [properties, setProperties] = useState<HTMLDivElement | null>(null);
+  const pinned = useScrolledPast(scroller, properties);
+
   return (
-    <div className={styles.body}>
-      <IssueTitle
-        title={issue.title}
-        readOnly={!issue.access.canEdit}
-        onPatch={onPatch}
-      />
-      {isPhone ? (
-        <PropertiesGroup>
-          <IssueProperties
-            issue={issue}
-            data={data}
-            layout="column"
-            visibleFields={visibleFields}
-            onPatch={onPatch}
-          />
-          <IssuePlanning
-            issue={issue}
-            layout="column"
-            visibleFields={visibleFields}
-            onPatch={onPatch}
-          />
-          {showLabels && (
-            <IssueLabels
-              issue={issue}
-              data={data}
-              layout="column"
-              onPatch={onPatch}
-            />
-          )}
-          <IssueMeta issue={issue} data={data} layout="column" />
-        </PropertiesGroup>
-      ) : (
+    <div className={styles.stack}>
+      {/* Out of the tab order and the accessibility tree while hidden —
+          the full block is the one to use then. */}
+      <div
+        className={styles.pinnedProps}
+        data-shown={pinned || undefined}
+        inert={!pinned}
+      >
         <IssueProperties
           issue={issue}
           data={data}
           layout="column"
           visibleFields={visibleFields}
           onPatch={onPatch}
+          compact
         />
-      )}
-      <IssueDescription
-        issueId={issue.id}
-        description={issue.description}
-        data={data}
-        readOnly={!issue.access.canEdit}
-        onPatch={onPatch}
-        onRefresh={onRefresh}
-      />
-      {showRelations && (
-        <IssueRelations issue={issue} data={data} onRefresh={onRefresh} />
-      )}
-      {showAttachments && (
-        <IssueAttachments
-          issueId={issue.id}
-          attachments={issue.attachments}
+      </div>
+      <div ref={setScroller} className={styles.body}>
+        <IssueTitle
+          title={issue.title}
           readOnly={!issue.access.canEdit}
-          onRefresh={onRefresh}
+          onPatch={onPatch}
         />
-      )}
-      {!isPhone && (
-        <>
-          <IssuePlanning
-            issue={issue}
-            layout="column"
-            visibleFields={visibleFields}
-            onPatch={onPatch}
-          />
-          {showLabels && (
-            <IssueLabels
+        {isPhone ? (
+          <PropertiesGroup>
+            <IssueProperties
               issue={issue}
               data={data}
               layout="column"
+              visibleFields={visibleFields}
+              onPatch={onPatch}
+              ref={setProperties}
+            />
+            <IssuePlanning
+              issue={issue}
+              layout="column"
+              visibleFields={visibleFields}
               onPatch={onPatch}
             />
-          )}
-          <IssueMeta issue={issue} data={data} layout="column" />
-        </>
-      )}
-      <IssueComments
-        issueId={issue.id}
-        workspaceId={data.workspaceId}
-        identifier={identifier}
-        comments={issue.comments}
-        activity={issue.activity}
-        members={data.members}
-        me={data.me}
-        data={data}
-        canUpdateAnyComment={issue.access.canUpdateAnyComment}
-        canDeleteAnyComment={issue.access.canDeleteAnyComment}
-        onSubmit={onComment}
-        onRefresh={onRefresh}
-      />
+            {showLabels && (
+              <IssueLabels
+                issue={issue}
+                data={data}
+                layout="column"
+                onPatch={onPatch}
+              />
+            )}
+            <IssueMeta issue={issue} data={data} layout="column" />
+          </PropertiesGroup>
+        ) : (
+          <IssueProperties
+            issue={issue}
+            data={data}
+            layout="column"
+            visibleFields={visibleFields}
+            onPatch={onPatch}
+            ref={setProperties}
+          />
+        )}
+        <IssueDescription
+          issueId={issue.id}
+          description={issue.description}
+          data={data}
+          readOnly={!issue.access.canEdit}
+          onPatch={onPatch}
+          onRefresh={onRefresh}
+        />
+        {showRelations && (
+          <IssueRelations issue={issue} data={data} onRefresh={onRefresh} />
+        )}
+        {showAttachments && (
+          <IssueAttachments
+            issueId={issue.id}
+            attachments={issue.attachments}
+            readOnly={!issue.access.canEdit}
+            onRefresh={onRefresh}
+          />
+        )}
+        {!isPhone && (
+          <>
+            <IssuePlanning
+              issue={issue}
+              layout="column"
+              visibleFields={visibleFields}
+              onPatch={onPatch}
+            />
+            {showLabels && (
+              <IssueLabels
+                issue={issue}
+                data={data}
+                layout="column"
+                onPatch={onPatch}
+              />
+            )}
+            <IssueMeta issue={issue} data={data} layout="column" />
+          </>
+        )}
+        <IssueComments
+          issueId={issue.id}
+          workspaceId={data.workspaceId}
+          identifier={identifier}
+          comments={issue.comments}
+          activity={issue.activity}
+          members={data.members}
+          me={data.me}
+          data={data}
+          canUpdateAnyComment={issue.access.canUpdateAnyComment}
+          canDeleteAnyComment={issue.access.canDeleteAnyComment}
+          onSubmit={onComment}
+          onRefresh={onRefresh}
+        />
+      </div>
     </div>
   );
 }
