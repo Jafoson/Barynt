@@ -11,6 +11,7 @@ import {
 } from "@/lib/permissions";
 import { mentionedUserIds, toMarkdown } from "@/lib/richtext";
 import type { StatusCategory } from "@/lib/status-category";
+import { GET_EXPIRES_IN, resolveAttachmentUrl } from "@/lib/storage";
 import { fullName } from "@/lib/utils/string";
 
 // Read helpers for the public API (`app/api/v1`), explicitly parameterized
@@ -234,7 +235,7 @@ export const issueSelect = {
   source: true,
   project: { select: projectRefSelect },
   parent: { select: issueRefSelect },
-  _count: { select: { comments: true } },
+  _count: { select: { comments: true, attachments: true } },
   subIssues: { select: issueRefSelect, orderBy: { created: "asc" } },
   relationsFrom: {
     select: { id: true, type: true, related: { select: issueRefSelect } },
@@ -281,6 +282,13 @@ export interface ApiIssue {
   /** How many comments the issue has (replies included). They aren't
    *  embedded — fetch them from the comments endpoint when this is > 0. */
   commentCount: number;
+  /** How many attachments (files and links) the issue has. The list itself,
+   *  with links to view each one, only comes with a single issue
+   *  (`attachments`) or from the attachments endpoint. */
+  attachmentCount: number;
+  /** Only on a single-issue fetch (`getIssueForUser`) — a page of issues
+   *  would otherwise sign a URL for every file of every row. */
+  attachments?: ApiAttachment[];
   source: ApiContentSource;
   /** `null` for a top-level issue. */
   parent: ApiIssueRef | null;
@@ -369,6 +377,7 @@ export async function mapApiIssue(
     estimateHours: row.estimateHours,
     estimateUnit: row.estimateUnit,
     commentCount: row._count.comments,
+    attachmentCount: row._count.attachments,
     source: row.source,
     parent,
     children,
@@ -534,12 +543,16 @@ export async function getIssueForUser(
 
   const canView = makeProjectVisibility(userId);
   if (!(await canView(row.projectId))) return null;
-  const [labelMap, categories, handles] = await Promise.all([
+  const [labelMap, categories, handles, attachments] = await Promise.all([
     resolveLabels([row.labels]),
     statusCategories([row]),
     resolveMentionHandles([row.description]),
+    issueAttachments(row.id),
   ]);
-  return mapApiIssue(row, labelMap, canView, categories, handles);
+  return {
+    ...(await mapApiIssue(row, labelMap, canView, categories, handles)),
+    attachments,
+  };
 }
 
 /**
@@ -650,6 +663,109 @@ export async function getCommentUnchecked(
   });
   if (!row) return null;
   return mapApiComment(row, await resolveMentionHandles([row.body]));
+}
+
+export interface ApiAttachment {
+  id: string;
+  issueId: string;
+  /** "file" — uploaded, stored by Barynt; "link" — an external address. */
+  kind: "file" | "link";
+  name: string;
+  /** Where to view it. A link's own address; for a file a signed download
+   *  URL that needs no token but stops working at `urlExpiresAt` — fetch
+   *  the attachment again for a fresh one. `null` when file storage isn't
+   *  configured on this instance. */
+  url: string | null;
+  /** When a file's `url` expires. `null` for a link (it doesn't). */
+  urlExpiresAt: Date | null;
+  mimeType: string | null;
+  /** Bytes. Only for files. */
+  size: number | null;
+  author: ApiUserRef;
+  created: Date;
+}
+
+export const attachmentSelect = {
+  id: true,
+  issueId: true,
+  kind: true,
+  name: true,
+  key: true,
+  url: true,
+  mimeType: true,
+  size: true,
+  created: true,
+  author: { select: userRefSelect },
+} satisfies Prisma.AttachmentSelect;
+
+export type AttachmentRow = Prisma.AttachmentGetPayload<{
+  select: typeof attachmentSelect;
+}>;
+
+export async function mapApiAttachment(
+  row: AttachmentRow,
+): Promise<ApiAttachment> {
+  const isFile = row.kind === "file";
+  const url = isFile ? await resolveAttachmentUrl(row.key) : row.url;
+  return {
+    id: row.id,
+    issueId: row.issueId,
+    kind: isFile ? "file" : "link",
+    name: row.name,
+    url,
+    urlExpiresAt:
+      isFile && url ? new Date(Date.now() + GET_EXPIRES_IN * 1000) : null,
+    mimeType: row.mimeType,
+    size: row.size,
+    author: mapUserRef(row.author),
+    created: row.created,
+  };
+}
+
+/** An issue's attachments, oldest first — the app's order
+ *  (`IssueAttachments`). No permission check: callers have one. */
+async function issueAttachments(issueId: string): Promise<ApiAttachment[]> {
+  const rows = await db.attachment.findMany({
+    where: { issueId },
+    orderBy: { created: "asc" },
+    select: attachmentSelect,
+  });
+  return Promise.all(rows.map(mapApiAttachment));
+}
+
+/** `null` means the issue doesn't exist or isn't visible — routes turn
+ *  that into a 404. Same visibility rule as the issue itself. */
+export async function listAttachmentsForUser(
+  userId: string,
+  idOrRef: string,
+): Promise<ApiAttachment[] | null> {
+  const issueId = await resolveIssueId(userId, idOrRef);
+  const issue = await db.issue.findUnique({
+    where: { id: issueId },
+    select: { projectId: true },
+  });
+  if (!issue) return null;
+  if (!(await can(userId, "project.view", { projectId: issue.projectId })))
+    return null;
+  return issueAttachments(issueId);
+}
+
+/** One attachment with a freshly signed URL — `null` when it doesn't exist
+ *  or its issue isn't visible. Also returns the stored object key for
+ *  callers that read the file itself (`get_attachment` with content); the
+ *  key never leaves the server. */
+export async function getAttachmentForUser(
+  userId: string,
+  attachmentId: string,
+): Promise<{ attachment: ApiAttachment; key: string | null } | null> {
+  const row = await db.attachment.findUnique({
+    where: { id: attachmentId },
+    select: { ...attachmentSelect, issue: { select: { projectId: true } } },
+  });
+  if (!row) return null;
+  if (!(await can(userId, "project.view", { projectId: row.issue.projectId })))
+    return null;
+  return { attachment: await mapApiAttachment(row), key: row.key };
 }
 
 /** A label, with enough to tell where it applies — unlike the minimal

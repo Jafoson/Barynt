@@ -24,6 +24,24 @@
      the full width, and the eye would lose track when wrapping to the
      next line. */
   --detail-content-w: 48.75rem;
+  /* What the pinned attribute bar (`.pinnedProps`) paints behind itself —
+     the panel's own surface, so it reads as part of the header. */
+  --detail-bg: var(--surface-container-low);
+}
+
+/* The side panel's header ends on the same line as the bar beside it
+   (the sidebar's brand row, the page's `Topbar`): a 2.875rem row, the
+   1.625rem buttons centered in it. A phone has no bar beside it, the
+   dialog fills the screen. */
+.detail:not(.expanded) {
+  --modal-head-pt: 0.625rem;
+  --modal-head-pb: 0.625rem;
+
+  /* `initial` unsets them — `Modal`'s own defaults apply again. */
+  @include bp.phone {
+    --modal-head-pt: initial;
+    --modal-head-pb: initial;
+  }
 }
 
 /* Expanded: a large dialog instead of a side panel.
@@ -64,6 +82,7 @@
      kicks in above that — somewhere the line has to end for the eye to
      still follow along when it wraps. */
   --detail-content-w: 87.5rem;
+  --detail-bg: var(--background);
 
   display: flex;
   flex: 1 1 auto;
@@ -334,6 +353,72 @@
   flex: none;
 }
 
+/* `.body` plus the pinned attribute bar above it. Takes over `.body`'s
+   place in the flex column, so either parent (the panel's `.contentWrap`,
+   the page) keeps sizing it the same way. */
+.stack {
+  position: relative;
+  /* The bar's z-index stays in here: above the description's own layers,
+     still below `.loadingOverlay` next door. */
+  isolation: isolate;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Type, status, priority, and assignee once their block has scrolled away
+   (`IssueStackedBody`): a second, flat bar right under the header. It lies
+   over the scroll container instead of inside it, so it takes no room and
+   the content runs on underneath. Same side padding as `.body` — the
+   percentage refers to the same parent — so the values line up with the
+   text below.
+
+   Shown by wiping down from the header's edge (`clip-path`) while the row
+   inside follows it, as if it slid out from under the header. The pickers
+   open in a portal, the clip never cuts them off. */
+.pinnedProps {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 10;
+  padding: 0.25rem
+    max(
+      calc(var(--detail-pad-x) - 0.375rem),
+      calc((100% - var(--detail-content-w)) / 2 - 0.375rem)
+    );
+  background: var(--detail-bg);
+  border-bottom: 1px solid var(--outline-variant);
+  clip-path: inset(0 0 100% 0);
+  opacity: 0;
+  transition: clip-path 0.22s ease, opacity 0.22s ease;
+
+  & > * {
+    transform: translateY(-0.75rem);
+    transition: transform 0.22s ease;
+  }
+
+  &[data-shown] {
+    clip-path: inset(0);
+    opacity: 1;
+
+    & > * {
+      transform: none;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pinnedProps {
+    clip-path: none;
+    transition: opacity 0.12s;
+
+    & > * {
+      transform: none;
+      transition: none;
+    }
+  }
+}
+
 /* The width is draggable (`IssueSidebar` writes it as an inline variable).
    The cap at half the split is the last line of defense: it kicks in
    where the dialog is narrower than the 28.75rem the handle allows for. */
@@ -474,6 +559,45 @@
   &:hover {
     background: var(--surface-container-highest);
   }
+}
+
+/* One row, values only — the labels move to screen readers. Each field
+   takes what its value needs and gives way with an ellipsis when four
+   don't fit side by side. */
+.propertiesBar {
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.barField {
+  flex: 0 1 auto;
+  min-width: 0;
+
+  /* Flatter than in the block: the bar should take as little of the
+     reading area as it can. */
+  .valueBtn {
+    gap: 0.375rem;
+    width: auto;
+    max-width: 100%;
+    min-height: 1.75rem;
+    padding: 0.125rem 0.375rem;
+    font-size: var(--text-sm);
+
+    /* A tablet has the width — the values can stay as large as in the
+       block itself. */
+    @include bp.tablet-only {
+      gap: 0.5rem;
+      min-height: 2.25rem;
+      padding: 0.25rem 0.5rem;
+      font-size: var(--text-base);
+    }
+  }
+}
+
+.barLabel {
+  @include bp.sr-only;
 }
 
 /* Time-estimate popover (BARY-4): a number and its unit as two adjacent
@@ -1325,8 +1449,22 @@
   margin-top: 0.5rem;
 }
 
+/* Phone and tablet, writing: the editor opens in place at a fixed height —
+   a good part of what's visible above the keyboard, never all of it, so
+   the issue above stays in view and keeps scrolling. The editor fills it
+   (`fill`), its surface scrolls under the toolbar. */
+.composerBox[data-writing] {
+  display: flex;
+  flex-direction: column;
+  height: min(28rem, calc((100dvh - var(--kb-inset, 0px)) * 0.6));
+
+  .composerFoot {
+    flex: none;
+  }
+}
+
 /* Phone and tablet: the composer rests as one line (a messenger's) — a
-   field-looking button that opens the full-screen editor, plus "comment". */
+   field-looking button that opens the editor in place, plus "comment". */
 .composerCompact {
   display: flex;
   flex: 1;
@@ -1353,15 +1491,6 @@
   &[data-empty] {
     color: var(--outline);
   }
-}
-
-/* The full-screen editor: the editor grows, the buttons sit below. */
-.composerFull {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-height: 0;
 }
 
 /* ---------- Loading and empty state ---------- */
@@ -1603,8 +1732,15 @@
     }
   }
 
-  /* No keyboard shortcut hint on a phone. */
-  .composerFoot > :first-child {
+  /* Writing: as tall as the open editor, not capped and scrolling as a
+     whole — the editor's own surface scrolls instead. */
+  &:has([data-writing], [data-docked-editor]) {
+    max-height: none;
+  }
+
+  /* The description is being edited here (`IssueDescription`): it takes the
+     spot, the comment line waits until it's done. */
+  &:has(> [data-docked-editor]) > :not([data-docked-editor]) {
     display: none;
   }
 }

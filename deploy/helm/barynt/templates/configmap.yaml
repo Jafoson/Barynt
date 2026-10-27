@@ -26,6 +26,9 @@ data:
   {{- if .Values.auth.oidc.name }}
   AUTH_OIDC_NAME: {{ .Values.auth.oidc.name | quote }}
   {{- end }}
+  {{- if .Values.auth.oidc.allowEmailLinking }}
+  AUTH_OIDC_ALLOW_EMAIL_LINKING: "true"
+  {{- end }}
   {{- end }}
   {{- if not .Values.auth.registrationEnabled }}
   AUTH_REGISTRATION_ENABLED: "false"

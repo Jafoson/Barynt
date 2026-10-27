@@ -177,6 +177,7 @@ export function ApiDocs() {
           { value: "issues", label: t("apiKeys.docsTabIssues") },
           { value: "options", label: t("apiKeys.docsTabOptions") },
           { value: "comments", label: t("apiKeys.docsTabComments") },
+          { value: "attachments", label: t("apiKeys.docsTabAttachments") },
           { value: "labels", label: t("apiKeys.docsTabLabels") },
           { value: "members", label: t("apiKeys.docsTabMembers") },
           { value: "views", label: t("apiKeys.docsTabViews") },

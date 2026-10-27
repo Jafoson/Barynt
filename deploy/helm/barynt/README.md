@@ -190,6 +190,37 @@ Callback-URI ist `<AUTH_URL>/api/auth/callback/oidc` — `oidc` ist die feste
 Provider-ID aus `auth.config.ts`, nicht `auth.oidc.name` (nur das
 Button-Label).
 
+**Beim Wechsel des IdP** (z. B. authentik → Keycloak) liefert der neue IdP
+pro Person eine andere `sub`. Die bestehende Verknüpfung passt dann nicht
+mehr, und der Login scheitert mit `OAuthAccountNotLinked`. Abhilfe:
+`auth.oidc.allowEmailLinking: true` (`AUTH_OIDC_ALLOW_EMAIL_LINKING`). Damit
+wird ein unbekannter OIDC-Login mit dem bestehenden Konto derselben E-Mail
+verknüpft. Standard ist aus. Nur einschalten, wenn der IdP die Adressen
+verlässlich verifiziert (Admins pflegen sie, keine Selbstregistrierung),
+denn wer dort eine Adresse kontrolliert, bekommt das Barynt-Konto dazu. Der
+Schalter kann auch nur für die Umstellung an bleiben: Wer sich einmal
+angemeldet hat, ist dauerhaft mit der neuen `sub` verknüpft.
+
+Jeder andere OAuth-/OIDC-Provider, den Auth.js mitbringt (Discord, Slack,
+Keycloak, Okta, ...), schaltet sich über seine Env-Vars ein:
+`AUTH_<ID>_ID`, `AUTH_<ID>_SECRET` und, bei selbst gehosteten IdPs,
+`AUTH_<ID>_ISSUER` (siehe `example.env`). Der Chart bildet sie nicht
+einzeln ab, sie kommen über `extraEnv`/`extraEnvFrom`, das Secret aus einem
+eigenen Secret:
+
+```yaml
+extraEnv:
+  - name: AUTH_DISCORD_ID
+    value: "123456789"
+  - name: AUTH_DISCORD_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: barynt-discord
+        key: clientSecret
+```
+
+Callback-URI: `<AUTH_URL>/api/auth/callback/<id>`.
+
 Registrierung/Passkeys lassen sich unabhängig davon abschalten (Default:
 alles offen, wie ohne Helm):
 

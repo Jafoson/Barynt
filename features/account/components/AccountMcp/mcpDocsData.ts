@@ -15,6 +15,7 @@ export type McpToolGroupId =
   | "issues"
   | "options"
   | "comments"
+  | "attachments"
   | "labels"
   | "members"
   | "views";
@@ -128,8 +129,8 @@ export const MCP_TOOL_GROUPS: McpToolGroup[] = [
         name: "get_issue",
         scope: "issues:read",
         desc: {
-          en: "Fetch a single issue by id or ref. Includes `commentCount`; when it is above 0 the response also carries a `hint` telling the agent to call `list_comments` before acting.",
-          de: "Holt ein einzelnes Issue über ID oder Kennung. Enthält `commentCount`; ist es größer als 0, steht in der Antwort zusätzlich ein `hint`, der den Agenten anweist, vor dem Handeln `list_comments` aufzurufen.",
+          en: "Fetch a single issue by id or ref. Includes `commentCount`; when it is above 0 the response also carries a `hint` telling the agent to call `list_comments` before acting. Attachments come along under `attachments`, each with a `url` to view it.",
+          de: "Holt ein einzelnes Issue über ID oder Kennung. Enthält `commentCount`; ist es größer als 0, steht in der Antwort zusätzlich ein `hint`, der den Agenten anweist, vor dem Handeln `list_comments` aufzurufen. Anhänge kommen unter `attachments` mit, jeder mit einer `url` zum Ansehen.",
         },
       },
       {
@@ -204,6 +205,51 @@ export const MCP_TOOL_GROUPS: McpToolGroup[] = [
         desc: {
           en: "Delete a comment (its replies cascade).",
           de: "Löscht einen Kommentar (seine Antworten mit).",
+        },
+      },
+    ],
+  },
+  {
+    id: "attachments",
+    tools: [
+      {
+        name: "list_attachments",
+        scope: "issues:read",
+        desc: {
+          en: "List an issue's attachments (files and links), each with a `url` to view it — for a file a signed link that works without a token until `urlExpiresAt`.",
+          de: "Listet die Anhänge eines Issues (Dateien und Links), jeder mit einer `url` zum Ansehen — bei einer Datei ein signierter Link, der ohne Token bis `urlExpiresAt` funktioniert.",
+        },
+      },
+      {
+        name: "get_attachment",
+        scope: "issues:read",
+        desc: {
+          en: "Fetch one attachment with a fresh `url`. With includeContent the agent also gets the file itself: images (up to 5 MB) as an image, text files (up to 512 KB) as text.",
+          de: "Holt einen Anhang mit frischer `url`. Mit includeContent bekommt der Agent auch die Datei selbst: Bilder (bis 5 MB) als Bild, Textdateien (bis 512 KB) als Text.",
+        },
+      },
+      {
+        name: "add_attachment",
+        scope: "issues:write",
+        desc: {
+          en: "Attach a link (`url`) or a file — inline as base64 (`content`, up to 10 MB) or uploaded beforehand (`key`).",
+          de: "Hängt einen Link (`url`) oder eine Datei an — direkt als Base64 (`content`, bis 10 MB) oder vorher hochgeladen (`key`).",
+        },
+      },
+      {
+        name: "request_attachment_upload",
+        scope: "issues:write",
+        desc: {
+          en: "For a file up to 100 MB: an `uploadUrl` to PUT the bytes to, then add_attachment with the returned `key`.",
+          de: "Für eine Datei bis 100 MB: eine `uploadUrl`, an die die Bytes per PUT gehen, danach add_attachment mit dem zurückgegebenen `key`.",
+        },
+      },
+      {
+        name: "delete_attachment",
+        scope: "issues:write",
+        desc: {
+          en: "Remove an attachment; a file is deleted from storage too.",
+          de: "Entfernt einen Anhang; eine Datei wird auch aus dem Speicher gelöscht.",
         },
       },
     ],

@@ -21,26 +21,8 @@ import { resolveAvatarUrl } from "@/lib/storage";
 //
 // Deduplicated per request via `cache()`, as in `features/workspaces/queries`.
 
-/**
- * All known OAuth providers — the brand list from which `getMyConnections`
- * selects the ones actually set up (`enabledOAuthProviders`).
- *
- * Being listed here doesn't mean it's configured: the row only appears once
- * `auth.config.ts` finds the corresponding env vars set. If none are set up,
- * there's neither a row nor the "Connected accounts" tab at all (see
- * `account/layout.tsx` and `account/connections/page.tsx`).
- */
-export const OAUTH_PROVIDERS = [
-  "github",
-  "google",
-  "gitlab",
-  "microsoft-entra-id",
-  "apple",
-] as const;
-
-/** OIDC isn't part of the fixed list above — its name only comes from
- *  `AUTH_OIDC_NAME`, so there's nothing meaningful to display until it's
- *  configured. */
+/** The generic OIDC provider's id — its name comes from `AUTH_OIDC_NAME`
+ *  instead of the brand list in `lib/auth-providers/meta.ts`. */
 export const OIDC_PROVIDER_ID = "oidc";
 
 /** What applies as long as nobody has set anything. Same values as the
@@ -244,26 +226,16 @@ export const getMyConnections = cache(
     if (!user) return null;
 
     const connected = new Set(user.accounts.map((a) => a.provider));
-    const oidcEnabled = enabledOAuthProviders.includes(OIDC_PROVIDER_ID);
 
+    // Only the providers set up in `auth.config.ts` get a row — if none are,
+    // there's neither a row nor the "Connected accounts" tab at all (see
+    // `account/layout.tsx` and `account/connections/page.tsx`).
     return {
-      accounts: [
-        ...OAUTH_PROVIDERS.filter((provider) =>
-          enabledOAuthProviders.includes(provider),
-        ).map((provider) => ({
-          provider,
-          connected: connected.has(provider),
-        })),
-        ...(oidcEnabled
-          ? [
-              {
-                provider: OIDC_PROVIDER_ID,
-                connected: connected.has(OIDC_PROVIDER_ID),
-                label: oidcProviderName,
-              },
-            ]
-          : []),
-      ],
+      accounts: enabledOAuthProviders.map((provider) => ({
+        provider,
+        connected: connected.has(provider),
+        ...(provider === OIDC_PROVIDER_ID ? { label: oidcProviderName } : {}),
+      })),
       hasPasskey: user.authenticators.length > 0,
     };
   },

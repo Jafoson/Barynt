@@ -118,6 +118,11 @@ auth:
     name: ""
     existingSecret: ""
     existingSecretKey: "clientSecret"
+    # Beim IdP-Wechsel (neue `sub` pro Person → OAuthAccountNotLinked): ein
+    # unbekannter OIDC-Login wird mit dem bestehenden Konto derselben
+    # E-Mail verknüpft. Nur einschalten, wenn der IdP Adressen verlässlich
+    # verifiziert — siehe example.env AUTH_OIDC_ALLOW_EMAIL_LINKING.
+    allowEmailLinking: false
 
   # Passkey-/Registrierungs-Schalter (siehe auth.config.ts) — Defaults
   # entsprechen dem heutigen App-Verhalten (alles offen). Nur der Literal

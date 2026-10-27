@@ -1,3 +1,5 @@
+@use "breakpoints" as bp;
+
 /* The writing field.
 
    What the text inside looks like isn't defined here but in
@@ -33,10 +35,83 @@
   flex-direction: column;
   min-height: 0;
 
+  /* Only the writing surface gives way. Without this, a long text makes
+     the column shrink every child in proportion — the toolbar included,
+     which then gets squeezed to a sliver. */
+  > :not(.content) {
+    flex: none;
+  }
+
   .content {
     flex: 1 1 auto;
     max-height: none;
     resize: none;
+  }
+}
+
+/* Full screen (the toolbar's last button): the box takes the whole screen
+   above the keyboard, the surface scrolls under the toolbar. When it sits
+   in a frame together with its buttons (`data-editor-frame`: save/cancel,
+   comment), the frame goes full screen instead and takes the buttons along. */
+.editor[data-fullscreen] {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+
+  > :not(.content) {
+    flex: none;
+  }
+
+  .content {
+    flex: 1 1 auto;
+    max-height: none;
+    resize: none;
+  }
+}
+
+.editor[data-fullscreen],
+:global([data-editor-frame]):has(.editor[data-fullscreen]) {
+  position: fixed;
+  inset: 0 0 var(--kb-inset, 0px) 0;
+  z-index: var(--z-overlay);
+  height: auto;
+  max-height: none;
+  margin: 0;
+}
+
+/* Bare editor: square corners against the screen's edges. */
+.editor[data-fullscreen] {
+  border-radius: 0;
+}
+
+/* Inside a frame the frame is what's fixed; the editor just grows in it. */
+:global([data-editor-frame]) .editor[data-fullscreen] {
+  position: static;
+  z-index: auto;
+  border-radius: var(--radius-lg);
+}
+
+/* The frame: a column with the editor growing and its buttons below. */
+:global([data-editor-frame]):has(.editor[data-fullscreen]) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: calc(0.5rem + var(--safe-top, 0px))
+    calc(0.75rem + var(--safe-right, 0px))
+    calc(0.5rem + var(--safe-bottom, 0px)) calc(0.75rem + var(--safe-left, 0px));
+  background: var(--surface);
+
+  /* Whatever wraps the editor (`EditableRichText`'s `fieldset`) grows with it. */
+  > :has(.editor[data-fullscreen]) {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  > * {
+    margin: 0;
   }
 }
 
@@ -63,6 +138,14 @@
   /* Don't immediately push the modal below along at the end of the text —
      that was the jarring part while scrolling. */
   overscroll-behavior: contain;
+
+  /* Phone and tablet: a little more room to start with, and never more
+     than half of what's visible above the keyboard — the page around the
+     field stays in view and keeps scrolling. */
+  @include bp.tablet-down {
+    min-height: 8rem;
+    max-height: calc((100dvh - var(--kb-inset, 0px)) * 0.5);
+  }
 }
 
 /* The browser's own resize handle is barely visible on a dark background —

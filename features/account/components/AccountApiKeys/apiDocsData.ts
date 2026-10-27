@@ -41,6 +41,7 @@ export type ApiDocGroupId =
   | "issues"
   | "options"
   | "comments"
+  | "attachments"
   | "labels"
   | "members"
   | "views";
@@ -57,6 +58,7 @@ const RESOURCE_DE: Record<string, string> = {
   project: "des Projekts",
   issue: "des Issues",
   comment: "des Kommentars",
+  attachment: "des Anhangs",
   label: "des Labels",
   view: "der View",
   relation: "der Beziehung",
@@ -416,6 +418,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
       "estimateHours": 8,
       "estimateUnit": "days",
       "commentCount": 0,
+      "attachmentCount": 0,
       "parent": null,
       "children": [],
       "relations": []
@@ -548,6 +551,7 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
     "estimateHours": null,
     "estimateUnit": null,
     "commentCount": 0,
+    "attachmentCount": 0,
     "parent": null,
     "children": [],
     "relations": []
@@ -559,8 +563,8 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
         path: "/api/v1/issues/{id}",
         scope: "issues:read",
         desc: {
-          en: 'Get a single issue by internal id or "PREFIX-123" ref (e.g. "WEB-42") — tried as an id first, so a ref is only resolved once a matching id lookup misses. `description` is Markdown, the same dialect it\'s written in. Comments aren\'t embedded: `commentCount` says how many there are (0 = none) — when it\'s above 0, fetch them from GET /api/v1/issues/{id}/comments.',
-          de: 'Holt ein einzelnes Issue über die interne ID oder die Kennung "PREFIX-123" (z. B. "WEB-42") — zuerst wird es als ID versucht, als Kennung nur, wenn keine ID passt. `description` ist Markdown, im selben Dialekt, in dem sie geschrieben wird. Kommentare sind nicht eingebettet: `commentCount` nennt ihre Anzahl (0 = keine) — ist sie größer als 0, hole sie über GET /api/v1/issues/{id}/comments.',
+          en: 'Get a single issue by internal id or "PREFIX-123" ref (e.g. "WEB-42") — tried as an id first, so a ref is only resolved once a matching id lookup misses. `description` is Markdown, the same dialect it\'s written in. Comments aren\'t embedded: `commentCount` says how many there are (0 = none) — when it\'s above 0, fetch them from GET /api/v1/issues/{id}/comments. Attachments are: `attachments` lists every file and link with a `url` to view it (for a file a signed download link, valid until `urlExpiresAt`).',
+          de: 'Holt ein einzelnes Issue über die interne ID oder die Kennung "PREFIX-123" (z. B. "WEB-42") — zuerst wird es als ID versucht, als Kennung nur, wenn keine ID passt. `description` ist Markdown, im selben Dialekt, in dem sie geschrieben wird. Kommentare sind nicht eingebettet: `commentCount` nennt ihre Anzahl (0 = keine) — ist sie größer als 0, hole sie über GET /api/v1/issues/{id}/comments. Anhänge dagegen schon: `attachments` listet jede Datei und jeden Link mit einer `url` zum Ansehen (bei einer Datei ein signierter Download-Link, gültig bis `urlExpiresAt`).',
         },
         pathParams: [idParam("issue")],
         queryParams: [
@@ -596,6 +600,21 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
     "estimateHours": 8,
     "estimateUnit": "days",
     "commentCount": 1,
+    "attachmentCount": 1,
+    "attachments": [
+      {
+        "id": "att_3f9c1d",
+        "issueId": "i_4k2n1x",
+        "kind": "file",
+        "name": "safari-checkout.png",
+        "url": "https://files.example.com/issues/attachments/i_4k2n1x/…?X-Amz-Signature=…",
+        "urlExpiresAt": "2026-03-04T16:40:00.000Z",
+        "mimeType": "image/png",
+        "size": 184213,
+        "author": { "id": "u_1a2b3c", "name": "Alex Kim" },
+        "created": "2026-03-02T10:07:00.000Z"
+      }
+    ],
     "parent": null,
     "children": [
       { "id": "i_2b7c4d", "ref": "WEB-51", "title": "Safari-only regression", "status": "todo" }
@@ -944,6 +963,206 @@ export const API_DOC_GROUPS: ApiDocGroup[] = [
         pathParams: [idParam("comment")],
         response: `{
   "data": { "id": "c_5m9p3q" }
+}`,
+      },
+    ],
+  },
+  {
+    id: "attachments",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/api/v1/issues/{id}/attachments",
+        scope: "issues:read",
+        desc: {
+          en: "List an issue's attachments (files and links), oldest first. `url` is where to view each one: a link's own address, or for a file a signed download URL that needs no token and works until `urlExpiresAt` (one hour) — fetch again for a fresh one.",
+          de: "Listet die Anhänge eines Issues (Dateien und Links), älteste zuerst. `url` ist die Adresse zum Ansehen: bei einem Link er selbst, bei einer Datei eine signierte Download-URL, die ohne Token bis `urlExpiresAt` (eine Stunde) funktioniert — danach neu abrufen.",
+        },
+        pathParams: [idParam("issue")],
+        response: `{
+  "data": [
+    {
+      "id": "att_3f9c1d",
+      "issueId": "i_4k2n1x",
+      "kind": "file",
+      "name": "safari-checkout.png",
+      "url": "https://files.example.com/issues/attachments/i_4k2n1x/…?X-Amz-Signature=…",
+      "urlExpiresAt": "2026-03-04T16:40:00.000Z",
+      "mimeType": "image/png",
+      "size": 184213,
+      "author": { "id": "u_1a2b3c", "name": "Alex Kim" },
+      "created": "2026-03-02T10:07:00.000Z"
+    },
+    {
+      "id": "att_8k2m4n",
+      "issueId": "i_4k2n1x",
+      "kind": "link",
+      "name": "github.com",
+      "url": "https://github.com/acme/web/pull/812",
+      "urlExpiresAt": null,
+      "mimeType": null,
+      "size": null,
+      "author": { "id": "u_7h3j2k", "name": "Priya Shah" },
+      "created": "2026-03-03T08:30:00.000Z"
+    }
+  ]
+}`,
+      },
+      {
+        method: "POST",
+        path: "/api/v1/issues/{id}/attachments",
+        scope: "issues:write",
+        desc: {
+          en: "Attach a link or a file — exactly one of `url`, `content` or `key`. A file up to 10 MB can come inline as base64; a larger one (up to 100 MB) is uploaded first via POST /api/v1/issues/{id}/attachments/uploads and then created here with its `key`. Needs the right to edit the issue. Errors name the reason: invalid_source, invalid_url, invalid_name, invalid_content, too_large, upload_rejected.",
+          de: "Hängt einen Link oder eine Datei an — genau eins von `url`, `content` oder `key`. Eine Datei bis 10 MB kann direkt als Base64 kommen; eine größere (bis 100 MB) wird zuerst über POST /api/v1/issues/{id}/attachments/uploads hochgeladen und dann hier mit ihrem `key` angelegt. Braucht das Recht, das Issue zu bearbeiten. Fehler nennen den Grund: invalid_source, invalid_url, invalid_name, invalid_content, too_large, upload_rejected.",
+        },
+        pathParams: [idParam("issue")],
+        bodyParams: [
+          {
+            name: "url",
+            type: "string",
+            desc: {
+              en: "A link attachment: an http(s) address.",
+              de: "Ein Link-Anhang: eine http(s)-Adresse.",
+            },
+          },
+          {
+            name: "content",
+            type: "string",
+            desc: {
+              en: "A file inline: its bytes as base64, or a data: URL (which also sets `mimeType`). Up to 10 MB.",
+              de: "Eine Datei direkt: ihre Bytes als Base64 oder eine data:-URL (die auch `mimeType` setzt). Bis 10 MB.",
+            },
+          },
+          {
+            name: "key",
+            type: "string",
+            desc: {
+              en: "A file uploaded beforehand — the `key` from the uploads endpoint, after the PUT.",
+              de: "Eine vorher hochgeladene Datei — der `key` vom Upload-Endpunkt, nach dem PUT.",
+            },
+          },
+          {
+            name: "name",
+            type: "string",
+            desc: {
+              en: "The file name, e.g. screenshot.png — required for a file. For a link it defaults to the host.",
+              de: "Der Dateiname, z. B. screenshot.png — bei einer Datei Pflicht. Bei einem Link standardmäßig der Host.",
+            },
+          },
+          {
+            name: "mimeType",
+            type: "string",
+            desc: {
+              en: "e.g. image/png. Guessed from the file name if omitted.",
+              de: "z. B. image/png. Wird sonst aus dem Dateinamen abgeleitet.",
+            },
+          },
+        ],
+        requestExample: `{
+  "name": "safari-checkout.png",
+  "content": "iVBORw0KGgoAAAANSUhEUgAA…"
+}`,
+        response: `// 201 Created
+{
+  "data": {
+    "id": "att_3f9c1d",
+    "issueId": "i_4k2n1x",
+    "kind": "file",
+    "name": "safari-checkout.png",
+    "url": "https://files.example.com/issues/attachments/i_4k2n1x/…?X-Amz-Signature=…",
+    "urlExpiresAt": "2026-03-04T16:40:00.000Z",
+    "mimeType": "image/png",
+    "size": 184213,
+    "author": { "id": "u_1a2b3c", "name": "Alex Kim" },
+    "created": "2026-03-04T15:40:00.000Z"
+  }
+}`,
+      },
+      {
+        method: "POST",
+        path: "/api/v1/issues/{id}/attachments/uploads",
+        scope: "issues:write",
+        desc: {
+          en: "Step one for a large file (up to 100 MB): returns an `uploadUrl` to PUT the bytes to directly, with the given `headers`, within 2 minutes. Then create the attachment with POST /api/v1/issues/{id}/attachments and the returned `key`.",
+          de: "Erster Schritt für eine große Datei (bis 100 MB): liefert eine `uploadUrl`, an die du die Bytes direkt per PUT schickst, mit den angegebenen `headers`, innerhalb von 2 Minuten. Danach legst du den Anhang mit POST /api/v1/issues/{id}/attachments und dem zurückgegebenen `key` an.",
+        },
+        pathParams: [idParam("issue")],
+        bodyParams: [
+          {
+            name: "fileName",
+            type: "string",
+            required: true,
+            desc: { en: "The file's name.", de: "Der Dateiname." },
+          },
+          {
+            name: "contentLength",
+            type: "number",
+            required: true,
+            desc: {
+              en: "Size in bytes.",
+              de: "Größe in Bytes.",
+            },
+          },
+          {
+            name: "contentType",
+            type: "string",
+            desc: {
+              en: "MIME type. Guessed from the file name if omitted.",
+              de: "MIME-Typ. Wird sonst aus dem Dateinamen abgeleitet.",
+            },
+          },
+        ],
+        requestExample: `{
+  "fileName": "screen-recording.mp4",
+  "contentLength": 48213004
+}`,
+        response: `// 201 Created
+{
+  "data": {
+    "key": "attachments/i_4k2n1x/6f1c…e2.mp4",
+    "uploadUrl": "https://files.example.com/issues/attachments/i_4k2n1x/6f1c…e2.mp4?X-Amz-Signature=…",
+    "method": "PUT",
+    "headers": { "Content-Type": "video/mp4" },
+    "expiresAt": "2026-03-04T15:42:00.000Z"
+  }
+}`,
+      },
+      {
+        method: "GET",
+        path: "/api/v1/attachments/{id}",
+        scope: "issues:read",
+        desc: {
+          en: "Get one attachment with a freshly signed `url` — for when an earlier one has expired.",
+          de: "Holt einen Anhang mit frisch signierter `url` — wenn eine frühere abgelaufen ist.",
+        },
+        pathParams: [idParam("attachment")],
+        response: `{
+  "data": {
+    "id": "att_3f9c1d",
+    "issueId": "i_4k2n1x",
+    "kind": "file",
+    "name": "safari-checkout.png",
+    "url": "https://files.example.com/issues/attachments/i_4k2n1x/…?X-Amz-Signature=…",
+    "urlExpiresAt": "2026-03-04T16:40:00.000Z",
+    "mimeType": "image/png",
+    "size": 184213,
+    "author": { "id": "u_1a2b3c", "name": "Alex Kim" },
+    "created": "2026-03-02T10:07:00.000Z"
+  }
+}`,
+      },
+      {
+        method: "DELETE",
+        path: "/api/v1/attachments/{id}",
+        scope: "issues:write",
+        desc: {
+          en: "Remove an attachment; a file is deleted from storage too. Needs the right to edit the issue.",
+          de: "Entfernt einen Anhang; eine Datei wird auch aus dem Speicher gelöscht. Braucht das Recht, das Issue zu bearbeiten.",
+        },
+        pathParams: [idParam("attachment")],
+        response: `{
+  "data": { "id": "att_3f9c1d" }
 }`,
       },
     ],

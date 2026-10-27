@@ -1,60 +1,38 @@
 import type { NextAuthConfig } from "next-auth";
-import Apple from "next-auth/providers/apple";
-import GitHub from "next-auth/providers/github";
-import GitLab from "next-auth/providers/gitlab";
-import Google from "next-auth/providers/google";
-import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
+import { resolveOAuthProviders } from "@/lib/auth-providers/registry";
 
 // Edge-safe base config (NO Prisma adapter, NO bcrypt) — used both by the
 // full Node setup (auth.ts) and by the middleware gate (proxy.ts). The
 // credentials provider + adapter are only added in auth.ts.
 
-// Only enable an OAuth provider once its env vars are set. That way the app
+// Every OAuth/OIDC provider Auth.js ships is enabled once its env vars are
+// set — `AUTH_<ID>_ID` + `AUTH_<ID>_SECRET` (+ `AUTH_<ID>_ISSUER` for
+// self-hosted IdPs), see `lib/auth-providers/registry.ts`. That way the app
 // still runs without any OAuth configured (passkey/magic link only).
-const oauthProviders: NextAuthConfig["providers"] = [];
-export const enabledOAuthProviders: string[] = [];
-if (process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET) {
-  oauthProviders.push(GitHub);
-  enabledOAuthProviders.push("github");
-}
-if (process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) {
-  oauthProviders.push(Google);
-  enabledOAuthProviders.push("google");
-}
-if (process.env.AUTH_GITLAB_ID && process.env.AUTH_GITLAB_SECRET) {
-  oauthProviders.push(GitLab);
-  enabledOAuthProviders.push("gitlab");
-}
-// `issuer` is optional — without it, Microsoft Entra ID allows any account
-// (personal, school, work) via the `/common/` tenant. Only set
-// AUTH_MICROSOFT_ENTRA_ID_ISSUER if you want to restrict sign-in to your own
-// tenant.
-if (
-  process.env.AUTH_MICROSOFT_ENTRA_ID_ID &&
-  process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET
-) {
-  oauthProviders.push(
-    MicrosoftEntraID({
-      clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_ID,
-      clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
-      issuer: process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER,
-    }),
-  );
-  enabledOAuthProviders.push("microsoft-entra-id");
-}
-// Apple requires a JWT as the client secret (not a static string) and only
-// works over HTTPS — no localhost. `npx auth add apple` generates both
-// interactively and writes AUTH_APPLE_ID/AUTH_APPLE_SECRET itself.
-if (process.env.AUTH_APPLE_ID && process.env.AUTH_APPLE_SECRET) {
-  oauthProviders.push(Apple);
-  enabledOAuthProviders.push("apple");
-}
+//
+// Microsoft Entra ID's issuer is optional — without it, any account
+// (personal, school, work) may sign in via the `/common/` tenant. Apple
+// requires a JWT as the client secret and only works over HTTPS (see
+// example.env).
+const resolved = resolveOAuthProviders(process.env);
+const oauthProviders: NextAuthConfig["providers"] = resolved.providers;
+export const enabledOAuthProviders: string[] = resolved.ids;
+
 // A generic OIDC provider instead of several named ones — fits any standard
 // IdP (Keycloak, Authentik, Entra ID, Okta, …). `issuer` alone is enough for
 // next-auth's discovery (`{issuer}/.well-known/openid-configuration`), no
 // `wellKnown` needed. `AUTH_OIDC_NAME` is just the button label — defaults to
 // "SSO" if nothing is set.
 export const oidcProviderName = process.env.AUTH_OIDC_NAME || "SSO";
+// Opt-in, only the literal "true" turns it on: an OIDC login whose `sub` has
+// no `Account` row yet gets linked to the existing user with the same email
+// instead of failing with `OAuthAccountNotLinked`. That's what a switch of
+// IdP (authentik → Keycloak, …) needs — the new IdP sends a different `sub`
+// for every person. Only safe if the IdP verifies addresses reliably (no
+// self-service sign-up with arbitrary emails): whoever controls an address
+// there takes over the Barynt account with that address. Hence off by default.
+export const oidcEmailLinkingEnabled =
+  process.env.AUTH_OIDC_ALLOW_EMAIL_LINKING === "true";
 if (
   process.env.AUTH_OIDC_ISSUER &&
   process.env.AUTH_OIDC_CLIENT_ID &&
@@ -67,6 +45,7 @@ if (
     issuer: process.env.AUTH_OIDC_ISSUER,
     clientId: process.env.AUTH_OIDC_CLIENT_ID,
     clientSecret: process.env.AUTH_OIDC_CLIENT_SECRET,
+    allowDangerousEmailAccountLinking: oidcEmailLinkingEnabled,
   });
   enabledOAuthProviders.push("oidc");
 }

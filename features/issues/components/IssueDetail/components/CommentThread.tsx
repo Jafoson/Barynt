@@ -272,7 +272,6 @@ export function CommentThread({
           cancelLabel={t("actions.cancel")}
           editing={isEditing}
           onEditingChange={setIsEditing}
-          expandOnCompact
           onCommit={(value) => onEdit(comment.id, value)}
           {...attachmentHandlers}
         />
@@ -338,35 +337,38 @@ export function CommentThread({
                 : undefined
             }
           >
-            <RichTextEditor
-              value={replyBody}
-              onChange={setReplyBody}
-              onSubmit={submitReply}
-              label={t("comments.replyPlaceholder")}
-              placeholder={t("comments.replyPlaceholder")}
-              autoFocus
-              members={sources.members}
-              issues={sources.issues}
-              {...attachmentHandlers}
-            />
-            <div className={styles.composerFoot}>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsReplying(false)}
-              >
-                {t("actions.cancel")}
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                disabled={isEmptyDoc(replyBody) || isSending}
-                onClick={submitReply}
-              >
-                {t("comments.reply")}
-              </Button>
+            {/* Full screen takes the buttons along (`richTextEditor.module.scss`). */}
+            <div data-editor-frame>
+              <RichTextEditor
+                value={replyBody}
+                onChange={setReplyBody}
+                onSubmit={submitReply}
+                label={t("comments.replyPlaceholder")}
+                placeholder={t("comments.replyPlaceholder")}
+                autoFocus
+                members={sources.members}
+                issues={sources.issues}
+                {...attachmentHandlers}
+              />
+              <div className={styles.composerFoot}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsReplying(false)}
+                >
+                  {t("actions.cancel")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  disabled={isEmptyDoc(replyBody) || isSending}
+                  onClick={submitReply}
+                >
+                  {t("comments.reply")}
+                </Button>
+              </div>
             </div>
           </div>
         )}

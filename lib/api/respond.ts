@@ -66,9 +66,16 @@ export function forbiddenJson(): NextResponse {
 }
 
 /** A `MutationResult` as a response: 404 not visible, 403 not allowed,
- *  422 bad input, else the data. */
+ *  422 bad input (with the specific code and message where the mutation
+ *  gives one), else the data. */
 export function mutationJson<T>(
-  result: { ok: true; data: T } | { ok: false; status: 403 | 404 | 422 },
+  result:
+    | { ok: true; data: T }
+    | {
+        ok: false;
+        status: 403 | 404 | 422;
+        error?: { code: string; message: string };
+      },
   info: RateLimitInfo,
   status = 200,
 ): NextResponse {
@@ -84,7 +91,7 @@ export function mutationJson<T>(
       : result.status === 403
         ? forbiddenJson()
         : NextResponse.json(
-            { error: { code: "invalid_body" } },
+            { error: result.error ?? { code: "invalid_body" } },
             { status: 422 },
           ),
     info,
