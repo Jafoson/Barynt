@@ -30,6 +30,13 @@ interface IssuePropertiesProps {
    *  (BARY-31, `visibleDetailFields()`). */
   visibleFields: Set<DetailFieldKey>;
   onPatch: (patch: IssuePatch) => void;
+  /** The pinned bar under the header (`IssueStackedBody`): one row, the
+   *  labels only for screen readers, no keyboard shortcuts — those stay
+   *  with the full block, so "s" doesn't open two pickers. */
+  compact?: boolean;
+  /** The outer element — `IssueStackedBody` watches it to know when the
+   *  block has scrolled out of view. */
+  ref?: React.Ref<HTMLDivElement>;
 }
 
 /**
@@ -40,12 +47,23 @@ interface IssuePropertiesProps {
 function Field({
   label,
   layout,
+  compact = false,
   children,
 }: {
   label: string;
   layout: IssueDetailLayout;
+  compact?: boolean;
   children: React.ReactNode;
 }) {
+  if (compact) {
+    return (
+      <div className={styles.barField}>
+        <span className={styles.barLabel}>{label}</span>
+        {children}
+      </div>
+    );
+  }
+
   if (layout === "aside") {
     return (
       <div className={styles.row}>
@@ -89,6 +107,8 @@ export function IssueProperties({
   layout,
   visibleFields,
   onPatch,
+  compact = false,
+  ref,
 }: IssuePropertiesProps) {
   const { members, statuses, priorities, issueTypes } = data;
   const t = useTranslations();
@@ -109,13 +129,13 @@ export function IssueProperties({
   const [shortcutField, setShortcutField] = useState<ShortcutField>(null);
 
   useShortcut("s", () => setShortcutField("status"), {
-    enabled: showStatus && canEdit && !hasOpenModal,
+    enabled: !compact && showStatus && canEdit && !hasOpenModal,
   });
   useShortcut("p", () => setShortcutField("priority"), {
-    enabled: showPriority && canEdit && !hasOpenModal,
+    enabled: !compact && showPriority && canEdit && !hasOpenModal,
   });
   useShortcut("a", () => setShortcutField("assignee"), {
-    enabled: showAssignee && canAssign && !hasOpenModal,
+    enabled: !compact && showAssignee && canAssign && !hasOpenModal,
   });
   // "i" assigns to yourself directly — no picker, no precedent either way in
   // this codebase for what a second press should do, so it toggles: press
@@ -125,7 +145,7 @@ export function IssueProperties({
     "i",
     () =>
       onPatch({ assignee: issue.assignee === data.me.id ? null : data.me.id }),
-    { enabled: showAssignee && canAssign && !hasOpenModal },
+    { enabled: !compact && showAssignee && canAssign && !hasOpenModal },
   );
 
   if (!showType && !showStatus && !showPriority && !showAssignee) return null;
@@ -138,9 +158,18 @@ export function IssueProperties({
     : null;
 
   return (
-    <div className={layout === "aside" ? undefined : styles.properties}>
+    <div
+      ref={ref}
+      className={
+        compact
+          ? styles.propertiesBar
+          : layout === "aside"
+            ? undefined
+            : styles.properties
+      }
+    >
       {showType && (
-        <Field label={t("fields.type")} layout={layout}>
+        <Field label={t("fields.type")} layout={layout} compact={compact}>
           {canEdit ? (
             <InlinePicker
               width={190}
@@ -186,7 +215,7 @@ export function IssueProperties({
       )}
 
       {showStatus && (
-        <Field label={t("fields.status")} layout={layout}>
+        <Field label={t("fields.status")} layout={layout} compact={compact}>
           {canEdit ? (
             <InlinePicker
               width={200}
@@ -244,7 +273,7 @@ export function IssueProperties({
       )}
 
       {showPriority && (
-        <Field label={t("fields.priority")} layout={layout}>
+        <Field label={t("fields.priority")} layout={layout} compact={compact}>
           {canEdit ? (
             <InlinePicker
               width={190}
@@ -294,7 +323,7 @@ export function IssueProperties({
       )}
 
       {showAssignee && (
-        <Field label={t("fields.assignee")} layout={layout}>
+        <Field label={t("fields.assignee")} layout={layout} compact={compact}>
           {canAssign ? (
             <InlinePicker
               width={220}
@@ -310,7 +339,11 @@ export function IssueProperties({
                   className={styles.valueBtn}
                   data-field-nav
                 >
-                  <Avatar avatar={assignee} size={20} placeholder />
+                  <Avatar
+                    avatar={assignee}
+                    size={compact ? 18 : 20}
+                    placeholder
+                  />
                   <span className={styles.valueText}>
                     {assignee ? fullName(assignee) : t("fields.unassigned")}
                   </span>
@@ -343,7 +376,7 @@ export function IssueProperties({
             </InlinePicker>
           ) : (
             <ValueDisplay>
-              <Avatar avatar={assignee} size={20} placeholder />
+              <Avatar avatar={assignee} size={compact ? 18 : 20} placeholder />
               <span className={styles.valueText}>
                 {assignee ? fullName(assignee) : t("fields.unassigned")}
               </span>
