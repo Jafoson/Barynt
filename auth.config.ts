@@ -55,6 +55,15 @@ if (process.env.AUTH_APPLE_ID && process.env.AUTH_APPLE_SECRET) {
 // `wellKnown` needed. `AUTH_OIDC_NAME` is just the button label — defaults to
 // "SSO" if nothing is set.
 export const oidcProviderName = process.env.AUTH_OIDC_NAME || "SSO";
+// Opt-in, only the literal "true" turns it on: an OIDC login whose `sub` has
+// no `Account` row yet gets linked to the existing user with the same email
+// instead of failing with `OAuthAccountNotLinked`. That's what a switch of
+// IdP (authentik → Keycloak, …) needs — the new IdP sends a different `sub`
+// for every person. Only safe if the IdP verifies addresses reliably (no
+// self-service sign-up with arbitrary emails): whoever controls an address
+// there takes over the Barynt account with that address. Hence off by default.
+export const oidcEmailLinkingEnabled =
+  process.env.AUTH_OIDC_ALLOW_EMAIL_LINKING === "true";
 if (
   process.env.AUTH_OIDC_ISSUER &&
   process.env.AUTH_OIDC_CLIENT_ID &&
@@ -67,6 +76,7 @@ if (
     issuer: process.env.AUTH_OIDC_ISSUER,
     clientId: process.env.AUTH_OIDC_CLIENT_ID,
     clientSecret: process.env.AUTH_OIDC_CLIENT_SECRET,
+    allowDangerousEmailAccountLinking: oidcEmailLinkingEnabled,
   });
   enabledOAuthProviders.push("oidc");
 }

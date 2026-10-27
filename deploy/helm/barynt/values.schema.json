@@ -143,6 +143,9 @@
             },
             "existingSecretKey": {
               "type": "string"
+            },
+            "allowEmailLinking": {
+              "type": "boolean"
             }
           }
         },

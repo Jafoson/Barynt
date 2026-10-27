@@ -190,6 +190,17 @@ Callback-URI ist `<AUTH_URL>/api/auth/callback/oidc` — `oidc` ist die feste
 Provider-ID aus `auth.config.ts`, nicht `auth.oidc.name` (nur das
 Button-Label).
 
+**Beim Wechsel des IdP** (z. B. authentik → Keycloak) liefert der neue IdP
+pro Person eine andere `sub`. Die bestehende Verknüpfung passt dann nicht
+mehr, und der Login scheitert mit `OAuthAccountNotLinked`. Abhilfe:
+`auth.oidc.allowEmailLinking: true` (`AUTH_OIDC_ALLOW_EMAIL_LINKING`). Damit
+wird ein unbekannter OIDC-Login mit dem bestehenden Konto derselben E-Mail
+verknüpft. Standard ist aus. Nur einschalten, wenn der IdP die Adressen
+verlässlich verifiziert (Admins pflegen sie, keine Selbstregistrierung),
+denn wer dort eine Adresse kontrolliert, bekommt das Barynt-Konto dazu. Der
+Schalter kann auch nur für die Umstellung an bleiben: Wer sich einmal
+angemeldet hat, ist dauerhaft mit der neuen `sub` verknüpft.
+
 Registrierung/Passkeys lassen sich unabhängig davon abschalten (Default:
 alles offen, wie ohne Helm):
 
