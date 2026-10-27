@@ -1,5 +1,6 @@
 import "server-only";
 import {
+  type ApiAttachment,
   type ApiComment,
   type ApiContentSource,
   type ApiIssue,
@@ -7,8 +8,10 @@ import {
   type ApiLabelDetail,
   type ApiProject,
   type ApiWorkspace,
+  attachmentSelect,
   getCommentUnchecked,
   getIssueUnchecked,
+  mapApiAttachment,
   resolveIssueId,
 } from "@/features/api-v1/queries";
 import { richTextFromApiMarkdown } from "@/features/api-v1/richtext";
@@ -45,8 +48,17 @@ import {
   toPlainText,
   toPreview,
 } from "@/lib/richtext";
+import { hostOf } from "@/lib/richtext/link";
 import { slugify } from "@/lib/slug";
 import { isClosedStatus } from "@/lib/statuses";
+import {
+  deleteAttachmentObject,
+  finalizeAttachmentUpload,
+  PUT_EXPIRES_IN,
+  requestAttachmentUpload,
+  storeAttachmentBytes,
+} from "@/lib/storage";
+import { guessContentType } from "@/lib/storage/validation";
 import { canCreateWorkspace, getSystemSettings } from "@/lib/system-settings";
 import { uid } from "@/lib/utils/id";
 import { fireWebhookEvent } from "@/lib/webhooks/deliver";
@@ -107,7 +119,13 @@ async function notifyMentions(
 
 export type MutationResult<T> =
   | { ok: true; data: T }
-  | { ok: false; status: 403 | 404 | 422 };
+  | {
+      ok: false;
+      status: 403 | 404 | 422;
+      /** A specific reason, where a bare `invalid_body` wouldn't tell the
+       *  caller what to fix (attachments: too large, storage off, …). */
+      error?: { code: string; message: string };
+    };
 
 function fail(status: 403 | 404 | 422): { ok: false; status: 403 | 404 | 422 } {
   return { ok: false, status };
@@ -1550,4 +1568,272 @@ export async function deleteProjectForUser(
   });
 
   return { ok: true, data: { id: projectId } };
+}
+
+// ─── Attachments ─────────────────────────────────────────────────────────────
+
+/** Inline uploads (base64 in the request body) stop here — a bigger file
+ *  goes through `requestAttachmentUploadForUser` and a direct PUT, the same
+ *  way the browser uploads, instead of a 130 MB JSON body. */
+export const INLINE_ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
+
+function invalid(code: string, message: string): MutationResult<never> {
+  return { ok: false, status: 422, error: { code, message } };
+}
+
+/** The issue an attachment write goes to — `null` (→ 404) when it doesn't
+ *  exist or the caller may not edit it. Same permission as the app's
+ *  attachment actions (`requireAttachmentAccess`): an attachment is part of
+ *  the description, editing the issue covers it. */
+async function editableIssueForAttachments(userId: string, idOrRef: string) {
+  const issueId = await resolveIssueId(userId, idOrRef);
+  const issue = await db.issue.findUnique({
+    where: { id: issueId },
+    select: {
+      id: true,
+      key: true,
+      title: true,
+      projectId: true,
+      reporterId: true,
+      assigneeId: true,
+      project: { select: { workspaceId: true, prefix: true } },
+    },
+  });
+  if (!issue || !(await canEditIssue(userId, issue))) return null;
+  return issue;
+}
+
+/** Only `http(s)://`, like `addIssueLinkAttachment()`. */
+function isWebUrl(href: string): boolean {
+  try {
+    return /^https?:$/i.test(new URL(href).protocol);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Base64 (or a `data:` URL) to bytes — `null` when it isn't valid base64.
+ * A `data:` URL also brings its MIME type along.
+ */
+function decodeBase64(
+  content: string,
+): { bytes: Uint8Array<ArrayBuffer>; mimeType: string | null } | null {
+  let raw = content.trim();
+  let mimeType: string | null = null;
+  const dataUrl = raw.match(/^data:([^;,]+)?(?:;[^,]*)?;base64,/i);
+  if (dataUrl) {
+    mimeType = dataUrl[1] ?? null;
+    raw = raw.slice(dataUrl[0].length);
+  }
+  raw = raw.replace(/\s+/g, "");
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(raw) || raw.length % 4 === 1) return null;
+  const buffer = Buffer.from(raw, "base64");
+  const bytes = new Uint8Array(buffer.byteLength);
+  bytes.set(buffer);
+  return { bytes, mimeType };
+}
+
+export interface RequestAttachmentUploadInput {
+  fileName: string;
+  contentType?: string;
+  /** Bytes. Checked against the limit up front, and again (for real) when
+   *  the upload is confirmed. */
+  contentLength: number;
+}
+
+export interface AttachmentUploadTicket {
+  /** Send this back as `key` to create the attachment once the PUT is done. */
+  key: string;
+  /** PUT the file's bytes here, with the `headers` below. */
+  uploadUrl: string;
+  method: "PUT";
+  headers: Record<string, string>;
+  expiresAt: Date;
+}
+
+/**
+ * Step one of a large upload: a presigned URL the caller PUTs the file to
+ * directly (not through Barynt), then `createAttachmentForUser` with the
+ * returned `key` — the same two steps the app's own uploader takes.
+ */
+export async function requestAttachmentUploadForUser(
+  userId: string,
+  idOrRef: string,
+  input: RequestAttachmentUploadInput,
+): Promise<MutationResult<AttachmentUploadTicket>> {
+  const issue = await editableIssueForAttachments(userId, idOrRef);
+  if (!issue) return fail(404);
+
+  const fileName = input.fileName?.trim();
+  if (!fileName) return invalid("invalid_name", "fileName is required.");
+  if (
+    typeof input.contentLength !== "number" ||
+    !Number.isFinite(input.contentLength) ||
+    input.contentLength < 0
+  ) {
+    return invalid(
+      "invalid_size",
+      "contentLength must be the file's size in bytes.",
+    );
+  }
+
+  const contentType = input.contentType?.trim() || guessContentType(fileName);
+  const result = await requestAttachmentUpload({
+    issueId: issue.id,
+    fileName,
+    contentType,
+    contentLength: input.contentLength,
+  });
+  if ("error" in result) return invalid("upload_rejected", result.error);
+
+  return {
+    ok: true,
+    data: {
+      key: result.key,
+      uploadUrl: result.uploadUrl,
+      method: "PUT",
+      headers: { "Content-Type": contentType },
+      expiresAt: new Date(Date.now() + PUT_EXPIRES_IN * 1000),
+    },
+  };
+}
+
+export interface CreateAttachmentInput {
+  /** A link attachment: an `http(s)://` address. */
+  url?: string;
+  /** A file uploaded beforehand (`requestAttachmentUploadForUser`). */
+  key?: string;
+  /** A small file inline: base64, or a `data:` URL. */
+  content?: string;
+  /** Display name — the file name for a file (required for `content` and
+   *  `key`), defaults to the host for a link. */
+  name?: string;
+  mimeType?: string;
+}
+
+/**
+ * Adds an attachment — exactly one of `url` (link), `key` (a finished
+ * upload) or `content` (inline file). Shows up in the issue's attachments
+ * section like one added in the app, and in its activity.
+ */
+export async function createAttachmentForUser(
+  userId: string,
+  idOrRef: string,
+  input: CreateAttachmentInput,
+): Promise<MutationResult<ApiAttachment>> {
+  const issue = await editableIssueForAttachments(userId, idOrRef);
+  if (!issue) return fail(404);
+
+  const sources = [input.url, input.key, input.content].filter(
+    (v) => typeof v === "string" && v.trim() !== "",
+  );
+  if (sources.length !== 1) {
+    return invalid(
+      "invalid_source",
+      "Send exactly one of url (a link), key (a finished upload) or content (base64).",
+    );
+  }
+
+  const name = input.name?.trim();
+  let data: Prisma.AttachmentUncheckedCreateInput;
+
+  if (input.url) {
+    const href = input.url.trim();
+    if (!isWebUrl(href)) {
+      return invalid("invalid_url", "Only http(s) links are allowed.");
+    }
+    data = {
+      id: uid("att"),
+      issueId: issue.id,
+      authorId: userId,
+      kind: "link",
+      name: name || hostOf(href),
+      url: href,
+      mimeType: input.mimeType?.trim() || null,
+    };
+  } else {
+    if (!name) {
+      return invalid("invalid_name", "name (the file name) is required.");
+    }
+    let key: string;
+    let size: number;
+    let mimeType = input.mimeType?.trim() || null;
+
+    if (input.key) {
+      const finalized = await finalizeAttachmentUpload(issue.id, input.key);
+      if ("error" in finalized) {
+        return invalid("upload_rejected", finalized.error);
+      }
+      key = input.key;
+      size = finalized.size;
+    } else {
+      const decoded = decodeBase64(input.content ?? "");
+      if (!decoded) {
+        return invalid("invalid_content", "content must be base64.");
+      }
+      if (decoded.bytes.byteLength > INLINE_ATTACHMENT_MAX_BYTES) {
+        return invalid(
+          "too_large",
+          "Inline content is limited to 10 MB — request an upload URL for larger files.",
+        );
+      }
+      mimeType ??= decoded.mimeType;
+      const stored = await storeAttachmentBytes({
+        issueId: issue.id,
+        fileName: name,
+        contentType: mimeType ?? guessContentType(name),
+        bytes: decoded.bytes,
+      });
+      if ("error" in stored) return invalid("upload_rejected", stored.error);
+      key = stored.key;
+      size = stored.size;
+    }
+
+    data = {
+      id: uid("att"),
+      issueId: issue.id,
+      authorId: userId,
+      kind: "file",
+      name,
+      key,
+      mimeType: mimeType ?? guessContentType(name),
+      size,
+    };
+  }
+
+  const row = await db.attachment.create({ data, select: attachmentSelect });
+  await recordIssueAudit(
+    "issue.attachment.added",
+    issue.id,
+    issue,
+    userId,
+    row.name,
+  );
+  return { ok: true, data: await mapApiAttachment(row) };
+}
+
+/** Removes an attachment — and, for a file, its stored object. */
+export async function deleteAttachmentForUser(
+  userId: string,
+  attachmentId: string,
+): Promise<MutationResult<{ id: string }>> {
+  const row = await db.attachment.findUnique({
+    where: { id: attachmentId },
+    select: { id: true, kind: true, key: true, name: true, issueId: true },
+  });
+  if (!row) return fail(404);
+  const issue = await editableIssueForAttachments(userId, row.issueId);
+  if (!issue) return fail(404);
+
+  await db.attachment.delete({ where: { id: attachmentId } });
+  if (row.kind === "file") await deleteAttachmentObject(row.key);
+  await recordIssueAudit(
+    "issue.attachment.removed",
+    issue.id,
+    issue,
+    userId,
+    row.name,
+  );
+  return { ok: true, data: { id: attachmentId } };
 }

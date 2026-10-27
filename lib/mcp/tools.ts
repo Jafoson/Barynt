@@ -4,16 +4,19 @@ import { z } from "zod";
 import type { MutationResult } from "@/features/api-v1/mutations";
 import {
   addIssueRelationForUser,
+  createAttachmentForUser,
   createCommentForUser,
   createIssueForUser,
   createLabelForUser,
   createProjectForUser,
   createWorkspaceForUser,
+  deleteAttachmentForUser,
   deleteCommentForUser,
   deleteLabelForUser,
   deleteProjectForUser,
   deleteWorkspaceForUser,
   removeIssueRelationForUser,
+  requestAttachmentUploadForUser,
   updateCommentForUser,
   updateIssueForUser,
   updateLabelForUser,
@@ -25,7 +28,9 @@ import {
   listPrioritiesForUser,
 } from "@/features/api-v1/options";
 import {
+  getAttachmentForUser,
   getIssueForUser,
+  listAttachmentsForUser,
   listCommentsForUser,
   listIssuesForUser,
   listLabelsForUser,
@@ -47,6 +52,7 @@ import {
 import { parseIssueFilter } from "@/features/issues/filter";
 import { encodeCursor } from "@/lib/api/cursor";
 import { pickFields } from "@/lib/api/fields";
+import { attachmentContent } from "@/lib/mcp/attachments";
 import {
   authorize,
   forbiddenResult,
@@ -704,12 +710,16 @@ export function registerBaryntTools(server: McpServer): void {
       if (!auth.ok) return auth.result;
       const issue = await getIssueForUser(auth.auth.userId, issueId);
       if (!issue) return notFoundResult();
+      const hints = [
+        issue.commentCount > 0 &&
+          `This issue has ${issue.commentCount} comment(s). Call list_comments with this issue before acting on it.`,
+        issue.attachmentCount > 0 &&
+          `It has ${issue.attachmentCount} attachment(s), listed under \`attachments\`. Call get_attachment with includeContent to look at an image or text file.`,
+      ].filter(Boolean);
       return jsonResult({
         ...pickFields(issue, fields ?? null),
         // Outside `pickFields` so a `fields` allowlist can't hide it.
-        ...(issue.commentCount > 0 && {
-          hint: `This issue has ${issue.commentCount} comment(s). Call list_comments with this issue before acting on it.`,
-        }),
+        ...(hints.length > 0 && { hint: hints.join(" ") }),
       });
     },
   );
@@ -902,6 +912,133 @@ export function registerBaryntTools(server: McpServer): void {
       if (!auth.ok) return auth.result;
       return mutationResult(
         await deleteCommentForUser(auth.auth.userId, commentId),
+      );
+    },
+  );
+
+  // ─── Attachments ───────────────────────────────────────────────────────
+  //
+  // Part of the issue, like in the app — `issues:read` to see them,
+  // `issues:write` to add or remove one.
+
+  server.registerTool(
+    "list_attachments",
+    {
+      title: "List attachments",
+      description:
+        "List an issue's attachments (files and links), oldest first. Each has a `url` to view it — for a file a signed download link that works without a token until `urlExpiresAt`.",
+      inputSchema: z.object({
+        issueId: z.string().describe('Internal id, or a ref like "ENG-123".'),
+      }),
+    },
+    async ({ issueId }, ctx) => {
+      const auth = await authorize(ctx, "issues:read");
+      if (!auth.ok) return auth.result;
+      const data = await listAttachmentsForUser(auth.auth.userId, issueId);
+      return data ? jsonResult(data) : notFoundResult();
+    },
+  );
+
+  server.registerTool(
+    "get_attachment",
+    {
+      title: "Get attachment",
+      description:
+        "Fetch one attachment with a fresh `url`. With includeContent, the file itself comes along: an image (PNG, JPEG, GIF, WebP up to 5 MB) as an image, a text file (plain text, Markdown, CSV, JSON, XML, YAML, logs, code up to 512 KB) as text. Other files, and links, only come as metadata — open their `url` instead.",
+      inputSchema: z.object({
+        attachmentId: z.string(),
+        includeContent: z
+          .boolean()
+          .optional()
+          .describe("Also return the file's content (see above)."),
+      }),
+    },
+    async ({ attachmentId, includeContent }, ctx) => {
+      const auth = await authorize(ctx, "issues:read");
+      if (!auth.ok) return auth.result;
+      const found = await getAttachmentForUser(auth.auth.userId, attachmentId);
+      if (!found) return notFoundResult();
+      if (!includeContent) return jsonResult(found.attachment);
+      return attachmentContent(found.attachment, found.key);
+    },
+  );
+
+  server.registerTool(
+    "add_attachment",
+    {
+      title: "Add attachment",
+      description:
+        "Attach a link or a file to an issue. Send exactly one of: `url` (an http(s) link), `content` (a file as base64 or a data: URL, up to 10 MB), or `key` (a file uploaded via request_attachment_upload).",
+      inputSchema: z.object({
+        issueId: z.string().describe('Internal id, or a ref like "ENG-123".'),
+        url: z.string().optional().describe("An http(s) link to attach."),
+        content: z
+          .string()
+          .optional()
+          .describe("The file's bytes, base64-encoded (or a data: URL)."),
+        key: z
+          .string()
+          .optional()
+          .describe("The `key` from request_attachment_upload, after the PUT."),
+        name: z
+          .string()
+          .optional()
+          .describe(
+            "File name, e.g. screenshot.png — required for a file. For a link it defaults to the host.",
+          ),
+        mimeType: z
+          .string()
+          .optional()
+          .describe("e.g. image/png. Guessed from the file name if omitted."),
+      }),
+    },
+    async ({ issueId, ...input }, ctx) => {
+      const auth = await authorize(ctx, "issues:write");
+      if (!auth.ok) return auth.result;
+      return mutationResult(
+        await createAttachmentForUser(auth.auth.userId, issueId, input),
+      );
+    },
+  );
+
+  server.registerTool(
+    "request_attachment_upload",
+    {
+      title: "Request attachment upload",
+      description:
+        "For a file over 10 MB (up to 100 MB): returns an `uploadUrl` to PUT the file's bytes to (with the returned `headers`, within 2 minutes). Then call add_attachment with the returned `key` and the file name.",
+      inputSchema: z.object({
+        issueId: z.string().describe('Internal id, or a ref like "ENG-123".'),
+        fileName: z.string(),
+        contentType: z
+          .string()
+          .optional()
+          .describe("Guessed from the file name if omitted."),
+        contentLength: z.number().int().min(0).describe("Size in bytes."),
+      }),
+    },
+    async ({ issueId, ...input }, ctx) => {
+      const auth = await authorize(ctx, "issues:write");
+      if (!auth.ok) return auth.result;
+      return mutationResult(
+        await requestAttachmentUploadForUser(auth.auth.userId, issueId, input),
+      );
+    },
+  );
+
+  server.registerTool(
+    "delete_attachment",
+    {
+      title: "Delete attachment",
+      description:
+        "Remove an attachment from its issue — a file is deleted from storage too.",
+      inputSchema: z.object({ attachmentId: z.string() }),
+    },
+    async ({ attachmentId }, ctx) => {
+      const auth = await authorize(ctx, "issues:write");
+      if (!auth.ok) return auth.result;
+      return mutationResult(
+        await deleteAttachmentForUser(auth.auth.userId, attachmentId),
       );
     },
   );
