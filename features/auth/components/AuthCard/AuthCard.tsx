@@ -5,16 +5,8 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { Logo } from "@/components/ui/atoms/Logo/Logo";
 import { signInWithOAuth } from "@/features/auth/actions";
+import { authProviderMeta } from "@/lib/auth-providers/meta";
 import styles from "./authCard.module.scss";
-
-const OAUTH_META: Record<string, { label: string; icon: string }> = {
-  github: { label: "GitHub", icon: "lucide:github" },
-  google: { label: "Google", icon: "logos:google-icon" },
-  gitlab: { label: "GitLab", icon: "logos:gitlab" },
-  "microsoft-entra-id": { label: "Microsoft", icon: "logos:microsoft-icon" },
-  apple: { label: "Apple", icon: "mdi:apple" },
-  oidc: { label: "SSO", icon: "lucide:key-round" },
-};
 
 interface AuthCardProps {
   title: string;
@@ -108,10 +100,7 @@ export function AuthCard({
                 }
               >
                 {oauthProviders.map((provider) => {
-                  const meta = OAUTH_META[provider] ?? {
-                    label: provider,
-                    icon: "lucide:log-in",
-                  };
+                  const meta = authProviderMeta(provider);
                   const label = oauthLabels?.[provider] ?? meta.label;
                   if (oauthProviders.length >= 3) {
                     return (

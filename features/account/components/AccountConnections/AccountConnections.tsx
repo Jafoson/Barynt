@@ -14,17 +14,8 @@ import { disconnectAccount } from "@/features/account/actions";
 import type { AccountConnectionsView } from "@/features/account/types";
 import { signInWithOAuth } from "@/features/auth/actions";
 import { useRouter } from "@/i18n/navigation";
+import { authProviderMeta } from "@/lib/auth-providers/meta";
 import styles from "./accountConnections.module.scss";
-
-/** Icon and name of the providers — both belong to the brand, not in the
- *  translation files. */
-const PROVIDERS: Record<string, { icon: string; name: string }> = {
-  github: { icon: "lucide:github", name: "GitHub" },
-  google: { icon: "logos:google-icon", name: "Google" },
-  gitlab: { icon: "logos:gitlab", name: "GitLab" },
-  "microsoft-entra-id": { icon: "logos:microsoft-icon", name: "Microsoft" },
-  apple: { icon: "mdi:apple", name: "Apple" },
-};
 
 /**
  * This account's third-party sign-in methods.
@@ -61,8 +52,8 @@ export function AccountConnections({
     });
 
   const rows: SettingsRow[] = accounts.map((account) => {
-    const meta = PROVIDERS[account.provider];
-    const name = account.label ?? meta?.name ?? account.provider;
+    const meta = authProviderMeta(account.provider);
+    const name = account.label ?? meta.label;
     // The last way in stays where it is.
     const isLastWayIn = account.connected && !hasPasskey && connectedCount <= 1;
 
@@ -76,11 +67,7 @@ export function AccountConnections({
           : t("account.connectDesc", { provider: name }),
       control: (
         <span className={styles.control}>
-          <Icon
-            icon={meta?.icon ?? "lucide:link"}
-            width={18}
-            className={styles.mark}
-          />
+          <Icon icon={meta.icon} width={18} className={styles.mark} />
           {account.connected ? (
             <>
               <span className={styles.connected}>
