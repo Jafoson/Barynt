@@ -1325,8 +1325,22 @@
   margin-top: 0.5rem;
 }
 
+/* Phone and tablet, writing: the editor opens in place at a fixed height —
+   a good part of what's visible above the keyboard, never all of it, so
+   the issue above stays in view and keeps scrolling. The editor fills it
+   (`fill`), its surface scrolls under the toolbar. */
+.composerBox[data-writing] {
+  display: flex;
+  flex-direction: column;
+  height: min(28rem, calc((100dvh - var(--kb-inset, 0px)) * 0.6));
+
+  .composerFoot {
+    flex: none;
+  }
+}
+
 /* Phone and tablet: the composer rests as one line (a messenger's) — a
-   field-looking button that opens the full-screen editor, plus "comment". */
+   field-looking button that opens the editor in place, plus "comment". */
 .composerCompact {
   display: flex;
   flex: 1;
@@ -1353,15 +1367,6 @@
   &[data-empty] {
     color: var(--outline);
   }
-}
-
-/* The full-screen editor: the editor grows, the buttons sit below. */
-.composerFull {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-height: 0;
 }
 
 /* ---------- Loading and empty state ---------- */
@@ -1603,8 +1608,15 @@
     }
   }
 
-  /* No keyboard shortcut hint on a phone. */
-  .composerFoot > :first-child {
+  /* Writing: as tall as the open editor, not capped and scrolling as a
+     whole — the editor's own surface scrolls instead. */
+  &:has([data-writing], [data-docked-editor]) {
+    max-height: none;
+  }
+
+  /* The description is being edited here (`IssueDescription`): it takes the
+     spot, the comment line waits until it's done. */
+  &:has(> [data-docked-editor]) > :not([data-docked-editor]) {
     display: none;
   }
 }

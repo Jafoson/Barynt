@@ -13,8 +13,7 @@
   z-index: 1;
 
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.125rem;
   padding: 0.375rem 0.5rem;
   /* Opaque, otherwise the text would show through while scrolling. The
@@ -28,18 +27,35 @@
     color-mix(in oklab, var(--outline-variant) 60%, transparent);
 }
 
+/* The formatting buttons; the full-screen button sits after them, outside
+   this row. */
+.tools {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
 /* Phone: one row that scrolls sideways instead of wrapping into several
    (best practice for a mobile editor bar: it keeps its height, and the text
    under it stays where it is). A fade at the right edge says "there's more";
-   `scroll-snap` lands the row on a whole button after a swipe. */
+   `scroll-snap` lands the row on a whole button after a swipe. The
+   full-screen button stays outside it, always in reach. */
 .toolbar {
+  @include bp.tablet-down {
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+.tools {
   @include bp.tablet-down {
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
     overscroll-behavior-x: contain;
     scroll-snap-type: x proximity;
-    padding: 0.25rem 0.5rem;
     -webkit-mask-image: linear-gradient(
       to right,
       #000 calc(100% - 2rem),

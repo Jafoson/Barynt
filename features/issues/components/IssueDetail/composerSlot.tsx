@@ -17,6 +17,22 @@ export function useComposerSlot() {
   return useContext(ComposerSlotContext);
 }
 
+type WritingState = [boolean, (writing: boolean) => void];
+
+/**
+ * Whether the comment composer is open (phone and tablet, where it rests as
+ * one line until tapped). Shared through the provider so the description
+ * can stay closed meanwhile — two editors would fight over the same spot
+ * and the keyboard. Outside a provider it's just local state.
+ */
+const ComposerWritingContext = createContext<WritingState | null>(null);
+
+export function useComposerWriting(): WritingState {
+  const shared = useContext(ComposerWritingContext);
+  const local = useState(false);
+  return shared ?? local;
+}
+
 /** Renders `children` in the composer slot if there is one, else in place. */
 export function InComposerSlot({ children }: { children: React.ReactNode }) {
   const slot = useComposerSlot();
@@ -36,10 +52,13 @@ export function ComposerSlotProvider({
   children: React.ReactNode;
 }) {
   const [slot, setSlot] = useState<HTMLDivElement | null>(null);
+  const writing = useState(false);
   return (
     <ComposerSlotContext.Provider value={enabled ? slot : null}>
-      {children}
-      {enabled && <div ref={setSlot} className={styles.composerSlot} />}
+      <ComposerWritingContext.Provider value={writing}>
+        {children}
+        {enabled && <div ref={setSlot} className={styles.composerSlot} />}
+      </ComposerWritingContext.Provider>
     </ComposerSlotContext.Provider>
   );
 }

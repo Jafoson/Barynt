@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import {
   RichText,
@@ -11,7 +12,6 @@ import { onActivate } from "@/lib/a11y";
 import { isEmptyDoc, toDoc } from "@/lib/richtext/doc";
 import type { PMDoc } from "@/lib/richtext/types";
 import { COMPACT_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
-import { FullscreenEdit } from "../FullscreenEdit/FullscreenEdit";
 import { CommandsButton } from "./components/CommandsButton";
 import styles from "./editableRichText.module.scss";
 import type {
@@ -95,11 +95,12 @@ interface EditableRichTextProps {
   editing?: boolean;
   onEditingChange?: (editing: boolean) => void;
   /**
-   * On a phone or tablet, editing takes over the whole screen — only this
-   * field, above the keyboard — instead of squeezing between whatever else
-   * is on the page. A desktop keeps the inline editor.
+   * Where the editor goes while editing — e.g. a spot fixed below the
+   * scrolling content (the issue detail on a phone/tablet). It fills a set
+   * height there; in place, the text stays as a preview of the draft.
+   * Missing or `null` ⇒ the editor replaces the text in place.
    */
-  expandOnCompact?: boolean;
+  editTarget?: HTMLElement | null;
 }
 
 export function EditableRichText({
@@ -121,13 +122,14 @@ export function EditableRichText({
   readOnly = false,
   editing: editingProp,
   onEditingChange,
-  expandOnCompact = false,
+  editTarget,
 }: EditableRichTextProps) {
+  // Phone and tablet edit in place too, the issue around the field stays
+  // readable and scrollable (the field's height is capped in
+  // `richTextEditor.module.scss`). Without a hover or a "/" habit there,
+  // the field always brings its buttons and the commands button.
   const isCompact = useMediaQuery(COMPACT_QUERY);
-  const expanded = expandOnCompact && isCompact;
-  // Full screen has nothing outside it to click, so it always brings its own
-  // buttons — even where a dialog otherwise carries them.
-  const showActions = actions || expanded;
+  const showActions = actions || isCompact;
   const editorHandle = useRef<RichTextEditorHandle>(null);
   const [draft, setDraft] = useState<PMDoc>(() => toDoc(value));
   const [source, setSource] = useState(value);
@@ -273,8 +275,14 @@ export function EditableRichText({
     );
   }
 
+  const docked = !!editTarget;
   const editor = (
-    <div className={className}>
+    <div
+      className={docked ? styles.docked : className}
+      data-docked-editor={docked || undefined}
+      // Full screen takes the buttons along (`richTextEditor.module.scss`).
+      data-editor-frame
+    >
       {/* Toolbar and writing surface belong together, hence a `fieldset`.
           With its own buttons (`actions`), plain blur has no meaning — see
           `onBlur` below. */}
@@ -326,7 +334,7 @@ export function EditableRichText({
           label={label}
           placeholder={placeholder}
           autoFocus
-          fill={expanded}
+          fill={docked}
           members={members}
           issues={issues}
           onUploadAttachment={onUploadAttachment}
@@ -340,7 +348,7 @@ export function EditableRichText({
 
       {showActions && (
         <div className={styles.actions}>
-          {expanded && (
+          {isCompact && (
             <CommandsButton
               className={styles.commands}
               onClick={() => editorHandle.current?.openCommands()}
@@ -369,5 +377,22 @@ export function EditableRichText({
     </div>
   );
 
-  return expanded ? <FullscreenEdit>{editor}</FullscreenEdit> : editor;
+  if (!editTarget) return editor;
+
+  // The draft stays readable where the text was, the editor sits in the
+  // target — so the person can scroll through the rest while writing.
+  return (
+    <>
+      <div className={className}>
+        <div className={styles.preview} data-readonly>
+          {isEmptyDoc(draft) ? (
+            <span className={styles.placeholder}>{placeholder}</span>
+          ) : (
+            <RichText value={draft} labels={labels} />
+          )}
+        </div>
+      </div>
+      {createPortal(editor, editTarget)}
+    </>
+  );
 }

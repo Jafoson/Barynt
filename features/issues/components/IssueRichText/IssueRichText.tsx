@@ -56,8 +56,8 @@ interface IssueRichTextProps {
   /** See `EditableRichText` — controls the editing state from outside. */
   editing?: boolean;
   onEditingChange?: (editing: boolean) => void;
-  /** See `EditableRichText` — editing fills the screen on a phone/tablet. */
-  expandOnCompact?: boolean;
+  /** See `EditableRichText` — where the editor goes while editing. */
+  editTarget?: HTMLElement | null;
 }
 
 /** Builds the suggestion lists once per data snapshot. */
@@ -109,7 +109,7 @@ export function IssueRichText({
   className,
   editing,
   onEditingChange,
-  expandOnCompact,
+  editTarget,
 }: IssueRichTextProps) {
   const { members, issues } = useEditorSources(data);
   const t = useTranslations("editor");
@@ -138,7 +138,7 @@ export function IssueRichText({
       className={className}
       editing={editing}
       onEditingChange={onEditingChange}
-      expandOnCompact={expandOnCompact}
+      editTarget={editTarget}
     />
   );
 }

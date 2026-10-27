@@ -10,6 +10,7 @@ import { IssueRichText } from "@/features/issues/components/IssueRichText/IssueR
 import type { IssueEditorData, IssuePatch } from "@/features/issues/types";
 import { uploadIssueAttachment } from "@/features/issues/uploadAttachment";
 import type { PMDoc } from "@/lib/richtext/types";
+import { useComposerSlot, useComposerWriting } from "../composerSlot";
 import styles from "../issueDetail.module.scss";
 
 interface IssueDescriptionProps {
@@ -43,6 +44,12 @@ export function IssueDescription({
   onRefresh,
 }: IssueDescriptionProps) {
   const t = useTranslations();
+  // On a phone/tablet the description is edited in the same fixed spot
+  // below the issue as a new comment — the issue keeps scrolling above it.
+  const slot = useComposerSlot();
+  // While a comment is being written, the text is only read — a tap on it
+  // doesn't open a second editor.
+  const [isWritingComment] = useComposerWriting();
 
   return (
     <section className={styles.section}>
@@ -58,9 +65,9 @@ export function IssueDescription({
         placeholder={t("placeholders.editDescription")}
         saveLabel={t("actions.save")}
         cancelLabel={t("actions.cancel")}
-        readOnly={readOnly}
-        expandOnCompact
+        readOnly={readOnly || isWritingComment}
         onCommit={(value) => onPatch({ description: value })}
+        editTarget={slot}
         onUploadAttachment={
           readOnly
             ? undefined
