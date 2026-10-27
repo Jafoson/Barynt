@@ -7,7 +7,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/atoms/Avatar/Avatar";
 import { Button } from "@/components/ui/atoms/Button/Button";
 import { SegmentedControl } from "@/components/ui/atoms/SegmentedControl/SegmentedControl";
-import { FullscreenEdit } from "@/components/ui/layout/FullscreenEdit/FullscreenEdit";
 import { ModalShortcut } from "@/components/ui/layout/Modal/components/ModalFooter";
 import { CommandsButton } from "@/components/ui/layout/RichTextEditor/components/CommandsButton";
 import type {
@@ -36,7 +35,7 @@ import type { PMDoc } from "@/lib/richtext/types";
 import { useShortcut } from "@/lib/shortcuts/useShortcut";
 import { COMPACT_QUERY, useMediaQuery } from "@/lib/utils/useMediaQuery";
 import type { Comment, User } from "@/types";
-import { InComposerSlot } from "../composerSlot";
+import { InComposerSlot, useComposerWriting } from "../composerSlot";
 import styles from "../issueDetail.module.scss";
 import { CommentThread } from "./CommentThread";
 
@@ -173,10 +172,11 @@ export function IssueComments({
   const hasOpenModal = useHasOpenModal();
   const editorHandle = useRef<RichTextEditorHandle>(null);
   // Phone and tablet: the composer rests as one line, like a messenger's;
-  // tapping the line opens the editor full screen (`FullscreenEdit`).
+  // tapping the line opens the editor in place, at a capped height — the
+  // issue above stays in view and keeps scrolling (`.composerSlot`).
   const isCompact = useMediaQuery(COMPACT_QUERY);
-  const [isWriting, setIsWriting] = useState(false);
-  const fullHandle = useRef<RichTextEditorHandle>(null);
+  const [isWriting, setIsWriting] = useComposerWriting();
+  const isFolded = isCompact && !isWriting;
   // "m" ("comment" — Linear's own binding) — the composer is always
   // mounted and visible here, unlike status/priority/assignee/labels, so
   // there's no picker to open: focusing the field is the whole job.
@@ -412,9 +412,9 @@ export function IssueComments({
               ArrowUp out of it, back to the last field, only while it's still
               empty — once there's real multi-line text, ArrowUp goes back to
               being the cursor's, same as the description once editing. */}
-            {isCompact ? (
+            {isFolded ? (
               <div className={styles.composerCompact}>
-                {/* Not a real field: a tap opens the full-screen editor,
+                {/* Not a real field: a tap opens the editor in place,
                     and the typed draft (if any) is shown here. */}
                 <button
                   type="button"
@@ -435,7 +435,12 @@ export function IssueComments({
                 </Button>
               </div>
             ) : (
-              <div className={styles.composerBox} data-comment-editor>
+              <div
+                className={styles.composerBox}
+                data-comment-editor
+                data-writing={isCompact || undefined}
+                data-editor-frame
+              >
                 <RichTextEditor
                   key={round}
                   ref={editorHandle}
@@ -444,14 +449,33 @@ export function IssueComments({
                   onSubmit={submit}
                   label={t("fields.description")}
                   placeholder={t("placeholders.addComment")}
+                  autoFocus={isCompact}
+                  fill={isCompact}
                   members={sources.members}
                   issues={sources.issues}
                   {...attachmentHandlers}
                 />
                 <div className={styles.composerFoot}>
-                  <ModalShortcut keys="mod+enter">
-                    {t("comments.toSend")}
-                  </ModalShortcut>
+                  {isCompact ? (
+                    <>
+                      <CommandsButton
+                        className={styles.composerCommands}
+                        onClick={() => editorHandle.current?.openCommands()}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsWriting(false)}
+                      >
+                        {t("actions.cancel")}
+                      </Button>
+                    </>
+                  ) : (
+                    <ModalShortcut keys="mod+enter">
+                      {t("comments.toSend")}
+                    </ModalShortcut>
+                  )}
                   <Button
                     type="button"
                     variant="primary"
@@ -466,49 +490,6 @@ export function IssueComments({
             )}
           </div>
         </InComposerSlot>
-      )}
-      {tab === "comments" && isCompact && isWriting && (
-        <FullscreenEdit>
-          <div className={styles.composerFull}>
-            <RichTextEditor
-              key={round}
-              ref={fullHandle}
-              value={body}
-              onChange={setBody}
-              onSubmit={submit}
-              label={t("fields.description")}
-              placeholder={t("placeholders.addComment")}
-              autoFocus
-              fill
-              members={sources.members}
-              issues={sources.issues}
-              {...attachmentHandlers}
-            />
-            <div className={styles.composerFoot}>
-              <CommandsButton
-                className={styles.composerCommands}
-                onClick={() => fullHandle.current?.openCommands()}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsWriting(false)}
-              >
-                {t("actions.cancel")}
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                disabled={isEmpty || isSending}
-                onClick={submit}
-              >
-                {t("actions.comment")}
-              </Button>
-            </div>
-          </div>
-        </FullscreenEdit>
       )}
     </section>
   );

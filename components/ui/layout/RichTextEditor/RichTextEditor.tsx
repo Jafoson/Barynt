@@ -156,8 +156,9 @@ export interface RichTextEditorProps {
   className?: string;
   /**
    * Fills the height of its parent instead of growing with the text: the
-   * toolbar stays on top, the writing surface scrolls. For a full-screen
-   * editing view (`EditableRichText`'s `expandOnCompact`).
+   * toolbar stays on top, the writing surface scrolls. For the comment
+   * composer that opens in a fixed-height slot (`IssueComments` on a
+   * phone/tablet).
    */
   fill?: boolean;
   /**
@@ -197,6 +198,10 @@ export function RichTextEditor({
   ref,
 }: RichTextEditorProps) {
   const t = useTranslations("editor");
+  // The toolbar's last button: the field takes the whole screen. Pure CSS
+  // (`[data-fullscreen]`), so the editor stays mounted — text, cursor, and
+  // undo history carry over both ways.
+  const [fullscreen, setFullscreen] = useState(false);
   // Where the date picker popover sits while it's open. `null` means: closed.
   const [calendar, setCalendar] = useState<{ x: number; y: number } | null>(
     null,
@@ -853,11 +858,17 @@ export function RichTextEditor({
     <div
       className={[styles.editor, className].filter(Boolean).join(" ")}
       data-fill={fill || undefined}
+      data-fullscreen={fullscreen || undefined}
     >
       <EditorToolbar
         editor={editor}
         onLink={openLink}
         onAttachment={onUploadAttachment ? openAttachmentPicker : undefined}
+        fullscreen={fullscreen}
+        onToggleFullscreen={() => {
+          setFullscreen((on) => !on);
+          editor?.commands.focus();
+        }}
       />
       {onUploadAttachment && (
         <input

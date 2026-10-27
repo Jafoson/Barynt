@@ -466,7 +466,6 @@ export function CreateIssueModal({
           onCommit={setDescription}
           data={data}
           actions={false}
-          expandOnCompact
           saveLabel={t("actions.save")}
           cancelLabel={t("actions.cancel")}
           label={t("fields.description")}

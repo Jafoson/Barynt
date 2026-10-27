@@ -91,7 +91,25 @@
   margin-top: 0.5rem;
 }
 
-/* Full screen: the commands button sits at the left end of the button row. */
+/* Phone and tablet: the commands button sits at the left end of the button row. */
 .commands {
   margin-inline-end: auto;
+}
+
+/* Edited somewhere else (`editTarget`): a set height — a good part of what's
+   visible above the keyboard, never all of it — which the editor fills,
+   its surface scrolling under the toolbar. */
+.docked {
+  display: flex;
+  flex-direction: column;
+  height: min(28rem, calc((100dvh - var(--kb-inset, 0px)) * 0.6));
+
+  .shell {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .actions {
+    flex: none;
+  }
 }
