@@ -201,6 +201,26 @@ denn wer dort eine Adresse kontrolliert, bekommt das Barynt-Konto dazu. Der
 Schalter kann auch nur für die Umstellung an bleiben: Wer sich einmal
 angemeldet hat, ist dauerhaft mit der neuen `sub` verknüpft.
 
+Jeder andere OAuth-/OIDC-Provider, den Auth.js mitbringt (Discord, Slack,
+Keycloak, Okta, ...), schaltet sich über seine Env-Vars ein:
+`AUTH_<ID>_ID`, `AUTH_<ID>_SECRET` und, bei selbst gehosteten IdPs,
+`AUTH_<ID>_ISSUER` (siehe `example.env`). Der Chart bildet sie nicht
+einzeln ab, sie kommen über `extraEnv`/`extraEnvFrom`, das Secret aus einem
+eigenen Secret:
+
+```yaml
+extraEnv:
+  - name: AUTH_DISCORD_ID
+    value: "123456789"
+  - name: AUTH_DISCORD_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: barynt-discord
+        key: clientSecret
+```
+
+Callback-URI: `<AUTH_URL>/api/auth/callback/<id>`.
+
 Registrierung/Passkeys lassen sich unabhängig davon abschalten (Default:
 alles offen, wie ohne Helm):
 
