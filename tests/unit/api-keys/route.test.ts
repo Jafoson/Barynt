@@ -170,6 +170,8 @@ const db = {
   },
   user: { findUnique: mockUserFindUnique },
   auditLog: { create: mockAuditLogCreate },
+  // A single issue lists its attachments (`getIssueForUser`); none here.
+  attachment: { findMany: mock(async () => []) },
   $transaction: mockTransaction,
 };
 
@@ -394,7 +396,7 @@ function issueRow(overrides: Record<string, unknown> = {}) {
         },
       ],
     },
-    _count: { comments: 3 },
+    _count: { comments: 3, attachments: 0 },
     created: new Date(),
     updated: new Date(),
     closedAt: null,
@@ -500,6 +502,8 @@ describe("GET/PATCH /api/v1/issues/:id", () => {
     // Markdown, not the flattened search text; comments only counted.
     expect(body.data.description).toBe("## Hi");
     expect(body.data.commentCount).toBe(3);
+    expect(body.data.attachmentCount).toBe(0);
+    expect(body.data.attachments).toEqual([]);
   });
 
   it("403s a key without issues:read scope on GET", async () => {

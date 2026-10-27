@@ -79,6 +79,10 @@ const SEGMENTS: string[][] = [
     "tests/unit/storage/presign.test.ts",
   ],
   ["tests/unit/api-keys/route.test.ts"],
+  // Attachments in the API/MCP: mocks `@/lib/storage/config` and stubs the
+  // global `fetch` S3 is reached through — kept away from the storage tests
+  // that check the real config.
+  ["tests/unit/api-keys/attachments.test.ts"],
   ["tests/unit/api-keys/richtext.test.ts"],
   // Tests `@/lib/system-settings` for real; `workspace/createWorkspace.test.ts`
   // mocks that module away entirely, and the mock would otherwise win the

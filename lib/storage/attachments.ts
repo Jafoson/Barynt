@@ -7,9 +7,11 @@ import {
 } from "@/lib/storage/keys";
 import {
   deleteObjectSafely,
+  getObjectBytes,
   objectExists,
   presignGetUrl,
   presignPutUrl,
+  putObject,
 } from "@/lib/storage/presign";
 import { ATTACHMENT_MAX_BYTES } from "@/lib/storage/validation";
 
@@ -94,4 +96,53 @@ export async function resolveAttachmentUrl(
   const config = storageConfig();
   if (!config?.bucketIssues) return null;
   return presignGetUrl(config.bucketIssues, key);
+}
+
+export type StoreAttachmentResult =
+  | { ok: true; key: string; size: number }
+  | { error: string };
+
+/**
+ * Stores a file the server already holds in memory (the public API's inline
+ * upload, base64 in the request) — the same key scheme and size limit as a
+ * browser upload, just without the presigned round trip.
+ */
+export async function storeAttachmentBytes(input: {
+  issueId: string;
+  fileName: string;
+  contentType: string;
+  bytes: Uint8Array<ArrayBuffer>;
+}): Promise<StoreAttachmentResult> {
+  const config = storageConfig();
+  if (!config?.bucketIssues) {
+    return { error: "Attachment uploads are not configured." };
+  }
+  if (input.bytes.byteLength > ATTACHMENT_MAX_BYTES) {
+    return { error: "File is too large (max. 100 MB)." };
+  }
+
+  const key = attachmentObjectKey(
+    input.issueId,
+    sanitizeAttachmentExt(input.fileName),
+  );
+  const stored = await putObject(
+    config.bucketIssues,
+    key,
+    input.bytes,
+    input.contentType,
+  );
+  if (!stored) return { error: "Upload failed — please try again." };
+  return { ok: true, key, size: input.bytes.byteLength };
+}
+
+/** A stored attachment's bytes, up to `maxBytes` — `null` when it's larger,
+ *  missing, or storage isn't configured. */
+export async function readAttachmentBytes(
+  key: string | null | undefined,
+  maxBytes: number,
+): Promise<{ bytes: Uint8Array; contentType: string | null } | null> {
+  if (!key) return null;
+  const config = storageConfig();
+  if (!config?.bucketIssues) return null;
+  return getObjectBytes(config.bucketIssues, key, maxBytes);
 }

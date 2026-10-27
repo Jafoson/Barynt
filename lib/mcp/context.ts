@@ -101,6 +101,8 @@ export function jsonResult(data: unknown): CallToolResult {
  *  `CallToolResult`, same 403/404/422 split every route handler already makes. */
 export function mutationResult<T>(result: MutationResult<T>): CallToolResult {
   if (!result.ok) {
+    if (result.error)
+      return errorResult(result.error.code, result.error.message);
     if (result.status === 404) return notFoundResult();
     if (result.status === 403) return workspaceCreationDisabledResult();
     return invalidBodyResult();
