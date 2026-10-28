@@ -1,0 +1,9 @@
+ingress:
+  enabled: true
+  className: nginx
+  host: issues.example.com
+  filesHost: files.issues.example.com
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  tls:
+    enabled: true

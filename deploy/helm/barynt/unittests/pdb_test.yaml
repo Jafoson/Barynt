@@ -1,0 +1,48 @@
+suite: pod disruption budget
+release:
+  name: barynt
+templates:
+  - templates/pdb.yaml
+tests:
+  - it: keeps one replica during a drain by default
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.minAvailable
+          value: 1
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/component"]
+          value: app
+
+  - it: is left out for a single replica, which it would block forever
+    set:
+      replicaCount: 1
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: applies with autoscaling even at one replica
+    set:
+      replicaCount: 1
+      autoscaling.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: takes maxUnavailable instead
+    set:
+      podDisruptionBudget.maxUnavailable: 25%
+    asserts:
+      - equal:
+          path: spec.maxUnavailable
+          value: 25%
+      - notExists:
+          path: spec.minAvailable
+
+  - it: can be switched off
+    set:
+      podDisruptionBudget.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0

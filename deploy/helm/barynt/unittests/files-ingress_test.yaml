@@ -1,0 +1,65 @@
+suite: file storage ingress
+release:
+  name: barynt
+templates:
+  - templates/ingress-files.yaml
+  - templates/configmap.yaml
+values:
+  - values/ingress-files.yaml
+tests:
+  - it: routes the files host to RustFS
+    template: templates/ingress-files.yaml
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: files.issues.example.com
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: barynt-rustfs
+      - equal:
+          path: spec.tls[0].hosts[0]
+          value: files.issues.example.com
+
+  - it: lifts nginx' 1 MB body limit for uploads and keeps the shared annotations
+    template: templates/ingress-files.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/proxy-body-size"]
+          value: 100m
+      - equal:
+          path: metadata.annotations["cert-manager.io/cluster-issuer"]
+          value: letsencrypt-prod
+
+  - it: lets filesAnnotations override the body limit
+    template: templates/ingress-files.yaml
+    set:
+      ingress.filesAnnotations:
+        nginx.ingress.kubernetes.io/proxy-body-size: 500m
+    asserts:
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/proxy-body-size"]
+          value: 500m
+
+  - it: points the browser's S3 endpoint at the files host
+    template: templates/configmap.yaml
+    asserts:
+      - equal:
+          path: data.S3_PUBLIC_ENDPOINT
+          value: https://files.issues.example.com
+
+  - it: keeps an explicit public endpoint
+    template: templates/configmap.yaml
+    set:
+      s3.publicEndpoint: https://cdn.example.com
+    asserts:
+      - equal:
+          path: data.S3_PUBLIC_ENDPOINT
+          value: https://cdn.example.com
+
+  - it: isn't rendered without a files host
+    template: templates/ingress-files.yaml
+    set:
+      ingress.filesHost: ""
+    asserts:
+      - hasDocuments:
+          count: 0

@@ -30,6 +30,7 @@ spec:
     spec:
       securityContext:
         {{- toYaml .Values.postgresql.podSecurityContext | nindent 8 }}
+      {{- include "barynt.podCommon" . | nindent 6 }}
       containers:
         - name: postgres
           image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
@@ -63,6 +64,16 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
+            {{- if .Values.backup.enabled }}
+            # Das Backup-Volume hängt (nur lesend) auch hier: so wird es mit
+            # Postgres gebunden statt erst beim ersten nächtlichen Job —
+            # sonst bliebe es bei WaitForFirstConsumer-StorageClasses Pending
+            # und `helm install --wait` liefe in den Timeout. Nebenbei liegen
+            # die Dumps zum Wiederherstellen direkt in diesem Pod.
+            - name: backups
+              mountPath: /backups
+              readOnly: true
+            {{- end }}
           readinessProbe:
             exec:
               command: ["pg_isready", "-U", {{ .Values.postgresql.auth.username | quote }}, "-d", {{ .Values.postgresql.auth.database | quote }}]
@@ -73,10 +84,17 @@ spec:
             periodSeconds: 10
           resources:
             {{- toYaml .Values.postgresql.resources | nindent 12 }}
-      {{- if not .Values.postgresql.persistence.enabled }}
+      {{- if or (not .Values.postgresql.persistence.enabled) .Values.backup.enabled }}
       volumes:
+        {{- if not .Values.postgresql.persistence.enabled }}
         - name: data
           emptyDir: {}
+        {{- end }}
+        {{- if .Values.backup.enabled }}
+        - name: backups
+          persistentVolumeClaim:
+            claimName: {{ include "barynt.fullname" . }}-backup
+        {{- end }}
       {{- end }}
   {{- if .Values.postgresql.persistence.enabled }}
   volumeClaimTemplates:

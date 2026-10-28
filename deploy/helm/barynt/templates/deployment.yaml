@@ -30,12 +30,40 @@ spec:
       labels:
         {{- include "barynt.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: app
-      {{- with .Values.podAnnotations }}
-      annotations:
+        {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
+      annotations:
+        # Eine geänderte Konfiguration (helm upgrade --set …) rollt die Pods
+        # neu aus — ohne das liefen sie mit den alten Umgebungsvariablen
+        # weiter, bis jemand sie von Hand neu startet.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       serviceAccountName: {{ include "barynt.serviceAccountName" . }}
+      {{- include "barynt.podCommon" . | nindent 6 }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml .Values.topologySpreadConstraints | nindent 8 }}
+      {{- else if include "barynt.multiReplica" . }}
+      # Weich auf verschiedene Nodes verteilen — fällt ein Node aus, läuft
+      # die andere Replica weiter. ScheduleAnyway: ein Ein-Node-Cluster
+      # startet trotzdem alle.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "barynt.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: app
+      {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       {{- with .Values.hostAliases }}
@@ -101,7 +129,7 @@ spec:
         {{- end }}
       containers:
         - name: app
-          image: "{{ .Values.image.app.repository }}:{{ .Values.image.app.tag | default .Chart.AppVersion }}"
+          image: {{ include "barynt.appImage" . | quote }}
           imagePullPolicy: {{ .Values.image.app.pullPolicy }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}

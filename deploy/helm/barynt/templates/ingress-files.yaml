@@ -1,0 +1,44 @@
+{{/*
+Der gebündelte Dateispeicher (RustFS) unter ingress.filesHost — der Browser
+lädt Avatare und Anhänge über vorsignierte URLs direkt hierhin hoch und
+herunter. Ein eigener Host, weil die Signatur Host und Pfad abdeckt; der
+Ingress-Controller reicht den Host-Header unverändert weiter, gegen den
+RustFS die Signatur prüft. Annotations: die von `ingress` (z. B. der
+cert-manager-Issuer) plus `ingress.filesAnnotations`.
+*/}}
+{{- if include "barynt.filesIngress" . }}
+{{- $annotations := merge (deepCopy .Values.ingress.filesAnnotations) (deepCopy .Values.ingress.annotations) }}
+{{- if and (eq .Values.ingress.className "nginx") (not (hasKey $annotations "nginx.ingress.kubernetes.io/proxy-body-size")) }}
+{{- $_ := set $annotations "nginx.ingress.kubernetes.io/proxy-body-size" "100m" }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "barynt.fullname" . }}-files
+  labels:
+    {{- include "barynt.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rustfs
+  {{- with $annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.filesHost }}
+      secretName: {{ printf "%s-files-tls" (include "barynt.fullname" .) }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.filesHost }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "barynt.fullname" . }}-rustfs
+                port:
+                  number: {{ .Values.rustfs.service.apiPort }}
+{{- end }}

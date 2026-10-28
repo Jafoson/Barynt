@@ -6,3 +6,5 @@
 *.orig
 .DS_Store
 examples/
+# Template tests (helm-unittest) — not part of the packaged chart.
+unittests/

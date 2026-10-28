@@ -38,6 +38,15 @@ jobs:
       - name: helm lint
         run: helm lint deploy/helm/barynt
 
+      # Template-Tests ohne Cluster (deploy/helm/barynt/unittests): PDB,
+      # Files-Ingress, NetworkPolicies, Backup, Scheduling-Felder, Probes.
+      # v1.0.3: die letzte Version ohne `platformHooks` in ihrer plugin.yaml,
+      # das kann Helm 3.16 (oben gepinnt) noch nicht lesen.
+      - name: helm-unittest
+        run: |
+          helm plugin install https://github.com/helm-unittest/helm-unittest --version v1.0.3
+          helm unittest -f 'unittests/*_test.yaml' deploy/helm/barynt
+
       # Zwei Renderdurchläufe: die gebündelten Defaults (values.yaml) und
       # das externe Produktions-Beispiel (examples/values-production.yaml)
       # — beide Zweige jedes bedingten Templates (postgresql.enabled,
@@ -51,6 +60,19 @@ jobs:
             -f deploy/helm/barynt/examples/values-production.yaml \
             > /tmp/rendered-production.yaml
 
+      # Alles Optionale auf einmal an, damit jedes neue Template mindestens
+      # einmal durch kubeconform muss.
+      - name: helm template (every optional feature on)
+        run: |
+          helm template barynt deploy/helm/barynt \
+            --set ingress.enabled=true --set ingress.tls.enabled=true \
+            --set ingress.filesHost=files.example.com \
+            --set networkPolicy.enabled=true --set backup.enabled=true \
+            --set autoscaling.enabled=true \
+            --set nodeSelector.pool=apps --set 'imagePullSecrets[0].name=regcred' \
+            --set priorityClassName=high \
+            > /tmp/rendered-features.yaml
+
       - name: Set up kubeconform
         run: |
           curl -fsSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
@@ -62,6 +84,9 @@ jobs:
 
       - name: kubeconform (production example)
         run: kubeconform -strict -summary /tmp/rendered-production.yaml
+
+      - name: kubeconform (every optional feature on)
+        run: kubeconform -strict -summary /tmp/rendered-features.yaml
 
       # Der eigentliche GitOps-Vertrag: ArgoCD/Flux rendern IMMER per
       # `helm template`, nie mit Cluster-Zugriff — jede Kombination von
@@ -205,10 +230,20 @@ jobs:
       - name: helm install --wait
         run: |
           helm install barynt deploy/helm/barynt -n barynt-pss --wait --timeout 5m \
-            --set image.app.repository=barynt --set image.app.tag=ci
+            --set image.app.repository=barynt --set image.app.tag=ci \
+            --set backup.enabled=true --set networkPolicy.enabled=true
 
       - name: helm test
         run: helm test barynt -n barynt-pss
+
+      # Die Sicherung einmal wirklich laufen lassen — als uid 70 unter
+      # restricted PSS, durch die NetworkPolicy zu Postgres hindurch.
+      - name: Backup job runs
+        run: |
+          kubectl create job backup-now --from=cronjob/barynt-backup -n barynt-pss
+          kubectl wait --for=condition=complete job/backup-now -n barynt-pss --timeout=180s
+          kubectl logs job/backup-now -n barynt-pss | tee backup.log
+          grep -q "Backup: /backups/barynt-" backup.log
 
       - name: Check for admission violations
         if: always()
