@@ -4,7 +4,7 @@
  *
  *   bun scripts/release/cli.ts prepare          propose the next version, write
  *                                               releases/<v>.md + .de.md, bump
- *                                               package.json
+ *                                               package.json and the Helm chart
  *       env: RELEASE_VERSION (instead of the proposal), HIGHLIGHTS_EN,
  *            HIGHLIGHTS_DE (text for the top of the notes; `\n` = line break)
  *   bun scripts/release/cli.ts body <version>   print the GitHub release body
@@ -33,6 +33,7 @@ import {
   parseVersion,
   renderReleaseBody,
   unescapeInput,
+  withChartVersion,
   withHighlights,
 } from "./notes";
 
@@ -69,6 +70,8 @@ function commitsSince(tag: string): Commit[] {
       return { sha, subject, body };
     });
 }
+
+const CHART = "deploy/helm/barynt/Chart.yaml";
 
 const fileFor = (version: string, lang: Lang) =>
   `releases/${version}${lang === "de" ? ".de" : ""}.md`;
@@ -160,6 +163,15 @@ function prepare() {
     writeFileSync(
       "package.json",
       pkg.replace(/("version":\s*")[^"]+(")/, `$1${version}$2`),
+    );
+  }
+
+  // The Helm chart ships with the same version — its default image tag is
+  // `appVersion`, so this is what makes `helm install` pull this release.
+  if (existsSync(CHART)) {
+    writeFileSync(
+      CHART,
+      withChartVersion(readFileSync(CHART, "utf8"), version),
     );
   }
 

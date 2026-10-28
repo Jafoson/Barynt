@@ -21,10 +21,22 @@ Actions → **Release** → _Run workflow_ (from `main`):
 | `publish`                         | Off: preview only, shown in the job summary, nothing is written. On: release                                           |
 
 Run it without `publish` first, read the preview, fix the inputs, run again with
-`publish`. The run then commits `package.json` and `releases/` to `main`, tags
-`vX.Y.Z` and creates the GitHub release: the English notes, the German ones
-folded underneath, relative image paths rewritten to the tag's raw files. The
-sidebar's update card compares against that release.
+`publish`. The run then:
+
+1. commits `package.json`, the Helm chart (`version`, `appVersion` and the
+   image Artifact Hub lists, all set to the release) and `releases/` to `main`;
+2. creates the GitHub release on tag `vX.Y.Z`: the English notes, the German
+   ones folded underneath, relative image paths rewritten to the tag's raw
+   files. Attached are the installer's files — `install.sh`,
+   `docker-compose.yml`, `Caddyfile`, `example.env` — their `SHA256SUMS` and
+   `install.sh.sigstore.json` (a keyless cosign signature of the installer);
+3. builds the Docker image on the tag (`docker-build.yml`): `X.Y.Z` and
+   `latest`, multi-arch, scanned and signed;
+4. after that, publishes the signed Helm chart (`helm-release.yml`).
+
+So once the run is green, `curl -fsSL https://github.com/Jafoson/Barynt/releases/latest/download/install.sh | sh`,
+`barynt upgrade` and `helm install oci://ghcr.io/jafoson/charts/barynt` all
+get the new version. The sidebar's update card compares against the release.
 
 Each file is the highlights you wrote (text, screenshots) above a generated
 block between `<!-- changes:start -->` and `<!-- changes:end -->`: the changes
