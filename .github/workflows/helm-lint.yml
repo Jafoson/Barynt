@@ -40,9 +40,11 @@ jobs:
 
       # Template-Tests ohne Cluster (deploy/helm/barynt/unittests): PDB,
       # Files-Ingress, NetworkPolicies, Backup, Scheduling-Felder, Probes.
+      # v1.0.3: die letzte Version ohne `platformHooks` in ihrer plugin.yaml,
+      # das kann Helm 3.16 (oben gepinnt) noch nicht lesen.
       - name: helm-unittest
         run: |
-          helm plugin install https://github.com/helm-unittest/helm-unittest --version v1.2.1
+          helm plugin install https://github.com/helm-unittest/helm-unittest --version v1.0.3
           helm unittest -f 'unittests/*_test.yaml' deploy/helm/barynt
 
       # Zwei Renderdurchläufe: die gebündelten Defaults (values.yaml) und

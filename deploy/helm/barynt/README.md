@@ -222,9 +222,13 @@ backup:
 
 Ein CronJob sichert die gebündelte Postgres-Datenbank per `pg_dump -Fc` auf
 ein eigenes Volume (`<release>-backup`, mit `helm.sh/resource-policy: keep`,
-übersteht also `helm uninstall`). Läuft als Postgres-User unter restricted
-PSS. Für eine externe Datenbank sichert man dort, wo sie läuft; RustFS-Daten
-(Anhänge) deckt der Job nicht ab, die liegen im RustFS-Volume.
+übersteht also `helm uninstall`). Der Postgres-Pod bindet dieses Volume
+selbst (lesend unter `/backups`), der Job läuft per Pod-Affinity auf
+demselben Node. So ist es auch bei `WaitForFirstConsumer`-StorageClasses
+sofort gebunden, und `helm install --wait` wartet nicht bis zur ersten
+Sicherung. Läuft als Postgres-User unter restricted PSS. Für eine externe
+Datenbank sichert man dort, wo sie läuft; RustFS-Daten (Anhänge) deckt der
+Job nicht ab, die liegen im RustFS-Volume.
 
 Sofort sichern und wiederherstellen:
 
@@ -233,14 +237,12 @@ Sofort sichern und wiederherstellen:
 kubectl create job backup-now --from=cronjob/barynt-backup -n barynt
 
 # Vorhandene Sicherungen ansehen
-kubectl run ls-backups -n barynt --rm -it --restart=Never --image=busybox \
-  --overrides='{"spec":{"volumes":[{"name":"b","persistentVolumeClaim":{"claimName":"barynt-backup"}}],"containers":[{"name":"ls","image":"busybox","command":["ls","-lh","/b"],"volumeMounts":[{"name":"b","mountPath":"/b"}]}]}}'
+kubectl exec -n barynt barynt-postgres-0 -- ls -lh /backups
 
 # Wiederherstellen: App anhalten, Dump einspielen, App wieder starten
 kubectl scale deploy/barynt -n barynt --replicas=0
-kubectl cp ./barynt-20261028-030000.dump barynt/barynt-postgres-0:/tmp/restore.dump
 kubectl exec -n barynt barynt-postgres-0 -- \
-  pg_restore -U barynt -d barynt --clean --if-exists --no-owner /tmp/restore.dump
+  pg_restore -U barynt -d barynt --clean --if-exists --no-owner /backups/barynt-20261028-030000.dump
 kubectl scale deploy/barynt -n barynt --replicas=2
 ```
 
@@ -408,7 +410,7 @@ helm install barynt ./deploy/helm/barynt -n barynt --create-namespace --wait
 helm test barynt -n barynt
 
 # Template-Tests ohne Cluster (unittests/, Plugin helm-unittest)
-helm plugin install https://github.com/helm-unittest/helm-unittest --version v1.2.1
+helm plugin install https://github.com/helm-unittest/helm-unittest --version v1.0.3
 helm unittest -f 'unittests/*_test.yaml' ./deploy/helm/barynt
 ```
 

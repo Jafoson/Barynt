@@ -2,6 +2,10 @@
 Tägliche Sicherung der gebündelten Postgres-Datenbank: pg_dump im Custom
 Format auf ein eigenes Volume, die neuesten `backup.keep` bleiben. Läuft mit
 dem Postgres-Image und -User der StatefulSet (uid 70, restricted PSS).
+
+Das Volume bindet der Postgres-Pod (er mountet es lesend, siehe
+postgres/statefulset.yaml), der Job läuft per Pod-Affinity auf demselben
+Node — ein ReadWriteOnce-Volume dürfen mehrere Pods eines Nodes nutzen.
 Wiederherstellen: README "Backup".
 */}}
 {{- if and .Values.backup.enabled .Values.postgresql.enabled }}
@@ -46,6 +50,14 @@ spec:
             app.kubernetes.io/component: backup
         spec:
           restartPolicy: OnFailure
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - topologyKey: kubernetes.io/hostname
+                  labelSelector:
+                    matchLabels:
+                      {{- include "barynt.selectorLabels" . | nindent 22 }}
+                      app.kubernetes.io/component: postgres
           securityContext:
             {{- toYaml .Values.postgresql.podSecurityContext | nindent 12 }}
           {{- include "barynt.podCommon" . | nindent 10 }}
