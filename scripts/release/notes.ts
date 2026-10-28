@@ -314,3 +314,21 @@ export function renderReleaseBody(options: {
   const de = body(options.de, options.repo, options.tag);
   return `${en}\n\n<details>\n<summary>Deutsch</summary>\n\n${de}\n\n</details>\n`;
 }
+
+// ─── The Helm chart ──────────────────────────────────────────────────────────
+
+/**
+ * `deploy/helm/barynt/Chart.yaml` at `version`: the chart version and
+ * `appVersion` (they move together — the chart's default image tag is
+ * `appVersion`), and the app image Artifact Hub lists. A line-based edit, so
+ * comments and layout stay exactly as written.
+ */
+export function withChartVersion(chartYaml: string, version: string): string {
+  return chartYaml
+    .replace(/^version:.*$/m, `version: ${version}`)
+    .replace(/^appVersion:.*$/m, `appVersion: "${version}"`)
+    .replace(
+      /(image: ghcr\.io\/jafoson\/barynt:)[^\s]+/,
+      (_, prefix: string) => `${prefix}${version}`,
+    );
+}

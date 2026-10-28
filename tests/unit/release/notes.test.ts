@@ -12,6 +12,7 @@ import {
   renderReleaseBody,
   rewriteImagePaths,
   unescapeInput,
+  withChartVersion,
   withHighlights,
 } from "@/scripts/release/notes";
 
@@ -248,5 +249,36 @@ describe("withHighlights", () => {
     expect(unescapeInput("Line one\\n\\n- a\\n- b")).toBe(
       "Line one\n\n- a\n- b",
     );
+  });
+});
+
+describe("withChartVersion", () => {
+  const chart = `apiVersion: v2
+name: barynt
+# Chart-Version und appVersion laufen gleich.
+version: 1.0.12
+appVersion: "1.0.12"
+kubeVersion: ">=1.25.0-0"
+annotations:
+  artifacthub.io/images: |
+    - name: barynt
+      image: ghcr.io/jafoson/barynt:1.0.12
+    - name: postgres
+      image: postgres:17-alpine
+`;
+
+  test("moves chart version, appVersion and the app image together", () => {
+    const next = withChartVersion(chart, "1.0.13");
+    expect(next).toContain("\nversion: 1.0.13\n");
+    expect(next).toContain('\nappVersion: "1.0.13"\n');
+    expect(next).toContain("image: ghcr.io/jafoson/barynt:1.0.13");
+  });
+
+  test("leaves everything else alone", () => {
+    const next = withChartVersion(chart, "1.0.13");
+    expect(next).toContain("# Chart-Version und appVersion laufen gleich.");
+    expect(next).toContain('kubeVersion: ">=1.25.0-0"');
+    expect(next).toContain("image: postgres:17-alpine");
+    expect(next.split("\n")).toHaveLength(chart.split("\n").length);
   });
 });
