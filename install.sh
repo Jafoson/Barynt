@@ -22,7 +22,6 @@
 set -eu
 
 REPO="Jafoson/Barynt"
-IMAGE_DEFAULT="ghcr.io/jafoson/barynt"
 # Every file a running installation needs. `barynt` is this script itself.
 RELEASE_FILES="docker-compose.yml Caddyfile example.env install.sh"
 HEALTH_TIMEOUT=300
@@ -572,7 +571,9 @@ cmd_backup() {
 cmd_restore() {
   resolve_dir && require_installation && detect_docker_or_die
   archive=${1-}
-  [ -n "$archive" ] && [ -f "$archive" ] || die "Usage: $CLI restore <backup.tar.gz>" 10
+  if [ -z "$archive" ] || [ ! -f "$archive" ]; then
+    die "Usage: $CLI restore <backup.tar.gz>" 10
+  fi
   warn "This replaces the current database and uploaded files with the backup."
   confirm "Restore $archive now?" || die "Cancelled." 0
   run tar xzf "$archive" -C "$TMP"
@@ -612,6 +613,8 @@ cmd_config() {
   else
     can_ask || die "Without a terminal, pass settings directly: $CLI config KEY=VALUE …" 10
     say "Press Enter to keep a value."
+    # Set by `ask` (through eval) — declared here so they're never unset.
+    new_domain='' new_files='' smtp_host='' smtp_user='' smtp_pass='' smtp_from=''
     ask new_domain "Domain" "$(env_get DOMAIN)"
     if [ "$new_domain" != "$(env_get DOMAIN)" ]; then
       ask new_files "Domain for uploaded files" "files.$new_domain"
@@ -629,7 +632,7 @@ cmd_config() {
       ask smtp_from "Sender, e.g. Barynt <barynt@example.com>" "$(env_get SMTP_FROM)"
       env_set SMTP_HOST "$smtp_host"
       env_set SMTP_PORT "$smtp_port"
-      env_set SMTP_SECURE "$([ "$smtp_port" = 465 ] && echo true || echo false)"
+      if [ "$smtp_port" = 465 ]; then env_set SMTP_SECURE true; else env_set SMTP_SECURE false; fi
       env_set SMTP_USER "$smtp_user"
       [ -z "$smtp_pass" ] || env_set SMTP_PASS "$smtp_pass"
       env_set SMTP_FROM "$smtp_from"
@@ -798,7 +801,10 @@ main() {
     config) cmd_config "$@" ;;
     doctor) cmd_doctor ;;
     uninstall) cmd_uninstall ;;
-    version) say "Barynt CLI — installation $(resolve_dir && env_get BARYNT_VERSION 2>/dev/null || echo 'not found')" ;;
+    version)
+      resolve_dir
+      if [ -f "$DIR/.env" ]; then say "Barynt $(env_get BARYNT_VERSION) in $DIR"; else say "No installation in $DIR"; fi
+      ;;
     *) die "Unknown command: $COMMAND (see --help)" 10 ;;
   esac
 }

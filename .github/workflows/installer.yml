@@ -40,7 +40,7 @@ jobs:
 
       # ShellCheck ships with the GitHub Ubuntu image.
       - name: shellcheck
-        run: shellcheck --shell=sh install.sh tests/installer/test.sh
+        run: shellcheck --shell=sh --external-sources install.sh tests/installer/test.sh
 
       - name: Install dash
         run: sudo apt-get install -y --no-install-recommends dash

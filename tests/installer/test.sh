@@ -6,6 +6,10 @@
 #
 #   sh tests/installer/test.sh        (also: dash …, bash …)
 
+# The globals below are read by the sourced install.sh, not by this file.
+# shellcheck disable=SC2034
+# shellcheck source-path=SCRIPTDIR
+
 set -eu
 
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
