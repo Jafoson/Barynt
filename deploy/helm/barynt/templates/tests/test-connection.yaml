@@ -16,5 +16,7 @@ spec:
       securityContext:
         {{- toYaml .Values.securityContext | nindent 8 }}
       command: ["wget"]
-      args: ["-qO-", "http://{{ include "barynt.fullname" . }}:{{ .Values.service.port }}{{ .Values.probes.path }}"]
+      # The readiness endpoint answers 200 only once the app reaches its
+      # database — so a green test means more than "the server is up".
+      args: ["-qO-", "http://{{ include "barynt.fullname" . }}:{{ .Values.service.port }}{{ .Values.probes.path | default .Values.probes.readinessPath }}"]
   restartPolicy: Never
