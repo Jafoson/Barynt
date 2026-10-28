@@ -81,7 +81,14 @@ autoscaling:
 # spiegeln exakt den bestehenden Docker-HEALTHCHECK (GET auf "/", <500 =
 # gesund), siehe Dockerfile.
 probes:
-  path: /
+  # Liveness fragt nur, ob der Prozess antwortet — hinge sie an der
+  # Datenbank, würde Kubernetes bei einem DB-Ausfall alle Pods in Schleife
+  # neu starten. Readiness und Startup warten, bis die Datenbank antwortet.
+  # Beide Endpunkte gibt es ab App-Version 1.0.13; wer ein älteres Image
+  # pinnt, setzt `path: /` (gilt dann für alle drei Probes).
+  livenessPath: /api/health/live
+  readinessPath: /api/health
+  path: ""
   initialDelaySeconds: 10
   periodSeconds: 10
   failureThreshold: 3

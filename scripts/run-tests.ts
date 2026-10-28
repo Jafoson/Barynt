@@ -78,6 +78,9 @@ const SEGMENTS: string[][] = [
     "tests/unit/storage/keys.test.ts",
     "tests/unit/storage/presign.test.ts",
   ],
+  // `/api/health`: mocks `@/lib/db` down to `$queryRaw` alone — kept out of
+  // segment 0, where files rely on fuller `db` mocks of their own.
+  ["tests/unit/health"],
   ["tests/unit/api-keys/route.test.ts"],
   // Attachments in the API/MCP: mocks `@/lib/storage/config` and stubs the
   // global `fetch` S3 is reached through — kept away from the storage tests

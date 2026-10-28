@@ -8,11 +8,15 @@ on:
     paths:
       - "deploy/helm/barynt/**"
       - ".github/workflows/helm-lint.yml"
+      - "Dockerfile"
+      - "docker/**"
   pull_request:
     branches: [main]
     paths:
       - "deploy/helm/barynt/**"
       - ".github/workflows/helm-lint.yml"
+      - "Dockerfile"
+      - "docker/**"
 
 permissions:
   contents: read
@@ -123,8 +127,43 @@ jobs:
           fi
           grep -q "externalRedis.host fehlt" err.log
 
+  # Das App-Image aus genau diesem Commit, für die kind-Jobs unten. Vorher
+  # zogen sie `ghcr.io/jafoson/barynt:<appVersion>` — direkt nach dem
+  # Hochsetzen der Chart-Version gibt es dieses Tag noch nicht (der
+  # Docker-Build läuft erst nach dem Release), und beide Jobs scheiterten mit
+  # ImagePullBackOff (1.0.12). Gleicher Build wie docker-build.yml (Ziel
+  # `runner`, amd64, derselbe GHA-Cache), nur nicht gepusht.
+  image:
+    name: build app image for kind
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: runner
+          platforms: linux/amd64
+          tags: barynt:ci
+          outputs: type=docker,dest=/tmp/barynt-image.tar
+          cache-from: type=gha,scope=linux-amd64
+
+      - name: Upload image
+        uses: actions/upload-artifact@v4
+        with:
+          name: barynt-image
+          path: /tmp/barynt-image.tar
+          retention-days: 1
+
   restricted-pss:
     name: install against a restricted-PSS namespace (kind)
+    needs: image
     runs-on: ubuntu-latest
 
     steps:
@@ -146,6 +185,15 @@ jobs:
           cluster_name: barynt-pss
           wait: 120s
 
+      - name: Load the app image into kind
+        uses: actions/download-artifact@v4
+        with:
+          name: barynt-image
+          path: /tmp
+
+      - name: kind load
+        run: kind load image-archive /tmp/barynt-image.tar --name barynt-pss
+
       - name: Create restricted-PSS namespace
         run: |
           kubectl create ns barynt-pss
@@ -155,7 +203,9 @@ jobs:
             pod-security.kubernetes.io/warn=restricted
 
       - name: helm install --wait
-        run: helm install barynt deploy/helm/barynt -n barynt-pss --wait --timeout 5m
+        run: |
+          helm install barynt deploy/helm/barynt -n barynt-pss --wait --timeout 5m \
+            --set image.app.repository=barynt --set image.app.tag=ci
 
       - name: helm test
         run: helm test barynt -n barynt-pss
@@ -177,6 +227,7 @@ jobs:
 
   postgres-existing-secret:
     name: bundled Postgres with a pre-existing password (kind)
+    needs: image
     runs-on: ubuntu-latest
 
     steps:
@@ -202,6 +253,15 @@ jobs:
           cluster_name: barynt-pg-secret
           wait: 120s
 
+      - name: Load the app image into kind
+        uses: actions/download-artifact@v4
+        with:
+          name: barynt-image
+          path: /tmp
+
+      - name: kind load
+        run: kind load image-archive /tmp/barynt-image.tar --name barynt-pg-secret
+
       - name: Create namespace and pre-existing Postgres secret (password + matching URL)
         run: |
           kubectl create ns barynt-pg-secret
@@ -212,6 +272,7 @@ jobs:
       - name: helm install --wait
         run: |
           helm install barynt deploy/helm/barynt -n barynt-pg-secret --wait --timeout 5m \
+            --set image.app.repository=barynt --set image.app.tag=ci \
             --set postgresql.auth.existingSecret=my-postgres-secret \
             --set externalDatabase.existingSecret=my-postgres-secret \
             --set externalDatabase.existingSecretUrlKey=url
