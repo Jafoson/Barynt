@@ -30,6 +30,7 @@ spec:
     spec:
       securityContext:
         {{- toYaml .Values.postgresql.podSecurityContext | nindent 8 }}
+      {{- include "barynt.podCommon" . | nindent 6 }}
       containers:
         - name: postgres
           image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"

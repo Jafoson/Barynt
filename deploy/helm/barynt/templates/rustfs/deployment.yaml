@@ -29,6 +29,7 @@ spec:
     spec:
       securityContext:
         {{- toYaml .Values.rustfs.podSecurityContext | nindent 8 }}
+      {{- include "barynt.podCommon" . | nindent 6 }}
       containers:
         - name: rustfs
           image: "{{ .Values.rustfs.image.repository }}:{{ .Values.rustfs.image.tag }}"

@@ -1,0 +1,58 @@
+suite: database backup
+release:
+  name: barynt
+templates:
+  - templates/backup.yaml
+tests:
+  - it: is off by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: creates a volume that survives uninstall, and the job
+    set:
+      backup.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - isKind:
+          of: PersistentVolumeClaim
+        documentIndex: 0
+      - equal:
+          path: metadata.annotations["helm.sh/resource-policy"]
+          value: keep
+        documentIndex: 0
+      - isKind:
+          of: CronJob
+        documentIndex: 1
+
+  - it: dumps the bundled database as the postgres user
+    set:
+      backup.enabled: true
+      backup.schedule: "15 2 * * *"
+    documentIndex: 1
+    asserts:
+      - equal:
+          path: spec.schedule
+          value: "15 2 * * *"
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.containers[0].env
+          content:
+            name: PGHOST
+            value: barynt-postgres
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.securityContext.runAsUser
+          value: 70
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["app.kubernetes.io/component"]
+          value: backup
+
+  - it: isn't rendered for an external database
+    set:
+      backup.enabled: true
+      postgresql.enabled: false
+      externalDatabase.existingSecret: db
+      externalDatabase.existingSecretUrlKey: url
+    asserts:
+      - hasDocuments:
+          count: 0

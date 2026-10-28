@@ -147,3 +147,62 @@ key: S3_SECRET_ACCESS_KEY
 {{- printf "redis://%s-redis:6379" (include "barynt.fullname" .) -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Gemeinsame Pod-Felder aller Pods des Charts: Pull-Secrets für private
+Registries und die Planung auf Nodes (nodeSelector, tolerations,
+priorityClassName). Hängt an App, Postgres, Redis, RustFS, Backup-Job und
+Test-Pod gleichermaßen — sonst landen die gebündelten Dienste auf Nodes, auf
+die die App nie darf. Leer, wenn nichts davon gesetzt ist.
+*/}}
+{{- define "barynt.podCommon" -}}
+{{- with .Values.imagePullSecrets }}
+imagePullSecrets:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.nodeSelector }}
+nodeSelector:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.tolerations }}
+tolerations:
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- with .Values.priorityClassName }}
+priorityClassName: {{ . | quote }}
+{{- end }}
+{{- end -}}
+
+{{/* Das App-Image: ein Digest pinnt unveränderlich und hat Vorrang vor dem Tag. */}}
+{{- define "barynt.appImage" -}}
+{{- if .Values.image.app.digest -}}
+{{- printf "%s@%s" .Values.image.app.repository .Values.image.app.digest -}}
+{{- else -}}
+{{- printf "%s:%s" .Values.image.app.repository (.Values.image.app.tag | default .Chart.AppVersion) -}}
+{{- end -}}
+{{- end -}}
+
+{{/* Mehr als eine App-Replica (fest oder per HPA) — für PDB und Topology-Spread. */}}
+{{- define "barynt.multiReplica" -}}
+{{- if or .Values.autoscaling.enabled (gt (int .Values.replicaCount) 1) -}}true{{- end -}}
+{{- end -}}
+
+{{/* RustFS bekommt einen eigenen Ingress (ingress.filesHost). */}}
+{{- define "barynt.filesIngress" -}}
+{{- if and .Values.ingress.enabled .Values.ingress.filesHost .Values.rustfs.enabled -}}true{{- end -}}
+{{- end -}}
+
+{{/*
+S3_PUBLIC_ENDPOINT: wohin der Browser für vorsignierte Uploads/Downloads
+geht. Explizit gesetzt gewinnt; sonst der Files-Ingress, wenn es ihn gibt;
+sonst die interne Adresse (nur für den Server-Zugriff brauchbar).
+*/}}
+{{- define "barynt.s3PublicEndpoint" -}}
+{{- if .Values.s3.publicEndpoint -}}
+{{- .Values.s3.publicEndpoint -}}
+{{- else if include "barynt.filesIngress" . -}}
+{{- printf "%s://%s" (ternary "https" "http" .Values.ingress.tls.enabled) .Values.ingress.filesHost -}}
+{{- else -}}
+{{- include "barynt.s3Endpoint" . -}}
+{{- end -}}
+{{- end -}}

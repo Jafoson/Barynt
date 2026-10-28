@@ -1,0 +1,98 @@
+suite: app deployment
+release:
+  name: barynt
+templates:
+  - templates/deployment.yaml
+  - templates/configmap.yaml
+tests:
+  - it: rolls out again when the configuration changes
+    template: templates/deployment.yaml
+    asserts:
+      - exists:
+          path: spec.template.metadata.annotations["checksum/config"]
+
+  - it: pins the image by digest when one is set
+    template: templates/deployment.yaml
+    set:
+      image.app.digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/jafoson/barynt@sha256:0000000000000000000000000000000000000000000000000000000000000000
+
+  - it: uses the app version as tag by default
+    template: templates/deployment.yaml
+    chart:
+      appVersion: 9.9.9
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/jafoson/barynt:9.9.9
+
+  - it: spreads two replicas across nodes by default
+    template: templates/deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].topologyKey
+          value: kubernetes.io/hostname
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].whenUnsatisfiable
+          value: ScheduleAnyway
+
+  - it: doesn't spread a single replica
+    template: templates/deployment.yaml
+    set:
+      replicaCount: 1
+    asserts:
+      - notExists:
+          path: spec.template.spec.topologySpreadConstraints
+
+  - it: takes own spread rules instead of the default
+    template: templates/deployment.yaml
+    set:
+      topologySpreadConstraints:
+        - maxSkew: 2
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+    asserts:
+      - equal:
+          path: spec.template.spec.topologySpreadConstraints[0].topologyKey
+          value: topology.kubernetes.io/zone
+
+  - it: renders pull secrets, node selector, tolerations, priority class and affinity
+    template: templates/deployment.yaml
+    set:
+      imagePullSecrets: [{ name: regcred }]
+      nodeSelector: { pool: apps }
+      tolerations: [{ key: dedicated, operator: Equal, value: apps, effect: NoSchedule }]
+      priorityClassName: high
+      affinity: { nodeAffinity: {} }
+      podLabels: { team: platform }
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: regcred
+      - equal:
+          path: spec.template.spec.nodeSelector.pool
+          value: apps
+      - equal:
+          path: spec.template.spec.tolerations[0].key
+          value: dedicated
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: high
+      - exists:
+          path: spec.template.spec.affinity.nodeAffinity
+      - equal:
+          path: spec.template.metadata.labels.team
+          value: platform
+
+  - it: probes liveness without the database, readiness with it
+    template: templates/deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.path
+          value: /api/health/live
+      - equal:
+          path: spec.template.spec.containers[0].readinessProbe.httpGet.path
+          value: /api/health

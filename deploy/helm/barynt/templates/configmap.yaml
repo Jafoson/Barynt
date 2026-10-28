@@ -41,7 +41,7 @@ data:
   {{- end }}
   {{- if or .Values.s3.endpoint .Values.rustfs.enabled }}
   S3_ENDPOINT: {{ include "barynt.s3Endpoint" . | quote }}
-  S3_PUBLIC_ENDPOINT: {{ .Values.s3.publicEndpoint | default (include "barynt.s3Endpoint" .) | quote }}
+  S3_PUBLIC_ENDPOINT: {{ include "barynt.s3PublicEndpoint" . | quote }}
   S3_REGION: {{ .Values.s3.region | quote }}
   S3_BUCKET_AVATARS: {{ .Values.s3.bucketAvatars | quote }}
   S3_BUCKET_ISSUES: {{ .Values.s3.bucketIssues | quote }}

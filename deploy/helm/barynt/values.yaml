@@ -14,9 +14,38 @@ image:
     # Update ist nur ein anderes Tag. In Produktion auf ein Release pinnen statt
     # "latest" zu übernehmen — reproduzierbare Rollouts/Rollbacks.
     tag: ""
+    # Pinnt das Image unveränderlich ("sha256:…"), hat Vorrang vor `tag` —
+    # ein Tag kann neu vergeben werden, ein Digest nicht.
+    digest: ""
     pullPolicy: IfNotPresent
 
+# Für private Spiegel/Registries, z. B. [{ name: regcred }]. Gilt für alle Pods
+# des Charts (App, Postgres, Redis, RustFS, Backup, Test).
+imagePullSecrets: []
+
 replicaCount: 2
+
+# Planung auf bestimmte Nodes — nodeSelector, tolerations und
+# priorityClassName gelten für alle Pods des Charts (sonst landen die
+# gebündelten Dienste auf Nodes, auf die die App nie darf). affinity und
+# topologySpreadConstraints nur für die App.
+nodeSelector: {}
+tolerations: []
+priorityClassName: ""
+affinity: {}
+# Leer und mehr als eine Replica: die App-Pods werden weich auf verschiedene
+# Nodes verteilt (ScheduleAnyway — ein Ein-Node-Cluster startet trotzdem).
+# Eigene Regeln hier ersetzen diesen Standard.
+topologySpreadConstraints: []
+
+# Hält bei einem Node-Drain/Cluster-Upgrade immer mindestens eine App-Replica
+# am Leben. Nur aktiv bei mehr als einer Replica (oder HPA) — mit einer
+# einzigen würde `minAvailable: 1` jeden Drain blockieren.
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  # Alternativ zu minAvailable, z. B. 1 oder "25%".
+  maxUnavailable: ""
 
 serviceAccount:
   create: true
@@ -24,6 +53,7 @@ serviceAccount:
   name: ""
 
 podAnnotations: {}
+podLabels: {}
 
 # Non-root, uid/gid 1000 — deckt sich mit dem "bun"-User, den das Dockerfile
 # im Runner-Stage bereits verwendet (siehe Dockerfile, `USER bun`).
@@ -63,6 +93,18 @@ ingress:
   tls:
     enabled: false
     secretName: ""
+  # Eigener Host für den gebündelten Dateispeicher (RustFS), z. B.
+  # files.issues.example.com. Der Browser lädt Avatare und Anhänge über
+  # vorsignierte URLs direkt dorthin hoch und herunter — die Signatur gilt für
+  # Host und Pfad, deshalb ein eigener Host statt eines Pfads unter `host`.
+  # Gesetzt (mit rustfs.enabled), bekommt RustFS einen eigenen Ingress und
+  # S3_PUBLIC_ENDPOINT zeigt automatisch darauf. Leer: Uploads aus dem Browser
+  # funktionieren nur, wenn s3.publicEndpoint anderweitig erreichbar ist.
+  filesHost: ""
+  # Zusätzlich zu `annotations` (die gelten für beide Ingresses). Bei
+  # className nginx setzt der Chart proxy-body-size auf 100m (Anhänge bis
+  # 100 MB, nginx' Standard wäre 1m) — hier überschreibbar.
+  filesAnnotations: {}
 
 resources:
   requests:
@@ -337,6 +379,35 @@ initResources:
 # am Pod und gilt damit ohnehin für alle Container. Bleiben bewusst generisch
 # statt eine konkrete Installation (z. B. einen bestimmten IdP-Hostnamen)
 # fest zu verdrahten.
+# Nur eingehender Verkehr: Postgres und Redis nehmen dann ausschließlich
+# Verbindungen der App (und des Backup-Jobs) an, RustFS nur von der App —
+# und vom Ingress-Controller, wenn ingress.filesHost gesetzt ist. Ausgehender
+# Verkehr bleibt offen (SMTP, OIDC, Webhooks). Braucht ein CNI, das
+# NetworkPolicies durchsetzt (Calico, Cilium, …).
+networkPolicy:
+  enabled: false
+  # Wer die App erreichen darf, als NetworkPolicy-Peers — z. B. nur der
+  # Namespace des Ingress-Controllers. Leer: alle.
+  appFrom: []
+
+# Tägliche Sicherung der gebündelten Postgres-Datenbank (pg_dump, Custom
+# Format) auf ein eigenes Volume; die neuesten `keep` bleiben. Für eine externe
+# Datenbank (postgresql.enabled: false) sichert man dort, wo sie läuft.
+# Wiederherstellen: siehe README "Backup".
+backup:
+  enabled: false
+  schedule: "0 3 * * *"
+  keep: 7
+  persistence:
+    size: 10Gi
+    storageClassName: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
 extraEnv: []
 extraEnvFrom: []
 extraVolumes: []

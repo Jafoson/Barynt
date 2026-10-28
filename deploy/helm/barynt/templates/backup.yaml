@@ -1,0 +1,90 @@
+{{/*
+Tägliche Sicherung der gebündelten Postgres-Datenbank: pg_dump im Custom
+Format auf ein eigenes Volume, die neuesten `backup.keep` bleiben. Läuft mit
+dem Postgres-Image und -User der StatefulSet (uid 70, restricted PSS).
+Wiederherstellen: README "Backup".
+*/}}
+{{- if and .Values.backup.enabled .Values.postgresql.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "barynt.fullname" . }}-backup
+  labels:
+    {{- include "barynt.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backup
+  annotations:
+    # Ein `helm uninstall` soll die Sicherungen nicht gleich mitnehmen.
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- with .Values.backup.persistence.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.backup.persistence.size }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "barynt.fullname" . }}-backup
+  labels:
+    {{- include "barynt.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backup
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            {{- include "barynt.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: backup
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            {{- toYaml .Values.postgresql.podSecurityContext | nindent 12 }}
+          {{- include "barynt.podCommon" . | nindent 10 }}
+          containers:
+            - name: pg-dump
+              image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
+              securityContext:
+                {{- toYaml .Values.postgresql.securityContext | nindent 16 }}
+              env:
+                - name: PGHOST
+                  value: {{ include "barynt.fullname" . }}-postgres
+                - name: PGUSER
+                  value: {{ .Values.postgresql.auth.username | quote }}
+                - name: PGDATABASE
+                  value: {{ .Values.postgresql.auth.database | quote }}
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      {{- include "barynt.postgresPasswordRef" . | nindent 22 }}
+                - name: KEEP
+                  value: {{ .Values.backup.keep | quote }}
+              command: ["/bin/sh", "-c"]
+              # Erst unter .part schreiben, dann umbenennen: ein abgebrochener
+              # Dump zählt nie als Sicherung und verdrängt keine gute.
+              args:
+                - |
+                  set -eu
+                  file="/backups/barynt-$(date -u +%Y%m%d-%H%M%S).dump"
+                  pg_dump -Fc -f "$file.part"
+                  mv "$file.part" "$file"
+                  echo "Backup: $file ($(du -h "$file" | cut -f1))"
+                  ls -1t /backups/barynt-*.dump | tail -n +$((KEEP + 1)) | xargs -r rm -f
+              volumeMounts:
+                - name: backups
+                  mountPath: /backups
+              resources:
+                {{- toYaml .Values.backup.resources | nindent 16 }}
+          volumes:
+            - name: backups
+              persistentVolumeClaim:
+                claimName: {{ include "barynt.fullname" . }}-backup
+{{- end }}
