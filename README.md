@@ -18,7 +18,7 @@
 
 ---
 
-Barynt is a Linear/Jira-style issue tracker you run yourself. Workspaces contain projects, projects contain issues, and everything — statuses, priorities, issue types, labels, roles — is configurable per workspace instead of hard-coded. It ships as a single Next.js app plus Postgres, with Redis and S3-compatible storage as optional add-ons, and a `docker compose` profile that stands up the whole stack (including HTTPS via Caddy) on one server.
+Barynt is a Linear/Jira-style issue tracker you run yourself. Workspaces contain projects, projects contain issues, and everything — statuses, priorities, issue types, labels, roles — is configurable per workspace instead of hard-coded. It ships as a single Next.js app plus Postgres, Redis and S3-compatible storage, and installs on your own server with one command — the whole stack, HTTPS via Caddy included — or on Kubernetes with a Helm chart.
 
 ## Features
 
@@ -100,25 +100,116 @@ Open [http://localhost:3000](http://localhost:3000). Passkey login works with no
 
 ## Deployment
 
-Barynt ships as a single `docker-compose.yml` used for both local dev and production, split by [Compose profiles](https://docs.docker.com/compose/how-tos/profiles/). `app`/`migrate` default to the prebuilt, multi-arch images CI publishes to `ghcr.io/jafoson/barynt` — no build step, and no full clone of this repo either: `docker-compose.yml`, `Caddyfile`, and a `.env` are the only three files a deployment actually needs.
+Three ways to run Barynt, all with the same prebuilt, multi-arch image (`ghcr.io/jafoson/barynt`, scanned and signed). On every start the app applies pending database migrations itself, so an update is only ever a new version.
+
+### Install script (recommended)
+
+On a Linux server (amd64 or arm64, 2 GB RAM or more):
 
 ```bash
-# Only these three files, no git clone required:
-curl -O https://raw.githubusercontent.com/Jafoson/Barynt/main/docker-compose.yml
-curl -O https://raw.githubusercontent.com/Jafoson/Barynt/main/Caddyfile
-curl -o .env https://raw.githubusercontent.com/Jafoson/Barynt/main/example.env
+curl -fsSL https://github.com/Jafoson/Barynt/releases/latest/download/install.sh | sh
+```
 
-bunx auth secret   # paste the result into AUTH_SECRET in .env
-# set POSTGRES_PASSWORD and DOMAIN in .env for a real deployment
+The installer:
+
+- checks the system and Docker, and offers to install Docker (official script, only after you confirm) if it's missing;
+- downloads the release's `docker-compose.yml`, `Caddyfile` and `example.env` to `/opt/barynt` and checks each one against the release's `SHA256SUMS`;
+- asks for your domain and generates every secret (`AUTH_SECRET`, the database password, the storage keys) into a `.env` only you can read;
+- starts Barynt, waits until it answers, and tells you where to open it. The first account you create becomes the administrator.
+
+Point **two** DNS records at the server and keep ports 80 and 443 open — HTTPS certificates are then fetched automatically:
+
+| Record                     | Serves                                                                                                          |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `issues.example.com`       | Barynt                                                                                                          |
+| `files.issues.example.com` | Uploaded avatars and attachments (the browser loads them directly; their signed links need a host of their own) |
+
+Without questions, e.g. from cloud-init:
+
+```bash
+curl -fsSL https://github.com/Jafoson/Barynt/releases/latest/download/install.sh | sh -s -- \
+  --domain issues.example.com --yes
+```
+
+Other options: `--version 1.0.13` pins a release, `--dir` picks the directory, `--dry-run` shows what would happen, `--help` lists everything.
+
+Prefer to read it before running it? Download it, verify its signature, then run it:
+
+```bash
+curl -fsSLO https://github.com/Jafoson/Barynt/releases/latest/download/install.sh
+curl -fsSLO https://github.com/Jafoson/Barynt/releases/latest/download/install.sh.sigstore.json
+cosign verify-blob install.sh --bundle install.sh.sigstore.json \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp '^https://github.com/Jafoson/Barynt/'
+less install.sh && sh install.sh
+```
+
+Afterwards the same script is installed as `barynt`:
+
+| Command                                      | Does                                                                                                             |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `barynt status`                              | Containers, version, health                                                                                      |
+| `barynt upgrade`                             | Newest version (or `--version X.Y.Z`), with a backup first                                                       |
+| `barynt backup` / `barynt restore <archive>` | Database, uploaded files and `.env` in one archive (`/opt/barynt/backups`)                                       |
+| `barynt logs [service]`                      | Follow the logs (`app`, `postgres`, `caddy`, …)                                                                  |
+| `barynt config`                              | Change the domain or set up email (SMTP); `barynt config KEY=VALUE` for anything listed in [example.env](example.env) |
+| `barynt doctor`                              | Check Docker, memory, disk, DNS and health                                                                       |
+| `barynt start` / `stop` / `restart`          | Start, stop or restart all services                                                                              |
+| `barynt uninstall`                           | Remove the containers; `--purge` also deletes all data                                                           |
+
+macOS works for trying it out (`~/barynt`, Docker Desktop required), not for production.
+
+### Docker Compose by hand
+
+The installer only automates this. Take the files from a release rather than `main`, so they match the image:
+
+```bash
+mkdir barynt && cd barynt
+for f in docker-compose.yml Caddyfile example.env SHA256SUMS; do
+  curl -fsSLO "https://github.com/Jafoson/Barynt/releases/download/v1.0.13/$f"
+done
+sha256sum -c --ignore-missing SHA256SUMS
+
+{
+  echo 'BARYNT_VERSION="1.0.13"'
+  echo 'DOMAIN="issues.example.com"'
+  echo 'FILES_DOMAIN="files.issues.example.com"'
+  echo 'AUTH_URL="https://issues.example.com"'
+  echo 'COMPOSE_S3_PUBLIC_ENDPOINT="https://files.issues.example.com"'
+  echo "AUTH_SECRET=\"$(openssl rand -hex 32)\""
+  echo "POSTGRES_PASSWORD=\"$(openssl rand -hex 32)\""
+  echo 'S3_ACCESS_KEY_ID="barynt"'
+  echo "S3_SECRET_ACCESS_KEY=\"$(openssl rand -hex 32)\""
+} > .env
+chmod 600 .env
 
 docker compose --profile app up -d
 ```
 
-This pulls and starts the app, the app (which applies pending migrations and bootstraps the system data every workspace needs — see [prisma/bootstrap.ts](prisma/bootstrap.ts) — before it starts), bundled RustFS object storage, and [Caddy](https://caddyserver.com) as a reverse proxy with automatic Let's Encrypt HTTPS once `DOMAIN` points at the host. Every service besides Caddy binds to `127.0.0.1` by default — only ports 80/443 are meant to be exposed publicly. See the comments at the top of [docker-compose.yml](docker-compose.yml) and [example.env](example.env) for the full set of options (external Postgres/S3/SMTP, custom ports, etc.).
+This starts the app, Postgres, Redis, the bundled [RustFS](https://github.com/rustfs/rustfs) object storage and [Caddy](https://caddyserver.com) as the reverse proxy, with automatic Let's Encrypt HTTPS for both domains. Every service besides Caddy binds to `127.0.0.1` — only ports 80/443 are meant to be public. [example.env](example.env) lists every other option: sign-in providers, SMTP, an external Postgres or S3, ports.
 
-**Updating** is changing the image tag (or `docker compose pull`) and restarting: the app container applies pending database migrations itself before the server starts (`docker/entrypoint.sh`), so there is nothing to run separately. Set `MIGRATE_ON_START=false` on the app if your database is migrated elsewhere, and `MIGRATE_DATABASE_URL` if migrations need a database user other than the app's `DATABASE_URL`.
+**Updating:** set `BARYNT_VERSION` to the new release (and refresh `docker-compose.yml` and `Caddyfile` from it), then run `docker compose --profile app up -d` again. Pending migrations run on start. Set `MIGRATE_ON_START=false` if your database is migrated elsewhere, and `MIGRATE_DATABASE_URL` if migrations need a database user other than the app's.
 
-Working on Barynt itself? Clone the repo and uncomment the `build:` lines on `app` in `docker-compose.yml` to run your own changes instead: `docker compose --profile app up -d --build`.
+### Kubernetes (Helm)
+
+```bash
+helm install barynt oci://ghcr.io/jafoson/charts/barynt --version 1.0.13 \
+  -n barynt --create-namespace -f values.yaml
+```
+
+The chart bundles Postgres, Redis and RustFS for a quick start; for production, point it at an external database, Redis and S3 and enable the ingress (with `ingress.filesHost` for uploads to the bundled storage). It runs under the restricted Pod Security Standard and ships a PodDisruptionBudget, optional NetworkPolicies and optional nightly database backups. Everything is in the [chart's README](deploy/helm/barynt/README.md), with [examples/values-production.yaml](deploy/helm/barynt/examples/values-production.yaml) as a starting point.
+
+The chart is signed:
+
+```bash
+cosign verify ghcr.io/jafoson/charts/barynt:1.0.13 \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp '^https://github.com/Jafoson/Barynt/'
+```
+
+### Working on Barynt itself
+
+Clone the repo and uncomment the `build:` lines on `app` in `docker-compose.yml` to run your own changes: `docker compose --profile app up -d --build`.
 
 ## Testing
 
