@@ -212,8 +212,9 @@ resolve_dir() {
 }
 
 require_installation() {
-  [ -f "$DIR/.env" ] && [ -f "$DIR/docker-compose.yml" ] ||
+  if [ ! -f "$DIR/.env" ] || [ ! -f "$DIR/docker-compose.yml" ]; then
     die "No Barynt installation in $DIR. Install it with: sh install.sh install (or pass --dir)." 12
+  fi
 }
 
 compose() {
