@@ -11,3 +11,15 @@
 {$DOMAIN:localhost} {
 	reverse_proxy app:3000
 }
+
+# File storage (bundled RustFS): avatars and attachments are uploaded and
+# downloaded by the browser directly, through presigned URLs. Those carry a
+# signature over host and path, so they need a host of their own rather
+# than a path under DOMAIN — FILES_DOMAIN, e.g. "files.issues.example.com",
+# with S3_PUBLIC_ENDPOINT (COMPOSE_S3_PUBLIC_ENDPOINT in .env) pointing at
+# it. The installer sets both. Caddy passes the Host header through
+# unchanged, which is what RustFS checks the signature against. Unused (and
+# harmless) on a local setup, which reaches RustFS on its own port instead.
+{$FILES_DOMAIN:files.localhost} {
+	reverse_proxy rustfs:9000
+}
