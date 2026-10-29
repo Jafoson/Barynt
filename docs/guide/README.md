@@ -46,6 +46,10 @@ name, and every one is optional:
 | `overview.light.webp` | light mode |
 | `overview.de.light.webp` | German pages in light mode |
 
+The screenshots are recorded from a demo workspace, in all four variants at
+once: see `scripts/docs-shots/README.md`. Re-record them when the interface
+changes instead of editing them by hand.
+
 ## German
 
 The German page sits at the same path under `de/`:

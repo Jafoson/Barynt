@@ -112,7 +112,7 @@ Sie bestimmen, was du innerhalb eines Projekts darfst.
 
 Du kannst Rollen nur **bis zu deinem eigenen Rang** vergeben und nur Menschen **unterhalb** von dir ändern. Ein Manager kann niemanden zum Admin machen. Deshalb sollte auch die Person, die den Workspace eingerichtet hat, Owner bleiben.
 
-Menschen werden benachrichtigt, wenn sich ihre Rolle ändert, siehe [Posteingang und Benachrichtigungen](my-work.md).
+Menschen werden benachrichtigt, wenn sich ihre Rolle ändert, siehe [Posteingang und Benachrichtigungen](../using-barynt/my-work.md).
 
 ## Eigene Rollen bauen
 

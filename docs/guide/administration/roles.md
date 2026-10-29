@@ -112,7 +112,7 @@ These decide what you may do inside one project.
 
 You can only hand out roles **up to your own rank**, and you can only change people **below** you. A Manager cannot make someone an Admin. This is also why the person who set up the workspace should stay Owner.
 
-People are told when their role changes, see [Inbox and notifications](my-work.md).
+People are told when their role changes, see [Inbox and notifications](../using-barynt/my-work.md).
 
 ## Building your own roles
 
