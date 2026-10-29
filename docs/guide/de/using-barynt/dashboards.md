@@ -8,7 +8,7 @@ sidebar:
 
 Ein **Dashboard** macht aus den Aufgaben eines Projekts oder des ganzen Workspace ein Bild. Es besteht aus **Widgets**: kleinen Kacheln mit einer Zahl, einem Diagramm oder einer Liste. Du entscheidest, welche du willst und wo sie sitzen.
 
-![Das Dashboard eines Projekts](../../assets/dashboard.webp)
+![Das Dashboard eines Projekts](../../assets/de/dashboard.webp)
 
 ## Wo du es findest
 
@@ -67,13 +67,13 @@ Wenn du fertig bist, wählst du, wie gespeichert wird:
 | **Als neue View** | Behält dieses Dashboard samt Filter als eigene [View](views.md), zum Beispiel „Dashboard des Mobile-Teams“. |
 | **Abbrechen** | Geht zurück zum zuletzt gespeicherten Stand. |
 
-![Das Dashboard im Bearbeitungsmodus](../../assets/dashboard-edit.webp)
+![Das Dashboard im Bearbeitungsmodus](../../assets/de/dashboard-edit.webp)
 
 ## Eigene Widgets
 
 Findest du nicht, was du brauchst? Baue ein **eigenes Widget** aus Bausteinen: Zahlen, Fortschrittsbalken, Verteilungen, Zeitreihen, Matrizen und Aufgabenlisten, jeweils mit eigenem Filter. Beginne mit einer Vorlage (_Sprint-Status_ ist beliebt), gib ihm einen Namen und hake **Im Workspace teilen** an, wenn alle es in ihrer Galerie finden sollen. Ein geteiltes Widget kannst nur du ändern. Bereits platzierte Widgets bleiben, wenn das eigene gelöscht wird.
 
-![Die Widget-Galerie](../../assets/widget-gallery.webp)
+![Die Widget-Galerie](../../assets/de/widget-gallery.webp)
 
 ## Gut zu wissen
 

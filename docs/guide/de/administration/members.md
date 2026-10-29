@@ -7,7 +7,7 @@ sidebar:
 
 Ein **Mitglied** ist ein Mensch mit Zugriff auf einen Workspace. Diese Seite behandelt die drei Wege, Menschen hinzuzufügen, wie du sie änderst oder entfernst und wie du jemanden von außen für nur ein Projekt hereinholst.
 
-![Die Mitglieder eines Workspace](../../assets/members.webp)
+![Die Mitglieder eines Workspace](../../assets/de/members.webp)
 
 ## Die Mitgliederliste
 
@@ -19,7 +19,7 @@ Ein **Mitglied** ist ein Mensch mit Zugriff auf einen Workspace. Diese Seite beh
 
 Klicke auf **Mitglied einladen**, trage eine oder mehrere Adressen ein (getrennt durch Komma oder Zeilenumbruch), wähle eine **Rolle** und sende ab.
 
-![Der Einladungs-Dialog](../../assets/invite.webp)
+![Der Einladungs-Dialog](../../assets/de/invite.webp)
 
 Was dann passiert, hängt von der Adresse ab:
 
@@ -37,7 +37,7 @@ Neue Mitglieder kommen automatisch in alle **öffentlichen Projekte** des Worksp
 
 Erzeuge unter _Workspace Einstellungen → Einladungen_ einen **Einladungslink**: Wähle die Rolle und wie lange er gilt (nie oder eine Anzahl Tage) und klicke auf **Link erzeugen**. Jeder, der ihn öffnet, kann sich anmelden oder ein Konto anlegen und tritt mit dieser Rolle bei. Er eignet sich für einen Team-Chat oder eine Rundmail. **Widerrufen** stoppt ihn jederzeit.
 
-![Einladungen und der Einladungslink](../../assets/invitations.webp)
+![Einladungen und der Einladungslink](../../assets/de/invitations.webp)
 
 Es ist immer nur ein Link pro Workspace aktiv: Ein neuer ersetzt den alten. Nimm für einen Link, den viele sehen, eine eingeschränkte Rolle (_Member_ oder _Viewer_).
 

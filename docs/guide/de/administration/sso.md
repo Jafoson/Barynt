@@ -7,7 +7,7 @@ sidebar:
 
 Menschen sollen sich so anmelden, wie sie es schon überall sonst tun. Barynt unterstützt mehrere Wege nebeneinander, und **keiner davon ist ein kostenpflichtiges Extra**. Diese Seite ist für die Person, die den Server verwaltet: Sie erklärt die Möglichkeiten und wie du sie einschaltest.
 
-![Die Anmeldeseite mit Firmen-Login](../../assets/login-sso.webp)
+![Die Anmeldeseite mit Firmen-Login](../../assets/de/login-sso.webp)
 
 ## Die Möglichkeiten im Überblick
 

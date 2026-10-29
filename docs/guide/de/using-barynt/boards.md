@@ -7,7 +7,7 @@ sidebar:
 
 Barynt hat zwei Grundlayouts für Aufgaben. Sie zeigen dieselben Daten, nimm also, was gerade passt: das **Board**, um Arbeit voranzubringen, die **Liste**, um viele Aufgaben zu überblicken, zu sortieren und abzuarbeiten.
 
-![Ein Projekt-Board](../../assets/board.webp)
+![Ein Projekt-Board](../../assets/de/board.webp)
 
 ## Das Board
 
@@ -52,7 +52,7 @@ Willst du eine dieser Einstellungen morgen wieder haben oder mit deinem Team tei
 
 Klicke über dem Board auf **Filter**. Die Schnellfilter sind _Status_, _Typ_, _Priorität_, _Zuständig_ und _Label_. Wähle in jedem einen oder mehrere Werte. **Alle Filter zurücksetzen** beginnt von vorn.
 
-![Das Filter-Menü](../../assets/filter.webp)
+![Das Filter-Menü](../../assets/de/filter.webp)
 
 Für alles Genauere öffne die **erweiterten Filtereinstellungen**. Dort baust du Bedingungen selbst:
 

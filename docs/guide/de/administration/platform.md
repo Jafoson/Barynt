@@ -7,7 +7,7 @@ sidebar:
 
 Ein Barynt-Server kann viele Workspaces beherbergen. Die **Plattform-Verwaltung** kümmert sich um den Server als Ganzes: Wer hat ein Konto, welche Workspaces gibt es, und ein paar Regeln, die für alle gelten. Sie ist für die Person oder das kleine Team gedacht, das den Server betreibt, und getrennt von den Workspace-Einstellungen, die Teamleitungen nutzen.
 
-![Die Plattform-Übersicht](../../assets/admin-overview.webp)
+![Die Plattform-Übersicht](../../assets/de/admin-overview.webp)
 
 ## Wer ist Plattform-Administration?
 

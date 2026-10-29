@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-![The Barynt dashboard of a workspace](../assets/overview.webp)
+![The Barynt dashboard of a workspace](../assets/en/overview.webp)
 
 ## What is Barynt?
 

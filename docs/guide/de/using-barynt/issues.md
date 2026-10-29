@@ -7,7 +7,7 @@ sidebar:
 
 Eine **Aufgabe** (englisch _Issue_) ist ein Stück Arbeit: eine To-do, ein Fehler, eine Idee. Alles andere in Barynt, vom Board bis zum Dashboard, ist nur eine Art, Aufgaben anzusehen. Diese Seite handelt von der Aufgabe selbst.
 
-![Eine Aufgabe mit Eigenschaften, Unteraufgaben und Diskussion](../../assets/issue-detail.webp)
+![Eine Aufgabe mit Eigenschaften, Unteraufgaben und Diskussion](../../assets/de/issue-detail.webp)
 
 ## Eine Aufgabe anlegen
 
@@ -20,7 +20,7 @@ Es gibt mehrere Wege, die alle zum selben kleinen Dialog führen:
 
 Nur der **Titel** ist Pflicht. Alles andere kannst du jetzt oder später ausfüllen. `⌘↵` / `Strg+Enter` legt die Aufgabe an.
 
-![Der Dialog für eine neue Aufgabe](../../assets/new-issue.webp)
+![Der Dialog für eine neue Aufgabe](../../assets/de/new-issue.webp)
 
 > [!TIP]
 > Aufgaben kommen auch von außen: über die [REST-API](../integrations/api.md) oder von einem KI-Assistenten über [MCP](../integrations/mcp.md). Die Aufgabe zeigt dann, woher sie kam („Erstellt über MCP“).

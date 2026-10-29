@@ -7,7 +7,7 @@ sidebar:
 
 Ein **Team** ist eine benannte Gruppe von Workspace-Mitgliedern, zum Beispiel „Mobile-Team“ oder „Kundensupport“. Es erledigt zwei Aufgaben: Es zeigt auf einen Blick, **wer woran arbeitet**, und es lässt dich **einer ganzen Gruppe auf einmal Zugriff geben**.
 
-![Die Teams eines Workspace](../../assets/teams.webp)
+![Die Teams eines Workspace](../../assets/de/teams.webp)
 
 ## Die Teamliste
 
@@ -23,7 +23,7 @@ Klicke auf **Neues Team** und fülle aus:
 - **Mitglieder**: wähle sie aus dem Workspace.
 - **Projekte**: verknüpfe das Team mit den Projekten, an denen es arbeitet, und wähle die **Rolle in diesem Projekt**, die die Mitglieder des Teams dort bekommen.
 
-![Der Team-Dialog](../../assets/team-dialog.webp)
+![Der Team-Dialog](../../assets/de/team-dialog.webp)
 
 ## Was das Verknüpfen eines Teams mit einem Projekt bewirkt
 

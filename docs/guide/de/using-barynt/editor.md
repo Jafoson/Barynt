@@ -7,7 +7,7 @@ sidebar:
 
 Aufgabenbeschreibungen und Kommentare nutzen denselben Editor. Er ist mit Absicht einfach: Du kannst reinen Text schreiben und gar nicht darüber nachdenken, und die Formatierung ist da, wenn du sie brauchst.
 
-![Der Editor mit geöffnetem /-Menü](../../assets/editor.webp)
+![Der Editor mit geöffnetem /-Menü](../../assets/de/editor.webp)
 
 ## Tippe `/` für alles
 

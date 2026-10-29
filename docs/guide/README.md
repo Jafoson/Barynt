@@ -35,16 +35,14 @@ Plain Markdown. It reads the same here on GitHub as on the site.
 
 ## Images
 
-Put them in `assets/` and link them relatively:
-`![Workspace overview](../assets/overview.webp)`. Variants are picked by file
-name, and every one is optional:
+Images live in `assets/<language>/`: `assets/en/` for the English pages,
+`assets/de/` for the German ones. A page links the folder of its own language,
+relatively: `![Workspace overview](../assets/en/overview.webp)` in English,
+`![Workspace-Übersicht](../../assets/de/overview.webp)` in German (a German page
+that has no picture of its own may link the English one).
 
-| File | Used for |
-| --- | --- |
-| `overview.webp` | always (the fallback) |
-| `overview.de.webp` | German pages |
-| `overview.light.webp` | light mode |
-| `overview.de.light.webp` | German pages in light mode |
+An optional `overview.light.webp` next to `overview.webp` is shown in light
+mode; `overview.webp` is the dark one and the fallback.
 
 The screenshots are recorded from a demo workspace, in all four variants at
 once: see `scripts/docs-shots/README.md`. Re-record them when the interface
@@ -54,7 +52,7 @@ changes instead of editing them by hand.
 
 The German page sits at the same path under `de/`:
 `de/getting-started/install.md`. Links and images stay relative, so the same
-`../assets/…` becomes `../../assets/…`. A page without a German version shows
+`../assets/en/…` becomes `../../assets/de/…`. A page without a German version shows
 the English one with a note, so a missing translation never blocks a PR.
 
 ## A new group

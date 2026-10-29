@@ -7,7 +7,7 @@ sidebar:
 
 A **project** is a bucket of related work: a product, a team's backlog, a client, a campaign. It has its own issues, its own board and its own dashboard, and it can have its own circle of people.
 
-![The projects of a workspace](../assets/projects-overview.webp)
+![The projects of a workspace](../assets/en/projects-overview.webp)
 
 ## The project list
 

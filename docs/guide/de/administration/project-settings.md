@@ -7,7 +7,7 @@ sidebar:
 
 Öffne ein Projekt und klicke auf **Einstellungen** (oder auf den Tab _Projekt_ oben auf jeder Einstellungsseite). Das Menü links hat sieben Einträge. Die meisten brauchen die Rolle **Project Admin**, siehe [Rollen und Berechtigungen](roles.md).
 
-![Die allgemeinen Projekteinstellungen](../../assets/project-settings.webp)
+![Die allgemeinen Projekteinstellungen](../../assets/de/project-settings.webp)
 
 ## Allgemein
 
@@ -22,7 +22,7 @@ Ganz unten löscht die **Gefahrenzone** das Projekt samt allen Aufgaben endgült
 
 Alle, die im Projekt sind, mit ihrer **Rolle** und ihrem Status.
 
-![Die Mitglieder eines Projekts](../../assets/project-members.webp)
+![Die Mitglieder eines Projekts](../../assets/de/project-members.webp)
 
 - **Mitglied hinzufügen** öffnet einen Dialog mit zwei Tabs: **Aus dem Workspace** (bestehende Mitglieder wählen, mit Suchfeld) und **Per E-Mail** (jemand Neues einladen, siehe [Mitglieder und Einladungen](members.md)).
 - Die **Rolle** einer Person änderst du mit dem Dropdown in ihrer Zeile. Eine Rolle mit dem Hinweis _aus dem Workspace geerbt_ ist der Startwert aus der Workspace-Rolle. Eine mit _über Team_ kommt von einem [Team](teams.md). Lege hier eine Rolle fest, um sie für diese Person zu überschreiben.

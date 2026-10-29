@@ -22,7 +22,7 @@ Drücke **`⌘K`** (`Strg+K`) irgendwo und tippe. Ein Feld findet:
 
 Bewege dich mit den Pfeiltasten, öffne mit `Enter`, schließe mit `Esc`.
 
-![Die Befehlspalette](../../assets/palette.webp)
+![Die Befehlspalette](../../assets/de/palette.webp)
 
 Die Suche deckt Titel und Beschreibungen ab und findet nur, was du sehen darfst.
 
@@ -98,6 +98,6 @@ Mit geöffneter Aufgabe oder wenn du in einer Liste darüber fährst:
 
 Kollidiert eine Taste mit einem anderen Programm oder gefällt dir eine andere besser, ändere sie: Öffne _Persönliche Einstellungen → Shortcuts_, klicke eine Tastenkombination an und drücke die neue Kombination. `Esc` bricht ab. Barynt warnt dich, wenn Tasten schon belegt sind. Bei `G`-Folgen lässt sich nur die zweite Taste ändern. Änderungen werden in deinem Konto gespeichert und folgen dir auf jedes Gerät.
 
-![Tastenkombinationen in den Einstellungen](../../assets/shortcuts-settings.webp)
+![Tastenkombinationen in den Einstellungen](../../assets/de/shortcuts-settings.webp)
 
 Dieselbe Seite hat den Schalter **Vor dem Löschen nachfragen**. Ist er an, fragt Barynt vor dem Löschen nach. Ist er aus, geschieht es sofort, bis auf ein paar schwerwiegende Aktionen, die immer nachfragen.

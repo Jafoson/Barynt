@@ -15,7 +15,7 @@ Dieser Rundgang führt dich von der Anmeldung zu einer ersten Aufgabe und einem 
 - **Mit dem Firmen-Login fortfahren.** Hat deine Firma Single Sign-on (Google, Microsoft, Okta, Keycloak und andere), nutze diese Schaltfläche, wie überall sonst auch.
 - **Ein Magic Link per E-Mail.** Du gibst deine Adresse ein, und Barynt schickt dir einen Link oder einen kurzen Code.
 
-![Die Anmeldeseite](../../assets/login.webp)
+![Die Anmeldeseite](../../assets/de/login.webp)
 
 > [!NOTE]
 > Das allererste Konto auf einem neuen Server wird zur **Plattform-Administration**, also zur Person, die sich um den Server selbst kümmert. Alle danach sind normale Nutzerinnen und Nutzer.
@@ -30,7 +30,7 @@ Ein **Workspace** ist das Zuhause deines Teams: seine Projekte, Aufgaben und Men
 - Deine E-Mail-Domain ist von einem Workspace **beansprucht** (zum Beispiel alle mit `@nimbus.io`), und du trittst automatisch bei.
 - Du **erstellst einen eigenen**: Gib ihm einen Namen und eine Farbe. Die kurze Adresse (der _Slug_) wird aus dem Namen gebildet und ist Teil jedes Links.
 
-![Einen Workspace erstellen](../../assets/create-workspace.webp)
+![Einen Workspace erstellen](../../assets/de/create-workspace.webp)
 
 Hat deine Administration das Erstellen von Workspaces abgeschaltet, siehst du diesen Schritt nicht: Du landest gleich im Standard-Workspace.
 
@@ -38,7 +38,7 @@ Hat deine Administration das Erstellen von Workspaces abgeschaltet, siehst du di
 
 Ein **Projekt** bündelt zusammengehörige Arbeit, zum Beispiel „Web App“ oder „Mobile“. Drücke irgendwo `N` oder klicke in der Seitenleiste auf das **+** neben _Projekte_.
 
-![Der Projekt-Dialog](../../assets/project-create.webp)
+![Der Projekt-Dialog](../../assets/de/project-create.webp)
 
 - **Name und Beschreibung** erscheinen in der Seitenleiste und auf der Projektübersicht.
 - Der **Bezeichner** ist ein kurzes Aufgaben-Kürzel aus zwei bis vier Buchstaben. Er wird Teil jeder Aufgabennummer: Mit `WEB` heißen deine Aufgaben `WEB-1`, `WEB-2` und so weiter.
@@ -48,7 +48,7 @@ Ein **Projekt** bündelt zusammengehörige Arbeit, zum Beispiel „Web App“ od
 
 Drücke `C` (oder klicke oben in der Seitenleiste auf **Neue Aufgabe**). Gib ihr einen Titel und ergänze so viel oder so wenig, wie du möchtest: eine Beschreibung, einen Typ, einen Status, eine Priorität, jemanden, der es erledigt, Labels. Mit `⌘↵` (`Strg+Enter` unter Windows und Linux) legst du sie an.
 
-![Der Dialog für eine neue Aufgabe](../../assets/new-issue.webp)
+![Der Dialog für eine neue Aufgabe](../../assets/de/new-issue.webp)
 
 Die Aufgabe liegt jetzt in deinem Projekt, auf dem **Board** und in der **Liste**. Ihre Nummer (zum Beispiel `WEB-1`) nutzt du, um sie im Chat, in Commits und in anderen Aufgaben zu nennen.
 
@@ -56,13 +56,13 @@ Die Aufgabe liegt jetzt in deinem Projekt, auf dem **Board** und in der **Liste*
 
 Öffne das **Board** des Projekts. Jede Spalte ist ein Status. Ziehe eine Karte von _Offen_ nach _In Bearbeitung_, und der Status ändert sich sofort für alle. Mit einem Klick auf die Karte öffnest du die Details: Schreibe einen Kommentar, weise sie jemandem zu, setze ein Fälligkeitsdatum, hänge eine Datei an.
 
-![Ein Projekt-Board](../../assets/board.webp)
+![Ein Projekt-Board](../../assets/de/board.webp)
 
 ## 6. Lade dein Team ein
 
 Öffne **Mitglieder** in der Seitenleiste und klicke auf **Mitglied einladen**. Gib eine oder mehrere E-Mail-Adressen ein, wähle eine Rolle (_Member_ ist die übliche) und sende ab.
 
-![Der Einladungs-Dialog](../../assets/invite.webp)
+![Der Einladungs-Dialog](../../assets/de/invite.webp)
 
 > [!TIP]
 > Auf deinem Server ist keine E-Mail eingerichtet? Dann zeigt dir Barynt einen **Einladungslink** zum Kopieren und Selbstversenden. Unter _Workspace Einstellungen → Einladungen_ kannst du außerdem einen **Link für alle** erzeugen, praktisch für den Team-Chat.

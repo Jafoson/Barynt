@@ -17,7 +17,7 @@ Ein guter Ort, um den Tag zu beginnen: Was gehört mir, was ist in Bearbeitung, 
 
 Der **Posteingang** sammelt Benachrichtigungen über Dinge, die dich betreffen. Die **Glocke** neben deinem Namen unten in der Seitenleiste öffnet ihn und zeigt, wie viele Benachrichtigungen ungelesen sind.
 
-![Der Posteingang](../../assets/inbox.webp)
+![Der Posteingang](../../assets/de/inbox.webp)
 
 Benachrichtigungen kommen, wenn:
 

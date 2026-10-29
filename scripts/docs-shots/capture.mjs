@@ -2,8 +2,8 @@
 // data (workspace "Nimbus", see demo.sql). One image per shot, language and
 // theme, written as WebP next to the pages:
 //
-//   name.webp        English, dark      name.de.webp        German, dark
-//   name.light.webp  English, light     name.de.light.webp  German, light
+//   en/name.webp        English, dark      de/name.webp        German, dark
+//   en/name.light.webp  English, light     de/name.light.webp  German, light
 //
 //   node scripts/docs-shots/capture.mjs                  # everything
 //   node scripts/docs-shots/capture.mjs board inbox      # only these shots
@@ -153,8 +153,12 @@ async function newContext(
 }
 
 async function write(png, name, lang, theme, themed) {
-  const suffix = `${lang === "de" ? ".de" : ""}${theme === "light" && themed ? ".light" : ""}`;
-  const file = join(OUT, `${name}${suffix}.webp`);
+  const dir = join(OUT, lang === "de" ? "de" : "en");
+  mkdirSync(dir, { recursive: true });
+  const file = join(
+    dir,
+    `${name}${theme === "light" && themed ? ".light" : ""}.webp`,
+  );
   await sharp(png).webp({ quality: 80, effort: 5 }).toFile(file);
   return file;
 }

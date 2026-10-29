@@ -7,7 +7,7 @@ sidebar:
 
 People should sign in the way they already do everywhere else. Barynt supports several ways side by side, and **none of them is a paid extra**. This page is for whoever administers the server: it explains the options and how to switch them on.
 
-![The sign-in screen with a company login](../assets/login-sso.webp)
+![The sign-in screen with a company login](../assets/en/login-sso.webp)
 
 ## The options at a glance
 

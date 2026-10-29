@@ -7,7 +7,7 @@ sidebar:
 
 Echte Arbeit ist selten eine saubere einzelne Aufgabe. Diese drei Werkzeuge auf der Aufgabenseite halten die Zusammenhänge sichtbar.
 
-![Unteraufgaben und Beziehungen an einer Aufgabe](../../assets/relations.webp)
+![Unteraufgaben und Beziehungen an einer Aufgabe](../../assets/de/relations.webp)
 
 ## Unteraufgaben
 

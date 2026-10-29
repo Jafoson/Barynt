@@ -7,7 +7,7 @@ sidebar:
 
 Barynt answers "who may do this?" with **roles**. A role is a named bundle of permissions, such as _Member_ or _Admin_. You give people roles, and the roles decide the rest. This page explains the ideas first, then lists exactly what each ready-made role can do.
 
-![The roles of a workspace](../assets/roles.webp)
+![The roles of a workspace](../assets/en/roles.webp)
 
 ## The idea in one picture
 
@@ -123,7 +123,7 @@ The ready-made roles cover most teams. When they do not fit, make your own. Typi
 3. In the editor, tick the permissions the role should have. A click on a box allows or removes a permission, and a search box filters the long list. The **rank** field sets where the role stands in the hierarchy.
 4. Click **Save**. Nothing takes effect until you do, and Barynt warns you if you leave with unsaved changes.
 
-![Editing a role](../assets/role-editor.webp)
+![Editing a role](../assets/en/role-editor.webp)
 
 A few rules keep this safe:
 

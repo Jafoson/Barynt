@@ -9,7 +9,7 @@ Alles auf dieser Seite gilt **nur für dich**. Es wird in deinem Konto gespeiche
 
 Zum Öffnen klicke unten in der Seitenleiste auf **deinen Namen** und wähle **Einstellungen**. Der Tab _Persönlich_ oben ist dieser Bereich. Die anderen beiden Tabs, _Projekt_ und _Workspace_, gehören zu den [Projekt-](../administration/project-settings.md) und [Workspace-Einstellungen](../administration/workspace.md).
 
-![Persönliche Einstellungen](../../assets/account-general.webp)
+![Persönliche Einstellungen](../../assets/de/account-general.webp)
 
 ## Allgemein
 
@@ -19,7 +19,7 @@ Zum Öffnen klicke unten in der Seitenleiste auf **deinen Namen** und wähle **E
 
 ## Aussehen
 
-![Einstellungen zum Aussehen](../../assets/account-appearance.webp)
+![Einstellungen zum Aussehen](../../assets/de/account-appearance.webp)
 
 - **Design:** dunkel, hell oder _System_, das deinem Rechner folgt.
 - **Sprache:** Deutsch oder Englisch. Sie gilt für die ganze Oberfläche.
@@ -31,7 +31,7 @@ Zum Öffnen klicke unten in der Seitenleiste auf **deinen Namen** und wähle **E
 
 Wohin Klicks führen, wo du startest und wie sich Aufgaben öffnen.
 
-![Navigationseinstellungen](../../assets/account-navigation.webp)
+![Navigationseinstellungen](../../assets/de/account-navigation.webp)
 
 | Einstellung | Was sie bestimmt |
 | --- | --- |
@@ -50,11 +50,11 @@ Hältst du beim Klicken `Strg` (oder `⌘`) gedrückt oder nutzt die mittlere Ma
 
 Wähle für jedes Ereignis, ob du es **in der App**, **per E-Mail**, beides oder keines von beiden willst. Die Einzelheiten stehen unter [Meine Aufgaben, Posteingang und Benachrichtigungen](my-work.md).
 
-![Benachrichtigungseinstellungen](../../assets/account-notifications.webp)
+![Benachrichtigungseinstellungen](../../assets/de/account-notifications.webp)
 
 ## Sicherheit
 
-![Sicherheitseinstellungen](../../assets/account-security.webp)
+![Sicherheitseinstellungen](../../assets/de/account-security.webp)
 
 - **Passkeys** lassen dich mit Fingerabdruck, Gesicht oder einer Geräte-PIN anmelden, ganz ohne Passwort. Klicke auf jedem Gerät, das du nutzt, auf **Passkey hinzufügen**. Ein Passkey, der über deinen Passwortmanager oder dein Cloud-Konto synchronisiert wird (iCloud-Schlüsselbund, Google Passwortmanager, 1Password), ist als _synchronisiert_ markiert.
 - Die **E-Mail** ist dein Anmeldename. Eine bestätigte Adresse schaltet außerdem Anmelde-Links, Einladungen und E-Mail-Benachrichtigungen frei und ist dein **Weg zurück hinein**, falls du je deinen Passkey verlierst. Füge eine hinzu.

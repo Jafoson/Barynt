@@ -7,7 +7,7 @@ sidebar:
 
 Ein **Projekt** ist ein Behälter für zusammengehörige Arbeit: ein Produkt, der Backlog eines Teams, ein Kunde, eine Kampagne. Es hat eigene Aufgaben, ein eigenes Board und ein eigenes Dashboard und kann einen eigenen Kreis von Menschen haben.
 
-![Die Projekte eines Workspace](../../assets/projects-overview.webp)
+![Die Projekte eines Workspace](../../assets/de/projects-overview.webp)
 
 ## Die Projektliste
 

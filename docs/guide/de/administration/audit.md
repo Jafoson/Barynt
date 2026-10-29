@@ -7,7 +7,7 @@ sidebar:
 
 Wenn etwas schiefgeht oder jemand einfach fragt „Wer hat das geändert?“, hat das Audit-Log die Antwort. Es zeichnet auf, **wer** **was** **wann** getan hat und, wo es passt, **warum**. Einträge lassen sich innerhalb von Barynt nicht bearbeiten.
 
-![Das Aktivitätsprotokoll eines Workspace](../../assets/audit.webp)
+![Das Aktivitätsprotokoll eines Workspace](../../assets/de/audit.webp)
 
 ## Wo du es findest
 

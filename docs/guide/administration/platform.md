@@ -7,7 +7,7 @@ sidebar:
 
 One Barynt server can host many workspaces. The **platform administration** looks after the server as a whole: who has an account, which workspaces exist, and a few rules that apply to all of them. It is meant for the person or small team who runs the server, and it is separate from the workspace settings that team leads use.
 
-![The platform overview](../assets/admin-overview.webp)
+![The platform overview](../assets/en/admin-overview.webp)
 
 ## Who is a platform administrator?
 

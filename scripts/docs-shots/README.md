@@ -1,9 +1,8 @@
 # Screenshots for the user guide
 
-`docs/guide/assets/*.webp` are recorded, not drawn by hand, so they can be
-re-recorded when the interface changes. Every shot exists four times: English
-and German, dark and light (`name.webp`, `name.de.webp`, `name.light.webp`,
-`name.de.light.webp`).
+`docs/guide/assets/en/*.webp` and `assets/de/*.webp` are recorded, not drawn by
+hand, so they can be re-recorded when the interface changes. Every shot exists
+in both languages, dark (`name.webp`) and light (`name.light.webp`).
 
 ## What you need
 

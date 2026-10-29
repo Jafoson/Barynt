@@ -11,11 +11,11 @@ Manchmal gehört die Person, die eine Aufgabe sehen muss, nicht zu deinem Worksp
 
 Öffne die Aufgabe, klicke auf das **…**-Menü und wähle **Öffentlichen Link teilen**, dann **Link erstellen**. Barynt gibt dir eine Adresse, die jeder im Browser öffnen kann, **ohne sich anzumelden**.
 
-![Der Teilen-Dialog einer Aufgabe](../../assets/share-modal.webp)
+![Der Teilen-Dialog einer Aufgabe](../../assets/de/share-modal.webp)
 
 Die Person sieht eine aufgeräumte, **schreibgeschützte** Seite mit Titel, Beschreibung, Status, Priorität, Typ, Zuständigkeit, Labels und den Kommentaren der Aufgabe. Sie sieht **keine** Anhänge, keine anderen Aufgaben und nichts sonst von deinem Workspace und kann weder kommentieren noch etwas ändern. Ein Hinweis unten lädt sie ein mitzumachen, falls sie teilnehmen möchte.
 
-![Was die Empfängerin sieht](../../assets/share-public.webp)
+![Was die Empfängerin sieht](../../assets/de/share-public.webp)
 
 - Der Link funktioniert **30 Tage**, dann endet er von selbst. Die Seite zeigt das Datum.
 - Du kannst das Teilen **jederzeit ausschalten**. Der Link ist ab diesem Moment tot. Ein neuer Link bekommt eine neue Adresse, und die alte bleibt tot.

@@ -15,7 +15,7 @@ Open the address your administrator gave you. Which buttons you see depends on h
 - **Continue with your company login.** If your company has single sign-on (Google, Microsoft, Okta, Keycloak and others), use that button, as you do everywhere else.
 - **A magic link by email.** You type your address, and Barynt sends a link or a short code.
 
-![The sign-in screen](../assets/login.webp)
+![The sign-in screen](../assets/en/login.webp)
 
 > [!NOTE]
 > The very first account on a new server becomes the **platform administrator**, the person who looks after the server itself. Everyone after that is a normal user.
@@ -30,7 +30,7 @@ A **workspace** is the home of your team: its projects, issues and people. You g
 - Your email domain is **claimed** by a workspace (for example everyone with `@nimbus.io`), and you join automatically.
 - You **create your own**: give it a name and a color. The short address (the _slug_) is made from the name and becomes part of every link.
 
-![Creating a workspace](../assets/create-workspace.webp)
+![Creating a workspace](../assets/en/create-workspace.webp)
 
 If your administrator has switched off workspace creation, you do not see this step: you are taken straight into the default workspace.
 
@@ -38,7 +38,7 @@ If your administrator has switched off workspace creation, you do not see this s
 
 A **project** groups related work, for instance "Web App" or "Mobile". Press `N` anywhere, or click **+** next to _Projects_ in the sidebar.
 
-![The project dialog](../assets/project-create.webp)
+![The project dialog](../assets/en/project-create.webp)
 
 - **Name and description** are shown in the sidebar and on the project overview.
 - **Identifier** is a short prefix of two to four letters. It becomes part of every issue number: with `WEB`, your issues are called `WEB-1`, `WEB-2` and so on.
@@ -48,7 +48,7 @@ A **project** groups related work, for instance "Web App" or "Mobile". Press `N`
 
 Press `C` (or click **New issue** at the top of the sidebar). Give it a title, and add as much or as little as you like: a description, a type, a status, a priority, someone to do it, labels. Press `⌘↵` (`Ctrl+Enter` on Windows and Linux) to create it.
 
-![The new-issue dialog](../assets/new-issue.webp)
+![The new-issue dialog](../assets/en/new-issue.webp)
 
 The issue is now in your project, on the **Board** and in the **List**. Its number (like `WEB-1`) is what you use to refer to it in chat, in commits and in other issues.
 
@@ -56,13 +56,13 @@ The issue is now in your project, on the **Board** and in the **List**. Its numb
 
 Open the project's **Board**. Every column is a status. Drag a card from _Todo_ to _In Progress_ and the status changes for everybody, right away. Click a card to open its details: write a comment, assign it, add a due date, attach a file.
 
-![A project board](../assets/board.webp)
+![A project board](../assets/en/board.webp)
 
 ## 6. Invite your team
 
 Open **Members** in the sidebar and click **Invite member**. Enter one or more email addresses, choose a role (_Member_ is the usual one) and send.
 
-![The invite dialog](../assets/invite.webp)
+![The invite dialog](../assets/en/invite.webp)
 
 > [!TIP]
 > No email set up on your server? Barynt then shows you an **invitation link** to copy and send yourself. You can also create a **link for everyone** under _Workspace settings → Invitations_, which is handy for a team chat.

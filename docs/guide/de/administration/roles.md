@@ -7,7 +7,7 @@ sidebar:
 
 Barynt beantwortet „Wer darf das?“ mit **Rollen**. Eine Rolle ist ein benanntes Bündel von Berechtigungen, etwa _Member_ oder _Admin_. Du gibst Menschen Rollen, und die Rollen entscheiden den Rest. Diese Seite erklärt zuerst die Ideen und listet dann genau auf, was jede fertige Rolle kann.
 
-![Die Rollen eines Workspace](../../assets/roles.webp)
+![Die Rollen eines Workspace](../../assets/de/roles.webp)
 
 ## Die Idee in einem Bild
 
@@ -123,7 +123,7 @@ Die fertigen Rollen decken die meisten Teams ab. Passen sie nicht, mach eigene. 
 3. Hake im Editor die Berechtigungen an, die die Rolle haben soll. Ein Klick auf ein Kästchen erlaubt oder entzieht eine Berechtigung, und ein Suchfeld filtert die lange Liste. Das Feld **Rang** legt fest, wo die Rolle in der Hierarchie steht.
 4. Klicke auf **Speichern**. Bis dahin wirkt nichts, und Barynt warnt dich, wenn du mit ungespeicherten Änderungen gehst.
 
-![Eine Rolle bearbeiten](../../assets/role-editor.webp)
+![Eine Rolle bearbeiten](../../assets/de/role-editor.webp)
 
 Ein paar Regeln halten das sicher:
 

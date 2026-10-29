@@ -7,7 +7,7 @@ sidebar:
 
 An **issue** is one piece of work: a task, a bug, an idea. Everything else in Barynt, from boards to dashboards, is just a way of looking at issues. This page is about the issue itself.
 
-![An issue with its properties, sub-issues and discussion](../assets/issue-detail.webp)
+![An issue with its properties, sub-issues and discussion](../assets/en/issue-detail.webp)
 
 ## Creating an issue
 
@@ -20,7 +20,7 @@ There are several ways, all leading to the same small dialog:
 
 Only the **title** is required. Everything else can be filled in now or later. `⌘↵` / `Ctrl+Enter` creates the issue.
 
-![The new-issue dialog](../assets/new-issue.webp)
+![The new-issue dialog](../assets/en/new-issue.webp)
 
 > [!TIP]
 > Issues also arrive from the outside: through the [REST API](../integrations/api.md) or from an AI assistant through [MCP](../integrations/mcp.md). The issue then shows where it came from ("Created via MCP").

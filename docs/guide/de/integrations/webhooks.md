@@ -7,7 +7,7 @@ sidebar:
 
 Bei einem **Webhook** ruft Barynt **dich** an. Immer wenn im Workspace etwas passiert, das dich interessiert, schickt es eine Nachricht an eine Adresse, die du wählst. So postest du neue Bugs in einen Chat-Kanal, startest einen Build, wenn eine Aufgabe auf _In Überprüfung_ wechselt, oder hältst ein anderes System aktuell, ohne immer wieder nachzusehen.
 
-![Die Webhooks eines Workspace](../../assets/webhooks.webp)
+![Die Webhooks eines Workspace](../../assets/de/webhooks.webp)
 
 ## Beispiele, was Teams damit machen
 
@@ -22,7 +22,7 @@ Manches davon braucht einen Entwickler oder ein Werkzeug wie Zapier, Make oder n
 
 Öffne **Workspace Einstellungen → Webhooks** (du brauchst die Berechtigung, Webhooks zu verwalten, die Owner, Admins und Manager haben) und klicke auf **Neuer Webhook**.
 
-![Einen Webhook anlegen](../../assets/webhook-dialog.webp)
+![Einen Webhook anlegen](../../assets/de/webhook-dialog.webp)
 
 1. **Endpunkt-URL:** die Adresse, die die Nachrichten empfangen soll, zum Beispiel `https://example.com/webhooks/barynt`.
 2. **Ereignisse:** wähle, wovon du hören willst.

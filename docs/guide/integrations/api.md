@@ -7,7 +7,7 @@ sidebar:
 
 The **REST API** lets other software read and change what is in Barynt: create an issue when a customer submits a form, pull numbers into a report, keep a spreadsheet in sync. It is the same data and the same rules as in the app. If you are not a developer, this page tells you what to ask them for, and how to hand them access safely.
 
-![API keys in your personal settings](../assets/api-keys.webp)
+![API keys in your personal settings](../assets/en/api-keys.webp)
 
 ## What it is good for
 
@@ -27,7 +27,7 @@ An **API key** is a personal access token. It acts as **you**, so it can never d
 3. Click **Create key**. Barynt shows the key **once**. Copy it now, because it cannot be shown again.
 4. Give it to whoever needs it, through a safe channel, never in a chat or an email.
 
-![The new key is shown once](../assets/api-key-created.webp)
+![The new key is shown once](../assets/en/api-key-created.webp)
 
 The list shows each key's prefix, when it was created, when it was **last used** and whether it is active. **Revoke** a key at any moment: every tool that uses it loses access immediately, and this cannot be undone.
 

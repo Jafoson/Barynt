@@ -7,7 +7,7 @@ sidebar:
 
 Eine **View** ist eine gespeicherte Art, Aufgaben anzusehen. Sie merkt sich Filter, Gruppierung, Sortierung und Layout, sodass „alle offenen Bugs, nach Zuständigkeit gruppiert“ einen Klick entfernt ist statt fünf.
 
-![Die Views eines Workspace](../../assets/views-gallery.webp)
+![Die Views eines Workspace](../../assets/de/views-gallery.webp)
 
 ## Ein paar Views, die sich lohnen
 
@@ -32,7 +32,7 @@ Es gibt zwei Wege:
 1. **Erst einrichten, was du willst.** Filtere, gruppiere und sortiere das Board oder die Liste nach Belieben. Eine kleine Markierung **Ungespeichert** erscheint. Klicke auf **Als neue View** und gib einen Namen ein. Klicke stattdessen auf **Verwerfen**, um die Änderungen wegzuwerfen.
 2. **Beginne mit dem Plus** neben den Tabs, wähle **Neue View** und fülle das Formular aus.
 
-![Der Dialog für eine neue View](../../assets/view-dialog.webp)
+![Der Dialog für eine neue View](../../assets/de/view-dialog.webp)
 
 | Feld | Was es bewirkt |
 | --- | --- |

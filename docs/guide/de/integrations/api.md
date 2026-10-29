@@ -7,7 +7,7 @@ sidebar:
 
 Die **REST-API** lässt andere Software lesen und ändern, was in Barynt steckt: eine Aufgabe anlegen, wenn ein Kunde ein Formular abschickt, Zahlen in einen Bericht ziehen, eine Tabelle synchron halten. Es sind dieselben Daten und dieselben Regeln wie in der App. Bist du kein Entwickler, sagt dir diese Seite, was du bei ihnen anfragen sollst und wie du Zugang sicher weitergibst.
 
-![API-Schlüssel in deinen persönlichen Einstellungen](../../assets/api-keys.webp)
+![API-Schlüssel in deinen persönlichen Einstellungen](../../assets/de/api-keys.webp)
 
 ## Wofür sie gut ist
 
@@ -27,7 +27,7 @@ Ein **API-Schlüssel** ist ein persönliches Zugriffstoken. Er handelt als **du*
 3. Klicke auf **Schlüssel erstellen**. Barynt zeigt den Schlüssel **ein einziges Mal**. Kopiere ihn jetzt, denn er lässt sich nicht erneut anzeigen.
 4. Gib ihn über einen sicheren Weg an die weiter, die ihn brauchen, nie in einem Chat oder einer E-Mail.
 
-![Der neue Schlüssel wird nur einmal gezeigt](../../assets/api-key-created.webp)
+![Der neue Schlüssel wird nur einmal gezeigt](../../assets/de/api-key-created.webp)
 
 Die Liste zeigt für jeden Schlüssel sein Präfix, wann er erstellt und wann er **zuletzt benutzt** wurde und ob er aktiv ist. **Widerrufe** einen Schlüssel jederzeit: Jedes Werkzeug, das ihn nutzt, verliert sofort den Zugriff, und das lässt sich nicht rückgängig machen.
 
