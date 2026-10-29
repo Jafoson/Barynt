@@ -98,3 +98,17 @@ describe("docs/guide", () => {
     });
   }
 });
+
+describe("docs/guide/*/api-reference", () => {
+  test("is up to date with the API's reference data (bun run docs:api)", async () => {
+    const { generate } = await import("../../../scripts/docs-api/generate");
+    const stale = (await generate())
+      .filter(
+        (file) =>
+          !existsSync(join(ROOT, file.path)) ||
+          readFileSync(join(ROOT, file.path), "utf8") !== file.text,
+      )
+      .map((file) => file.path);
+    expect(stale, "run `bun run docs:api` and commit the result").toEqual([]);
+  }, 30000);
+});

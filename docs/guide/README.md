@@ -64,6 +64,16 @@ identical; images point at their own language folder (`../../assets/en/…` in
 English, `../../assets/de/…` in German). A page without a German version shows
 the English one with a note, so a missing translation never blocks a PR.
 
+## The API reference is generated
+
+`en|de/api-reference/` is written by `bun run docs:api` from the same data as
+the reference in the app (`features/account/components/AccountApiKeys/*DocsData.ts`,
+`AccountMcp/mcpDocsData.ts`) and from the real input schemas of the MCP tools.
+Don't edit those pages. Change the data when a route, tool or event changes,
+run the script and commit the result; `bun run test` fails while they are out
+of date, and also when an MCP tool exists without a description. The guides
+around them (`integrations/api.md`, `mcp.md`, `webhooks.md`) are hand-written.
+
 ## A new group
 
 Add a folder and its name in both languages to `_groups.json`; the order there

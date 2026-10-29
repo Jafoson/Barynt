@@ -1,6 +1,6 @@
 ---
 title: "Webhooks"
-description: "Let Barynt tell other systems when something happens: a signed message to an address of your choice, the moment an issue or comment changes."
+description: "Let Barynt tell other systems when something happens: a signed message to an address of your choice, the moment an issue, comment or shared view changes."
 sidebar:
   order: 3
 ---
@@ -24,27 +24,37 @@ Open **Workspace settings → Webhooks** (you need the permission to manage webh
 
 ![Creating a webhook](../../assets/en/webhook-dialog.webp)
 
-1. **Endpoint URL:** the address that should receive the messages, for example `https://example.com/webhooks/barynt`.
-2. **Events:** choose what you want to hear about.
+1. **Endpoint URL:** the address that should receive the messages, for example `https://example.com/webhooks/barynt`. It must start with `https://` or `http://`. Use HTTPS, because the messages carry the content of your issues.
+2. **Events:** choose what you want to hear about. At least one.
 3. Click **Create webhook**. Barynt shows the **secret** once: copy it now. The receiver needs it to check that a message really came from your Barynt.
 
-The list shows each webhook with its **last delivery** (the HTTP status, or the error) and a switch to turn it **on or off**. A webhook that has never been triggered says so. Deleting one stops it immediately.
+The list shows each webhook with the events it listens to, its **last delivery** (the HTTP status, or the error) and a switch to turn it **on or off**. A webhook that has never delivered anything says so ("Never delivered"). **Deleting** one stops it immediately.
+
+A webhook's address and events cannot be edited afterwards. To change them, create a new webhook and delete the old one. The same goes for a **new secret**, for example after it leaked: delete the webhook and create it again.
+
+Webhooks belong to **one workspace** and only report events of that workspace. A project's issues, comments and shared views all count, whoever changed them and wherever: in the app, through the [REST API](api.md) or by an AI assistant through [MCP](mcp.md).
 
 ## Events
 
 | Event | When |
 | --- | --- |
-| `issue.created` | An issue is created, in the app, through the API or by an AI assistant. |
+| `issue.created` | An issue is created. |
 | `issue.updated` | An issue changes. The message carries the **whole current issue**, not just the difference. |
-| `issue.deleted` | An issue is deleted. |
-| `comment.created` | A comment is written. |
+| `issue.deleted` | An issue is deleted. The message is a short snapshot (id, reference, project, title). |
+| `comment.created` | A comment is written (also a reply). Editing or deleting a comment sends nothing. |
 | `view.created`, `view.updated`, `view.deleted` | A **shared** view changes. Private views never trigger anything. |
 
-Webhooks belong to one workspace and only report events of that workspace.
+Every event with a complete example message is on the page [Webhook events](../api-reference/webhook-events.md).
 
 ## What a message looks like
 
-Barynt sends an HTTP `POST` with a JSON body:
+Barynt sends an HTTP `POST` with these headers and a JSON body:
+
+| Header | Content |
+| --- | --- |
+| `Content-Type` | `application/json` |
+| `X-Barynt-Timestamp` | When the message was sent, in milliseconds since 1970. |
+| `X-Barynt-Signature` | The signature of the message, made with your secret. |
 
 ```json
 {
@@ -65,16 +75,17 @@ Barynt sends an HTTP `POST` with a JSON body:
 }
 ```
 
-`data` is the same issue (or comment, or view) shape as in the [REST API](api.md).
+`event` says what happened, `timestamp` when, and `data` carries the issue, comment or view in the same shape as in the [REST API](../api-reference/issues.md).
 
 ## Checking that a message is genuine
 
-Anybody who knows the receiving address could send fake messages to it. That is why every delivery is **signed**. Two headers come with it:
+Anybody who knows the receiving address could send fake messages to it. That is why every delivery is **signed**. The receiver computes the same signature and compares:
 
-- `X-Barynt-Timestamp`: when the message was sent.
-- `X-Barynt-Signature`: a signature of the message, made with your secret.
+```text
+signature = hex( HMAC-SHA256( secret, timestamp + "." + rawBody ) )
+```
 
-The receiver computes the same signature and compares. The recipe, for the developer:
+Use the **raw body exactly as received**, before any JSON parsing, and the `X-Barynt-Timestamp` header. The signature is hex-encoded, without a prefix. In Node.js:
 
 ```js
 import { createHmac, timingSafeEqual } from "node:crypto";
@@ -83,16 +94,71 @@ function isGenuine(secret, timestamp, rawBody, signature) {
   const expected = createHmac("sha256", secret)
     .update(`${timestamp}.${rawBody}`) // timestamp, a dot, the raw body
     .digest("hex");
-  return timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  const a = Buffer.from(expected);
+  const b = Buffer.from(signature);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 ```
 
-Also reject messages whose timestamp is older than a few minutes. That stops someone replaying an old message.
+In Python:
+
+```python
+import hmac, hashlib
+
+def is_genuine(secret: str, timestamp: str, raw_body: bytes, signature: str) -> bool:
+    expected = hmac.new(secret.encode(), f"{timestamp}.".encode() + raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)
+```
+
+Also reject messages whose timestamp is older than a few minutes (say five). That stops someone replaying an old message: because the timestamp is part of what is signed, they cannot simply change it.
+
+A complete little receiver, with Express:
+
+```js
+import express from "express";
+
+const app = express();
+app.post("/webhooks/barynt", express.raw({ type: "application/json" }), (req, res) => {
+  const timestamp = req.get("X-Barynt-Timestamp");
+  const signature = req.get("X-Barynt-Signature");
+  const fresh = Math.abs(Date.now() - Number(timestamp)) < 5 * 60 * 1000;
+  if (!fresh || !isGenuine(process.env.BARYNT_WEBHOOK_SECRET, timestamp, req.body.toString(), signature)) {
+    return res.sendStatus(401);
+  }
+  const { event, data } = JSON.parse(req.body);
+  console.log(event, data.ref ?? data.id);
+  res.sendStatus(204); // answer quickly, do the slow work afterwards
+});
+app.listen(3000);
+```
+
+## Delivery: what to expect
+
+- **One attempt only.** Barynt sends each message once, waits **ten seconds** for an answer and does **not retry**. Any answer counts as delivered, whatever its status; Barynt only records the status. If your receiver is down or too slow, it misses that message. Receivers should answer quickly with a `2xx` and do slow work afterwards.
+- **The last result is shown** in the webhook's list: the HTTP status of the last attempt, or the error (for example a timeout or a refused connection). Only the last attempt is kept, there is no delivery history.
+- **No order guarantee.** Two quick changes can arrive in either order. Use the time in the data (for an issue, `updated`) to tell which is newer, and treat `timestamp` as the time of sending.
+- **At most once, not exactly once.** A message is not sent twice, but one can be lost. For things that must not be missed, reconcile now and then through the [REST API](api.md) (for example once a night).
+- **Your server must be reachable** from the Barynt server. A receiver on your laptop is not, unless you use a tunnelling tool such as ngrok while testing. When Barynt runs inside your company network, so must the receiver, or be reachable from there.
+
+## Trying it out
+
+1. Create a temporary receiver address at a service such as webhook.site, or run the Express example above behind a tunnel.
+2. Create a webhook for that address with all events.
+3. Create or change an issue in Barynt. The message arrives within a second.
+4. Look at the **last delivery** in the list: `200` or `204` means it was received.
+
+## When nothing arrives
+
+| What you see | Likely cause |
+| --- | --- |
+| "Never delivered" | Nothing has happened yet that the webhook listens to, or it is turned off, or it belongs to another workspace. |
+| An error such as `fetch failed` or `The operation was aborted` | The receiver was not reachable or took longer than ten seconds. Check the address, the firewall and TLS certificates. |
+| A status of `4xx`/`5xx` | The receiver was reached but rejected the message. Look at its log: most often the signature check, because the body was changed before checking. |
+| Signatures never match | The body was parsed and re-serialised before checking, the wrong secret was used, or the timestamp was left out of the signed string. |
+
+More in [Troubleshooting](../administration/troubleshooting.md).
 
 ## Good to know
 
-- **One attempt only.** Barynt sends each message once, waits ten seconds for an answer, and does not retry. If your receiver is down, it misses that message. The status of the last delivery is shown in the list, so you can spot it. Receivers should answer quickly and do slow work afterwards.
-- **No order guarantee.** Two quick changes can arrive in either order. Use the `updated` time in the data to tell which is newer.
 - A message carries the content of the issue, such as its title and description. Treat the receiving address with care and use **HTTPS**.
-
-If a webhook does not seem to arrive, see [Troubleshooting](../administration/troubleshooting.md).
+- The secret is shown once and stored so Barynt can sign each message. Keep it in the receiver's configuration, not in code that is shared.

@@ -93,6 +93,11 @@ page is in `docs/guide/README.md`; in short:
   other), `{{version}}` for the release.
 - **A feature that changes what users see or do updates its page in the same
   PR.** `tests/unit/docs/` checks front matter, groups, links and images.
+- `docs/guide/{en,de}/api-reference/` is **generated** (`bun run docs:api`)
+  from the in-app API/MCP reference data and the MCP tool schemas. A changed
+  route, tool or webhook event updates the data in
+  `features/account/components/AccountApiKeys/` / `AccountMcp/` and the
+  generated pages; `tests/unit/docs` fails while they are stale.
 - `docs/rbac.md` and `docs/permissions-audit.md` are developer notes, not
   published.
 
