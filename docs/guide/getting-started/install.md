@@ -2,7 +2,7 @@
 title: "Install"
 description: "One command installs Barynt on a Linux server: it checks Docker, asks for your domain, generates every secret and starts the stack with HTTPS."
 sidebar:
-  order: 2
+  order: 4
   badge: New
 ---
 

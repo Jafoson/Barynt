@@ -2,7 +2,7 @@
 title: "The barynt command"
 description: "The installer puts itself on your server as barynt. It runs your upgrades, backups and checks."
 sidebar:
-  order: 3
+  order: 5
   badge: New
 ---
 

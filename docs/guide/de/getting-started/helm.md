@@ -2,7 +2,7 @@
 title: "Kubernetes (Helm)"
 description: "Dasselbe Image auf Kubernetes. Das Chart liegt als öffentliches OCI-Artefakt auf GHCR, ein Repository musst du nicht hinzufügen."
 sidebar:
-  order: 5
+  order: 7
 ---
 
 ## Schnellstart

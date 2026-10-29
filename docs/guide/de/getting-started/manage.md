@@ -2,7 +2,7 @@
 title: "Der barynt-Befehl"
 description: "Der Installer legt sich als barynt auf deinen Server. Er erledigt Upgrades, Backups und Prüfungen."
 sidebar:
-  order: 3
+  order: 5
   badge: Neu
 ---
 

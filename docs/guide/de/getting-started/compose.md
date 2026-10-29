@@ -2,7 +2,7 @@
 title: "Docker Compose (manuell)"
 description: "Barynt kommt als eine docker-compose.yml für lokale Entwicklung und Produktion, aufgeteilt in Compose-Profile. Die Images sind fertig gebaut und multi-arch auf ghcr.io/jafoson/barynt."
 sidebar:
-  order: 4
+  order: 6
 ---
 
 ## Voraussetzungen

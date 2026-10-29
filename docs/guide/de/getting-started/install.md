@@ -2,7 +2,7 @@
 title: "Installation"
 description: "Ein Befehl installiert Barynt auf einem Linux-Server: Er prüft Docker, fragt nach deiner Domain, erzeugt alle Secrets und startet den Stack mit HTTPS."
 sidebar:
-  order: 2
+  order: 4
   badge: Neu
 ---
 

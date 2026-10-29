@@ -2,7 +2,7 @@
 title: "Docker Compose (manual)"
 description: "Barynt ships as one docker-compose.yml for local development and production, split by Compose profiles. The images are prebuilt and multi-arch on ghcr.io/jafoson/barynt."
 sidebar:
-  order: 4
+  order: 6
 ---
 
 ## Requirements
