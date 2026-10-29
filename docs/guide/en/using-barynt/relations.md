@@ -7,7 +7,7 @@ sidebar:
 
 Real work is rarely one clean task. These three tools, all on the issue page, keep the connections visible.
 
-![Sub-issues and relationships on an issue](../assets/en/relations.webp)
+![Sub-issues and relationships on an issue](../../assets/en/relations.webp)
 
 ## Sub-issues
 

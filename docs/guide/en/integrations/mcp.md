@@ -7,7 +7,7 @@ sidebar:
 
 Barynt has a built-in **MCP server**. MCP, the _Model Context Protocol_, is the standard way for AI assistants to use other tools. Once connected, you can talk to your issue tracker in plain language, from inside the assistant you already use.
 
-![The MCP page in your personal settings](../assets/en/mcp-settings.webp)
+![The MCP page in your personal settings](../../assets/en/mcp-settings.webp)
 
 ## What it is good for
 

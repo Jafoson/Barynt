@@ -17,7 +17,7 @@ It is a good place to start the day: what is mine, what is in progress, what is 
 
 The **Inbox** collects notifications about things that concern you. The **bell** next to your name at the bottom of the sidebar opens it and shows how many notifications are unread.
 
-![The inbox](../assets/en/inbox.webp)
+![The inbox](../../assets/en/inbox.webp)
 
 Notifications come in when:
 

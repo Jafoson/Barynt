@@ -7,7 +7,7 @@ sidebar:
 
 When something goes wrong, or someone simply asks "who changed this?", the audit log has the answer. It records **who** did **what**, **when**, and, where it applies, **why**. Entries cannot be edited from within Barynt.
 
-![The activity log of a workspace](../assets/en/audit.webp)
+![The activity log of a workspace](../../assets/en/audit.webp)
 
 ## Where to find it
 

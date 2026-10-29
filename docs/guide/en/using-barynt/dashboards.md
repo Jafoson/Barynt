@@ -8,7 +8,7 @@ sidebar:
 
 A **dashboard** turns the issues of a project, or of the whole workspace, into a picture. It is made of **widgets**: small tiles with a number, a chart or a list. You decide which ones you want and where they sit.
 
-![The dashboard of a project](../assets/en/dashboard.webp)
+![The dashboard of a project](../../assets/en/dashboard.webp)
 
 ## Where to find it
 
@@ -67,13 +67,13 @@ When you are done, you choose how to save:
 | **Save as new view** | Keeps this dashboard, with its filter, as a [view](views.md) of its own, for example "Mobile team dashboard". |
 | **Cancel** | Goes back to the last saved state. |
 
-![The dashboard in edit mode](../assets/en/dashboard-edit.webp)
+![The dashboard in edit mode](../../assets/en/dashboard-edit.webp)
 
 ## Your own widgets
 
 Cannot find what you need? Build a **custom widget** from building blocks: numbers, progress bars, distributions, time series, matrices and issue lists, each with its own filter. Start from a template (_Sprint status_ is a popular one), name it, and tick **Share in the workspace** if everyone should find it in their gallery. Only you can change a widget you shared. Widgets already placed on dashboards stay when the custom one is deleted.
 
-![The widget gallery](../assets/en/widget-gallery.webp)
+![The widget gallery](../../assets/en/widget-gallery.webp)
 
 ## Good to know
 

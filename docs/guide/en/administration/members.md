@@ -7,7 +7,7 @@ sidebar:
 
 A **member** is a person with access to a workspace. This page covers the three ways of adding people, how to change or remove them, and how to bring in someone from outside for just one project.
 
-![The members of a workspace](../assets/en/members.webp)
+![The members of a workspace](../../assets/en/members.webp)
 
 ## The members list
 
@@ -19,7 +19,7 @@ Open **Members** in the sidebar. You see everyone in the workspace with their **
 
 Click **Invite member**, enter one or more addresses (separated by commas or line breaks), choose a **role** and send.
 
-![The invite dialog](../assets/en/invite.webp)
+![The invite dialog](../../assets/en/invite.webp)
 
 What happens next depends on the address:
 
@@ -37,7 +37,7 @@ New members are put into all **public projects** of the workspace automatically,
 
 Under _Workspace settings → Invitations_, create an **invite link**: choose the role and how long it is valid (never, or a number of days) and click **Generate link**. Anyone who opens it can sign in or create an account and joins with that role. It suits a team chat or an all-hands message. **Revoke** stops it at any moment.
 
-![Invitations and the invite link](../assets/en/invitations.webp)
+![Invitations and the invite link](../../assets/en/invitations.webp)
 
 Only one link per workspace is active at a time: generating a new one replaces the old. Use a limited role (_Member_ or _Viewer_) for a link that many people see.
 

@@ -21,11 +21,12 @@ function walk(dir: string): string[] {
 const pages = walk(ROOT).map((path) => {
   const rel = relative(ROOT, path);
   const de = rel.startsWith("de/");
+  expect(rel, "pages live in en/ or de/").toMatch(/^(en|de)\//);
   return {
     path,
     rel,
     de,
-    inLang: de ? rel.slice(3) : rel,
+    inLang: rel.slice(3),
     text: readFileSync(path, "utf8"),
   };
 });
@@ -68,7 +69,7 @@ describe("docs/guide", () => {
 
       if (page.de) {
         test("has an English original", () => {
-          expect(existsSync(join(ROOT, page.inLang))).toBe(true);
+          expect(existsSync(join(ROOT, "en", page.inLang))).toBe(true);
         });
       }
 

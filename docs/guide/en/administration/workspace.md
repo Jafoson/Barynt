@@ -7,7 +7,7 @@ sidebar:
 
 A workspace is the home of one team or company. Its settings live under **Workspace Settings** at the bottom of the sidebar (the _Workspace_ tab). What you see there depends on your role, see [Roles and permissions](roles.md). Changing the basics needs _Change name, color and address_, which owners, admins and managers have.
 
-![The general workspace settings](../assets/en/workspace-settings.webp)
+![The general workspace settings](../../assets/en/workspace-settings.webp)
 
 ## General
 

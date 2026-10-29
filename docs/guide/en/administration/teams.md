@@ -7,7 +7,7 @@ sidebar:
 
 A **team** is a named group of workspace members, for example "Mobile team" or "Customer support". It does two jobs: it shows at a glance **who works on what**, and it lets you **give access to a whole group at once**.
 
-![The teams of a workspace](../assets/en/teams.webp)
+![The teams of a workspace](../../assets/en/teams.webp)
 
 ## The team list
 
@@ -23,7 +23,7 @@ Click **New team** and fill in:
 - **Members**: pick them from the workspace.
 - **Projects**: link the team to the projects it works on, and choose the **role in this project** that the team's members receive there.
 
-![The team dialog](../assets/en/team-dialog.webp)
+![The team dialog](../../assets/en/team-dialog.webp)
 
 ## What linking a team to a project does
 

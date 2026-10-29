@@ -9,7 +9,7 @@ Everything on this page applies to **you only**. It is saved to your account, so
 
 To open it, click **your name** at the bottom of the sidebar and choose **Settings**. The _Personal_ tab on top is this area. The other two tabs, _Project_ and _Workspace_, are for [project](../administration/project-settings.md) and [workspace](../administration/workspace.md) settings.
 
-![Personal settings](../assets/en/account-general.webp)
+![Personal settings](../../assets/en/account-general.webp)
 
 ## General
 
@@ -19,7 +19,7 @@ To open it, click **your name** at the bottom of the sidebar and choose **Settin
 
 ## Appearance
 
-![Appearance settings](../assets/en/account-appearance.webp)
+![Appearance settings](../../assets/en/account-appearance.webp)
 
 - **Theme:** dark, light, or _System_, which follows your computer.
 - **Language:** English or German. It applies to the whole interface.
@@ -31,7 +31,7 @@ To open it, click **your name** at the bottom of the sidebar and choose **Settin
 
 Where clicks take you, where you start, and how issues open.
 
-![Navigation settings](../assets/en/account-navigation.webp)
+![Navigation settings](../../assets/en/account-navigation.webp)
 
 | Setting | What it decides |
 | --- | --- |
@@ -50,11 +50,11 @@ Holding `Ctrl` (or `⌘`) while clicking, or a middle click, always opens a brow
 
 For each event, choose whether you want it **in the app**, **by email**, both or neither. The details are in [My issues, inbox and notifications](my-work.md).
 
-![Notification settings](../assets/en/account-notifications.webp)
+![Notification settings](../../assets/en/account-notifications.webp)
 
 ## Security
 
-![Security settings](../assets/en/account-security.webp)
+![Security settings](../../assets/en/account-security.webp)
 
 - **Passkeys** let you sign in with your fingerprint, your face or a device PIN, no password involved. Click **Add passkey** on each device you use. A passkey that syncs through your password manager or cloud account (iCloud Keychain, Google Password Manager, 1Password) is marked as _synced_.
 - **Email** is your sign-in name. A verified address also unlocks sign-in links, invitations and email notifications, and it is your **way back in** if you ever lose your passkey. Add one.

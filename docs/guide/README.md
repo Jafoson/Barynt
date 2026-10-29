@@ -1,5 +1,13 @@
 # User docs
 
+```
+docs/guide/
+  en/<group>/<page>.md     English pages
+  de/<group>/<page>.md     German pages
+  assets/en/, assets/de/   screenshots per language
+  _groups.json             groups and their names
+```
+
 Everything in this folder (except this file) is published as the docs on the
 website ([barynt-site](https://github.com/Jafoson/barynt-site), built with
 [Starlight](https://starlight.astro.build)). The site reads the folder at the
@@ -8,8 +16,9 @@ the docs in the same PR as the feature.
 
 ## A page
 
-One Markdown file per page. The folder is the sidebar group, the file name the
-URL: `getting-started/install.md` → `/docs/getting-started/install/`.
+One Markdown file per page. English pages live in `en/`, German ones in `de/`
+at the same path. The folder inside is the sidebar group, the file name the
+URL: `en/getting-started/install.md` → `/docs/getting-started/install/`.
 
 ```md
 ---
@@ -37,7 +46,7 @@ Plain Markdown. It reads the same here on GitHub as on the site.
 
 Images live in `assets/<language>/`: `assets/en/` for the English pages,
 `assets/de/` for the German ones. A page links the folder of its own language,
-relatively: `![Workspace overview](../assets/en/overview.webp)` in English,
+relatively: `![Workspace overview](../../assets/en/overview.webp)` in English,
 `![Workspace-Übersicht](../../assets/de/overview.webp)` in German (a German page
 that has no picture of its own may link the English one).
 
@@ -49,9 +58,10 @@ changes instead of editing them by hand.
 
 ## German
 
-The German page sits at the same path under `de/`:
-`de/getting-started/install.md`. Links and images stay relative, so the same
-`../assets/en/…` becomes `../../assets/de/…`. A page without a German version shows
+The German page sits at the same path under `de/` instead of `en/`:
+`de/getting-started/install.md`. Links to other pages stay relative and
+identical; images point at their own language folder (`../../assets/en/…` in
+English, `../../assets/de/…` in German). A page without a German version shows
 the English one with a note, so a missing translation never blocks a PR.
 
 ## A new group

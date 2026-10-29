@@ -7,7 +7,7 @@ sidebar:
 
 A **view** is a saved way of looking at issues. It remembers the filter, the grouping, the order and the layout, so "all open bugs, grouped by assignee" is one click away instead of five.
 
-![The views of a workspace](../assets/en/views-gallery.webp)
+![The views of a workspace](../../assets/en/views-gallery.webp)
 
 ## Some views worth having
 
@@ -32,7 +32,7 @@ There are two ways:
 1. **Set up what you want first.** Filter, group and sort the board or list as you like. A small **Unsaved** marker appears. Click **Save as new view** and give it a name. Click **Discard** instead to throw your changes away.
 2. **Start from the plus** next to the tabs, choose **New view** and fill in the form.
 
-![The new-view dialog](../assets/en/view-dialog.webp)
+![The new-view dialog](../../assets/en/view-dialog.webp)
 
 | Field | What it does |
 | --- | --- |

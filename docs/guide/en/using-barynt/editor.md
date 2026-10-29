@@ -7,7 +7,7 @@ sidebar:
 
 Issue descriptions and comments share the same editor. It is simple on purpose: you can write plain text and never think about it, and the formatting is there when you need it.
 
-![The editor with its / menu open](../assets/en/editor.webp)
+![The editor with its / menu open](../../assets/en/editor.webp)
 
 ## Type `/` for everything
 

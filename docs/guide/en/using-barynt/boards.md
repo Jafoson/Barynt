@@ -7,7 +7,7 @@ sidebar:
 
 Barynt has two basic layouts for issues. They show the same data, so use whichever suits the moment: the **board** to move work along, the **list** to scan, sort and work through many issues.
 
-![A project board](../assets/en/board.webp)
+![A project board](../../assets/en/board.webp)
 
 ## The board
 
@@ -52,7 +52,7 @@ If you want one of these setups again tomorrow, or want to share it with your te
 
 Click **Filter** above the board. The quick filters are _Status_, _Type_, _Priority_, _Assignee_ and _Label_. Pick one or several values in each. **Clear all filters** starts over.
 
-![The filter menu](../assets/en/filter.webp)
+![The filter menu](../../assets/en/filter.webp)
 
 For anything more precise, open **Advanced filter settings**. There you build conditions yourself:
 

@@ -7,7 +7,7 @@ sidebar:
 
 Open a project and click **Settings** (or the _Project_ tab at the top of any settings page). The left-hand menu has seven entries. Most need the **Project Admin** role, see [Roles and permissions](roles.md).
 
-![The general project settings](../assets/en/project-settings.webp)
+![The general project settings](../../assets/en/project-settings.webp)
 
 ## General
 
@@ -22,7 +22,7 @@ At the bottom, the **Danger zone** deletes the project with all its issues, for 
 
 Everybody who is in the project, with their **role** and status.
 
-![The members of a project](../assets/en/project-members.webp)
+![The members of a project](../../assets/en/project-members.webp)
 
 - **Add member** opens a dialog with two tabs: **From workspace** (pick existing members, with a search box) and **By email** (invite someone new, see [Members and invitations](members.md)).
 - Change a person's **role** with the dropdown on their row. A role marked _inherited from the workspace_ is the starting value from their workspace role. One marked _via team_ comes from a [team](teams.md). Set a role here to override it for that person.

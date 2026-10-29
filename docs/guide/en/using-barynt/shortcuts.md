@@ -22,7 +22,7 @@ Press **`⌘K`** (`Ctrl+K`) anywhere and type. One box finds:
 
 Move with the arrow keys, press `Enter` to open, `Esc` to close.
 
-![The command palette](../assets/en/palette.webp)
+![The command palette](../../assets/en/palette.webp)
 
 Search covers titles and descriptions, and it only finds what you are allowed to see.
 
@@ -98,6 +98,6 @@ With an issue open, or hovered in a list:
 
 If a key collides with another program, or you simply prefer another, change it: open _Personal settings → Keyboard shortcuts_, click a shortcut, and press the new combination. `Esc` cancels. Barynt warns you when keys are already in use. For `G`-sequences, only the second key can be changed. Changes are saved to your account, so they follow you to every device.
 
-![Keyboard shortcuts in the settings](../assets/en/shortcuts-settings.webp)
+![Keyboard shortcuts in the settings](../../assets/en/shortcuts-settings.webp)
 
 The same page has the switch **Ask before deleting**. With it on, deleting something asks first. With it off, it happens right away, except for a few serious actions, which always ask.

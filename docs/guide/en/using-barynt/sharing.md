@@ -11,11 +11,11 @@ Sometimes the person who needs to see an issue is not in your workspace: a clien
 
 Open the issue, click the **…** menu and choose **Share public link**, then **Create link**. Barynt gives you an address that anyone can open in a browser, **without signing in**.
 
-![The share dialog of an issue](../assets/en/share-modal.webp)
+![The share dialog of an issue](../../assets/en/share-modal.webp)
 
 What the person sees is a clean, **read-only** page with the issue's title, description, status, priority, type, assignee, labels and the comments. They do **not** see attachments, other issues or the rest of your workspace, and they cannot comment or change anything. A note at the bottom invites them to join if they would like to take part.
 
-![What the recipient sees](../assets/en/share-public.webp)
+![What the recipient sees](../../assets/en/share-public.webp)
 
 - The link works for **30 days**, then it stops by itself. The page shows the date.
 - You can **turn sharing off** at any time. The link is dead from that moment. Creating a new link gives a new address, and the old one stays dead.
