@@ -76,6 +76,25 @@ Versions and release notes are semi-automated, see `releases/README.md`.
   `package.json`'s are hidden. After an update the window opens once on its own:
   the cookie `barynt_seen_release` holds the version this browser has seen.
 
+## User docs (`docs/guide/`)
+
+The docs on the website are Markdown in `docs/guide/`, published by
+[barynt-site](https://github.com/Jafoson/barynt-site) (Starlight) from the
+release tag — so they ship with the version they describe. How to write a
+page is in `docs/guide/README.md`; in short:
+
+- One file per page, `<group>/<page>.md` with `title`, `description` and
+  `sidebar.order` in the front matter; groups and their names in
+  `_groups.json`. The German page sits at the same path under `de/` and is
+  optional (the site falls back to English).
+- Plain Markdown that also reads on GitHub: GitHub alerts (`> [!NOTE]`) for
+  callouts, relative `.md` links, images in `assets/` with optional
+  `.de` / `.light` variants, `{{version}}` for the release.
+- **A feature that changes what users see or do updates its page in the same
+  PR.** `tests/unit/docs/` checks front matter, groups, links and images.
+- `docs/rbac.md` and `docs/permissions-audit.md` are developer notes, not
+  published.
+
 ## Stack
 
 - **Next.js 16** (App Router) with TypeScript
