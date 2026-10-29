@@ -60,6 +60,10 @@ Versions and release notes are semi-automated, see `releases/README.md`.
   between the `changes:` markers.
 - If `main` is protected the push needs the secret `RELEASE_TOKEN` (a PAT that
   may bypass it).
+- The last job rebuilds the website ([barynt-site](https://github.com/Jafoson/barynt-site))
+  for the new version via `repository_dispatch`; it needs the secret
+  `SITE_DISPATCH_TOKEN` and only warns without it. The site reads the notes
+  from `releases/<version>.md` / `.de.md` at the tag, so they serve both.
 - The sidebar's update card (`lib/update-check.ts`) looks at the latest GitHub
   release; `UPDATE_CHECK=false` turns the check off.
 - **Release notes in the app (BARY-191):** the version line under the user card

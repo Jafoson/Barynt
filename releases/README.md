@@ -32,7 +32,13 @@ Run it without `publish` first, read the preview, fix the inputs, run again with
    `install.sh.sigstore.json` (a keyless cosign signature of the installer);
 3. builds the Docker image on the tag (`docker-build.yml`): `X.Y.Z` and
    `latest`, multi-arch, scanned and signed;
-4. after that, publishes the signed Helm chart (`helm-release.yml`).
+4. after that, publishes the signed Helm chart (`helm-release.yml`);
+5. last, asks [barynt-site](https://github.com/Jafoson/barynt-site) to rebuild
+   the start page and docs for this version (`repository_dispatch`
+   `barynt-release` with the version): header, commands, the "Latest release"
+   widget and the release notes page all follow the new release. Needs the
+   secret `SITE_DISPATCH_TOKEN` (fine-grained, for `Jafoson/barynt-site`,
+   Contents: read and write); without it this step only warns.
 
 So once the run is green, `curl -fsSL https://github.com/Jafoson/Barynt/releases/latest/download/install.sh | sh`,
 `barynt upgrade` and `helm install oci://ghcr.io/jafoson/charts/barynt` all
