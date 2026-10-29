@@ -61,6 +61,6 @@ These pages are Markdown files in `docs/guide/` of the repository. A feature tha
 - The front matter at the top holds the `title`, a one-sentence `description` and the `sidebar.order`.
 - Write for people who do not code: team leads, product people, administrators. Short sentences, concrete examples, and the words the app itself uses.
 - Callouts use GitHub's `> [!NOTE]`, `> [!TIP]` and `> [!WARNING]`. Links between pages are relative `.md` links.
-- Screenshots go into `docs/guide/assets/`. English pages use `assets/en/`, German ones `assets/de/`; add `.light` before the extension for a light-mode variant. The test `tests/unit/docs` checks that links and images exist.
+- Screenshots go into `docs/guide/assets/`. English pages use `assets/en/`, German ones `assets/de/`; take screenshots in the dark theme. The test `tests/unit/docs` checks that links and images exist.
 
 `docs/guide/README.md` has the full guide, including how to preview your changes on the real site.

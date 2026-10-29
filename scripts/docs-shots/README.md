@@ -2,7 +2,7 @@
 
 `docs/guide/assets/en/*.webp` and `assets/de/*.webp` are recorded, not drawn by
 hand, so they can be re-recorded when the interface changes. Every shot exists
-in both languages, dark (`name.webp`) and light (`name.light.webp`).
+in both languages (`en/name.webp`, `de/name.webp`), always in the dark theme.
 
 ## What you need
 
@@ -22,7 +22,7 @@ pg_dump -Fc -a --exclude-table=_prisma_migrations "$DATABASE_URL" > demo.dump
 
 SNAPSHOT=demo.dump node scripts/docs-shots/capture.mjs              # everything
 SNAPSHOT=demo.dump node scripts/docs-shots/capture.mjs board inbox  # some shots
-LANGS=en THEMES=dark node scripts/docs-shots/capture.mjs board      # one variant
+LANGS=en node scripts/docs-shots/capture.mjs board      # one variant
 ```
 
 Shots that change data (invitations, API keys, public links) start from the

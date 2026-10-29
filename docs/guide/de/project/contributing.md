@@ -61,6 +61,6 @@ Diese Seiten sind Markdown-Dateien in `docs/guide/` des Repositorys. Ein Feature
 - Der Kopf (Front Matter) enthält `title`, eine `description` in einem Satz und `sidebar.order`.
 - Schreibe für Menschen, die nicht programmieren: Teamleitungen, Produktleute, Administratoren. Kurze Sätze, konkrete Beispiele und die Wörter, die die App selbst benutzt.
 - Hinweisboxen nutzen GitHubs `> [!NOTE]`, `> [!TIP]` und `> [!WARNING]`. Links zwischen Seiten sind relative `.md`-Links.
-- Screenshots kommen in `docs/guide/assets/`. Englische Seiten nutzen `assets/en/`, deutsche `assets/de/`; mit `.light` vor der Endung gibt es eine Hellmodus-Variante. Der Test `tests/unit/docs` prüft, dass Links und Bilder existieren.
+- Screenshots kommen in `docs/guide/assets/`. Englische Seiten nutzen `assets/en/`, deutsche `assets/de/`; Screenshots werden im Dark Mode aufgenommen. Der Test `tests/unit/docs` prüft, dass Links und Bilder existieren.
 
 `docs/guide/README.md` hat die vollständige Anleitung, auch dazu, wie du deine Änderungen auf der echten Seite vorab ansiehst.

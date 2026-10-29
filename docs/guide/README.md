@@ -41,8 +41,7 @@ relatively: `![Workspace overview](../assets/en/overview.webp)` in English,
 `![Workspace-Übersicht](../../assets/de/overview.webp)` in German (a German page
 that has no picture of its own may link the English one).
 
-An optional `overview.light.webp` next to `overview.webp` is shown in light
-mode; `overview.webp` is the dark one and the fallback.
+Screenshots are always taken in the dark theme.
 
 The screenshots are recorded from a demo workspace, in all four variants at
 once: see `scripts/docs-shots/README.md`. Re-record them when the interface

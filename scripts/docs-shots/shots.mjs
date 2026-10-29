@@ -1,7 +1,6 @@
 // The shots of docs/guide/. `run` may click and type before the picture is
 // taken and may return a clip rectangle ({x, y, width, height}) to crop to.
 // `t(en, de)` picks the button label of the language being recorded.
-// `themed: false` for pages that look the same in both themes (sign-in).
 
 const W = "/nimbus";
 const PROJECT = `${W}/project/web-app`;
@@ -31,7 +30,6 @@ export const SHOTS = [
     path: "/login",
     size: [1280, 800],
     signedIn: false,
-    themed: false,
   },
   {
     name: "create-workspace",

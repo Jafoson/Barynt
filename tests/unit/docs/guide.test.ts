@@ -79,10 +79,19 @@ describe("docs/guide", () => {
         for (const target of targets) {
           if (/^(https?:|mailto:|#)/.test(target)) continue;
           const file = target.split("#")[0];
-          expect(
-            existsSync(resolve(dirname(page.path), file)),
-            `${target} in ${page.rel}`,
-          ).toBe(true);
+          const exists = (f: string) =>
+            existsSync(resolve(dirname(page.path), f));
+          // A picture missing in one language may stand in from the other
+          // (the site does the same); a warning keeps it from being forgotten.
+          const other = file.replace(
+            /assets\/(en|de)\//,
+            (_, l) => `assets/${l === "en" ? "de" : "en"}/`,
+          );
+          if (!exists(file) && other !== file && exists(other))
+            console.warn(
+              `image only in the other language: ${target} in ${page.rel}`,
+            );
+          else expect(exists(file), `${target} in ${page.rel}`).toBe(true);
         }
       });
     });

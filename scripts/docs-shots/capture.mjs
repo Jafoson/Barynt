@@ -3,11 +3,10 @@
 // theme, written as WebP next to the pages:
 //
 //   en/name.webp        English, dark      de/name.webp        German, dark
-//   en/name.light.webp  English, light     de/name.light.webp  German, light
 //
 //   node scripts/docs-shots/capture.mjs                  # everything
 //   node scripts/docs-shots/capture.mjs board inbox      # only these shots
-//   LANGS=en THEMES=dark node scripts/docs-shots/capture.mjs
+//   LANGS=en node scripts/docs-shots/capture.mjs
 //
 // Needs: a running app (BASE_URL, default http://localhost:3000), Postgres
 // reachable with `psql`/`pg_restore`, Playwright (`npm i -g playwright`) and
@@ -49,7 +48,7 @@ const PG = [
 ];
 const OWNER = "owner@nimbus.io";
 const LANGS = (process.env.LANGS || "en,de").split(",");
-const THEMES = (process.env.THEMES || "dark,light").split(",");
+const THEMES = ["dark"]; // the guide shows the dark theme only
 const only = process.argv.slice(2);
 
 const sql = (query) =>
@@ -152,13 +151,10 @@ async function newContext(
   return ctx;
 }
 
-async function write(png, name, lang, theme, themed) {
+async function write(png, name, lang) {
   const dir = join(OUT, lang === "de" ? "de" : "en");
   mkdirSync(dir, { recursive: true });
-  const file = join(
-    dir,
-    `${name}${theme === "light" && themed ? ".light" : ""}.webp`,
-  );
+  const file = join(dir, `${name}.webp`);
   await sharp(png).webp({ quality: 80, effort: 5 }).toFile(file);
   return file;
 }
@@ -173,7 +169,6 @@ for (const theme of THEMES) {
   for (const lang of LANGS) {
     setTheme(theme);
     for (const shot of shots) {
-      if (theme === "light" && shot.themed === false) continue; // the same in both
       resetDb();
       setTheme(theme);
       const ctx = await newContext(browser, {
@@ -207,13 +202,7 @@ for (const theme of THEMES) {
         const clip = shot.run ? await shot.run(env) : undefined;
         await page.waitForTimeout(400);
         const png = await page.screenshot(clip ? { clip } : {});
-        const file = await write(
-          png,
-          shot.name,
-          lang,
-          theme,
-          shot.themed !== false,
-        );
+        const file = await write(png, shot.name, lang);
         console.log(
           "ok  ",
           shot.name,
