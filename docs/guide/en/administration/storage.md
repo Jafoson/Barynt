@@ -1,19 +1,18 @@
 ---
-
 title: "Object storage"
 description: "Where avatars and attachments are kept: bundled with the installer, or any S3-compatible storage you already have."
 sidebar:
-order: 8
+  order: 8
 ---
 
 Pictures and attachments are not stored in the database. They go into **object storage**, a kind of file server with an S3 interface. This page is for whoever runs the server.
 
 ## What it is used for
 
-| Use                                                        | Limit                        |
-| ---------------------------------------------------------- | ---------------------------- |
-| **Avatars** of people, workspaces and projects             | 5 MB, PNG, JPEG, WebP or GIF |
-| **Attachments** and images, videos and files inside issues | 100 MB per file, any type    |
+| Use | Limit |
+| --- | --- |
+| **Avatars** of people, workspaces and projects | 5 MB, PNG, JPEG, WebP or GIF |
+| **Attachments** and images, videos and files inside issues | 100 MB per file, any type |
 
 ## What you get without it
 
@@ -36,12 +35,12 @@ barynt config S3_ENDPOINT=https://s3.eu-central-1.amazonaws.com \
   S3_BUCKET_AVATARS=acme-barynt-avatars S3_BUCKET_ISSUES=acme-barynt-issues
 ```
 
-| Setting                                    | Meaning                                                        |
-| ------------------------------------------ | -------------------------------------------------------------- |
-| `S3_ENDPOINT`                              | Where the storage is. Leaving it empty switches both uses off. |
-| `S3_REGION`                                | The region. `us-east-1` is fine for most non-AWS providers.    |
-| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | The key.                                                       |
-| `S3_BUCKET_AVATARS`, `S3_BUCKET_ISSUES`    | The two buckets.                                               |
+| Setting | Meaning |
+| --- | --- |
+| `S3_ENDPOINT` | Where the storage is. Leaving it empty switches both uses off. |
+| `S3_REGION` | The region. `us-east-1` is fine for most non-AWS providers. |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | The key. |
+| `S3_BUCKET_AVATARS`, `S3_BUCKET_ISSUES` | The two buckets. |
 
 A few notes:
 

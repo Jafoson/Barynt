@@ -1,9 +1,8 @@
 ---
-
 title: "Plattform-Verwaltung"
 description: "Die Steuerung auf Serverebene: Konten, Workspaces, serverweite Einstellungen, E-Mails und das Audit-Log. Gebaut, um den Server gesund zu halten, ohne irgendjemandes Aufgaben zu lesen."
 sidebar:
-order: 10
+  order: 10
 ---
 
 Ein Barynt-Server kann viele Workspaces beherbergen. Die **Plattform-Verwaltung** kümmert sich um den Server als Ganzes: Wer hat ein Konto, welche Workspaces gibt es, und ein paar Regeln, die für alle gelten. Sie ist für die Person oder das kleine Team gedacht, das den Server betreibt, und getrennt von den Workspace-Einstellungen, die Teamleitungen nutzen.

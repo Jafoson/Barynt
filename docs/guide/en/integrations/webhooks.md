@@ -1,9 +1,8 @@
 ---
-
 title: "Webhooks"
 description: "Let Barynt tell other systems when something happens: a signed message to an address of your choice, the moment an issue, comment or shared view changes."
 sidebar:
-order: 3
+  order: 3
 ---
 
 With a **webhook**, Barynt calls **you**. Whenever something you care about happens in the workspace, it sends a message to an address you choose. That is how you post new bugs into a chat channel, start a build when an issue moves to _In Review_, or keep another system up to date without checking again and again.
@@ -37,13 +36,13 @@ Webhooks belong to **one workspace** and only report events of that workspace. A
 
 ## Events
 
-| Event                                          | When                                                                                        |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `issue.created`                                | An issue is created.                                                                        |
-| `issue.updated`                                | An issue changes. The message carries the **whole current issue**, not just the difference. |
-| `issue.deleted`                                | An issue is deleted. The message is a short snapshot (id, reference, project, title).       |
-| `comment.created`                              | A comment is written (also a reply). Editing or deleting a comment sends nothing.           |
-| `view.created`, `view.updated`, `view.deleted` | A **shared** view changes. Private views never trigger anything.                            |
+| Event | When |
+| --- | --- |
+| `issue.created` | An issue is created. |
+| `issue.updated` | An issue changes. The message carries the **whole current issue**, not just the difference. |
+| `issue.deleted` | An issue is deleted. The message is a short snapshot (id, reference, project, title). |
+| `comment.created` | A comment is written (also a reply). Editing or deleting a comment sends nothing. |
+| `view.created`, `view.updated`, `view.deleted` | A **shared** view changes. Private views never trigger anything. |
 
 Every event with a complete example message is on the page [Webhook events](../api-reference/webhook-events.md).
 
@@ -51,11 +50,11 @@ Every event with a complete example message is on the page [Webhook events](../a
 
 Barynt sends an HTTP `POST` with these headers and a JSON body:
 
-| Header               | Content                                                |
-| -------------------- | ------------------------------------------------------ |
-| `Content-Type`       | `application/json`                                     |
+| Header | Content |
+| --- | --- |
+| `Content-Type` | `application/json` |
 | `X-Barynt-Timestamp` | When the message was sent, in milliseconds since 1970. |
-| `X-Barynt-Signature` | The signature of the message, made with your secret.   |
+| `X-Barynt-Signature` | The signature of the message, made with your secret. |
 
 ```json
 {
@@ -119,29 +118,17 @@ A complete little receiver, with Express:
 import express from "express";
 
 const app = express();
-app.post(
-  "/webhooks/barynt",
-  express.raw({ type: "application/json" }),
-  (req, res) => {
-    const timestamp = req.get("X-Barynt-Timestamp");
-    const signature = req.get("X-Barynt-Signature");
-    const fresh = Math.abs(Date.now() - Number(timestamp)) < 5 * 60 * 1000;
-    if (
-      !fresh ||
-      !isGenuine(
-        process.env.BARYNT_WEBHOOK_SECRET,
-        timestamp,
-        req.body.toString(),
-        signature,
-      )
-    ) {
-      return res.sendStatus(401);
-    }
-    const { event, data } = JSON.parse(req.body);
-    console.log(event, data.ref ?? data.id);
-    res.sendStatus(204); // answer quickly, do the slow work afterwards
-  },
-);
+app.post("/webhooks/barynt", express.raw({ type: "application/json" }), (req, res) => {
+  const timestamp = req.get("X-Barynt-Timestamp");
+  const signature = req.get("X-Barynt-Signature");
+  const fresh = Math.abs(Date.now() - Number(timestamp)) < 5 * 60 * 1000;
+  if (!fresh || !isGenuine(process.env.BARYNT_WEBHOOK_SECRET, timestamp, req.body.toString(), signature)) {
+    return res.sendStatus(401);
+  }
+  const { event, data } = JSON.parse(req.body);
+  console.log(event, data.ref ?? data.id);
+  res.sendStatus(204); // answer quickly, do the slow work afterwards
+});
 app.listen(3000);
 ```
 
@@ -162,12 +149,12 @@ app.listen(3000);
 
 ## When nothing arrives
 
-| What you see                                                   | Likely cause                                                                                                                                      |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "Never delivered"                                              | Nothing has happened yet that the webhook listens to, or it is turned off, or it belongs to another workspace.                                    |
-| An error such as `fetch failed` or `The operation was aborted` | The receiver was not reachable or took longer than ten seconds. Check the address, the firewall and TLS certificates.                             |
-| A status of `4xx`/`5xx`                                        | The receiver was reached but rejected the message. Look at its log: most often the signature check, because the body was changed before checking. |
-| Signatures never match                                         | The body was parsed and re-serialised before checking, the wrong secret was used, or the timestamp was left out of the signed string.             |
+| What you see | Likely cause |
+| --- | --- |
+| "Never delivered" | Nothing has happened yet that the webhook listens to, or it is turned off, or it belongs to another workspace. |
+| An error such as `fetch failed` or `The operation was aborted` | The receiver was not reachable or took longer than ten seconds. Check the address, the firewall and TLS certificates. |
+| A status of `4xx`/`5xx` | The receiver was reached but rejected the message. Look at its log: most often the signature check, because the body was changed before checking. |
+| Signatures never match | The body was parsed and re-serialised before checking, the wrong secret was used, or the timestamp was left out of the signed string. |
 
 More in [Troubleshooting](../administration/troubleshooting.md).
 

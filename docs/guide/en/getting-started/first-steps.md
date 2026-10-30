@@ -1,9 +1,8 @@
 ---
-
 title: "First steps"
 description: "From the sign-in screen to your first issue and your first teammate, in about ten minutes."
 sidebar:
-order: 2
+  order: 2
 ---
 
 This walk-through takes you from the sign-in screen to a first issue and a first teammate. If someone has already set up your workspace, skip ahead to [step 4](#4-write-your-first-issue).

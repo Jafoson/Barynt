@@ -1,9 +1,8 @@
 ---
-
 title: "MCP-Server: einen KI-Assistenten verbinden"
 description: "Lass Claude, ChatGPT, Cursor und andere KI-Assistenten deine Aufgaben lesen und aktualisieren, angemeldet als du, mit deinen Berechtigungen und ohne einen Schlüssel zu kopieren."
 sidebar:
-order: 1
+  order: 1
 ---
 
 Barynt hat einen eingebauten **MCP-Server**. MCP, das _Model Context Protocol_, ist der Standardweg, wie KI-Assistenten andere Werkzeuge nutzen. Sobald er verbunden ist, sprichst du in normaler Sprache mit deinem Issue-Tracker, direkt im Assistenten, den du ohnehin nutzt.
@@ -72,18 +71,18 @@ Halte den Schlüssel in einer Umgebungsvariablen, nicht in einer Datei, die du t
 
 37 Tools, eines für alles, was du in der App tun kannst. Jedes prüft zuerst deine Berechtigungen. Jedes Tool mit Scope und Argumenten steht in der **[MCP-Tools-Referenz](../api-reference/mcp-tools.md)**.
 
-| Bereich         | Tools                                                                                                                                                                                                  |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Workspaces**  | auflisten, anlegen, ändern, löschen                                                                                                                                                                    |
-| **Projekte**    | auflisten, anlegen, ändern, löschen                                                                                                                                                                    |
-| **Mitglieder**  | die Mitglieder eines Workspace oder Projekts auflisten                                                                                                                                                 |
-| **Issues**      | auflisten (mit Filtern, Textsuche und gespeicherten Views), eines lesen, anlegen, ändern (Titel, Beschreibung, Status, Priorität, Typ, Zuständige, Labels, Termine, Schätzungen, übergeordnetes Issue) |
-| **Beziehungen** | hinzufügen und entfernen (blockiert, hängt zusammen mit, Duplikat von)                                                                                                                                 |
-| **Kommentare**  | auflisten, anlegen, ändern, löschen                                                                                                                                                                    |
-| **Anhänge**     | auflisten, lesen (Bilder und Textdateien direkt), Dateien und Links hinzufügen, löschen                                                                                                                |
-| **Labels**      | auflisten, anlegen, ändern, löschen                                                                                                                                                                    |
-| **Views**       | auflisten, lesen, anlegen, ändern, löschen                                                                                                                                                             |
-| **Optionen**    | Status, Prioritäten und Issue-Typen auflisten                                                                                                                                                          |
+| Bereich | Tools |
+| --- | --- |
+| **Workspaces** | auflisten, anlegen, ändern, löschen |
+| **Projekte** | auflisten, anlegen, ändern, löschen |
+| **Mitglieder** | die Mitglieder eines Workspace oder Projekts auflisten |
+| **Issues** | auflisten (mit Filtern, Textsuche und gespeicherten Views), eines lesen, anlegen, ändern (Titel, Beschreibung, Status, Priorität, Typ, Zuständige, Labels, Termine, Schätzungen, übergeordnetes Issue) |
+| **Beziehungen** | hinzufügen und entfernen (blockiert, hängt zusammen mit, Duplikat von) |
+| **Kommentare** | auflisten, anlegen, ändern, löschen |
+| **Anhänge** | auflisten, lesen (Bilder und Textdateien direkt), Dateien und Links hinzufügen, löschen |
+| **Labels** | auflisten, anlegen, ändern, löschen |
+| **Views** | auflisten, lesen, anlegen, ändern, löschen |
+| **Optionen** | Status, Prioritäten und Issue-Typen auflisten |
 
 ### Was du sagen kannst
 
@@ -110,13 +109,13 @@ Für Neugierige und für alle, die einen Client von Hand einrichten.
 
 ### Die OAuth-Anmeldung im Detail
 
-| Schritt      | Was passiert                                                                                                                                                                                                       |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Entdecken    | `GET /.well-known/oauth-protected-resource` und `/.well-known/oauth-authorization-server` sagen der App, wo alles liegt.                                                                                           |
-| Registrieren | Die App registriert sich selbst (Dynamic Client Registration, `POST /api/oauth/register`), als öffentlicher Client ohne Geheimnis.                                                                                 |
-| Zustimmung   | Die App öffnet die Anmelde- und Zustimmungsseite von Barynt, mit **PKCE** (`S256`, Pflicht). Sie fragt nach Scopes; ohne Angabe darf sie alle erbitten. Du siehst, was sie verlangt, und klickst auf **Erlauben**. |
-| Token        | Die App tauscht den einmaligen Code (zehn Minuten gültig) gegen ein **Zugriffstoken** (**eine Stunde** gültig) und ein **Refresh-Token** (**30 Tage** gültig).                                                     |
-| Erneuern     | Die App erneuert das Zugriffstoken selbst. Ein Refresh-Token gilt nur einmal und wird bei jeder Nutzung durch ein neues ersetzt; wird ein altes erneut benutzt, wird die ganze Freigabe widerrufen.                |
+| Schritt | Was passiert |
+| --- | --- |
+| Entdecken | `GET /.well-known/oauth-protected-resource` und `/.well-known/oauth-authorization-server` sagen der App, wo alles liegt. |
+| Registrieren | Die App registriert sich selbst (Dynamic Client Registration, `POST /api/oauth/register`), als öffentlicher Client ohne Geheimnis. |
+| Zustimmung | Die App öffnet die Anmelde- und Zustimmungsseite von Barynt, mit **PKCE** (`S256`, Pflicht). Sie fragt nach Scopes; ohne Angabe darf sie alle erbitten. Du siehst, was sie verlangt, und klickst auf **Erlauben**. |
+| Token | Die App tauscht den einmaligen Code (zehn Minuten gültig) gegen ein **Zugriffstoken** (**eine Stunde** gültig) und ein **Refresh-Token** (**30 Tage** gültig). |
+| Erneuern | Die App erneuert das Zugriffstoken selbst. Ein Refresh-Token gilt nur einmal und wird bei jeder Nutzung durch ein neues ersetzt; wird ein altes erneut benutzt, wird die ganze Freigabe widerrufen. |
 
 Ein Token kann nie mehr, als deine Rollen erlauben, und nur im Rahmen der gewährten Scopes.
 
@@ -144,14 +143,14 @@ Ersetze `tools/call` und `params` durch `tools/list`, um alle Tools und ihre Ein
 
 ## Wenn es nicht klappt
 
-| Was du siehst                                     | Wahrscheinliche Ursache                                                                                                                                                   |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Die App kann sich gar nicht verbinden             | Barynt ist nicht per HTTPS aus dem Internet erreichbar (Claude und ChatGPT verbinden sich aus ihrer Cloud), oder die Adresse stimmt nicht. Sie muss auf `/api/mcp` enden. |
-| Die Anmeldung öffnet sich nicht oder schlägt fehl | Der Browser hat das Fenster blockiert, oder du hast eine andere Adresse eingegeben als die auf der MCP-Einstellungsseite. Nimm die Adresse, die dort steht.               |
-| `insufficient_scope`                              | Dem Schlüssel oder Token wurden weniger Scopes gegeben, als der Aufruf braucht. Lege einen neuen Schlüssel mit dem Scope an oder verbinde die App neu.                    |
-| `not_found`                                       | Die ID stimmt nicht, oder du kannst das Element nicht sehen. Barynt antwortet in beiden Fällen gleich. Lass den Assistenten das Element erneut nachschlagen.              |
-| `rate_limited`                                    | Mehr als 120 Anfragen pro Minute. Der Assistent wartet und macht weiter, oder bitte ihn, in kleineren Schritten zu arbeiten.                                              |
-| Neue Tools oder Felder fehlen                     | Starte einen **neuen Chat**: Apps lesen die Tool-Liste, wenn ein Chat beginnt.                                                                                            |
+| Was du siehst | Wahrscheinliche Ursache |
+| --- | --- |
+| Die App kann sich gar nicht verbinden | Barynt ist nicht per HTTPS aus dem Internet erreichbar (Claude und ChatGPT verbinden sich aus ihrer Cloud), oder die Adresse stimmt nicht. Sie muss auf `/api/mcp` enden. |
+| Die Anmeldung öffnet sich nicht oder schlägt fehl | Der Browser hat das Fenster blockiert, oder du hast eine andere Adresse eingegeben als die auf der MCP-Einstellungsseite. Nimm die Adresse, die dort steht. |
+| `insufficient_scope` | Dem Schlüssel oder Token wurden weniger Scopes gegeben, als der Aufruf braucht. Lege einen neuen Schlüssel mit dem Scope an oder verbinde die App neu. |
+| `not_found` | Die ID stimmt nicht, oder du kannst das Element nicht sehen. Barynt antwortet in beiden Fällen gleich. Lass den Assistenten das Element erneut nachschlagen. |
+| `rate_limited` | Mehr als 120 Anfragen pro Minute. Der Assistent wartet und macht weiter, oder bitte ihn, in kleineren Schritten zu arbeiten. |
+| Neue Tools oder Felder fehlen | Starte einen **neuen Chat**: Apps lesen die Tool-Liste, wenn ein Chat beginnt. |
 
 ## Wie die Anmeldung funktioniert (für Neugierige)
 

@@ -1,9 +1,8 @@
 ---
-
 title: "Kubernetes (Helm)"
 description: "The same image on Kubernetes. The chart is published as a public OCI artifact on GHCR, so you don't need to add a repository."
 sidebar:
-order: 7
+  order: 7
 ---
 
 ## Quick start

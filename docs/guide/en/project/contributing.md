@@ -1,9 +1,8 @@
 ---
-
 title: "Contributing"
 description: "Run Barynt on your own machine, make a change, and send it back. For developers, translators and anyone who spots a typo."
 sidebar:
-order: 1
+  order: 1
 ---
 
 Barynt is open source (MIT) and welcomes contributions: a fixed typo, a better sentence in these docs, a translation, a bug fix or a feature. This page gets you from zero to a pull request.
@@ -29,12 +28,12 @@ bun run dev                  # http://localhost:3000
 
 The demo data is a company called Nimbus with a few projects, issues and people, so you have something to click through right away. Passkeys work on `localhost` without any further setup.
 
-| Command                          | What it does                           |
-| -------------------------------- | -------------------------------------- |
-| `bun run dev`                    | The development server                 |
-| `bun run lint`, `bun run format` | Check and format the code (Biome)      |
-| `bun run test`                   | The full test suite                    |
-| `bun run db:reset`               | Throw the database away and start over |
+| Command | What it does |
+| --- | --- |
+| `bun run dev` | The development server |
+| `bun run lint`, `bun run format` | Check and format the code (Biome) |
+| `bun run test` | The full test suite |
+| `bun run db:reset` | Throw the database away and start over |
 
 ## The shape of the code
 

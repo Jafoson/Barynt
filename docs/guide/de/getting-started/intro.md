@@ -1,9 +1,8 @@
 ---
-
 title: "Einführung"
 description: "In Barynt plant dein Team seine Arbeit: jede Aufgabe, jeder Fehler und jede Idee an einem Ort, auf einem Server, den du selbst kontrollierst."
 sidebar:
-order: 1
+  order: 1
 ---
 
 ![Das Barynt-Dashboard eines Workspace](../../assets/de/overview.webp)
@@ -34,14 +33,14 @@ Du musst kein Entwickler sein, um Barynt zu benutzen. Technisch ist nur die Einr
 
 ## So ist diese Anleitung aufgebaut
 
-| Wenn du … willst                                         | Fang hier an                                 |
-| -------------------------------------------------------- | -------------------------------------------- |
-| Barynt in den ersten zehn Minuten ausprobieren           | [Erste Schritte](first-steps.md)             |
-| Die Begriffe verstehen, die Barynt benutzt               | [Die Bausteine](concepts.md)                 |
-| Täglich mit Aufgaben arbeiten                            | [Barynt benutzen](../using-barynt/issues.md) |
-| Menschen einladen und Zugriff festlegen                  | [Verwaltung](../administration/members.md)   |
-| Barynt auf einem Server einrichten                       | [Installation](install.md)                   |
-| Einen KI-Assistenten oder ein anderes Werkzeug verbinden | [Integrationen](../integrations/mcp.md)      |
+| Wenn du … willst | Fang hier an |
+| --- | --- |
+| Barynt in den ersten zehn Minuten ausprobieren | [Erste Schritte](first-steps.md) |
+| Die Begriffe verstehen, die Barynt benutzt | [Die Bausteine](concepts.md) |
+| Täglich mit Aufgaben arbeiten | [Barynt benutzen](../using-barynt/issues.md) |
+| Menschen einladen und Zugriff festlegen | [Verwaltung](../administration/members.md) |
+| Barynt auf einem Server einrichten | [Installation](install.md) |
+| Einen KI-Assistenten oder ein anderes Werkzeug verbinden | [Integrationen](../integrations/mcp.md) |
 
 > [!TIP]
 > Den Server einzurichten ist eine einmalige Aufgabe und gehört meist zur IT. Alle anderen können [Installation](install.md) überspringen und gleich zu den [Ersten Schritten](first-steps.md) gehen.

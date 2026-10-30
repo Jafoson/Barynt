@@ -1,9 +1,8 @@
 ---
-
 title: "REST API: authentication and basics"
 description: "Connect scripts, reports and other tools to Barynt: API keys and scopes, how requests and answers look, errors, limits, paging, plus a quick start and recipes."
 sidebar:
-order: 2
+  order: 2
 ---
 
 The **REST API** lets other software read and change what is in Barynt: create an issue when a customer submits a form, pull numbers into a report, keep a spreadsheet in sync. It is the same data and the same rules as in the app.
@@ -44,24 +43,24 @@ A key starts with `bry_`. Barynt stores only a fingerprint of it, so even an adm
 
 A scope is a pair of "what" and "read or write". A call needs the right scope **and** the permission that its owner has in the app: a scope never grants more than you have, it only narrows what the key may do.
 
-| Scope                                  | Allows                                                                                                           |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `issues:read` / `issues:write`         | Read issues, relations and attachments. Create, change and move issues, add or remove relations and attachments. |
-| `comments:read` / `comments:write`     | Read and write comments.                                                                                         |
-| `labels:read` / `labels:write`         | Read, create, change and delete labels.                                                                          |
-| `projects:read` / `projects:write`     | Read projects. Create, change and delete them.                                                                   |
-| `workspaces:read` / `workspaces:write` | Read the workspaces, statuses, priorities and types. Create, change and delete workspaces.                       |
-| `members:read`                         | Read the members of workspaces and projects. There is no write scope: adding people is done in the app.          |
-| `views:read` / `views:write`           | Read and manage saved views. A view's issues also need `issues:read`.                                            |
+| Scope | Allows |
+| --- | --- |
+| `issues:read` / `issues:write` | Read issues, relations and attachments. Create, change and move issues, add or remove relations and attachments. |
+| `comments:read` / `comments:write` | Read and write comments. |
+| `labels:read` / `labels:write` | Read, create, change and delete labels. |
+| `projects:read` / `projects:write` | Read projects. Create, change and delete them. |
+| `workspaces:read` / `workspaces:write` | Read the workspaces, statuses, priorities and types. Create, change and delete workspaces. |
+| `members:read` | Read the members of workspaces and projects. There is no write scope: adding people is done in the app. |
+| `views:read` / `views:write` | Read and manage saved views. A view's issues also need `issues:read`. |
 
 Each call in the reference names the scope it needs. A few typical sets:
 
-| For                           | Scopes                                                          |
-| ----------------------------- | --------------------------------------------------------------- |
-| A form that creates issues    | `issues:write` (and `projects:read` to look up the project)     |
-| A read-only report            | `issues:read`, `projects:read`, `workspaces:read`               |
-| A deploy script that comments | `comments:write`                                                |
-| A full sync                   | all read scopes, plus the write scopes of the things you change |
+| For | Scopes |
+| --- | --- |
+| A form that creates issues | `issues:write` (and `projects:read` to look up the project) |
+| A read-only report | `issues:read`, `projects:read`, `workspaces:read` |
+| A deploy script that comments | `comments:write` |
+| A full sync | all read scopes, plus the write scopes of the things you change |
 
 ## Quick start
 
@@ -79,11 +78,7 @@ curl "$BARYNT_URL/api/v1/workspaces" -H "Authorization: Bearer $BARYNT_API_KEY"
 ```
 
 ```json
-{
-  "data": [
-    { "id": "acme", "name": "Acme Inc", "color": "#6e63e6", "avatarUrl": null }
-  ]
-}
+{ "data": [{ "id": "acme", "name": "Acme Inc", "color": "#6e63e6", "avatarUrl": null }] }
 ```
 
 **2. Find the project:**
@@ -117,17 +112,14 @@ curl -X POST "$BARYNT_URL/api/v1/issues/WEB-42/comments" \
 That is the whole idea; everything else works the same way. The same thing in JavaScript:
 
 ```js
-const res = await fetch(
-  `${process.env.BARYNT_URL}/api/v1/projects/proj_9f8e7d/issues`,
-  {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.BARYNT_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ title: "Fix broken checkout", priority: 2 }),
+const res = await fetch(`${process.env.BARYNT_URL}/api/v1/projects/proj_9f8e7d/issues`, {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.BARYNT_API_KEY}`,
+    "Content-Type": "application/json",
   },
-);
+  body: JSON.stringify({ title: "Fix broken checkout", priority: 2 }),
+});
 if (!res.ok) throw new Error(`Barynt answered ${res.status}`);
 const { data: issue } = await res.json();
 console.log(issue.ref); // "WEB-42"
@@ -171,17 +163,17 @@ Errors carry the matching HTTP status and, mostly, a short machine-readable code
 { "error": { "code": "insufficient_scope" } }
 ```
 
-| Status  | Code                          | Meaning                                                                                                                                                      |
-| ------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **401** | `unauthorized`                | The key is missing, wrong, revoked or expired, or its owner is deactivated.                                                                                  |
-| **403** | `insufficient_scope`          | The key lacks the scope this call needs.                                                                                                                     |
-| **403** | `forbidden`                   | You may see the thing, but not change it (for example a shared view someone else made).                                                                      |
-| **403** | `workspace_creation_disabled` | The administrator has turned off creating workspaces.                                                                                                        |
-| **404** | none (the body is `null`)     | It does not exist, **or you may not see it**. Barynt does not say which, on purpose.                                                                         |
-| **422** | `invalid_body`                | The request body is missing, not JSON, or a field is wrong.                                                                                                  |
-| **422** | `invalid_filter`              | The `filter` parameter is not a valid filter.                                                                                                                |
-| **422** | a specific code               | Some calls say why, with a `message`: attachments use `invalid_source`, `invalid_url`, `invalid_name`, `invalid_content`, `too_large` and `upload_rejected`. |
-| **429** | `rate_limited`                | Too many requests, see below.                                                                                                                                |
+| Status | Code | Meaning |
+| --- | --- | --- |
+| **401** | `unauthorized` | The key is missing, wrong, revoked or expired, or its owner is deactivated. |
+| **403** | `insufficient_scope` | The key lacks the scope this call needs. |
+| **403** | `forbidden` | You may see the thing, but not change it (for example a shared view someone else made). |
+| **403** | `workspace_creation_disabled` | The administrator has turned off creating workspaces. |
+| **404** | none (the body is `null`) | It does not exist, **or you may not see it**. Barynt does not say which, on purpose. |
+| **422** | `invalid_body` | The request body is missing, not JSON, or a field is wrong. |
+| **422** | `invalid_filter` | The `filter` parameter is not a valid filter. |
+| **422** | a specific code | Some calls say why, with a `message`: attachments use `invalid_source`, `invalid_url`, `invalid_name`, `invalid_content`, `too_large` and `upload_rejected`. |
+| **429** | `rate_limited` | Too many requests, see below. |
 
 A 5xx answer means something went wrong on the server: try again later, and look at the [troubleshooting](../administration/troubleshooting.md) page if it stays.
 
@@ -189,12 +181,12 @@ A 5xx answer means something went wrong on the server: try again later, and look
 
 Each key may make **120 requests per minute**. Every answer says where you stand:
 
-| Header                  | Meaning                                      |
-| ----------------------- | -------------------------------------------- |
-| `X-RateLimit-Limit`     | The budget per minute: 120.                  |
-| `X-RateLimit-Remaining` | What is left of it.                          |
-| `X-RateLimit-Reset`     | When it refills, in milliseconds since 1970. |
-| `Retry-After`           | Only on `429`: how many seconds to wait.     |
+| Header | Meaning |
+| --- | --- |
+| `X-RateLimit-Limit` | The budget per minute: 120. |
+| `X-RateLimit-Remaining` | What is left of it. |
+| `X-RateLimit-Reset` | When it refills, in milliseconds since 1970. |
+| `Retry-After` | Only on `429`: how many seconds to wait. |
 
 The counters live in Redis, see [Configuration](../getting-started/config.md). Requests that are rejected still count, so a client that ignores `429` does not get free retries. A polite client waits for `Retry-After` and fetches pages with `limit=100` instead of many small calls.
 

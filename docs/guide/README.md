@@ -22,12 +22,11 @@ URL: `en/getting-started/install.md` → `/docs/getting-started/install/`.
 
 ```md
 ---
-
 title: Install
 description: One sentence under the title, also used for search and link previews.
 sidebar:
-order: 2 # position within the group
-badge: New # optional
+  order: 2        # position within the group
+  badge: New      # optional
 ---
 
 ## A heading
@@ -35,13 +34,13 @@ badge: New # optional
 Plain Markdown. It reads the same here on GitHub as on the site.
 ```
 
-| You write                                                  | The site shows                                                     |
-| ---------------------------------------------------------- | ------------------------------------------------------------------ |
-| ` ```bash ` code block                                     | a code block with a copy button                                    |
-| `> [!NOTE]` / `> [!TIP]` / `> [!WARNING]` / `> [!CAUTION]` | a callout (GitHub renders these too)                               |
-| `[Install](install.md)`                                    | a link to that page (also works on GitHub)                         |
-| `{{version}}`                                              | the release the site is built for, e.g. in `--version {{version}}` |
-| `<!-- TODO … -->`                                          | nothing: a note for the next person                                |
+| You write | The site shows |
+| --- | --- |
+| ` ```bash ` code block | a code block with a copy button |
+| `> [!NOTE]` / `> [!TIP]` / `> [!WARNING]` / `> [!CAUTION]` | a callout (GitHub renders these too) |
+| `[Install](install.md)` | a link to that page (also works on GitHub) |
+| `{{version}}` | the release the site is built for, e.g. in `--version {{version}}` |
+| `<!-- TODO … -->` | nothing: a note for the next person |
 
 ## Images
 

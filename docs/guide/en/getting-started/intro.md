@@ -1,9 +1,8 @@
 ---
-
 title: "Introduction"
 description: "Barynt is where your team plans its work: every task, bug and idea in one place, on a server you control."
 sidebar:
-order: 1
+  order: 1
 ---
 
 ![The Barynt dashboard of a workspace](../../assets/en/overview.webp)
@@ -34,14 +33,14 @@ You do not need to be a developer to use Barynt. Only the setup (and the [Integr
 
 ## How this guide is organised
 
-| If you want to…                         | Start here                                     |
-| --------------------------------------- | ---------------------------------------------- |
-| Try Barynt in your first ten minutes    | [First steps](first-steps.md)                  |
-| Understand the words Barynt uses        | [The building blocks](concepts.md)             |
-| Work with issues every day              | [Using Barynt](../using-barynt/issues.md)      |
-| Invite people and set access            | [Administration](../administration/members.md) |
-| Put Barynt on a server                  | [Install](install.md)                          |
-| Connect an AI assistant or another tool | [Integrations](../integrations/mcp.md)         |
+| If you want to… | Start here |
+| --- | --- |
+| Try Barynt in your first ten minutes | [First steps](first-steps.md) |
+| Understand the words Barynt uses | [The building blocks](concepts.md) |
+| Work with issues every day | [Using Barynt](../using-barynt/issues.md) |
+| Invite people and set access | [Administration](../administration/members.md) |
+| Put Barynt on a server | [Install](install.md) |
+| Connect an AI assistant or another tool | [Integrations](../integrations/mcp.md) |
 
 > [!TIP]
 > Setting up the server is a one-time job and usually belongs to IT. Everyone else can skip [Install](install.md) and go straight to [First steps](first-steps.md).

@@ -16,11 +16,7 @@
       "!deploy",
       "!**/*.svg",
       "!lib/icons/bundle.generated.ts",
-      "!docs/guide/en/api-reference",
-      "!docs/guide/de/api-reference",
-      "!docs/guide/en/administration/email.md",
-      "!docs/guide/en/integrations/mcp.md",
-      "!docs/guide/de/integrations/mcp.md"
+      "!docs"
     ]
   },
   "formatter": {

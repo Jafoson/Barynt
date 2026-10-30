@@ -1,9 +1,8 @@
 ---
-
 title: "Anmeldung und SSO"
 description: "Passkeys von Haus aus, Firmen-Single-Sign-on mit jedem Identitätsanbieter und E-Mail-Links, alles ohne Aufpreis."
 sidebar:
-order: 6
+  order: 6
 ---
 
 Menschen sollen sich so anmelden, wie sie es schon überall sonst tun. Barynt unterstützt mehrere Wege nebeneinander, und **keiner davon ist ein kostenpflichtiges Extra**. Diese Seite ist für die Person, die den Server verwaltet: Sie erklärt die Möglichkeiten und wie du sie einschaltest.
@@ -12,11 +11,11 @@ Menschen sollen sich so anmelden, wie sie es schon überall sonst tun. Barynt un
 
 ## Die Möglichkeiten im Überblick
 
-| Weg der Anmeldung         | Braucht Einrichtung?            | Gut für                                                                          |
-| ------------------------- | ------------------------------- | -------------------------------------------------------------------------------- |
-| **Passkey**               | Nein, funktioniert von Haus aus | Alle. Am sichersten und am einfachsten.                                          |
-| **Firmen-Login (SSO)**    | Ja, ein paar Einstellungen      | Firmen mit Google, Microsoft, Okta, Keycloak und Ähnlichem.                      |
-| **Magic Link per E-Mail** | Ja, [E-Mail](email.md)          | Menschen, die noch keinen Passkey eingerichtet haben, und zur Wiederherstellung. |
+| Weg der Anmeldung | Braucht Einrichtung? | Gut für |
+| --- | --- | --- |
+| **Passkey** | Nein, funktioniert von Haus aus | Alle. Am sichersten und am einfachsten. |
+| **Firmen-Login (SSO)** | Ja, ein paar Einstellungen | Firmen mit Google, Microsoft, Okta, Keycloak und Ähnlichem. |
+| **Magic Link per E-Mail** | Ja, [E-Mail](email.md) | Menschen, die noch keinen Passkey eingerichtet haben, und zur Wiederherstellung. |
 
 Welche Schaltflächen Menschen auf der Anmeldeseite sehen, richtet sich danach, was du eingeschaltet hast.
 
@@ -97,12 +96,12 @@ Braucht eine kostenpflichtige Apple-Developer-Mitgliedschaft, funktioniert nur �
 
 Von Haus aus kann jeder, der die Anmeldeseite erreicht, ein Konto anlegen, und Konten ohne Workspace können einen eigenen beginnen. Du kannst das enger fassen:
 
-| Du willst …                                                                           | Einstellung                                                                                                                                                                                                                                                                                  |
-| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Nur auf Einladung:** niemand kann sich selbst registrieren                          | `AUTH_REGISTRATION_ENABLED=false`. Menschen mit offener **E-Mail-Einladung** kommen weiterhin hinein, weil ihr Konto schon existiert. Ein Einladungs-_Link_ hilft nur Menschen, die schon ein Konto haben. Auf einem ganz neuen, leeren Server kann sich das erste Konto immer registrieren. |
-| Passkeys nur für bestehende Konten                                                    | `AUTH_PASSKEY_REGISTRATION_ENABLED=false`                                                                                                                                                                                                                                                    |
-| Gar keine Passkeys                                                                    | `AUTH_PASSKEY_LOGIN_ENABLED=false`, aber stelle vorher sicher, dass ein anderer Weg funktioniert                                                                                                                                                                                             |
-| Neue Konten sollen in einem bestehenden Workspace landen, nicht ihren eigenen anlegen | Schalte in den [Admin Einstellungen](platform.md) der Plattform das Anlegen von Workspaces aus und wähle einen Standard-Workspace.                                                                                                                                                           |
+| Du willst … | Einstellung |
+| --- | --- |
+| **Nur auf Einladung:** niemand kann sich selbst registrieren | `AUTH_REGISTRATION_ENABLED=false`. Menschen mit offener **E-Mail-Einladung** kommen weiterhin hinein, weil ihr Konto schon existiert. Ein Einladungs-_Link_ hilft nur Menschen, die schon ein Konto haben. Auf einem ganz neuen, leeren Server kann sich das erste Konto immer registrieren. |
+| Passkeys nur für bestehende Konten | `AUTH_PASSKEY_REGISTRATION_ENABLED=false` |
+| Gar keine Passkeys | `AUTH_PASSKEY_LOGIN_ENABLED=false`, aber stelle vorher sicher, dass ein anderer Weg funktioniert |
+| Neue Konten sollen in einem bestehenden Workspace landen, nicht ihren eigenen anlegen | Schalte in den [Admin Einstellungen](platform.md) der Plattform das Anlegen von Workspaces aus und wähle einen Standard-Workspace. |
 
 Eine Firmen-Domain kann außerdem von einem Workspace **beansprucht** werden, sodass alle mit passender Adresse beitreten, siehe [Workspace-Einstellungen](workspace.md).
 

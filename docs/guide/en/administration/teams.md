@@ -1,9 +1,8 @@
 ---
-
 title: "Teams"
 description: "Group people who work together, link the group to projects, and give them access in one step instead of person by person."
 sidebar:
-order: 3
+  order: 3
 ---
 
 A **team** is a named group of workspace members, for example "Mobile team" or "Customer support". It does two jobs: it shows at a glance **who works on what**, and it lets you **give access to a whole group at once**.

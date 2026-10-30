@@ -49,7 +49,7 @@ If you changed `prisma/schema.prisma`, the pull request contains the migration, 
 
 - **Biome** formats and lints. No ESLint, no Prettier. Do not fight it.
 - **TypeScript is strict.** No `any` to silence an error; narrow the type.
-- **Comments and docs are English.** A comment explains _why_: the constraint, the bug it prevents, the
+- **Comments and docs are English.** A comment explains *why*: the constraint, the bug it prevents, the
   decision. Do not narrate what the line does. Match the density of the surrounding code, which comments
   decisions generously.
 - **Follow the surrounding code:** naming, file layout, patterns. If you find a better pattern, change it
@@ -86,7 +86,7 @@ These are the things reviewers look for first:
 - [ ] Icons written as string literals, then `bun run icons:build`
 - [ ] Audit event and/or notification if it is the kind of thing that is audited or notified
 - [ ] The **user guide page** updated in `docs/guide/en/` **and** `docs/guide/de/`, with a refreshed screenshot
-  (see [`scripts/docs-shots/README.md`](../../scripts/docs-shots/README.md))
+      (see [`scripts/docs-shots/README.md`](../../scripts/docs-shots/README.md))
 - [ ] Tests
 
 ### A new permission

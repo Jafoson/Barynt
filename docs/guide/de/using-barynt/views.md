@@ -1,9 +1,8 @@
 ---
-
 title: "Views"
 description: "Speichere eine Kombination aus Filtern, Gruppierung und Layout unter einem Namen und öffne sie mit einem Klick wieder: für dich, für ein Projekt oder für den ganzen Workspace."
 sidebar:
-order: 6
+  order: 6
 ---
 
 Eine **View** ist eine gespeicherte Art, Aufgaben anzusehen. Sie merkt sich Filter, Gruppierung, Sortierung und Layout, sodass „alle offenen Bugs, nach Zuständigkeit gruppiert“ einen Klick entfernt ist statt fünf.
@@ -35,13 +34,13 @@ Es gibt zwei Wege:
 
 ![Der Dialog für eine neue View](../../assets/de/view-dialog.webp)
 
-| Feld                                                       | Was es bewirkt                                                                                                            |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **Name** und **Symbol**                                    | Woran man sie auf dem Tab und in Listen erkennt.                                                                          |
-| **Layout**                                                 | _Board_, _Liste_ oder _Dashboard_. Eine View kann sogar ein Dashboard mit Filter sein, siehe [Dashboards](dashboards.md). |
-| **Wo soll sie leben?**                                     | Im **Workspace** (Aufgaben aus jedem Projekt) oder in **einem Projekt**.                                                  |
-| **Wer sieht sie**                                          | _Nur ich_, _Alle im Projekt_ oder _Alle im Workspace_.                                                                    |
-| **Aktuelle Filter, Gruppierung und Sortierung übernehmen** | Beginnt mit dem, was gerade auf deinem Bildschirm steht.                                                                  |
+| Feld | Was es bewirkt |
+| --- | --- |
+| **Name** und **Symbol** | Woran man sie auf dem Tab und in Listen erkennt. |
+| **Layout** | _Board_, _Liste_ oder _Dashboard_. Eine View kann sogar ein Dashboard mit Filter sein, siehe [Dashboards](dashboards.md). |
+| **Wo soll sie leben?** | Im **Workspace** (Aufgaben aus jedem Projekt) oder in **einem Projekt**. |
+| **Wer sieht sie** | _Nur ich_, _Alle im Projekt_ oder _Alle im Workspace_. |
+| **Aktuelle Filter, Gruppierung und Sortierung übernehmen** | Beginnt mit dem, was gerade auf deinem Bildschirm steht. |
 
 > [!TIP]
 > Eine geteilte View ist ein guter Weg, sich auf Wörter zu einigen. „Bereit für QA“ bedeutet für alle denselben Filter, statt fünf leicht verschiedener.

@@ -1,9 +1,8 @@
 ---
-
 title: "The building blocks"
 description: "Workspaces, projects, issues, views, roles: the handful of words Barynt is built from, with an example."
 sidebar:
-order: 3
+  order: 3
 ---
 
 Barynt has only a few ideas, and they fit inside each other. Learn these words once and the rest of the guide reads easily.
@@ -20,15 +19,15 @@ The words in bold are explained below.
 
 ## Work
 
-| Word           | What it is                                                                                                                                                                |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Workspace**  | The home of a team. It has its own members, projects, teams, labels, roles and settings. One Barynt server can hold many workspaces, and they cannot see each other.      |
-| **Project**    | A group of related issues, with a short identifier such as `NIM`. Projects can be public (every workspace member is in) or private (only people you add).                 |
-| **Issue**      | One unit of work: a task, a bug, an idea. It has a title, a description, properties and a discussion. Its number is the project identifier plus a counter, like `NIM-12`. |
-| **Sub-issue**  | A smaller piece of a bigger issue. The parent shows how many are done, like 2/5.                                                                                          |
-| **Relation**   | A link between two issues: _blocks_, _is blocked by_, _relates to_, _is a duplicate of_.                                                                                  |
-| **Attachment** | A file or a link on an issue.                                                                                                                                             |
-| **Comment**    | A message in an issue's discussion. Others can reply to it and react with an emoji.                                                                                       |
+| Word | What it is |
+| --- | --- |
+| **Workspace** | The home of a team. It has its own members, projects, teams, labels, roles and settings. One Barynt server can hold many workspaces, and they cannot see each other. |
+| **Project** | A group of related issues, with a short identifier such as `NIM`. Projects can be public (every workspace member is in) or private (only people you add). |
+| **Issue** | One unit of work: a task, a bug, an idea. It has a title, a description, properties and a discussion. Its number is the project identifier plus a counter, like `NIM-12`. |
+| **Sub-issue** | A smaller piece of a bigger issue. The parent shows how many are done, like 2/5. |
+| **Relation** | A link between two issues: _blocks_, _is blocked by_, _relates to_, _is a duplicate of_. |
+| **Attachment** | A file or a link on an issue. |
+| **Comment** | A message in an issue's discussion. Others can reply to it and react with an emoji. |
 
 ## The properties of an issue
 
@@ -36,14 +35,14 @@ Every issue carries a few properties, and the same set is used across the worksp
 
 **Status** says where the issue stands:
 
-| Status      | Meaning                         |
-| ----------- | ------------------------------- |
-| Backlog     | Known, but not planned yet      |
-| Todo        | Planned, not started            |
-| In Progress | Someone is on it                |
-| In Review   | Done, waiting for a second look |
-| Done        | Finished                        |
-| Canceled    | Will not be done                |
+| Status | Meaning |
+| --- | --- |
+| Backlog | Known, but not planned yet |
+| Todo | Planned, not started |
+| In Progress | Someone is on it |
+| In Review | Done, waiting for a second look |
+| Done | Finished |
+| Canceled | Will not be done |
 
 **Priority** says how urgent it is: _No priority_, _Low_, _Medium_, _High_, _Urgent_.
 
@@ -58,23 +57,23 @@ Every issue carries a few properties, and the same set is used across the worksp
 
 ## Ways to look at the work
 
-| Word          | What it is                                                                                                                                              |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Board**     | Columns by status. Drag cards to move work forward.                                                                                                     |
-| **List**      | The same issues as rows, grouped and sorted as you like.                                                                                                |
-| **View**      | A saved combination of filters, grouping, order and layout, such as "Open bugs" or "Due this week". Private, for a project, or for the whole workspace. |
-| **Dashboard** | Numbers and charts for a project or the whole workspace. You arrange the widgets.                                                                       |
-| **My issues** | Everything assigned to you, across all projects.                                                                                                        |
-| **Inbox**     | The things that need your attention: assignments, mentions, replies.                                                                                    |
+| Word | What it is |
+| --- | --- |
+| **Board** | Columns by status. Drag cards to move work forward. |
+| **List** | The same issues as rows, grouped and sorted as you like. |
+| **View** | A saved combination of filters, grouping, order and layout, such as "Open bugs" or "Due this week". Private, for a project, or for the whole workspace. |
+| **Dashboard** | Numbers and charts for a project or the whole workspace. You arrange the widgets. |
+| **My issues** | Everything assigned to you, across all projects. |
+| **Inbox** | The things that need your attention: assignments, mentions, replies. |
 
 ## People and access
 
-| Word         | What it is                                                                                                                                                     |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Member**   | A person with access to a workspace.                                                                                                                           |
-| **Team**     | A named group of members, for example "Mobile team". Teams can be linked to projects so that their members get access together.                                |
-| **Role**     | A bundle of permissions, such as _Member_, _Admin_ or _Viewer_. Roles exist at three levels: for the workspace, for a single project and for the whole server. |
-| **Platform** | The server itself. A **platform administrator** looks after accounts, workspaces and server-wide settings, but cannot read anyone's issues.                    |
+| Word | What it is |
+| --- | --- |
+| **Member** | A person with access to a workspace. |
+| **Team** | A named group of members, for example "Mobile team". Teams can be linked to projects so that their members get access together. |
+| **Role** | A bundle of permissions, such as _Member_, _Admin_ or _Viewer_. Roles exist at three levels: for the workspace, for a single project and for the whole server. |
+| **Platform** | The server itself. A **platform administrator** looks after accounts, workspaces and server-wide settings, but cannot read anyone's issues. |
 
 The idea behind roles is simple: your **workspace role** says what you may do in the workspace itself, and your **project role** says what you may do inside one project. Read more in [Roles and permissions](../administration/roles.md).
 

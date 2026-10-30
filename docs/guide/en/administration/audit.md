@@ -1,9 +1,8 @@
 ---
-
 title: "Audit log and activity"
 description: "A trustworthy record of who did what and when: sign-ins, role changes, deletions and everyday changes to issues."
 sidebar:
-order: 9
+  order: 9
 ---
 
 When something goes wrong, or someone simply asks "who changed this?", the audit log has the answer. It records **who** did **what**, **when**, and, where it applies, **why**. Entries cannot be edited from within Barynt.
@@ -14,12 +13,12 @@ When something goes wrong, or someone simply asks "who changed this?", the audit
 
 The same log is shown in four places, each with its own permission:
 
-| Where                             | What it shows                                                        | Who sees it                     |
-| --------------------------------- | -------------------------------------------------------------------- | ------------------------------- |
-| **Issue → Activity tab**          | The changes on that one issue.                                       | Everyone who can see the issue. |
-| **Project settings → Activity**   | Everything that happened in the project.                             | Project admins.                 |
-| **Workspace settings → Activity** | Everything in the workspace.                                         | Owners, admins and managers.    |
-| **Admin → Audit log**             | Server-wide events: sign-ins, platform roles, workspace suspensions. | Platform administrators.        |
+| Where | What it shows | Who sees it |
+| --- | --- | --- |
+| **Issue → Activity tab** | The changes on that one issue. | Everyone who can see the issue. |
+| **Project settings → Activity** | Everything that happened in the project. | Project admins. |
+| **Workspace settings → Activity** | Everything in the workspace. | Owners, admins and managers. |
+| **Admin → Audit log** | Server-wide events: sign-ins, platform roles, workspace suspensions. | Platform administrators. |
 
 Every list has an **Event** filter and the switch **Interventions only**, which hides the everyday noise and keeps only the entries that matter for security.
 

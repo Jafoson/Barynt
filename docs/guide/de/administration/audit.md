@@ -1,9 +1,8 @@
 ---
-
 title: "Audit-Log und Aktivität"
 description: "Eine verlässliche Aufzeichnung, wer wann was getan hat: Anmeldungen, Rollenänderungen, Löschungen und alltägliche Änderungen an Aufgaben."
 sidebar:
-order: 9
+  order: 9
 ---
 
 Wenn etwas schiefgeht oder jemand einfach fragt „Wer hat das geändert?“, hat das Audit-Log die Antwort. Es zeichnet auf, **wer** **was** **wann** getan hat und, wo es passt, **warum**. Einträge lassen sich innerhalb von Barynt nicht bearbeiten.
@@ -14,12 +13,12 @@ Wenn etwas schiefgeht oder jemand einfach fragt „Wer hat das geändert?“, ha
 
 Dasselbe Protokoll wird an vier Stellen gezeigt, jede mit eigener Berechtigung:
 
-| Wo                                      | Was es zeigt                                                              | Wer es sieht                        |
-| --------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------- |
-| **Aufgabe → Tab Aktivität**             | Die Änderungen an dieser einen Aufgabe.                                   | Alle, die die Aufgabe sehen können. |
-| **Projekteinstellungen → Aktivität**    | Alles, was im Projekt passiert ist.                                       | Project Admins.                     |
-| **Workspace Einstellungen → Aktivität** | Alles im Workspace.                                                       | Owner, Admins und Manager.          |
-| **Admin → Protokoll**                   | Serverweite Ereignisse: Anmeldungen, Plattform-Rollen, Workspace-Sperren. | Plattform-Administration.           |
+| Wo | Was es zeigt | Wer es sieht |
+| --- | --- | --- |
+| **Aufgabe → Tab Aktivität** | Die Änderungen an dieser einen Aufgabe. | Alle, die die Aufgabe sehen können. |
+| **Projekteinstellungen → Aktivität** | Alles, was im Projekt passiert ist. | Project Admins. |
+| **Workspace Einstellungen → Aktivität** | Alles im Workspace. | Owner, Admins und Manager. |
+| **Admin → Protokoll** | Serverweite Ereignisse: Anmeldungen, Plattform-Rollen, Workspace-Sperren. | Plattform-Administration. |
 
 Jede Liste hat einen **Ereignis**-Filter und den Schalter **Nur Eingriffe**, der den Alltagslärm ausblendet und nur die Einträge behält, die für die Sicherheit zählen.
 

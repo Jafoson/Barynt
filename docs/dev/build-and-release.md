@@ -1,7 +1,7 @@
 # Build, release and operations
 
 How Barynt becomes an image, a Helm chart and a GitHub release, and what runs in CI. For
-_operating_ an installation (installing, upgrading, backups) see the user guide's
+*operating* an installation (installing, upgrading, backups) see the user guide's
 [Install](../guide/en/getting-started/install.md), [Manage](../guide/en/getting-started/manage.md),
 [Docker Compose](../guide/en/getting-started/compose.md) and
 [Helm](../guide/en/getting-started/helm.md) pages.
@@ -10,12 +10,12 @@ _operating_ an installation (installing, upgrading, backups) see the user guide'
 
 [`Dockerfile`](../../Dockerfile), one image for everything. Its stages:
 
-| Stage          | Job                                                                                                                                                                            |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `deps`         | `bun install --frozen-lockfile` (cached while `package.json` and `bun.lock` do not change).                                                                                    |
-| `builder`      | `prisma generate`, then `next build`, with **placeholder** `DATABASE_URL` and `AUTH_SECRET`. No page is generated against the database; real values arrive at container start. |
-| `migrate-deps` | An isolated install of the Prisma CLI and engines under `/opt/migrate`, from `docker/migrate/package.json` and `bun.lock`.                                                     |
-| `runner`       | Next's **standalone** output (`output: "standalone"` in `next.config.ts`) plus the isolated migration set. Small, about 460 MB.                                                |
+| Stage | Job |
+| --- | --- |
+| `deps` | `bun install --frozen-lockfile` (cached while `package.json` and `bun.lock` do not change). |
+| `builder` | `prisma generate`, then `next build`, with **placeholder** `DATABASE_URL` and `AUTH_SECRET`. No page is generated against the database; real values arrive at container start. |
+| `migrate-deps` | An isolated install of the Prisma CLI and engines under `/opt/migrate`, from `docker/migrate/package.json` and `bun.lock`. |
+| `runner` | Next's **standalone** output (`output: "standalone"` in `next.config.ts`) plus the isolated migration set. Small, about 460 MB. |
 
 Things that are easy to break:
 
@@ -51,14 +51,14 @@ migration once. **Changing the image tag is the whole update.** There is no sepa
 
 ### Health
 
-| Endpoint           | Means                                                                                                | Used for                                                                                                                                                    |
-| ------------------ | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/api/health`      | **Readiness**: the database answers within 3 seconds. Public, returns `status`, `version`, `checks`. | The installer, the compose health check, the Helm readiness and startup probes.                                                                             |
-| `/api/health/live` | **Liveness**: the process answers. Touches nothing else.                                             | The Helm liveness probe. A liveness check that included the database would make Kubernetes restart every pod during a database outage, which fixes nothing. |
+| Endpoint | Means | Used for |
+| --- | --- | --- |
+| `/api/health` | **Readiness**: the database answers within 3 seconds. Public, returns `status`, `version`, `checks`. | The installer, the compose health check, the Helm readiness and startup probes. |
+| `/api/health/live` | **Liveness**: the process answers. Touches nothing else. | The Helm liveness probe. A liveness check that included the database would make Kubernetes restart every pod during a database outage, which fixes nothing. |
 
 ## Compose
 
-[`docker-compose.yml`](../../docker-compose.yml) is one file for development _and_ production, split
+[`docker-compose.yml`](../../docker-compose.yml) is one file for development *and* production, split
 by **profiles**:
 
 - No profile: `postgres` and `redis`. This is what `bun run db:up` starts; the app runs on the host.
@@ -74,22 +74,22 @@ reasons are commented in the file and in `example.env`.
 
 All in [`.github/workflows/`](../../.github/workflows/).
 
-| Workflow           | Runs on                              | Does                                                                                                             |
-| ------------------ | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| `tests.yml`        | every push, PRs to `main`            | Lint and typecheck, then `bun run test` and the summary.                                                         |
-| `security.yml`     | `main`, PRs, every Monday            | CodeQL, dependency review, Gitleaks, a Trivy filesystem scan, OpenSSF Scorecard.                                 |
-| `installer.yml`    | changes to the installer             | `shellcheck`, the shell tests under `dash` and `bash`, and a real install in CI.                                 |
-| `helm-lint.yml`    | changes to the chart                 | `helm lint` and rendering checks.                                                                                |
+| Workflow | Runs on | Does |
+| --- | --- | --- |
+| `tests.yml` | every push, PRs to `main` | Lint and typecheck, then `bun run test` and the summary. |
+| `security.yml` | `main`, PRs, every Monday | CodeQL, dependency review, Gitleaks, a Trivy filesystem scan, OpenSSF Scorecard. |
+| `installer.yml` | changes to the installer | `shellcheck`, the shell tests under `dash` and `bash`, and a real install in CI. |
+| `helm-lint.yml` | changes to the chart | `helm lint` and rendering checks. |
 | `docker-build.yml` | by hand, and called by `release.yml` | Builds per platform, scans with Trivy, pushes by digest, merges the manifest and signs it with cosign (keyless). |
-| `helm-release.yml` | by hand, and called by `release.yml` | Lints, packages and pushes the signed chart as an OCI artifact.                                                  |
-| `release.yml`      | by hand                              | The release, below.                                                                                              |
+| `helm-release.yml` | by hand, and called by `release.yml` | Lints, packages and pushes the signed chart as an OCI artifact. |
+| `release.yml` | by hand | The release, below. |
 
 Dependabot (`.github/dependabot.yml`) opens weekly updates for npm, GitHub Actions and Docker. Dev
 dependencies are grouped. Merge them with a full test run, especially anything near Bun, Next or Prisma.
 
 ## Releasing
 
-A release is **started by hand**: Actions → **Release** → _Run workflow_ from `main`. Run it first without
+A release is **started by hand**: Actions → **Release** → *Run workflow* from `main`. Run it first without
 `publish` and read the preview in the job summary. The full procedure and inputs are in
 [`releases/README.md`](../../releases/README.md); in short, a published run:
 

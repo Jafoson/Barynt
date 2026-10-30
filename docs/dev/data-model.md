@@ -11,18 +11,18 @@ Components, Server Functions and route handlers, never in a client component.
 
 ## The model in groups
 
-| Group                        | Models                                                                                                                    | What they are                                                                                                                                                                                          |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Tenancy**                  | `Workspace`, `WorkspaceDomain`, `WorkspaceLink`, `SystemSettings`                                                         | A workspace is a tenant. `suspended` locks it without deleting. A domain claimed by a workspace lets matching sign-ups join automatically. `SystemSettings` is a single row of platform-wide switches. |
-| **People**                   | `User`, `Account`, `Session`, `VerificationToken`, `Authenticator`                                                        | The person and how they sign in: OAuth accounts, magic-link tokens, passkeys (`Authenticator`).                                                                                                        |
-| **Membership**               | `WorkspaceMember`, `Project`, `ProjectMember`, `Team`, `TeamMember`, `TeamProject`, `Invitation`, `InviteLink`            | Who is in which workspace and project, with which role. `ProjectMember` is the access decision for a project: no row, no access.                                                                       |
-| **Roles**                    | `Role`, `Permission`, `RolePermission`                                                                                    | The permission registry and role bundles. See [Permissions](permissions.md).                                                                                                                           |
-| **Work**                     | `Issue`, `IssueRelation`, `Comment`, `CommentReaction`, `Attachment`, `Label`, `ProjectHiddenLabel`                       | The issues and what hangs off them.                                                                                                                                                                    |
-| **Workflow vocabulary**      | `Status`, `Priority`, `IssueType` and their `Workspace*` join tables, `IssueStatusEvent`                                  | The statuses, priorities and types, shared across workspaces.                                                                                                                                          |
-| **Views and personal state** | `SavedView`, `SavedViewUserState`, `IssueViewPreference`, `MyIssuesViewPreference`, `ProjectUserState`, `UserPreferences` | Saved views and how each person arranged the app.                                                                                                                                                      |
-| **Dashboards**               | `DashboardPreference`, `WorkspaceDashboardPreference`, `DashboardLayout`, `CustomWidget`, `DashboardNote`                 | Widget layouts and custom widgets.                                                                                                                                                                     |
-| **Integrations**             | `ApiKey`, `OAuthClient`, `OAuthAuthorizationCode`, `OAuthAccessToken`, `OAuthRefreshToken`, `Webhook`                     | API keys, the OAuth server for MCP, outgoing webhooks.                                                                                                                                                 |
-| **Operations**               | `Notification`, `AuditLog`, `MailTemplate`                                                                                | The inbox, the audit trail, admin-edited mail templates.                                                                                                                                               |
+| Group | Models | What they are |
+| --- | --- | --- |
+| **Tenancy** | `Workspace`, `WorkspaceDomain`, `WorkspaceLink`, `SystemSettings` | A workspace is a tenant. `suspended` locks it without deleting. A domain claimed by a workspace lets matching sign-ups join automatically. `SystemSettings` is a single row of platform-wide switches. |
+| **People** | `User`, `Account`, `Session`, `VerificationToken`, `Authenticator` | The person and how they sign in: OAuth accounts, magic-link tokens, passkeys (`Authenticator`). |
+| **Membership** | `WorkspaceMember`, `Project`, `ProjectMember`, `Team`, `TeamMember`, `TeamProject`, `Invitation`, `InviteLink` | Who is in which workspace and project, with which role. `ProjectMember` is the access decision for a project: no row, no access. |
+| **Roles** | `Role`, `Permission`, `RolePermission` | The permission registry and role bundles. See [Permissions](permissions.md). |
+| **Work** | `Issue`, `IssueRelation`, `Comment`, `CommentReaction`, `Attachment`, `Label`, `ProjectHiddenLabel` | The issues and what hangs off them. |
+| **Workflow vocabulary** | `Status`, `Priority`, `IssueType` and their `Workspace*` join tables, `IssueStatusEvent` | The statuses, priorities and types, shared across workspaces. |
+| **Views and personal state** | `SavedView`, `SavedViewUserState`, `IssueViewPreference`, `MyIssuesViewPreference`, `ProjectUserState`, `UserPreferences` | Saved views and how each person arranged the app. |
+| **Dashboards** | `DashboardPreference`, `WorkspaceDashboardPreference`, `DashboardLayout`, `CustomWidget`, `DashboardNote` | Widget layouts and custom widgets. |
+| **Integrations** | `ApiKey`, `OAuthClient`, `OAuthAuthorizationCode`, `OAuthAccessToken`, `OAuthRefreshToken`, `Webhook` | API keys, the OAuth server for MCP, outgoing webhooks. |
+| **Operations** | `Notification`, `AuditLog`, `MailTemplate` | The inbox, the audit trail, admin-edited mail templates. |
 
 ## Ideas that shape the schema
 
@@ -99,11 +99,11 @@ Always do all three steps. Doing one alone breaks something.
 
 ## Seed and bootstrap
 
-|             | `prisma/bootstrap.ts`                                                                                             | `prisma/seed.ts`                                                                         |
-| ----------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Purpose     | What every installation needs: the global statuses, priorities and types, the shared permissions and system roles | Demo data for development: the Nimbus workspace, people for every role, projects, issues |
-| Destructive | No, idempotent (upserts and `skipDuplicates`)                                                                     | **Yes**, deletes every row first                                                         |
-| Runs        | At every start of the app container, and from `bun run db:up`                                                     | `bun run db:dev`, `db:seed`, `db:reset`                                                  |
+| | `prisma/bootstrap.ts` | `prisma/seed.ts` |
+| --- | --- | --- |
+| Purpose | What every installation needs: the global statuses, priorities and types, the shared permissions and system roles | Demo data for development: the Nimbus workspace, people for every role, projects, issues |
+| Destructive | No, idempotent (upserts and `skipDuplicates`) | **Yes**, deletes every row first |
+| Runs | At every start of the app container, and from `bun run db:up` | `bun run db:dev`, `db:seed`, `db:reset` |
 
 `seed.ts` calls the bootstrap instead of duplicating it, so the two cannot drift.
 If you add global vocabulary or a system role, it goes into the bootstrap path.

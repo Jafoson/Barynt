@@ -1,9 +1,8 @@
 ---
-
 title: "Teams"
 description: "Gruppiere Menschen, die zusammenarbeiten, verknüpfe die Gruppe mit Projekten und gib ihr Zugriff in einem Schritt statt Person für Person."
 sidebar:
-order: 3
+  order: 3
 ---
 
 Ein **Team** ist eine benannte Gruppe von Workspace-Mitgliedern, zum Beispiel „Mobile-Team“ oder „Kundensupport“. Es erledigt zwei Aufgaben: Es zeigt auf einen Blick, **wer woran arbeitet**, und es lässt dich **einer ganzen Gruppe auf einmal Zugriff geben**.

@@ -7,18 +7,18 @@ codebase and one process.
 
 ## The stack
 
-| Part                | Choice                             | Notes                                                                                                                                                                           |
-| ------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework           | Next.js 16 (App Router), React 19  | Server Components by default. This Next.js differs from older versions, read `node_modules/next/dist/docs/` before writing framework code (see [`AGENTS.md`](../../AGENTS.md)). |
-| Language            | TypeScript                         | Strict. `bun x tsc --noEmit` runs in CI.                                                                                                                                        |
-| Database            | PostgreSQL through Prisma 7        | The client is generated into `lib/generated/prisma` and talks to Postgres through the `pg` driver adapter.                                                                      |
-| Auth                | Auth.js (next-auth v5)             | Passkeys, OAuth/OIDC, magic links. JWT sessions.                                                                                                                                |
-| Styling             | SCSS Modules                       | No Tailwind.                                                                                                                                                                    |
-| Rich text           | Tiptap / ProseMirror               | Documents are stored as JSON.                                                                                                                                                   |
-| Rate limiting       | Redis (ioredis)                    | Only for the API and MCP keys.                                                                                                                                                  |
-| Files               | S3-compatible, through `aws4fetch` | Optional.                                                                                                                                                                       |
-| i18n                | next-intl                          | English and German, locale prefix always in the URL.                                                                                                                            |
-| Runtime and tooling | Bun, Biome                         | Bun installs and runs scripts and tests; the production image runs the Next standalone server.                                                                                  |
+| Part | Choice | Notes |
+| --- | --- | --- |
+| Framework | Next.js 16 (App Router), React 19 | Server Components by default. This Next.js differs from older versions, read `node_modules/next/dist/docs/` before writing framework code (see [`AGENTS.md`](../../AGENTS.md)). |
+| Language | TypeScript | Strict. `bun x tsc --noEmit` runs in CI. |
+| Database | PostgreSQL through Prisma 7 | The client is generated into `lib/generated/prisma` and talks to Postgres through the `pg` driver adapter. |
+| Auth | Auth.js (next-auth v5) | Passkeys, OAuth/OIDC, magic links. JWT sessions. |
+| Styling | SCSS Modules | No Tailwind. |
+| Rich text | Tiptap / ProseMirror | Documents are stored as JSON. |
+| Rate limiting | Redis (ioredis) | Only for the API and MCP keys. |
+| Files | S3-compatible, through `aws4fetch` | Optional. |
+| i18n | next-intl | English and German, locale prefix always in the URL. |
+| Runtime and tooling | Bun, Biome | Bun installs and runs scripts and tests; the production image runs the Next standalone server. |
 
 ## Folder layout
 
@@ -57,7 +57,7 @@ Take the project board, `app/[locale]/(default)/[workspace]/project/[projectSlug
 
 1. **`proxy.ts`** (Next's middleware slot) runs first. It sends visitors without
    a session to the login page and lets `next-intl` add the locale prefix.
-   `/api` is _outside_ its matcher, so route handlers there authenticate
+   `/api` is *outside* its matcher, so route handlers there authenticate
    themselves.
 2. **The layout** (`[workspace]/layout.tsx`) puts the workspace id from the URL
    into a request-scoped store (`lib/current-workspace.ts`), loads the session,
@@ -66,7 +66,7 @@ Take the project board, `app/[locale]/(default)/[workspace]/project/[projectSlug
 3. **The page** is an async Server Component. It awaits `params`/`searchParams`
    (they are Promises in this Next.js), calls **queries** in `features/*/queries.ts`
    (often with `Promise.all`), and hands plain data to components.
-4. **Queries** check access themselves and fail _empty_, never with an exception.
+4. **Queries** check access themselves and fail *empty*, never with an exception.
    `React.cache()` deduplicates calls within one request, so the layout and a
    page can both ask for the same thing.
 5. **Components** that need interactivity are Client Components (`"use client"`)
@@ -90,16 +90,16 @@ All changes made by the UI are **Server Functions** (`"use server"` in
 
 The REST API and the MCP server do **not** reimplement this. Both call the same
 functions in `features/api-v1/` (`*ForUser` queries and mutations), so the two
-surfaces cannot drift on _what_ a request does, only on transport. See
+surfaces cannot drift on *what* a request does, only on transport. See
 [API and MCP internals](api-and-mcp.md).
 
 ## Three ways in, one rule set
 
-| Entry       | Authenticates with                    | Where it checks permissions                                                                                     |
-| ----------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| The web app | The Auth.js session cookie            | In each query and Server Function.                                                                              |
-| `/api/v1/*` | `Authorization: Bearer bry_…` API key | The route checks key, rate limit and _scope_, then the `*ForUser` function checks the person's own permissions. |
-| `/api/mcp`  | An API key or an OAuth access token   | Per tool, the same way.                                                                                         |
+| Entry | Authenticates with | Where it checks permissions |
+| --- | --- | --- |
+| The web app | The Auth.js session cookie | In each query and Server Function. |
+| `/api/v1/*` | `Authorization: Bearer bry_…` API key | The route checks key, rate limit and *scope*, then the `*ForUser` function checks the person's own permissions. |
+| `/api/mcp` | An API key or an OAuth access token | Per tool, the same way. |
 
 A scope on a key only ever **narrows** what its owner may do. There is no second
 permission system.

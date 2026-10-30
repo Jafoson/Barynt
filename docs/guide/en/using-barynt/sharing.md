@@ -1,9 +1,8 @@
 ---
-
 title: "Sharing an issue"
 description: "Show an issue to someone without an account, or hand it directly to a colleague: a read-only public link, an email, or a message inside Barynt."
 sidebar:
-order: 10
+  order: 10
 ---
 
 Sometimes the person who needs to see an issue is not in your workspace: a client who reported a bug, a freelancer, a manager from another department. Barynt has three ways to share, from open to private.
@@ -38,8 +37,8 @@ Choose **Share by email**, type an address and send. The recipient gets an email
 
 ## Which one to use
 
-| You want to…                                 | Use                                                                   |
-| -------------------------------------------- | --------------------------------------------------------------------- |
-| Show an issue to someone outside, once       | **Public link**, then turn it off                                     |
-| Get a teammate's attention without assigning | **Share with a workspace member**                                     |
-| Let an external person take part over time   | [Invite them to the project as a guest](../administration/members.md) |
+| You want to… | Use |
+| --- | --- |
+| Show an issue to someone outside, once | **Public link**, then turn it off |
+| Get a teammate's attention without assigning | **Share with a workspace member** |
+| Let an external person take part over time | [Invite them to the project as a guest](../administration/members.md) |

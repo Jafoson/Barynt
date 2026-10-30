@@ -1,9 +1,8 @@
 ---
-
 title: "MCP server: connect an AI assistant"
 description: "Let Claude, ChatGPT, Cursor and other AI assistants read and update your issues, signing in as you, with your permissions and no key to copy."
 sidebar:
-order: 1
+  order: 1
 ---
 
 Barynt has a built-in **MCP server**. MCP, the _Model Context Protocol_, is the standard way for AI assistants to use other tools. Once connected, you can talk to your issue tracker in plain language, from inside the assistant you already use.
@@ -72,18 +71,18 @@ Keep the key in an environment variable, not in a file you share.
 
 37 tools, one for each thing you can do in the app. Each checks your permissions first. Every tool, with its scope and arguments, is listed in the **[MCP tools reference](../api-reference/mcp-tools.md)**.
 
-| Area            | Tools                                                                                                                                                               |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Workspaces**  | list, create, update, delete                                                                                                                                        |
-| **Projects**    | list, create, update, delete                                                                                                                                        |
-| **Members**     | list the members of a workspace or a project                                                                                                                        |
-| **Issues**      | list (with filters, text search and saved views), read one, create, update (title, description, status, priority, type, assignee, labels, dates, estimates, parent) |
-| **Relations**   | add and remove (blocks, relates to, duplicate of)                                                                                                                   |
-| **Comments**    | list, create, update, delete                                                                                                                                        |
-| **Attachments** | list, read (images and text files directly), add files and links, delete                                                                                            |
-| **Labels**      | list, create, update, delete                                                                                                                                        |
-| **Views**       | list, read, create, update, delete                                                                                                                                  |
-| **Options**     | list statuses, priorities and issue types                                                                                                                           |
+| Area | Tools |
+| --- | --- |
+| **Workspaces** | list, create, update, delete |
+| **Projects** | list, create, update, delete |
+| **Members** | list the members of a workspace or a project |
+| **Issues** | list (with filters, text search and saved views), read one, create, update (title, description, status, priority, type, assignee, labels, dates, estimates, parent) |
+| **Relations** | add and remove (blocks, relates to, duplicate of) |
+| **Comments** | list, create, update, delete |
+| **Attachments** | list, read (images and text files directly), add files and links, delete |
+| **Labels** | list, create, update, delete |
+| **Views** | list, read, create, update, delete |
+| **Options** | list statuses, priorities and issue types |
 
 ### What to say
 
@@ -110,13 +109,13 @@ For the curious and for people setting up a client by hand.
 
 ### The OAuth sign-in in detail
 
-| Step         | What happens                                                                                                                                                                                |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Discovery    | `GET /.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server` tell the app where everything is.                                                                 |
-| Registration | The app registers itself (dynamic client registration, `POST /api/oauth/register`), as a public client without a secret.                                                                    |
-| Consent      | The app opens Barynt's sign-in and consent page, with **PKCE** (`S256`, required). It asks for scopes; without a request, it may ask for all. You see what it asks for and click **Allow**. |
-| Token        | The app trades the one-time code (valid ten minutes) for an **access token** (valid **one hour**) and a **refresh token** (valid **30 days**).                                              |
-| Renewal      | The app renews the access token on its own. A refresh token works once and is replaced by a new one every time; if an old one is used again, the whole grant is revoked.                    |
+| Step | What happens |
+| --- | --- |
+| Discovery | `GET /.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server` tell the app where everything is. |
+| Registration | The app registers itself (dynamic client registration, `POST /api/oauth/register`), as a public client without a secret. |
+| Consent | The app opens Barynt's sign-in and consent page, with **PKCE** (`S256`, required). It asks for scopes; without a request, it may ask for all. You see what it asks for and click **Allow**. |
+| Token | The app trades the one-time code (valid ten minutes) for an **access token** (valid **one hour**) and a **refresh token** (valid **30 days**). |
+| Renewal | The app renews the access token on its own. A refresh token works once and is replaced by a new one every time; if an old one is used again, the whole grant is revoked. |
 
 A token can never do more than your roles allow, and only within the scopes granted.
 
@@ -144,14 +143,14 @@ Replace `tools/call` and `params` with `tools/list` to see all tools and their i
 
 ## When it does not work
 
-| What you see                       | Likely cause                                                                                                                                            |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The app cannot connect at all      | Barynt is not reachable from the internet over HTTPS (Claude and ChatGPT connect from their cloud), or the address is wrong. It must end in `/api/mcp`. |
-| The sign-in does not open or fails | The browser blocked the window, or you typed a different address than the one on the MCP settings page. Use the address shown there.                    |
-| `insufficient_scope`               | The key or token was granted fewer scopes than the call needs. Create a new key with the scope, or connect the app again.                               |
-| `not_found`                        | The id is wrong, or the item is not visible to you. Barynt answers the same either way. Ask the assistant to look the item up again.                    |
-| `rate_limited`                     | More than 120 requests a minute. The assistant waits and continues, or ask it to work in smaller steps.                                                 |
-| New tools or fields are missing    | Start a **new chat**: apps read the tool list when a chat begins.                                                                                       |
+| What you see | Likely cause |
+| --- | --- |
+| The app cannot connect at all | Barynt is not reachable from the internet over HTTPS (Claude and ChatGPT connect from their cloud), or the address is wrong. It must end in `/api/mcp`. |
+| The sign-in does not open or fails | The browser blocked the window, or you typed a different address than the one on the MCP settings page. Use the address shown there. |
+| `insufficient_scope` | The key or token was granted fewer scopes than the call needs. Create a new key with the scope, or connect the app again. |
+| `not_found` | The id is wrong, or the item is not visible to you. Barynt answers the same either way. Ask the assistant to look the item up again. |
+| `rate_limited` | More than 120 requests a minute. The assistant waits and continues, or ask it to work in smaller steps. |
+| New tools or fields are missing | Start a **new chat**: apps read the tool list when a chat begins. |
 
 ## How the sign-in works (for the curious)
 

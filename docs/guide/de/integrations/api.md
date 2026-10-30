@@ -1,9 +1,8 @@
 ---
-
 title: "REST-API: Anmeldung und Grundlagen"
 description: "Verbinde Skripte, Berichte und andere Werkzeuge mit Barynt: API-Schlüssel und Scopes, wie Anfragen und Antworten aussehen, Fehler, Limits, Seiten, dazu Schnellstart und Rezepte."
 sidebar:
-order: 2
+  order: 2
 ---
 
 Die **REST-API** lässt andere Software lesen und ändern, was in Barynt steckt: eine Aufgabe anlegen, wenn ein Kunde ein Formular abschickt, Zahlen in einen Bericht ziehen, eine Tabelle synchron halten. Es sind dieselben Daten und dieselben Regeln wie in der App.
@@ -44,24 +43,24 @@ Ein Schlüssel beginnt mit `bry_`. Barynt speichert nur einen Fingerabdruck davo
 
 Ein Scope ist ein Paar aus „was“ und „lesen oder schreiben“. Ein Aufruf braucht den richtigen Scope **und** die Berechtigung, die sein Besitzer in der App hat: Ein Scope gibt nie mehr, als du hast, er schränkt nur ein, was der Schlüssel darf.
 
-| Scope                                  | Erlaubt                                                                                                                           |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `issues:read` / `issues:write`         | Issues, Beziehungen und Anhänge lesen. Issues anlegen, ändern und verschieben, Beziehungen und Anhänge hinzufügen oder entfernen. |
-| `comments:read` / `comments:write`     | Kommentare lesen und schreiben.                                                                                                   |
-| `labels:read` / `labels:write`         | Labels lesen, anlegen, ändern und löschen.                                                                                        |
-| `projects:read` / `projects:write`     | Projekte lesen. Sie anlegen, ändern und löschen.                                                                                  |
-| `workspaces:read` / `workspaces:write` | Die Workspaces, Status, Prioritäten und Typen lesen. Workspaces anlegen, ändern und löschen.                                      |
-| `members:read`                         | Die Mitglieder von Workspaces und Projekten lesen. Es gibt keinen Schreib-Scope: Personen hinzuzufügen geht in der App.           |
-| `views:read` / `views:write`           | Gespeicherte Views lesen und verwalten. Für die Issues einer View braucht es zusätzlich `issues:read`.                            |
+| Scope | Erlaubt |
+| --- | --- |
+| `issues:read` / `issues:write` | Issues, Beziehungen und Anhänge lesen. Issues anlegen, ändern und verschieben, Beziehungen und Anhänge hinzufügen oder entfernen. |
+| `comments:read` / `comments:write` | Kommentare lesen und schreiben. |
+| `labels:read` / `labels:write` | Labels lesen, anlegen, ändern und löschen. |
+| `projects:read` / `projects:write` | Projekte lesen. Sie anlegen, ändern und löschen. |
+| `workspaces:read` / `workspaces:write` | Die Workspaces, Status, Prioritäten und Typen lesen. Workspaces anlegen, ändern und löschen. |
+| `members:read` | Die Mitglieder von Workspaces und Projekten lesen. Es gibt keinen Schreib-Scope: Personen hinzuzufügen geht in der App. |
+| `views:read` / `views:write` | Gespeicherte Views lesen und verwalten. Für die Issues einer View braucht es zusätzlich `issues:read`. |
 
 Bei jedem Aufruf in der Referenz steht, welchen Scope er braucht. Ein paar typische Zusammenstellungen:
 
-| Für                                | Scopes                                                          |
-| ---------------------------------- | --------------------------------------------------------------- |
-| Ein Formular, das Issues anlegt    | `issues:write` (und `projects:read`, um das Projekt zu finden)  |
-| Ein reiner Lese-Bericht            | `issues:read`, `projects:read`, `workspaces:read`               |
-| Ein Deploy-Skript, das kommentiert | `comments:write`                                                |
-| Ein vollständiger Abgleich         | alle Lese-Scopes plus die Schreib-Scopes dessen, was du änderst |
+| Für | Scopes |
+| --- | --- |
+| Ein Formular, das Issues anlegt | `issues:write` (und `projects:read`, um das Projekt zu finden) |
+| Ein reiner Lese-Bericht | `issues:read`, `projects:read`, `workspaces:read` |
+| Ein Deploy-Skript, das kommentiert | `comments:write` |
+| Ein vollständiger Abgleich | alle Lese-Scopes plus die Schreib-Scopes dessen, was du änderst |
 
 ## Schnellstart
 
@@ -79,11 +78,7 @@ curl "$BARYNT_URL/api/v1/workspaces" -H "Authorization: Bearer $BARYNT_API_KEY"
 ```
 
 ```json
-{
-  "data": [
-    { "id": "acme", "name": "Acme Inc", "color": "#6e63e6", "avatarUrl": null }
-  ]
-}
+{ "data": [{ "id": "acme", "name": "Acme Inc", "color": "#6e63e6", "avatarUrl": null }] }
 ```
 
 **2. Das Projekt finden:**
@@ -117,17 +112,14 @@ curl -X POST "$BARYNT_URL/api/v1/issues/WEB-42/comments" \
 Das ist schon die ganze Idee; alles andere funktioniert genauso. Dasselbe in JavaScript:
 
 ```js
-const res = await fetch(
-  `${process.env.BARYNT_URL}/api/v1/projects/proj_9f8e7d/issues`,
-  {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.BARYNT_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ title: "Checkout kaputt", priority: 2 }),
+const res = await fetch(`${process.env.BARYNT_URL}/api/v1/projects/proj_9f8e7d/issues`, {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.BARYNT_API_KEY}`,
+    "Content-Type": "application/json",
   },
-);
+  body: JSON.stringify({ title: "Checkout kaputt", priority: 2 }),
+});
 if (!res.ok) throw new Error(`Barynt antwortete ${res.status}`);
 const { data: issue } = await res.json();
 console.log(issue.ref); // "WEB-42"
@@ -171,17 +163,17 @@ Fehler tragen den passenden HTTP-Status und meist einen kurzen, maschinenlesbare
 { "error": { "code": "insufficient_scope" } }
 ```
 
-| Status  | Code                          | Bedeutung                                                                                                                                                                   |
-| ------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **401** | `unauthorized`                | Der Schlüssel fehlt, ist falsch, widerrufen oder abgelaufen, oder sein Besitzer ist deaktiviert.                                                                            |
-| **403** | `insufficient_scope`          | Dem Schlüssel fehlt der Scope, den dieser Aufruf braucht.                                                                                                                   |
-| **403** | `forbidden`                   | Du darfst das Ding sehen, aber nicht ändern (zum Beispiel eine geteilte View von jemand anderem).                                                                           |
-| **403** | `workspace_creation_disabled` | Der Administrator hat das Anlegen von Workspaces abgeschaltet.                                                                                                              |
-| **404** | keiner (der Body ist `null`)  | Es existiert nicht, **oder du darfst es nicht sehen**. Barynt sagt bewusst nicht, was von beidem.                                                                           |
-| **422** | `invalid_body`                | Der Body fehlt, ist kein JSON, oder ein Feld ist falsch.                                                                                                                    |
-| **422** | `invalid_filter`              | Der Parameter `filter` ist kein gültiger Filter.                                                                                                                            |
-| **422** | ein genauer Code              | Manche Aufrufe nennen den Grund, mit einer `message`: Anhänge nutzen `invalid_source`, `invalid_url`, `invalid_name`, `invalid_content`, `too_large` und `upload_rejected`. |
-| **429** | `rate_limited`                | Zu viele Anfragen, siehe unten.                                                                                                                                             |
+| Status | Code | Bedeutung |
+| --- | --- | --- |
+| **401** | `unauthorized` | Der Schlüssel fehlt, ist falsch, widerrufen oder abgelaufen, oder sein Besitzer ist deaktiviert. |
+| **403** | `insufficient_scope` | Dem Schlüssel fehlt der Scope, den dieser Aufruf braucht. |
+| **403** | `forbidden` | Du darfst das Ding sehen, aber nicht ändern (zum Beispiel eine geteilte View von jemand anderem). |
+| **403** | `workspace_creation_disabled` | Der Administrator hat das Anlegen von Workspaces abgeschaltet. |
+| **404** | keiner (der Body ist `null`) | Es existiert nicht, **oder du darfst es nicht sehen**. Barynt sagt bewusst nicht, was von beidem. |
+| **422** | `invalid_body` | Der Body fehlt, ist kein JSON, oder ein Feld ist falsch. |
+| **422** | `invalid_filter` | Der Parameter `filter` ist kein gültiger Filter. |
+| **422** | ein genauer Code | Manche Aufrufe nennen den Grund, mit einer `message`: Anhänge nutzen `invalid_source`, `invalid_url`, `invalid_name`, `invalid_content`, `too_large` und `upload_rejected`. |
+| **429** | `rate_limited` | Zu viele Anfragen, siehe unten. |
 
 Eine 5xx-Antwort heißt, auf dem Server ist etwas schiefgegangen: Versuche es später wieder und schau in die [Fehlersuche](../administration/troubleshooting.md), wenn es bleibt.
 
@@ -189,12 +181,12 @@ Eine 5xx-Antwort heißt, auf dem Server ist etwas schiefgegangen: Versuche es sp
 
 Jeder Schlüssel darf **120 Anfragen pro Minute** stellen. Jede Antwort sagt, wo du stehst:
 
-| Header                  | Bedeutung                                                 |
-| ----------------------- | --------------------------------------------------------- |
-| `X-RateLimit-Limit`     | Das Budget pro Minute: 120.                               |
-| `X-RateLimit-Remaining` | Was davon übrig ist.                                      |
-| `X-RateLimit-Reset`     | Wann es sich wieder auffüllt, in Millisekunden seit 1970. |
-| `Retry-After`           | Nur bei `429`: wie viele Sekunden du warten musst.        |
+| Header | Bedeutung |
+| --- | --- |
+| `X-RateLimit-Limit` | Das Budget pro Minute: 120. |
+| `X-RateLimit-Remaining` | Was davon übrig ist. |
+| `X-RateLimit-Reset` | Wann es sich wieder auffüllt, in Millisekunden seit 1970. |
+| `Retry-After` | Nur bei `429`: wie viele Sekunden du warten musst. |
 
 Die Zähler liegen in Redis, siehe [Konfiguration](../getting-started/config.md). Abgewiesene Anfragen zählen trotzdem mit, ein Client, der `429` ignoriert, bekommt also keine Gratis-Versuche. Ein höflicher Client wartet `Retry-After` ab und holt Seiten mit `limit=100`, statt viele kleine Aufrufe zu machen.
 
