@@ -1,8 +1,9 @@
 ---
+
 title: "Projects"
 description: "A project groups related work under one identifier, with its own board, numbers and people. Public for everyone in the workspace, or private for a chosen few."
 sidebar:
-  order: 4
+order: 4
 ---
 
 A **project** is a bucket of related work: a product, a team's backlog, a client, a campaign. It has its own issues, its own board and its own dashboard, and it can have its own circle of people.
@@ -28,11 +29,11 @@ You become the project's admin right away. The creation is recorded in the audit
 
 ## Public or private?
 
-| | Public | Private |
-| --- | --- | --- |
-| Who is in | Every workspace member, automatically. New members are added when they join. | Only people added by hand. |
-| Who can see it | All workspace members. | Members of the project, plus workspace owners, admins and project leads, who can open every project. |
-| Use it for | Normal team work. | Anything confidential: HR, finance, security, a client under NDA. |
+|                | Public                                                                       | Private                                                                                              |
+| -------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Who is in      | Every workspace member, automatically. New members are added when they join. | Only people added by hand.                                                                           |
+| Who can see it | All workspace members.                                                       | Members of the project, plus workspace owners, admins and project leads, who can open every project. |
+| Use it for     | Normal team work.                                                            | Anything confidential: HR, finance, security, a client under NDA.                                    |
 
 Changing a project from public to private takes access from **nobody**. Everyone already inside stays. Only **new** workspace members stop being added automatically. To remove somebody, do it explicitly under the project's _Members_.
 

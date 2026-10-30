@@ -1,8 +1,9 @@
 ---
+
 title: "Sub-issues, relations and attachments"
 description: "Split big work into steps, show what depends on what, and keep the files that belong to an issue right next to it."
 sidebar:
-  order: 3
+order: 3
 ---
 
 Real work is rarely one clean task. These three tools, all on the issue page, keep the connections visible.
@@ -27,13 +28,13 @@ By default, sub-issues are **hidden on the board and in lists**, so a parent doe
 
 A **relation** is a link between two issues that are separate but connected. Click **+** next to _Relationships_ (or press `R`), choose the type and search for the other issue.
 
-| Relation | Read it as | Use it when |
-| --- | --- | --- |
-| **Blocks** | "This issue blocks that one" | Something cannot start before this is done. |
-| **Blocked by** | "This issue waits for that one" | The same relation, seen from the other side. |
-| **Relates to** | "These two belong together" | Related, but neither depends on the other. |
-| **Duplicate of** | "This is the same as that one" | Two people reported the same thing. Keep one, link the other. |
-| **Duplicated by** | "That one is a copy of this" | The same relation, seen from the other side. |
+| Relation          | Read it as                      | Use it when                                                   |
+| ----------------- | ------------------------------- | ------------------------------------------------------------- |
+| **Blocks**        | "This issue blocks that one"    | Something cannot start before this is done.                   |
+| **Blocked by**    | "This issue waits for that one" | The same relation, seen from the other side.                  |
+| **Relates to**    | "These two belong together"     | Related, but neither depends on the other.                    |
+| **Duplicate of**  | "This is the same as that one"  | Two people reported the same thing. Keep one, link the other. |
+| **Duplicated by** | "That one is a copy of this"    | The same relation, seen from the other side.                  |
 
 You only set a relation once. It shows up on both issues, worded the right way round for each. Every added or removed relation is recorded in the issue's activity.
 

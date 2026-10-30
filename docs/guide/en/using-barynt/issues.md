@@ -1,8 +1,9 @@
 ---
+
 title: "Issues in detail"
 description: "Create an issue, describe it, assign it, move it along and talk about it: everything you do with one piece of work."
 sidebar:
-  order: 1
+order: 1
 ---
 
 An **issue** is one piece of work: a task, a bug, an idea. Everything else in Barynt, from boards to dashboards, is just a way of looking at issues. This page is about the issue itself.
@@ -36,14 +37,14 @@ The page has two parts:
 
 ### Properties
 
-| Property | What it is for |
-| --- | --- |
-| **Type** | The kind of work: Feature, Bug, Improvement, Task or Chore. |
-| **Status** | Where it stands: Backlog, Todo, In Progress, In Review, Done or Canceled. |
-| **Priority** | How urgent: No priority, Low, Medium, High or Urgent. |
-| **Assignee** | The one person responsible. |
-| **Labels** | Any number of tags, from the project or the workspace. |
-| **Project, creator, dates** | Where it lives, who wrote it, when it was created and last changed. |
+| Property                    | What it is for                                                            |
+| --------------------------- | ------------------------------------------------------------------------- |
+| **Type**                    | The kind of work: Feature, Bug, Improvement, Task or Chore.               |
+| **Status**                  | Where it stands: Backlog, Todo, In Progress, In Review, Done or Canceled. |
+| **Priority**                | How urgent: No priority, Low, Medium, High or Urgent.                     |
+| **Assignee**                | The one person responsible.                                               |
+| **Labels**                  | Any number of tags, from the project or the workspace.                    |
+| **Project, creator, dates** | Where it lives, who wrote it, when it was created and last changed.       |
 
 Click a property to change it, or hover the issue and use the single-key shortcuts: `S` status, `P` priority, `A` assignee, `I` assign to me, `L` labels.
 

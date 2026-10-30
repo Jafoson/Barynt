@@ -1,8 +1,9 @@
 ---
+
 title: "Projekte"
 description: "Ein Projekt bündelt zusammengehörige Arbeit unter einem Bezeichner, mit eigenem Board, eigenen Zahlen und eigenen Menschen. Öffentlich für alle im Workspace oder privat für einen ausgewählten Kreis."
 sidebar:
-  order: 4
+order: 4
 ---
 
 Ein **Projekt** ist ein Behälter für zusammengehörige Arbeit: ein Produkt, der Backlog eines Teams, ein Kunde, eine Kampagne. Es hat eigene Aufgaben, ein eigenes Board und ein eigenes Dashboard und kann einen eigenen Kreis von Menschen haben.
@@ -28,11 +29,11 @@ Du wirst sofort Admin des Projekts. Das Anlegen steht im Audit-Log.
 
 ## Öffentlich oder privat?
 
-| | Öffentlich | Privat |
-| --- | --- | --- |
-| Wer dabei ist | Jedes Workspace-Mitglied, automatisch. Neue Mitglieder werden beim Beitritt hinzugefügt. | Nur von Hand hinzugefügte Menschen. |
-| Wer es sehen kann | Alle Workspace-Mitglieder. | Mitglieder des Projekts, dazu Workspace-Owner, -Admins und -Project-Leads, die jedes Projekt öffnen können. |
-| Dafür nutzen | Normale Teamarbeit. | Alles Vertrauliche: Personal, Finanzen, Sicherheit, ein Kunde unter NDA. |
+|                   | Öffentlich                                                                               | Privat                                                                                                      |
+| ----------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Wer dabei ist     | Jedes Workspace-Mitglied, automatisch. Neue Mitglieder werden beim Beitritt hinzugefügt. | Nur von Hand hinzugefügte Menschen.                                                                         |
+| Wer es sehen kann | Alle Workspace-Mitglieder.                                                               | Mitglieder des Projekts, dazu Workspace-Owner, -Admins und -Project-Leads, die jedes Projekt öffnen können. |
+| Dafür nutzen      | Normale Teamarbeit.                                                                      | Alles Vertrauliche: Personal, Finanzen, Sicherheit, ein Kunde unter NDA.                                    |
 
 Ein Projekt von öffentlich auf privat umzustellen nimmt **niemandem** den Zugriff. Alle, die schon drin sind, bleiben. Nur **neue** Workspace-Mitglieder werden nicht mehr automatisch hinzugefügt. Um jemanden zu entfernen, tue das ausdrücklich unter _Mitglieder_ des Projekts.
 

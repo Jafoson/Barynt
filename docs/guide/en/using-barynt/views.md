@@ -1,8 +1,9 @@
 ---
+
 title: "Views"
 description: "Save a combination of filters, grouping and layout under a name, and open it again with one click: for you, for a project or for the whole workspace."
 sidebar:
-  order: 6
+order: 6
 ---
 
 A **view** is a saved way of looking at issues. It remembers the filter, the grouping, the order and the layout, so "all open bugs, grouped by assignee" is one click away instead of five.
@@ -34,13 +35,13 @@ There are two ways:
 
 ![The new-view dialog](../../assets/en/view-dialog.webp)
 
-| Field | What it does |
-| --- | --- |
-| **Name** and **icon** | How it is recognised on the tab and in lists. |
-| **Layout** | _Board_, _List_ or _Dashboard_. A view can even be a dashboard with a filter, see [Dashboards](dashboards.md). |
-| **Where does it live?** | In the **workspace** (issues from every project) or in **one project**. |
-| **Who sees it** | _Only me_, _Everyone in the project_, or _Everyone in the workspace_. |
-| **Take over the current filters, grouping and order** | Starts from what is on your screen right now. |
+| Field                                                 | What it does                                                                                                   |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Name** and **icon**                                 | How it is recognised on the tab and in lists.                                                                  |
+| **Layout**                                            | _Board_, _List_ or _Dashboard_. A view can even be a dashboard with a filter, see [Dashboards](dashboards.md). |
+| **Where does it live?**                               | In the **workspace** (issues from every project) or in **one project**.                                        |
+| **Who sees it**                                       | _Only me_, _Everyone in the project_, or _Everyone in the workspace_.                                          |
+| **Take over the current filters, grouping and order** | Starts from what is on your screen right now.                                                                  |
 
 > [!TIP]
 > A shared view is a good way to agree on words. "Ready for QA" means the same filter for everyone, instead of five slightly different ones.

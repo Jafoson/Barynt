@@ -12,7 +12,7 @@ is in [`CLAUDE.md`](../../CLAUDE.md).
 - Forms use `<form action={serverAction}>`, not `onSubmit` plus `fetch`. Changes go
   through Server Functions (see [Architecture](architecture.md#how-a-change-travels)).
 - Keep `useEffect` for what has no server-side answer. `useMemo`/`useCallback` only
-  for a *measured* performance problem. Keep state close to where it is used.
+  for a _measured_ performance problem. Keep state close to where it is used.
 - Next.js 16 passes `params` and `searchParams` as **Promises**: always `await` them.
 
 ## Components
@@ -53,15 +53,14 @@ Button/
 ## Responsive and touch
 
 The desktop layout is the base. The mixins in `styles/breakpoints.scss` reach
-*down* from it. Test at 375, 768 and 1280 px.
+_down_ from it. Test at 375, 768 and 1280 px.
 
-| Mixin | Applies to | JS twin (`lib/utils/useMediaQuery`) |
-| --- | --- | --- |
-| `bp.phone` | up to 640 px | `PHONE_QUERY` |
-| `bp.tablet-down` | up to 1024 px | `COMPACT_QUERY` |
-| `bp.tablet-only`, `bp.desktop`, `bp.rail` | tablet / above 1024 px / the collapsed icon rail | none |
-| `bp.coarse`, `bp.no-hover` | touch and no hover (input capability, not width) | none |
-
+| Mixin                                     | Applies to                                       | JS twin (`lib/utils/useMediaQuery`) |
+| ----------------------------------------- | ------------------------------------------------ | ----------------------------------- |
+| `bp.phone`                                | up to 640 px                                     | `PHONE_QUERY`                       |
+| `bp.tablet-down`                          | up to 1024 px                                    | `COMPACT_QUERY`                     |
+| `bp.tablet-only`, `bp.desktop`, `bp.rail` | tablet / above 1024 px / the collapsed icon rail | none                                |
+| `bp.coarse`, `bp.no-hover`                | touch and no hover (input capability, not width) | none                                |
 - **Layout in CSS, behaviour in JS.** Width-only differences are SCSS.
   `useMediaQuery` is for behaviour that has to differ (a sheet instead of a dialog,
   one matrix column at a time). It returns `false` on the server and during hydration.
@@ -97,11 +96,10 @@ can also give the floating action button on phones its own job (`lib/fab-action.
 Issue descriptions and comments are **ProseMirror documents** (`Json`), not strings.
 Reading and writing are separate on purpose:
 
-| | Component | Environment |
-| --- | --- | --- |
-| Display | `components/ui/atoms/RichText` | Server Component, no dependency |
-| Edit | `components/ui/layout/RichTextEditor` | `"use client"`, Tiptap, loaded through `next/dynamic` |
-
+|         | Component                             | Environment                                           |
+| ------- | ------------------------------------- | ----------------------------------------------------- |
+| Display | `components/ui/atoms/RichText`        | Server Component, no dependency                       |
+| Edit    | `components/ui/layout/RichTextEditor` | `"use client"`, Tiptap, loaded through `next/dynamic` |
 - Display translates the JSON to React **by hand**: no `generateHTML`, no
   `dangerouslySetInnerHTML`. Whoever adds a node type to the renderer must add the
   matching Tiptap extension to the editor, and the other way round.
@@ -129,12 +127,12 @@ every icon empty.
   reintroduces the runtime dependency.
 - The scan reads string literals `"prefix:name"` from `app/`, `components/`,
   `features/` and `lib/`. **Write icon names as literals**; a name built at runtime is not seen.
-- A new icon *set* (a prefix other than lucide, logos, material-symbols or mdi) needs its
+- A new icon _set_ (a prefix other than lucide, logos, material-symbols or mdi) needs its
   `@iconify-json/<prefix>` as a dev dependency.
 
 ## Personal settings (`UserPreferences`)
 
-Per-person settings that change how the app *acts* (not just looks) live in
+Per-person settings that change how the app _acts_ (not just looks) live in
 `UserPreferences`: where a project name leads, how an issue opens, default grouping
 and order, date format and time zone, own shortcuts, whether to confirm deletions.
 
@@ -158,7 +156,7 @@ The `?` reference in the app lists what is registered.
 - Two languages, `de` and `en`, in `messages/de.json` and `messages/en.json`. The
   locale is always in the URL (`/de/…`, `/en/…`), default `de` (`i18n/routing.ts`).
 - **Every key exists in both files.** A test (`tests/unit/i18n/messages.test.ts`)
-  fails on a key that is in one file only, and on a key *name* containing a dot
+  fails on a key that is in one file only, and on a key _name_ containing a dot
   (next-intl reads the dot as nesting). Write `projectDeleted`, not `project.deleted`.
 - Use `useTranslations()` in client components and `getTranslations()` on the server.
   ICU placeholders (`{url}`) are fine in messages. Do not put API paths or JSON into

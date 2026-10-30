@@ -76,31 +76,31 @@ proof the address is theirs).
 
 ## Optional services
 
-| Need | How |
-| --- | --- |
-| Mail | Mailpit as above, or any SMTP server (`SMTP_*` in `.env`). |
+| Need                    | How                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mail                    | Mailpit as above, or any SMTP server (`SMTP_*` in `.env`).                                                                                                                                                                                                                                                                                                                                          |
 | Attachments and avatars | S3-compatible storage. The bundled RustFS comes with the `app` profile: `docker compose --profile app up -d rustfs rustfs-init`, then in `.env` set `S3_ENDPOINT="http://localhost:9000"`, `S3_ACCESS_KEY_ID`/`S3_SECRET_ACCESS_KEY` to `rustfsadmin` and the buckets `S3_BUCKET_AVATARS="avatars"`, `S3_BUCKET_ISSUES="issues"` (see `example.env`). Without `S3_ENDPOINT` uploads are simply off. |
-| Redis | Started by `db:dev`. Used for the API rate limit only, see [Backend services](backend-services.md). |
+| Redis                   | Started by `db:dev`. Used for the API rate limit only, see [Backend services](backend-services.md).                                                                                                                                                                                                                                                                                                 |
 
 Every variable is described in `example.env`, and for operators in the user
 guide's [Configuration](../guide/en/getting-started/config.md).
 
 ## Daily commands
 
-| Command | What it does |
-| --- | --- |
-| `bun run dev` | The dev server (Turbopack). |
-| `bun run lint` | Biome check (lint and format check). `bun run format` fixes formatting. |
-| `bun x tsc --noEmit` | Type check. CI runs it next to lint. |
-| `bun run test` | The whole test suite. **Not** `bun test`, see [Testing](testing.md). |
-| `bun run test:watch` | Tests in watch mode. |
-| `bun run db:up` | Only Postgres and Redis, plus migrations and bootstrap (no demo data). |
-| `bun run db:dev` | Services, migrations, **seed** (destroys data). |
-| `bun run db:reset` | Throw away the volumes and rebuild everything. |
-| `bun run db:logs` | Follow the Postgres log. |
+| Command                                | What it does                                                               |
+| -------------------------------------- | -------------------------------------------------------------------------- |
+| `bun run dev`                          | The dev server (Turbopack).                                                |
+| `bun run lint`                         | Biome check (lint and format check). `bun run format` fixes formatting.    |
+| `bun x tsc --noEmit`                   | Type check. CI runs it next to lint.                                       |
+| `bun run test`                         | The whole test suite. **Not** `bun test`, see [Testing](testing.md).       |
+| `bun run test:watch`                   | Tests in watch mode.                                                       |
+| `bun run db:up`                        | Only Postgres and Redis, plus migrations and bootstrap (no demo data).     |
+| `bun run db:dev`                       | Services, migrations, **seed** (destroys data).                            |
+| `bun run db:reset`                     | Throw away the volumes and rebuild everything.                             |
+| `bun run db:logs`                      | Follow the Postgres log.                                                   |
 | `bun prisma migrate dev --name <what>` | Create a migration after a schema change. See [Data model](data-model.md). |
-| `bun run icons:build` | Regenerate the icon bundle after adding or removing an icon. |
-| `bun run docs:api` | Regenerate the API reference pages of the user guide. |
+| `bun run icons:build`                  | Regenerate the icon bundle after adding or removing an icon.               |
+| `bun run docs:api`                     | Regenerate the API reference pages of the user guide.                      |
 
 Before you push: `bun run lint`, `bun x tsc --noEmit` and `bun run test` should
 all be green. That is what CI runs.

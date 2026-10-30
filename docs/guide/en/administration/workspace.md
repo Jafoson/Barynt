@@ -1,8 +1,9 @@
 ---
+
 title: "Workspace settings"
 description: "Name, look and address of your workspace, shared links, joining by company domain, labels, and what to know before deleting one."
 sidebar:
-  order: 1
+order: 1
 ---
 
 A workspace is the home of one team or company. Its settings live under **Workspace Settings** at the bottom of the sidebar (the _Workspace_ tab). What you see there depends on your role, see [Roles and permissions](roles.md). Changing the basics needs _Change name, color and address_, which owners, admins and managers have.
@@ -30,15 +31,15 @@ At the bottom, three numbers give you the size of the workspace: **projects** yo
 
 The other entries of the workspace settings:
 
-| Entry | What it is for |
-| --- | --- |
-| **Projects** | All projects of the workspace in two lists, public and private. A click opens one, the pencil edits its details, the bin deletes it. Workspace owners, admins and project leads see the private ones too. See [Projects](../using-barynt/projects.md). |
-| **Labels** | The labels that apply in **every** project, with how many issues use each. You can hide a workspace label in single projects. Labels that belong to one project are listed below, for reference. |
-| **Webhooks** | Tell other systems what happens, see [Webhooks](../integrations/webhooks.md). |
-| **Teams** | See [Teams](teams.md). |
-| **Roles & Permissions** | See [Roles and permissions](roles.md). |
-| **Members** and **Invitations** | See [Members and invitations](members.md). |
-| **Activity** | What happened in the workspace, see [Audit log](audit.md). |
+| Entry                           | What it is for                                                                                                                                                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Projects**                    | All projects of the workspace in two lists, public and private. A click opens one, the pencil edits its details, the bin deletes it. Workspace owners, admins and project leads see the private ones too. See [Projects](../using-barynt/projects.md). |
+| **Labels**                      | The labels that apply in **every** project, with how many issues use each. You can hide a workspace label in single projects. Labels that belong to one project are listed below, for reference.                                                       |
+| **Webhooks**                    | Tell other systems what happens, see [Webhooks](../integrations/webhooks.md).                                                                                                                                                                          |
+| **Teams**                       | See [Teams](teams.md).                                                                                                                                                                                                                                 |
+| **Roles & Permissions**         | See [Roles and permissions](roles.md).                                                                                                                                                                                                                 |
+| **Members** and **Invitations** | See [Members and invitations](members.md).                                                                                                                                                                                                             |
+| **Activity**                    | What happened in the workspace, see [Audit log](audit.md).                                                                                                                                                                                             |
 
 ### Workspace labels or project labels?
 

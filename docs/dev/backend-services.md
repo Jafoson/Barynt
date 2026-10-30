@@ -5,16 +5,16 @@ a **narrow write function** that any domain can call without knowing about the
 others, configuration **only from the environment**, and **no hard failure** when the
 add-on is not configured.
 
-| Block | Folder | Needed? |
-| --- | --- | --- |
-| [Mail](#mail) | `lib/mail` | Optional (SMTP) |
-| [Object storage](#object-storage) | `lib/storage` | Optional (S3) |
-| [Redis](#redis) | `lib/redis.ts`, `lib/api/rateLimit.ts` | Only for API and MCP |
-| [Realtime updates](#realtime-updates) | `lib/realtime` | Built in |
-| [Audit log](#audit-log) | `lib/audit` | Built in |
-| [Notifications](#notifications) | `lib/notify` | Built in |
-| [Webhooks](#webhooks) | `lib/webhooks` | Built in |
-| [Smaller pieces](#smaller-pieces) | various | Built in |
+| Block                                 | Folder                                 | Needed?              |
+| ------------------------------------- | -------------------------------------- | -------------------- |
+| [Mail](#mail)                         | `lib/mail`                             | Optional (SMTP)      |
+| [Object storage](#object-storage)     | `lib/storage`                          | Optional (S3)        |
+| [Redis](#redis)                       | `lib/redis.ts`, `lib/api/rateLimit.ts` | Only for API and MCP |
+| [Realtime updates](#realtime-updates) | `lib/realtime`                         | Built in             |
+| [Audit log](#audit-log)               | `lib/audit`                            | Built in             |
+| [Notifications](#notifications)       | `lib/notify`                           | Built in             |
+| [Webhooks](#webhooks)                 | `lib/webhooks`                         | Built in             |
+| [Smaller pieces](#smaller-pieces)     | various                                | Built in             |
 
 ## Mail
 
@@ -25,14 +25,14 @@ footer). **Without `SMTP_HOST` the app sends no mail** and every flow still work
 `SMTP_*` variable before a test run, because Bun loads `.env` for tests too and a
 local Mailpit setting would otherwise make `isMailConfigured()` true mid-test.
 
-| File | Job |
-| --- | --- |
-| `lib/mail/config.ts` | Reads the variables; `isMailConfigured()`. |
-| `lib/mail/transport.ts` | The nodemailer transport, reused while the config is unchanged. |
-| `lib/mail/send.ts` | `sendMail()`: swallows errors, does nothing without config. |
+| File                      | Job                                                                                                                                                                     |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/mail/config.ts`      | Reads the variables; `isMailConfigured()`.                                                                                                                              |
+| `lib/mail/transport.ts`   | The nodemailer transport, reused while the config is unchanged.                                                                                                         |
+| `lib/mail/send.ts`        | `sendMail()`: swallows errors, does nothing without config.                                                                                                             |
 | `lib/mail/templates/*.ts` | One pure function per occasion: `(Input) → { subject, html, text }`, no DB access. `layout.ts` holds the frame, footer and table/alert helpers; `html.ts` the escaping. |
-| `lib/mail/overrides.ts` | Templates an admin edited (`MailTemplate`) override the defaults. |
-| `lib/mail/index.ts` | Barrel plus `sendInvitationEmail()` and `sendMemberRemovedEmail()`, which load what they need themselves. |
+| `lib/mail/overrides.ts`   | Templates an admin edited (`MailTemplate`) override the defaults.                                                                                                       |
+| `lib/mail/index.ts`       | Barrel plus `sendInvitationEmail()` and `sendMemberRemovedEmail()`, which load what they need themselves.                                                               |
 
 Active callers: invitations and removals call the senders directly; everything else
 goes through `notify()`. Some templates (`welcome`, `emailVerification`,
@@ -66,7 +66,7 @@ How it works:
   delete the old one best-effort, never overwrite in place, so a cached signed URL
   cannot serve stale content.
 - **Limits** (`lib/storage/validation.ts`): avatars 5 MB, attachments 100 MB, any file
-  type. Permission checks stay *outside* the storage code, in the calling action.
+  type. Permission checks stay _outside_ the storage code, in the calling action.
 - **Path-style addressing** (`<endpoint>/<bucket>/<key>`) always, so it works the same
   everywhere. The client is `aws4fetch`, not the AWS SDK: the SDK breaks under
   Turbopack in dev (the comment in `lib/storage/client.ts` has the details).
@@ -121,8 +121,8 @@ deletions, break-glass access, issue changes.
   fail because the log is jammed. `recordAuditIn(tx, input)` writes inside a running
   transaction and swallows nothing, for events where the entry is the point: the
   emergency membership and its log entry exist together or not at all.
-- **Frozen context.** The row stores the actor's and target's *labels and colours at the
-  time*, so it stays readable after a rename or deletion. `meta` is free-form JSON so a new
+- **Frozen context.** The row stores the actor's and target's _labels and colours at the
+  time_, so it stays readable after a rename or deletion. `meta` is free-form JSON so a new
   kind of event needs no migration.
 - **Reading** is `listAudit`/`countAudit` with filters, used by the workspace "Activity"
   page and the platform's audit view. The per-issue activity (`features/issues/audit.ts`)
@@ -164,15 +164,15 @@ internals](api-and-mcp.md#adding-a-webhook-event). For receivers, see the user g
 
 ## Smaller pieces
 
-| Piece | File | What it does |
-| --- | --- | --- |
-| Base URL | `lib/app-url.ts` | `appUrl()`/`appBaseUrl()` build absolute URLs from `AUTH_URL` (not from the request: links are copied elsewhere, and behind a proxy the request's host is not the public one). Deliberately without `server-only`, the mail templates use it. |
-| Platform switches | `lib/system-settings.ts` | `getSystemSettings()`: "may anyone create a workspace", "default workspace". A plain runtime flag with **no permission check**; writing it is gated in `features/system-settings`. |
-| Last seen | `lib/presence.ts` | A coarse "last seen" for the admin's account list, at most one write per hour per person. |
-| Update check | `lib/update-check.ts` | Asks GitHub for the newest release, shown to platform admins only. The only outgoing call the app makes on its own; `UPDATE_CHECK=false` turns it off. |
-| Release notes | `lib/releases` | Reads `releases/<version>.md` / `.de.md` for the in-app window. |
-| Membership | `lib/project-membership.ts` | Keeps `ProjectMember` rows consistent when people or projects come and go. |
-| Dashboard time axes | `lib/buckets.ts` | Generates the full day/week axis so charts show zeros instead of gaps. Pure, no DB. |
-| Status helpers | `lib/status-category.ts`, `lib/statuses.ts`, `lib/issue-status-events.ts` | Categories and the append-only status history. |
-| Rich text | `lib/richtext` | See [Frontend](frontend.md#rich-text). |
-| Identifiers | `lib/utils/id.ts` | `uid(prefix)`; falls back to `getRandomValues` where `crypto.randomUUID` does not exist (plain HTTP on a LAN address). |
+| Piece               | File                                                                      | What it does                                                                                                                                                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Base URL            | `lib/app-url.ts`                                                          | `appUrl()`/`appBaseUrl()` build absolute URLs from `AUTH_URL` (not from the request: links are copied elsewhere, and behind a proxy the request's host is not the public one). Deliberately without `server-only`, the mail templates use it. |
+| Platform switches   | `lib/system-settings.ts`                                                  | `getSystemSettings()`: "may anyone create a workspace", "default workspace". A plain runtime flag with **no permission check**; writing it is gated in `features/system-settings`.                                                            |
+| Last seen           | `lib/presence.ts`                                                         | A coarse "last seen" for the admin's account list, at most one write per hour per person.                                                                                                                                                     |
+| Update check        | `lib/update-check.ts`                                                     | Asks GitHub for the newest release, shown to platform admins only. The only outgoing call the app makes on its own; `UPDATE_CHECK=false` turns it off.                                                                                        |
+| Release notes       | `lib/releases`                                                            | Reads `releases/<version>.md` / `.de.md` for the in-app window.                                                                                                                                                                               |
+| Membership          | `lib/project-membership.ts`                                               | Keeps `ProjectMember` rows consistent when people or projects come and go.                                                                                                                                                                    |
+| Dashboard time axes | `lib/buckets.ts`                                                          | Generates the full day/week axis so charts show zeros instead of gaps. Pure, no DB.                                                                                                                                                           |
+| Status helpers      | `lib/status-category.ts`, `lib/statuses.ts`, `lib/issue-status-events.ts` | Categories and the append-only status history.                                                                                                                                                                                                |
+| Rich text           | `lib/richtext`                                                            | See [Frontend](frontend.md#rich-text).                                                                                                                                                                                                        |
+| Identifiers         | `lib/utils/id.ts`                                                         | `uid(prefix)`; falls back to `getRandomValues` where `crypto.randomUUID` does not exist (plain HTTP on a LAN address).                                                                                                                        |

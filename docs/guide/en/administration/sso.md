@@ -1,8 +1,9 @@
 ---
+
 title: "Sign-in and SSO"
 description: "Passkeys out of the box, company single sign-on with any identity provider, and email links, all included at no extra cost."
 sidebar:
-  order: 6
+order: 6
 ---
 
 People should sign in the way they already do everywhere else. Barynt supports several ways side by side, and **none of them is a paid extra**. This page is for whoever administers the server: it explains the options and how to switch them on.
@@ -11,11 +12,11 @@ People should sign in the way they already do everywhere else. Barynt supports s
 
 ## The options at a glance
 
-| Way to sign in | Needs setup? | Good for |
-| --- | --- | --- |
-| **Passkey** | No, works out of the box | Everyone. The safest and the easiest. |
-| **Company login (SSO)** | Yes, a few settings | Companies with Google, Microsoft, Okta, Keycloak and the like. |
-| **Magic link by email** | Yes, [email](email.md) | People who have not set up a passkey yet, and recovery. |
+| Way to sign in          | Needs setup?             | Good for                                                       |
+| ----------------------- | ------------------------ | -------------------------------------------------------------- |
+| **Passkey**             | No, works out of the box | Everyone. The safest and the easiest.                          |
+| **Company login (SSO)** | Yes, a few settings      | Companies with Google, Microsoft, Okta, Keycloak and the like. |
+| **Magic link by email** | Yes, [email](email.md)   | People who have not set up a passkey yet, and recovery.        |
 
 Which buttons people see on the sign-in page follows what you have switched on.
 
@@ -96,12 +97,12 @@ Needs a paid Apple Developer membership, works only over HTTPS, and the secret i
 
 Out of the box, anyone who reaches the sign-in page can create an account, and accounts without a workspace can start one of their own. You can tighten this:
 
-| You want… | Setting |
-| --- | --- |
-| **Invite-only:** nobody can register by themselves | `AUTH_REGISTRATION_ENABLED=false`. People with an open **email invitation** still get in, because their account already exists. An invite _link_ only helps people who already have an account. On a brand-new, empty server the first account can always register. |
-| Passkeys only for existing accounts | `AUTH_PASSKEY_REGISTRATION_ENABLED=false` |
-| No passkeys at all | `AUTH_PASSKEY_LOGIN_ENABLED=false`, but make sure another way works first |
-| New accounts to land in an existing workspace, not create their own | In the platform [admin settings](platform.md), turn off workspace creation and pick a default workspace. |
+| You want…                                                           | Setting                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Invite-only:** nobody can register by themselves                  | `AUTH_REGISTRATION_ENABLED=false`. People with an open **email invitation** still get in, because their account already exists. An invite _link_ only helps people who already have an account. On a brand-new, empty server the first account can always register. |
+| Passkeys only for existing accounts                                 | `AUTH_PASSKEY_REGISTRATION_ENABLED=false`                                                                                                                                                                                                                           |
+| No passkeys at all                                                  | `AUTH_PASSKEY_LOGIN_ENABLED=false`, but make sure another way works first                                                                                                                                                                                           |
+| New accounts to land in an existing workspace, not create their own | In the platform [admin settings](platform.md), turn off workspace creation and pick a default workspace.                                                                                                                                                            |
 
 A company domain can also be **claimed** by a workspace, so everyone with a matching address joins it, see [Workspace settings](workspace.md).
 

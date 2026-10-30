@@ -160,11 +160,11 @@ The installer asks a few questions, sets up Barynt with HTTPS (Caddy, automatic 
 
 ### Prefer something else?
 
-| You want | Do this |
-| --- | --- |
-| **Docker Compose** by hand | Three files, no clone: see [Docker Compose](docs/guide/en/getting-started/compose.md) |
-| **Kubernetes** | `helm install barynt oci://ghcr.io/jafoson/charts/barynt` (signed chart), see [Helm](docs/guide/en/getting-started/helm.md) |
-| **Try it on your laptop** | [Local development](#-develop-locally), five minutes with Bun and Docker |
+| You want                   | Do this                                                                                                                     |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Docker Compose** by hand | Three files, no clone: see [Docker Compose](docs/guide/en/getting-started/compose.md)                                       |
+| **Kubernetes**             | `helm install barynt oci://ghcr.io/jafoson/charts/barynt` (signed chart), see [Helm](docs/guide/en/getting-started/helm.md) |
+| **Try it on your laptop**  | [Local development](#-develop-locally), five minutes with Bun and Docker                                                    |
 
 New to it? Start with the [first steps](docs/guide/en/getting-started/first-steps.md): create a workspace, a project and your first issue.
 
@@ -174,16 +174,16 @@ Change the image tag (or run `barynt upgrade`). The app applies pending database
 
 ## 🧰 Built with
 
-| | |
-| --- | --- |
-| App | [Next.js 16](https://nextjs.org) (App Router), React 19, TypeScript |
-| Data | PostgreSQL through [Prisma 7](https://www.prisma.io) |
-| Sign-in | [Auth.js](https://authjs.dev): passkeys, OAuth/OIDC, magic links |
-| Editor | [Tiptap](https://tiptap.dev) / ProseMirror |
-| Styling | SCSS Modules, no Tailwind |
-| Optional | Redis (API rate limit), any S3-compatible storage, SMTP |
-| AI | [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp` |
-| Tooling | [Bun](https://bun.sh), [Biome](https://biomejs.dev), Bun test runner |
+|          |                                                                                |
+| -------- | ------------------------------------------------------------------------------ |
+| App      | [Next.js 16](https://nextjs.org) (App Router), React 19, TypeScript            |
+| Data     | PostgreSQL through [Prisma 7](https://www.prisma.io)                           |
+| Sign-in  | [Auth.js](https://authjs.dev): passkeys, OAuth/OIDC, magic links               |
+| Editor   | [Tiptap](https://tiptap.dev) / ProseMirror                                     |
+| Styling  | SCSS Modules, no Tailwind                                                      |
+| Optional | Redis (API rate limit), any S3-compatible storage, SMTP                        |
+| AI       | [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp` |
+| Tooling  | [Bun](https://bun.sh), [Biome](https://biomejs.dev), Bun test runner           |
 
 One app, one database, no microservices. [How it fits together](docs/dev/architecture.md).
 
@@ -191,12 +191,12 @@ One app, one database, no microservices. [How it fits together](docs/dev/archite
 
 Everything is on **[barynt.dev/docs](https://barynt.dev/docs/)** (English and German, searchable), and lives in this repository as Markdown, so it always matches the version you run:
 
-| | |
-| --- | --- |
-| **[User guide](docs/guide/en/getting-started/intro.md)** | For people who use and run Barynt: concepts, every feature, administration, SSO, email, storage, troubleshooting. English and German. |
+|                                                                |                                                                                                                                                                                                                                          |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **[User guide](docs/guide/en/getting-started/intro.md)**       | For people who use and run Barynt: concepts, every feature, administration, SSO, email, storage, troubleshooting. English and German.                                                                                                    |
 | **[API reference](docs/guide/en/api-reference/workspaces.md)** | Every REST route with parameters and examples, the [filter language](docs/guide/en/api-reference/filters.md), [webhook events](docs/guide/en/api-reference/webhook-events.md) and [MCP tools](docs/guide/en/api-reference/mcp-tools.md). |
-| **[Developer docs](docs/dev/README.md)** | For people who change Barynt: setup, architecture, data model, authentication, permissions, testing, release. |
-| [`CLAUDE.md`](CLAUDE.md) | The project's rules in short form, also read by AI coding assistants. |
+| **[Developer docs](docs/dev/README.md)**                       | For people who change Barynt: setup, architecture, data model, authentication, permissions, testing, release.                                                                                                                            |
+| [`CLAUDE.md`](CLAUDE.md)                                       | The project's rules in short form, also read by AI coding assistants.                                                                                                                                                                    |
 
 ## 🛠 Develop locally
 
@@ -211,13 +211,13 @@ bun run dev              # http://localhost:3000
 
 The demo data is a workspace called **Nimbus** with a person for every role (`owner@nimbus.io`, `member1@nimbus.io`, …), so you can see what each of them may do. Barynt has no passwords: sign in with a passkey, or set up a mail catcher for magic links. The [getting started guide](docs/dev/getting-started.md) walks through it.
 
-| Command | What it does |
-| --- | --- |
-| `bun run dev` | Dev server |
-| `bun run lint` · `bun x tsc --noEmit` | Lint and typecheck |
-| `bun run test` | The whole test suite (always this, not `bun test`; [why](docs/dev/testing.md)) |
-| `bun run db:dev` / `db:reset` | Services + migrate + seed / start from scratch |
-| `bun prisma migrate dev --name <what>` | New migration after a schema change |
+| Command                                | What it does                                                                   |
+| -------------------------------------- | ------------------------------------------------------------------------------ |
+| `bun run dev`                          | Dev server                                                                     |
+| `bun run lint` · `bun x tsc --noEmit`  | Lint and typecheck                                                             |
+| `bun run test`                         | The whole test suite (always this, not `bun test`; [why](docs/dev/testing.md)) |
+| `bun run db:dev` / `db:reset`          | Services + migrate + seed / start from scratch                                 |
+| `bun prisma migrate dev --name <what>` | New migration after a schema change                                            |
 
 ## 🤝 Contributing
 

@@ -1,18 +1,19 @@
 ---
+
 title: "Objektspeicher"
 description: "Wo Avatare und Anhänge liegen: mit dem Installer mitgeliefert oder in jedem S3-kompatiblen Speicher, den du schon hast."
 sidebar:
-  order: 8
+order: 8
 ---
 
 Bilder und Anhänge liegen nicht in der Datenbank. Sie kommen in einen **Objektspeicher**, eine Art Dateiserver mit S3-Schnittstelle. Diese Seite ist für die Person, die den Server betreibt.
 
 ## Wofür er gebraucht wird
 
-| Nutzung | Grenze |
-| --- | --- |
-| **Avatare** von Menschen, Workspaces und Projekten | 5 MB, PNG, JPEG, WebP oder GIF |
-| **Anhänge** sowie Bilder, Videos und Dateien in Aufgaben | 100 MB pro Datei, jeder Typ |
+| Nutzung                                                  | Grenze                         |
+| -------------------------------------------------------- | ------------------------------ |
+| **Avatare** von Menschen, Workspaces und Projekten       | 5 MB, PNG, JPEG, WebP oder GIF |
+| **Anhänge** sowie Bilder, Videos und Dateien in Aufgaben | 100 MB pro Datei, jeder Typ    |
 
 ## Was du ohne ihn bekommst
 
@@ -35,12 +36,12 @@ barynt config S3_ENDPOINT=https://s3.eu-central-1.amazonaws.com \
   S3_BUCKET_AVATARS=acme-barynt-avatars S3_BUCKET_ISSUES=acme-barynt-issues
 ```
 
-| Einstellung | Bedeutung |
-| --- | --- |
-| `S3_ENDPOINT` | Wo der Speicher liegt. Leer lassen schaltet beide Nutzungen ab. |
-| `S3_REGION` | Die Region. `us-east-1` passt bei den meisten Anbietern außer AWS. |
-| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Der Schlüssel. |
-| `S3_BUCKET_AVATARS`, `S3_BUCKET_ISSUES` | Die beiden Buckets. |
+| Einstellung                                | Bedeutung                                                          |
+| ------------------------------------------ | ------------------------------------------------------------------ |
+| `S3_ENDPOINT`                              | Wo der Speicher liegt. Leer lassen schaltet beide Nutzungen ab.    |
+| `S3_REGION`                                | Die Region. `us-east-1` passt bei den meisten Anbietern außer AWS. |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Der Schlüssel.                                                     |
+| `S3_BUCKET_AVATARS`, `S3_BUCKET_ISSUES`    | Die beiden Buckets.                                                |
 
 Ein paar Hinweise:
 

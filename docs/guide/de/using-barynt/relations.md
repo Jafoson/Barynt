@@ -1,8 +1,9 @@
 ---
+
 title: "Unteraufgaben, Beziehungen und Anhänge"
 description: "Große Arbeit in Schritte zerlegen, zeigen, was wovon abhängt, und die Dateien, die zu einer Aufgabe gehören, direkt daneben halten."
 sidebar:
-  order: 3
+order: 3
 ---
 
 Echte Arbeit ist selten eine saubere einzelne Aufgabe. Diese drei Werkzeuge auf der Aufgabenseite halten die Zusammenhänge sichtbar.
@@ -27,13 +28,13 @@ Standardmäßig sind Unteraufgaben im **Board und in Listen ausgeblendet**, dami
 
 Eine **Beziehung** ist eine Verbindung zwischen zwei Aufgaben, die getrennt, aber verwandt sind. Klicke auf **+** neben _Beziehungen_ (oder drücke `R`), wähle die Art und suche die andere Aufgabe.
 
-| Beziehung | Lies sie als | Nutze sie, wenn |
-| --- | --- | --- |
-| **Blockiert** | „Diese Aufgabe blockiert jene“ | Etwas nicht anfangen kann, bevor das hier fertig ist. |
-| **Blockiert durch** | „Diese Aufgabe wartet auf jene“ | Dieselbe Beziehung von der anderen Seite. |
-| **Verknüpft** | „Diese beiden gehören zusammen“ | Verwandt, aber keine hängt von der anderen ab. |
-| **Duplikat von** | „Das ist dasselbe wie jenes“ | Zwei Leute haben dasselbe gemeldet. Behalte eine, verlinke die andere. |
-| **Dupliziert durch** | „Jene ist eine Kopie von dieser“ | Dieselbe Beziehung von der anderen Seite. |
+| Beziehung            | Lies sie als                     | Nutze sie, wenn                                                        |
+| -------------------- | -------------------------------- | ---------------------------------------------------------------------- |
+| **Blockiert**        | „Diese Aufgabe blockiert jene“   | Etwas nicht anfangen kann, bevor das hier fertig ist.                  |
+| **Blockiert durch**  | „Diese Aufgabe wartet auf jene“  | Dieselbe Beziehung von der anderen Seite.                              |
+| **Verknüpft**        | „Diese beiden gehören zusammen“  | Verwandt, aber keine hängt von der anderen ab.                         |
+| **Duplikat von**     | „Das ist dasselbe wie jenes“     | Zwei Leute haben dasselbe gemeldet. Behalte eine, verlinke die andere. |
+| **Dupliziert durch** | „Jene ist eine Kopie von dieser“ | Dieselbe Beziehung von der anderen Seite.                              |
 
 Eine Beziehung legst du nur einmal an. Sie erscheint an beiden Aufgaben, jeweils richtig herum formuliert. Jede hinzugefügte oder entfernte Beziehung steht in der Aktivität der Aufgabe.
 

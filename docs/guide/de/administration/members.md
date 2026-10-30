@@ -1,8 +1,9 @@
 ---
+
 title: "Mitglieder und Einladungen"
 description: "Hol Menschen in einen Workspace oder in ein einzelnes Projekt: per E-Mail, mit einem Link oder automatisch über die Firmen-Domain. Rollen ändern und Menschen entfernen."
 sidebar:
-  order: 2
+order: 2
 ---
 
 Ein **Mitglied** ist ein Mensch mit Zugriff auf einen Workspace. Diese Seite behandelt die drei Wege, Menschen hinzuzufügen, wie du sie änderst oder entfernst und wie du jemanden von außen für nur ein Projekt hereinholst.

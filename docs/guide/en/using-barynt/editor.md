@@ -1,8 +1,9 @@
 ---
+
 title: "Writing and formatting"
 description: "Descriptions and comments in Barynt are rich text. Type / for everything you can insert, @ to mention people, # to link issues."
 sidebar:
-  order: 2
+order: 2
 ---
 
 Issue descriptions and comments share the same editor. It is simple on purpose: you can write plain text and never think about it, and the formatting is there when you need it.
@@ -13,11 +14,11 @@ Issue descriptions and comments share the same editor. It is simple on purpose: 
 
 Anywhere in the text, type **`/`** to open the command menu, then keep typing to narrow it down ("/table", "/code"). Use the arrow keys and `Enter`, or click.
 
-| Group | What you can insert |
-| --- | --- |
-| **Text** | Heading 1, 2 or 3 |
-| **Lists** | Bulleted list, numbered list, checklist with tick boxes |
-| **Blocks** | Code block, quote, info panel, warning panel, table, divider |
+| Group      | What you can insert                                                    |
+| ---------- | ---------------------------------------------------------------------- |
+| **Text**   | Heading 1, 2 or 3                                                      |
+| **Lists**  | Bulleted list, numbered list, checklist with tick boxes                |
+| **Blocks** | Code block, quote, info panel, warning panel, table, divider           |
 | **Insert** | Link, image, video or file, mention a person, link another issue, date |
 
 Short forms work as you type, too: `#` followed by a space starts a heading, `-` followed by a space a bullet list, `1.` a numbered list, `[ ]` a checklist.

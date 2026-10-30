@@ -1,8 +1,9 @@
 ---
+
 title: "Suche und Tastenkombinationen"
 description: "Finde alles in einer Sekunde mit ⌘K und erledige das Alltägliche, ohne die Tastatur zu verlassen."
 sidebar:
-  order: 9
+order: 9
 ---
 
 Barynt ist so gebaut, dass du die Maus selten brauchst. Du musst nichts davon lernen, um die App zu benutzen, aber die wenigen Kombinationen unten sind die, von denen Leute ihren Kolleginnen und Kollegen erzählen.
@@ -28,15 +29,15 @@ Die Suche deckt Titel und Beschreibungen ab und findet nur, was du sehen darfst.
 
 ## Überall
 
-| Tasten | Was sie tun |
-| --- | --- |
-| `C` | Neue Aufgabe erstellen |
-| `N` | Neues Projekt erstellen |
-| `⌘K` | Suchen und springen |
-| `V` | Zu einer View gehen |
-| `⌘B` | Seitenleiste ein- oder ausblenden |
-| `?` | Die Übersicht der Tastenkombinationen öffnen |
-| `Esc` | Einen Dialog oder ein Panel schließen |
+| Tasten | Was sie tun                                  |
+| ------ | -------------------------------------------- |
+| `C`    | Neue Aufgabe erstellen                       |
+| `N`    | Neues Projekt erstellen                      |
+| `⌘K`   | Suchen und springen                          |
+| `V`    | Zu einer View gehen                          |
+| `⌘B`   | Seitenleiste ein- oder ausblenden            |
+| `?`    | Die Übersicht der Tastenkombinationen öffnen |
+| `Esc`  | Einen Dialog oder ein Panel schließen        |
 
 Einzeltasten-Kombinationen funktionieren nur, wenn du nicht in einem Feld tippst und kein Dialog offen ist.
 
@@ -44,54 +45,54 @@ Einzeltasten-Kombinationen funktionieren nur, wenn du nicht in einem Feld tippst
 
 Drücke `G`, dann einen Buchstaben. Denk an „Go to“:
 
-| Tasten | Wohin |
-| --- | --- |
-| `G` `D` | Dashboard |
-| `G` `I` | Meine Aufgaben |
-| `G` `P` | Projekte |
-| `G` `M` | Mitglieder (des Projekts, in dem du bist, sonst des Workspace) |
-| `G` `T` | Teams |
-| `G` `S` | Einstellungen (des Projekts, in dem du bist, sonst des Workspace) |
-| `G` `B` | Board |
-| `G` `L` | Aufgabenliste |
-| `G` `O` | Die Übersicht des Projekts |
-| `[` und `]` | Voriges und nächstes Projekt |
-| `⌘1` bis `⌘9` | Das erste bis neunte Projekt der Seitenleiste |
+| Tasten        | Wohin                                                             |
+| ------------- | ----------------------------------------------------------------- |
+| `G` `D`       | Dashboard                                                         |
+| `G` `I`       | Meine Aufgaben                                                    |
+| `G` `P`       | Projekte                                                          |
+| `G` `M`       | Mitglieder (des Projekts, in dem du bist, sonst des Workspace)    |
+| `G` `T`       | Teams                                                             |
+| `G` `S`       | Einstellungen (des Projekts, in dem du bist, sonst des Workspace) |
+| `G` `B`       | Board                                                             |
+| `G` `L`       | Aufgabenliste                                                     |
+| `G` `O`       | Die Übersicht des Projekts                                        |
+| `[` und `]`   | Voriges und nächstes Projekt                                      |
+| `⌘1` bis `⌘9` | Das erste bis neunte Projekt der Seitenleiste                     |
 
 ## An einer Aufgabe
 
 Mit geöffneter Aufgabe oder wenn du in einer Liste darüber fährst:
 
-| Tasten | Was sie tun |
-| --- | --- |
-| `S` | Status ändern |
-| `P` | Priorität ändern |
-| `A` | Zuständigkeit ändern |
-| `I` | Dir selbst zuweisen (erneut drücken, um die Zuweisung aufzuheben) |
-| `L` | Labels bearbeiten |
-| `T` | Eine Unteraufgabe hinzufügen |
-| `R` | Eine Beziehung hinzufügen |
-| `M` | Ins Kommentarfeld springen |
-| `⌘.` | Die Aufgabennummer kopieren |
-| `⌘⇧,` | Einen Link auf die Aufgabe kopieren |
-| `O` | Die ganze Seite öffnen |
-| `E` | Zwischen Seitenpanel und Dialog wechseln |
+| Tasten | Was sie tun                                                       |
+| ------ | ----------------------------------------------------------------- |
+| `S`    | Status ändern                                                     |
+| `P`    | Priorität ändern                                                  |
+| `A`    | Zuständigkeit ändern                                              |
+| `I`    | Dir selbst zuweisen (erneut drücken, um die Zuweisung aufzuheben) |
+| `L`    | Labels bearbeiten                                                 |
+| `T`    | Eine Unteraufgabe hinzufügen                                      |
+| `R`    | Eine Beziehung hinzufügen                                         |
+| `M`    | Ins Kommentarfeld springen                                        |
+| `⌘.`   | Die Aufgabennummer kopieren                                       |
+| `⌘⇧,`  | Einen Link auf die Aufgabe kopieren                               |
+| `O`    | Die ganze Seite öffnen                                            |
+| `E`    | Zwischen Seitenpanel und Dialog wechseln                          |
 
 ## In Board und Liste
 
-| Tasten | Was sie tun |
-| --- | --- |
-| `J` / `K` | Nächste oder vorige Aufgabe |
-| `←` / `→` | Vorige oder nächste Spalte (Board) |
-| `Enter` oder `O` | Die fokussierte Aufgabe öffnen |
+| Tasten           | Was sie tun                        |
+| ---------------- | ---------------------------------- |
+| `J` / `K`        | Nächste oder vorige Aufgabe        |
+| `←` / `→`        | Vorige oder nächste Spalte (Board) |
+| `Enter` oder `O` | Die fokussierte Aufgabe öffnen     |
 
 ## Beim Schreiben
 
-| Tasten | Was sie tun |
-| --- | --- |
-| `⌘↵` | Speichern oder erstellen, auch direkt im Textfeld |
-| `⌘K` | Einen Link einfügen oder bearbeiten |
-| `/` | Das Befehlsmenü im Editor öffnen |
+| Tasten      | Was sie tun                                         |
+| ----------- | --------------------------------------------------- |
+| `⌘↵`        | Speichern oder erstellen, auch direkt im Textfeld   |
+| `⌘K`        | Einen Link einfügen oder bearbeiten                 |
+| `/`         | Das Befehlsmenü im Editor öffnen                    |
 | `@` und `#` | Einen Menschen erwähnen oder eine Aufgabe verlinken |
 
 ## Eigene Tastenkombinationen

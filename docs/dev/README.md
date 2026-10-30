@@ -12,19 +12,19 @@ the next thing to read.
 
 ## Read in this order
 
-| Page | What you get |
-| --- | --- |
-| [Getting started](getting-started.md) | Run Barynt on your machine: tools, database, mail, first sign-in, daily commands. |
-| [Architecture](architecture.md) | The stack, the folder layout, and how a request travels from the browser to the database and back. |
-| [Data model](data-model.md) | The Prisma schema in groups, the ideas behind it, migrations, seed and bootstrap. |
-| [Authentication](authentication.md) | Passkeys, OAuth/OIDC, magic links, sessions, API keys and OAuth tokens. |
-| [Permissions (RBAC)](permissions.md) | Roles, scopes and the rules every check follows. The most important page before you touch access. |
-| [Frontend](frontend.md) | Components, styling, responsive rules, rich text, icons, shortcuts, personal settings, translations. |
-| [Backend services](backend-services.md) | Mail, storage, Redis, realtime updates, audit log, notifications, webhooks, other building blocks. |
-| [API and MCP internals](api-and-mcp.md) | How the REST API, the MCP server and the in-app reference are wired, and how to add a route, tool or event. |
-| [Testing](testing.md) | `bun run test`, why the suite is split, how to write a test that behaves. |
-| [Build, release and operations](build-and-release.md) | Docker image, CI workflows, releases, Helm chart, installer. |
-| [Contributing](contributing.md) | Workflow, commit style, pull requests, and the checklists for common changes. |
+| Page                                                  | What you get                                                                                                |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| [Getting started](getting-started.md)                 | Run Barynt on your machine: tools, database, mail, first sign-in, daily commands.                           |
+| [Architecture](architecture.md)                       | The stack, the folder layout, and how a request travels from the browser to the database and back.          |
+| [Data model](data-model.md)                           | The Prisma schema in groups, the ideas behind it, migrations, seed and bootstrap.                           |
+| [Authentication](authentication.md)                   | Passkeys, OAuth/OIDC, magic links, sessions, API keys and OAuth tokens.                                     |
+| [Permissions (RBAC)](permissions.md)                  | Roles, scopes and the rules every check follows. The most important page before you touch access.           |
+| [Frontend](frontend.md)                               | Components, styling, responsive rules, rich text, icons, shortcuts, personal settings, translations.        |
+| [Backend services](backend-services.md)               | Mail, storage, Redis, realtime updates, audit log, notifications, webhooks, other building blocks.          |
+| [API and MCP internals](api-and-mcp.md)               | How the REST API, the MCP server and the in-app reference are wired, and how to add a route, tool or event. |
+| [Testing](testing.md)                                 | `bun run test`, why the suite is split, how to write a test that behaves.                                   |
+| [Build, release and operations](build-and-release.md) | Docker image, CI workflows, releases, Helm chart, installer.                                                |
+| [Contributing](contributing.md)                       | Workflow, commit style, pull requests, and the checklists for common changes.                               |
 
 More detail that is useful once you are deeper in:
 
@@ -34,12 +34,12 @@ More detail that is useful once you are deeper in:
 
 ## Where things are documented
 
-| For | Lives in | Language |
-| --- | --- | --- |
-| People who use and run Barynt | [`docs/guide/`](../guide/), published on [barynt.dev](https://barynt.dev/docs/) | English and German |
-| People who change Barynt | `docs/dev/` (here), read on GitHub and published as "Development" on [barynt.dev](https://barynt.dev/docs/development/) | English |
-| AI coding assistants | [`CLAUDE.md`](../../CLAUDE.md) and `AGENTS.md`: the rules in condensed form | English |
-| The reasons behind a piece of code | Comments in the code itself | English |
+| For                                | Lives in                                                                                                                | Language           |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| People who use and run Barynt      | [`docs/guide/`](../guide/), published on [barynt.dev](https://barynt.dev/docs/)                                         | English and German |
+| People who change Barynt           | `docs/dev/` (here), read on GitHub and published as "Development" on [barynt.dev](https://barynt.dev/docs/development/) | English            |
+| AI coding assistants               | [`CLAUDE.md`](../../CLAUDE.md) and `AGENTS.md`: the rules in condensed form                                             | English            |
+| The reasons behind a piece of code | Comments in the code itself                                                                                             | English            |
 
 `CLAUDE.md` is the short rule sheet; these pages explain the same ground for
 humans, with the reasoning. When they ever disagree, the code wins, then

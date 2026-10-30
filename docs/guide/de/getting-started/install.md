@@ -1,9 +1,10 @@
 ---
+
 title: "Installation"
 description: "Ein Befehl installiert Barynt auf einem Linux-Server: Er prüft Docker, fragt nach deiner Domain, erzeugt alle Secrets und startet den Stack mit HTTPS."
 sidebar:
-  order: 4
-  badge: Neu
+order: 4
+badge: Neu
 ---
 
 ## Voraussetzungen
@@ -34,15 +35,15 @@ curl -fsSL https://github.com/Jafoson/Barynt/releases/latest/download/install.sh
   | sh -s -- --domain issues.example.com --yes
 ```
 
-| Option | Was sie macht |
-| --- | --- |
-| `--domain NAME` | Domain für HTTPS, z. B. issues.example.com |
+| Option                | Was sie macht                                                  |
+| --------------------- | -------------------------------------------------------------- |
+| `--domain NAME`       | Domain für HTTPS, z. B. issues.example.com                     |
 | `--files-domain NAME` | Domain für hochgeladene Dateien, `files.<domain>` als Standard |
-| `--version X.Y.Z` | Diese Version statt der neuesten installieren |
-| `--dir DIR` | Installationsverzeichnis, `/opt/barynt` als Standard |
-| `--install-docker` | Docker ohne Nachfrage installieren, falls es fehlt |
-| `--yes` | Nicht fragen, Standardwerte nehmen |
-| `--dry-run` | Zeigen, was passieren würde, nichts ändern |
+| `--version X.Y.Z`     | Diese Version statt der neuesten installieren                  |
+| `--dir DIR`           | Installationsverzeichnis, `/opt/barynt` als Standard           |
+| `--install-docker`    | Docker ohne Nachfrage installieren, falls es fehlt             |
+| `--yes`               | Nicht fragen, Standardwerte nehmen                             |
+| `--dry-run`           | Zeigen, was passieren würde, nichts ändern                     |
 
 ## Was er einrichtet
 

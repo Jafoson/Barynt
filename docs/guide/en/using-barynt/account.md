@@ -1,8 +1,9 @@
 ---
+
 title: "Account and personal settings"
 description: "Your name, how you sign in, how Barynt looks, where clicks take you and what reaches your inbox. All of it is yours alone."
 sidebar:
-  order: 11
+order: 11
 ---
 
 Everything on this page applies to **you only**. It is saved to your account, so it follows you to every device and browser.
@@ -33,16 +34,16 @@ Where clicks take you, where you start, and how issues open.
 
 ![Navigation settings](../../assets/en/account-navigation.webp)
 
-| Setting | What it decides |
-| --- | --- |
-| **Click on a project name** | Whether the sidebar opens the _Board_, the _Issues_ list, the _Dashboard_ or your own _Start view_. |
-| **Start page after signing in** | Where you land: the _Workspace_ overview, _My issues_, the _Inbox_, the _Dashboard_ or a view of your choice. |
-| **Project order** | Alphabetical or newest first. |
-| **Start with the sidebar collapsed** | Only icons until you expand it. |
-| **Open issue** | What a click on an issue does: open a _side panel_, an _own page_, a _new tab in Barynt_ or a _new browser tab_. |
-| **"Open full page" in an issue** | What the button at the top of an issue (and the `O` key) does. |
-| **Default grouping, default order** | What boards and lists use until you choose something else in a view. |
-| **Show sub-issues on the board** | The default for views where you have not decided yet. |
+| Setting                              | What it decides                                                                                                  |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| **Click on a project name**          | Whether the sidebar opens the _Board_, the _Issues_ list, the _Dashboard_ or your own _Start view_.              |
+| **Start page after signing in**      | Where you land: the _Workspace_ overview, _My issues_, the _Inbox_, the _Dashboard_ or a view of your choice.    |
+| **Project order**                    | Alphabetical or newest first.                                                                                    |
+| **Start with the sidebar collapsed** | Only icons until you expand it.                                                                                  |
+| **Open issue**                       | What a click on an issue does: open a _side panel_, an _own page_, a _new tab in Barynt_ or a _new browser tab_. |
+| **"Open full page" in an issue**     | What the button at the top of an issue (and the `O` key) does.                                                   |
+| **Default grouping, default order**  | What boards and lists use until you choose something else in a view.                                             |
+| **Show sub-issues on the board**     | The default for views where you have not decided yet.                                                            |
 
 Holding `Ctrl` (or `⌘`) while clicking, or a middle click, always opens a browser tab.
 

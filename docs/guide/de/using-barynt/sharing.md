@@ -1,8 +1,9 @@
 ---
+
 title: "Eine Aufgabe teilen"
 description: "Zeige eine Aufgabe jemandem ohne Konto oder reiche sie direkt an eine Kollegin weiter: ein schreibgeschützter öffentlicher Link, eine E-Mail oder eine Nachricht in Barynt."
 sidebar:
-  order: 10
+order: 10
 ---
 
 Manchmal gehört die Person, die eine Aufgabe sehen muss, nicht zu deinem Workspace: ein Kunde, der einen Fehler gemeldet hat, ein Freelancer, eine Führungskraft aus einer anderen Abteilung. Barynt hat drei Wege zu teilen, vom offensten zum privatesten.
@@ -37,8 +38,8 @@ Wähle **Per E-Mail teilen**, tippe eine Adresse ein und sende. Die Empfängerin
 
 ## Welchen Weg nehmen
 
-| Du willst … | Nimm |
-| --- | --- |
-| Einer Person außerhalb einmal eine Aufgabe zeigen | **Öffentlicher Link**, danach ausschalten |
-| Die Aufmerksamkeit eines Teammitglieds, ohne zuzuweisen | **Mit Workspace-Mitglied teilen** |
-| Eine externe Person dauerhaft mitmachen lassen | [Sie als Gast ins Projekt einladen](../administration/members.md) |
+| Du willst …                                             | Nimm                                                              |
+| ------------------------------------------------------- | ----------------------------------------------------------------- |
+| Einer Person außerhalb einmal eine Aufgabe zeigen       | **Öffentlicher Link**, danach ausschalten                         |
+| Die Aufmerksamkeit eines Teammitglieds, ohne zuzuweisen | **Mit Workspace-Mitglied teilen**                                 |
+| Eine externe Person dauerhaft mitmachen lassen          | [Sie als Gast ins Projekt einladen](../administration/members.md) |

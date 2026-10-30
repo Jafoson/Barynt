@@ -1,8 +1,9 @@
 ---
+
 title: "Workspace-Einstellungen"
 description: "Name, Aussehen und Adresse deines Workspace, geteilte Links, Beitritt über die Firmen-Domain, Labels und was du vor dem Löschen wissen solltest."
 sidebar:
-  order: 1
+order: 1
 ---
 
 Ein Workspace ist das Zuhause eines Teams oder einer Firma. Seine Einstellungen findest du unter **Workspace Einstellungen** unten in der Seitenleiste (der Tab _Workspace_). Was du dort siehst, hängt von deiner Rolle ab, siehe [Rollen und Berechtigungen](roles.md). Die Grundlagen zu ändern braucht _Name, Farbe und Adresse ändern_, was Owner, Admins und Manager haben.
@@ -30,15 +31,15 @@ Unten geben dir drei Zahlen die Größe des Workspace: **Projekte**, die du sehe
 
 Die übrigen Einträge der Workspace-Einstellungen:
 
-| Eintrag | Wofür er da ist |
-| --- | --- |
-| **Projekte** | Alle Projekte des Workspace in zwei Listen, öffentlich und privat. Ein Klick öffnet eines, der Stift bearbeitet seine Details, der Papierkorb löscht es. Workspace-Owner, -Admins und -Project-Leads sehen auch die privaten. Siehe [Projekte](../using-barynt/projects.md). |
-| **Labels** | Die Labels, die in **jedem** Projekt gelten, mit der Zahl der Aufgaben, die sie nutzen. Ein Workspace-Label kannst du in einzelnen Projekten ausblenden. Labels, die zu einem Projekt gehören, stehen zur Orientierung darunter. |
-| **Webhooks** | Anderen Systemen sagen, was passiert, siehe [Webhooks](../integrations/webhooks.md). |
-| **Teams** | Siehe [Teams](teams.md). |
-| **Rollen & Rechte** | Siehe [Rollen und Berechtigungen](roles.md). |
-| **Mitglieder** und **Einladungen** | Siehe [Mitglieder und Einladungen](members.md). |
-| **Aktivität** | Was im Workspace passiert ist, siehe [Audit-Log](audit.md). |
+| Eintrag                            | Wofür er da ist                                                                                                                                                                                                                                                              |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Projekte**                       | Alle Projekte des Workspace in zwei Listen, öffentlich und privat. Ein Klick öffnet eines, der Stift bearbeitet seine Details, der Papierkorb löscht es. Workspace-Owner, -Admins und -Project-Leads sehen auch die privaten. Siehe [Projekte](../using-barynt/projects.md). |
+| **Labels**                         | Die Labels, die in **jedem** Projekt gelten, mit der Zahl der Aufgaben, die sie nutzen. Ein Workspace-Label kannst du in einzelnen Projekten ausblenden. Labels, die zu einem Projekt gehören, stehen zur Orientierung darunter.                                             |
+| **Webhooks**                       | Anderen Systemen sagen, was passiert, siehe [Webhooks](../integrations/webhooks.md).                                                                                                                                                                                         |
+| **Teams**                          | Siehe [Teams](teams.md).                                                                                                                                                                                                                                                     |
+| **Rollen & Rechte**                | Siehe [Rollen und Berechtigungen](roles.md).                                                                                                                                                                                                                                 |
+| **Mitglieder** und **Einladungen** | Siehe [Mitglieder und Einladungen](members.md).                                                                                                                                                                                                                              |
+| **Aktivität**                      | Was im Workspace passiert ist, siehe [Audit-Log](audit.md).                                                                                                                                                                                                                  |
 
 ### Workspace-Labels oder Projekt-Labels?
 

@@ -1,8 +1,9 @@
 ---
+
 title: "Project settings"
 description: "Everything you can adjust for one project: its details and visibility, who is in, labels, which fields issues have, and its activity log."
 sidebar:
-  order: 5
+order: 5
 ---
 
 Open a project and click **Settings** (or the _Project_ tab at the top of any settings page). The left-hand menu has seven entries. Most need the **Project Admin** role, see [Roles and permissions](roles.md).
@@ -47,15 +48,15 @@ Labels group issues across status and priority. There are two kinds, shown on tw
 
 Not every team wants every field. Switch them on and off for this project:
 
-| Field | Default |
-| --- | :---: |
-| Priority | on |
-| Attachments | on |
-| Labels | on |
-| Relationships | on |
-| Due date | off |
-| Story points | off |
-| Time estimate | off |
+| Field         | Default |
+| ------------- | :-----: |
+| Priority      |   on    |
+| Attachments   |   on    |
+| Labels        |   on    |
+| Relationships |   on    |
+| Due date      |   off   |
+| Story points  |   off   |
+| Time estimate |   off   |
 
 A switched-off field disappears from the issue page, the list, the board cards and the filter menu. Data already entered is kept, so you can switch it back on later. See [Issues in detail](../using-barynt/issues.md).
 

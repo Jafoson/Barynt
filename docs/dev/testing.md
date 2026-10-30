@@ -35,7 +35,7 @@ with it is the thing under test. Integration against a real database is not part
 
 Bun shares its module cache between test files **inside one process**. A file that calls
 `mock.module("@/lib/permissions", …)` replaces that module for every other file that runs
-later in the same process, including a file that tests the *real* module. Order decides who
+later in the same process, including a file that tests the _real_ module. Order decides who
 wins, and the winner can change with the Bun version or with a new file being added.
 
 So the runner ([`scripts/run-tests.ts`](../../scripts/run-tests.ts)) holds an array of
@@ -50,16 +50,16 @@ summary on the GitHub Actions run.
 
 Concretely, from the current segments:
 
-| Mocked away by | Tested for real by | Therefore |
-| --- | --- | --- |
-| `permissions/roleActions.test.ts` mocks `@/lib/permissions` | `permissions/resolver.test.ts` | the resolver has its own segment |
-| `notifications/notify.test.ts` mocks `@/lib/mail` | tests that rely on the real `sendInvitationEmail` | `notifications/` has its own segment |
-| `mail/send.test.ts` mocks `lib/mail/config` and `transport` | `mail/config.test.ts` | `send.test.ts` has its own segment |
-| Four workspace tests mock `@/lib/project-membership` | `projects/projectMembership.test.ts` and others | the four mockers share one segment |
-| `workspace/createWorkspace.test.ts` mocks `@/lib/system-settings` | `admin/systemSettings.test.ts` | the latter has its own segment |
-| `issues/getLabels.test.ts` replaces `react` with a stub | `react-dom/server` rendering | component tests run in a different segment |
-| `oauth/` mocks `@/lib/app-url` | invitation, link and mail tests use the real one | `oauth/` has its own segment |
-| `proxy/proxy.test.ts` imports the real `next/server` | everything that touches Next internals | it installs process-wide edge instrumentation, so it runs alone |
+| Mocked away by                                                    | Tested for real by                                | Therefore                                                       |
+| ----------------------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------- |
+| `permissions/roleActions.test.ts` mocks `@/lib/permissions`       | `permissions/resolver.test.ts`                    | the resolver has its own segment                                |
+| `notifications/notify.test.ts` mocks `@/lib/mail`                 | tests that rely on the real `sendInvitationEmail` | `notifications/` has its own segment                            |
+| `mail/send.test.ts` mocks `lib/mail/config` and `transport`       | `mail/config.test.ts`                             | `send.test.ts` has its own segment                              |
+| Four workspace tests mock `@/lib/project-membership`              | `projects/projectMembership.test.ts` and others   | the four mockers share one segment                              |
+| `workspace/createWorkspace.test.ts` mocks `@/lib/system-settings` | `admin/systemSettings.test.ts`                    | the latter has its own segment                                  |
+| `issues/getLabels.test.ts` replaces `react` with a stub           | `react-dom/server` rendering                      | component tests run in a different segment                      |
+| `oauth/` mocks `@/lib/app-url`                                    | invitation, link and mail tests use the real one  | `oauth/` has its own segment                                    |
+| `proxy/proxy.test.ts` imports the real `next/server`              | everything that touches Next internals            | it installs process-wide edge instrumentation, so it runs alone |
 
 When you prefer a choice: **mock `@/lib/db`** (a small assumption that lets the real code run) over
 mocking a sibling module.
@@ -100,13 +100,13 @@ mocking a sibling module.
 Some tests exist to keep generated or paired things in step. If one of these fails, fix the thing it
 names, do not delete the test:
 
-| Test | Fails when |
-| --- | --- |
-| `tests/unit/i18n/messages.test.ts` | a message key exists in only one language, or a key name contains a dot |
-| `tests/unit/ui/iconBundle.test.ts` | an icon was added or removed without `bun run icons:build` |
-| `tests/unit/docs/guide.test.ts` | a docs page lacks front matter or a group, a link or image points nowhere, or the generated API reference is stale (`bun run docs:api`) |
-| `tests/unit/permissions/rbac.test.ts` | the permission registry is inconsistent (a key without a scope, a role listing an unknown key) |
-| `tests/unit/release/` | the release-notes logic breaks |
+| Test                                  | Fails when                                                                                                                              |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/unit/i18n/messages.test.ts`    | a message key exists in only one language, or a key name contains a dot                                                                 |
+| `tests/unit/ui/iconBundle.test.ts`    | an icon was added or removed without `bun run icons:build`                                                                              |
+| `tests/unit/docs/guide.test.ts`       | a docs page lacks front matter or a group, a link or image points nowhere, or the generated API reference is stale (`bun run docs:api`) |
+| `tests/unit/permissions/rbac.test.ts` | the permission registry is inconsistent (a key without a scope, a role listing an unknown key)                                          |
+| `tests/unit/release/`                 | the release-notes logic breaks                                                                                                          |
 
 ## CI
 

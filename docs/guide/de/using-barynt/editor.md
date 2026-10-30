@@ -1,8 +1,9 @@
 ---
+
 title: "Schreiben und Formatieren"
 description: "Beschreibungen und Kommentare in Barynt sind formatierter Text. Mit / fügst du alles Mögliche ein, mit @ erwähnst du Menschen, mit # verlinkst du Aufgaben."
 sidebar:
-  order: 2
+order: 2
 ---
 
 Aufgabenbeschreibungen und Kommentare nutzen denselben Editor. Er ist mit Absicht einfach: Du kannst reinen Text schreiben und gar nicht darüber nachdenken, und die Formatierung ist da, wenn du sie brauchst.
@@ -13,11 +14,11 @@ Aufgabenbeschreibungen und Kommentare nutzen denselben Editor. Er ist mit Absich
 
 Tippe an beliebiger Stelle im Text **`/`**, um das Befehlsmenü zu öffnen, und tippe weiter, um einzugrenzen („/tabelle“, „/code“). Nutze die Pfeiltasten und `Enter` oder klicke.
 
-| Gruppe | Was du einfügen kannst |
-| --- | --- |
-| **Text** | Überschrift 1, 2 oder 3 |
-| **Listen** | Aufzählung, nummerierte Liste, Checkliste mit Kästchen |
-| **Blöcke** | Codeblock, Zitat, Info-Feld, Warn-Feld, Tabelle, Trennlinie |
+| Gruppe       | Was du einfügen kannst                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------- |
+| **Text**     | Überschrift 1, 2 oder 3                                                                     |
+| **Listen**   | Aufzählung, nummerierte Liste, Checkliste mit Kästchen                                      |
+| **Blöcke**   | Codeblock, Zitat, Info-Feld, Warn-Feld, Tabelle, Trennlinie                                 |
 | **Einfügen** | Link, Bild, Video oder Datei, einen Menschen erwähnen, eine andere Aufgabe verlinken, Datum |
 
 Auch Kurzformen funktionieren beim Tippen: `#` mit Leerzeichen beginnt eine Überschrift, `-` mit Leerzeichen eine Aufzählung, `1.` eine nummerierte Liste, `[ ]` eine Checkliste.

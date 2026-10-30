@@ -1,8 +1,9 @@
 ---
+
 title: "Platform administration"
 description: "The server-level controls: accounts, workspaces, server-wide settings, emails and the audit log. Built to keep the server healthy without reading anyone's issues."
 sidebar:
-  order: 10
+order: 10
 ---
 
 One Barynt server can host many workspaces. The **platform administration** looks after the server as a whole: who has an account, which workspaces exist, and a few rules that apply to all of them. It is meant for the person or small team who runs the server, and it is separate from the workspace settings that team leads use.

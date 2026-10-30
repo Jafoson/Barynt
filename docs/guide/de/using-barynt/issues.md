@@ -1,8 +1,9 @@
 ---
+
 title: "Aufgaben im Detail"
 description: "Eine Aufgabe anlegen, beschreiben, zuweisen, voranbringen und besprechen: alles, was du mit einem Stück Arbeit tust."
 sidebar:
-  order: 1
+order: 1
 ---
 
 Eine **Aufgabe** (englisch _Issue_) ist ein Stück Arbeit: eine To-do, ein Fehler, eine Idee. Alles andere in Barynt, vom Board bis zum Dashboard, ist nur eine Art, Aufgaben anzusehen. Diese Seite handelt von der Aufgabe selbst.
@@ -36,14 +37,14 @@ Die Seite hat zwei Teile:
 
 ### Eigenschaften
 
-| Eigenschaft | Wofür sie da ist |
-| --- | --- |
-| **Typ** | Die Art der Arbeit: Feature, Bug, Improvement, Task oder Chore. |
-| **Status** | Wo sie steht: Rückstand, Offen, In Bearbeitung, In Überprüfung, Erledigt oder Abgebrochen. |
-| **Priorität** | Wie dringend: Keine Priorität, Niedrig, Mittel, Hoch oder Dringend. |
-| **Zuständig** | Die eine verantwortliche Person. |
-| **Labels** | Beliebig viele Schlagwörter, aus dem Projekt oder dem Workspace. |
-| **Projekt, Ersteller, Daten** | Wo sie liegt, wer sie geschrieben hat, wann sie erstellt und zuletzt geändert wurde. |
+| Eigenschaft                   | Wofür sie da ist                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------------------ |
+| **Typ**                       | Die Art der Arbeit: Feature, Bug, Improvement, Task oder Chore.                            |
+| **Status**                    | Wo sie steht: Rückstand, Offen, In Bearbeitung, In Überprüfung, Erledigt oder Abgebrochen. |
+| **Priorität**                 | Wie dringend: Keine Priorität, Niedrig, Mittel, Hoch oder Dringend.                        |
+| **Zuständig**                 | Die eine verantwortliche Person.                                                           |
+| **Labels**                    | Beliebig viele Schlagwörter, aus dem Projekt oder dem Workspace.                           |
+| **Projekt, Ersteller, Daten** | Wo sie liegt, wer sie geschrieben hat, wann sie erstellt und zuletzt geändert wurde.       |
 
 Klicke auf eine Eigenschaft, um sie zu ändern, oder fahre über die Aufgabe und nutze die Einzeltasten: `S` Status, `P` Priorität, `A` Zuständig, `I` mir zuweisen, `L` Labels.
 

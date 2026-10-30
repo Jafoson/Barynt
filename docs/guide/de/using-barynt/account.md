@@ -1,8 +1,9 @@
 ---
+
 title: "Konto und persönliche Einstellungen"
 description: "Dein Name, wie du dich anmeldest, wie Barynt aussieht, wohin Klicks führen und was in deinen Posteingang gelangt. Das alles gehört nur dir."
 sidebar:
-  order: 11
+order: 11
 ---
 
 Alles auf dieser Seite gilt **nur für dich**. Es wird in deinem Konto gespeichert und folgt dir deshalb auf jedes Gerät und in jeden Browser.
@@ -33,16 +34,16 @@ Wohin Klicks führen, wo du startest und wie sich Aufgaben öffnen.
 
 ![Navigationseinstellungen](../../assets/de/account-navigation.webp)
 
-| Einstellung | Was sie bestimmt |
-| --- | --- |
-| **Klick auf einen Projektnamen** | Ob die Seitenleiste das _Board_, die Liste (_Issues_), das _Dashboard_ oder deine eigene _Start-View_ öffnet. |
-| **Startseite nach der Anmeldung** | Wo du landest: der _Workspace_ (die Übersicht), _Meine Issues_, die _Inbox_, das _Dashboard_ oder eine View deiner Wahl. |
-| **Reihenfolge der Projekte** | Alphabetisch oder neueste zuerst. |
-| **Seitenleiste eingeklappt starten** | Nur Symbole, bis du sie ausklappst. |
-| **Issue öffnen** | Was ein Klick auf eine Aufgabe tut: ein _Seitenpanel_, eine _eigene Seite_, einen _neuen Tab in Barynt_ oder einen _neuen Browser-Tab_ öffnen. |
-| **„Vollständig öffnen“ im Issue** | Was die Schaltfläche oben in einer Aufgabe (und die Taste `O`) tut. |
-| **Standard-Gruppierung, Standard-Sortierung** | Was Boards und Listen nutzen, bis du in einer View etwas anderes wählst. |
-| **Unteraufgaben im Board zeigen** | Die Voreinstellung für Views, bei denen du noch nichts entschieden hast. |
+| Einstellung                                   | Was sie bestimmt                                                                                                                               |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Klick auf einen Projektnamen**              | Ob die Seitenleiste das _Board_, die Liste (_Issues_), das _Dashboard_ oder deine eigene _Start-View_ öffnet.                                  |
+| **Startseite nach der Anmeldung**             | Wo du landest: der _Workspace_ (die Übersicht), _Meine Issues_, die _Inbox_, das _Dashboard_ oder eine View deiner Wahl.                       |
+| **Reihenfolge der Projekte**                  | Alphabetisch oder neueste zuerst.                                                                                                              |
+| **Seitenleiste eingeklappt starten**          | Nur Symbole, bis du sie ausklappst.                                                                                                            |
+| **Issue öffnen**                              | Was ein Klick auf eine Aufgabe tut: ein _Seitenpanel_, eine _eigene Seite_, einen _neuen Tab in Barynt_ oder einen _neuen Browser-Tab_ öffnen. |
+| **„Vollständig öffnen“ im Issue**             | Was die Schaltfläche oben in einer Aufgabe (und die Taste `O`) tut.                                                                            |
+| **Standard-Gruppierung, Standard-Sortierung** | Was Boards und Listen nutzen, bis du in einer View etwas anderes wählst.                                                                       |
+| **Unteraufgaben im Board zeigen**             | Die Voreinstellung für Views, bei denen du noch nichts entschieden hast.                                                                       |
 
 Hältst du beim Klicken `Strg` (oder `⌘`) gedrückt oder nutzt die mittlere Maustaste, öffnet sich immer ein Browser-Tab.
 

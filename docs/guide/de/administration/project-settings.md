@@ -1,8 +1,9 @@
 ---
+
 title: "Projekteinstellungen"
 description: "Alles, was du für ein Projekt einstellen kannst: Details und Sichtbarkeit, wer dabei ist, Labels, welche Felder Aufgaben haben und das Aktivitätsprotokoll."
 sidebar:
-  order: 5
+order: 5
 ---
 
 Öffne ein Projekt und klicke auf **Einstellungen** (oder auf den Tab _Projekt_ oben auf jeder Einstellungsseite). Das Menü links hat sieben Einträge. Die meisten brauchen die Rolle **Project Admin**, siehe [Rollen und Berechtigungen](roles.md).
@@ -47,15 +48,15 @@ Labels gruppieren Aufgaben quer zu Status und Priorität. Es gibt zwei Arten, au
 
 Nicht jedes Team will jedes Feld. Schalte sie für dieses Projekt ein und aus:
 
-| Feld | Voreinstellung |
-| --- | :---: |
-| Priorität | an |
-| Anhänge | an |
-| Labels | an |
-| Beziehungen | an |
-| Fälligkeitsdatum | aus |
-| Story Points | aus |
-| Zeitschätzung | aus |
+| Feld             | Voreinstellung |
+| ---------------- | :------------: |
+| Priorität        |       an       |
+| Anhänge          |       an       |
+| Labels           |       an       |
+| Beziehungen      |       an       |
+| Fälligkeitsdatum |      aus       |
+| Story Points     |      aus       |
+| Zeitschätzung    |      aus       |
 
 Ein ausgeschaltetes Feld verschwindet von der Aufgabenseite, aus der Liste, von den Board-Karten und aus dem Filter-Menü. Bereits eingegebene Daten bleiben erhalten, du kannst es also später wieder einschalten. Siehe [Aufgaben im Detail](../using-barynt/issues.md).
 

@@ -1,8 +1,9 @@
 ---
+
 title: "Members and invitations"
 description: "Bring people into a workspace or a single project, by email, with a link, or automatically by company domain. Change roles and remove people."
 sidebar:
-  order: 2
+order: 2
 ---
 
 A **member** is a person with access to a workspace. This page covers the three ways of adding people, how to change or remove them, and how to bring in someone from outside for just one project.

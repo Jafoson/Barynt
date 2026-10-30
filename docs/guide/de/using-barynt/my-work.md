@@ -1,8 +1,9 @@
 ---
+
 title: "Meine Aufgaben, Posteingang und Benachrichtigungen"
 description: "Alles, was dir zugewiesen ist, an einem Ort, und ein ruhiger Posteingang, der dir sagt, wenn etwas dich braucht, in der App und auf Wunsch per E-Mail."
 sidebar:
-  order: 8
+order: 8
 ---
 
 Teams ersticken im Lärm, wenn alles alle anpingt. Barynt hält zwei Dinge auseinander: **Meine Aufgaben** ist die Liste deiner Arbeit, und der **Posteingang** ist die kurze Liste dessen, was jetzt deine Aufmerksamkeit braucht.
@@ -21,16 +22,16 @@ Der **Posteingang** sammelt Benachrichtigungen über Dinge, die dich betreffen. 
 
 Benachrichtigungen kommen, wenn:
 
-| Ereignis | Du erfährst es, wenn … |
-| --- | --- |
-| **Aufgabe zugewiesen** | Dir jemand eine Aufgabe zuweist. |
-| **Erwähnung** | Dich jemand mit `@` in einer Beschreibung oder einem Kommentar nennt. |
-| **Neuer Kommentar** | Jemand eine Aufgabe kommentiert, die du erstellt hast oder die dir zugewiesen ist. |
-| **Antwort auf Kommentar** | Jemand auf einen deiner Kommentare antwortet. |
-| **Status geändert** | Sich der Status einer Aufgabe ändert, die du erstellt hast oder die dir zugewiesen ist. |
-| **Einladung** | Du zu einem Workspace oder Projekt hinzugefügt wirst. |
-| **Rolle geändert** | Sich deine Rolle in einem Workspace oder Projekt ändert. |
-| **Aufgabe geteilt** | Jemand eine Aufgabe direkt mit dir teilt. |
+| Ereignis                  | Du erfährst es, wenn …                                                                  |
+| ------------------------- | --------------------------------------------------------------------------------------- |
+| **Aufgabe zugewiesen**    | Dir jemand eine Aufgabe zuweist.                                                        |
+| **Erwähnung**             | Dich jemand mit `@` in einer Beschreibung oder einem Kommentar nennt.                   |
+| **Neuer Kommentar**       | Jemand eine Aufgabe kommentiert, die du erstellt hast oder die dir zugewiesen ist.      |
+| **Antwort auf Kommentar** | Jemand auf einen deiner Kommentare antwortet.                                           |
+| **Status geändert**       | Sich der Status einer Aufgabe ändert, die du erstellt hast oder die dir zugewiesen ist. |
+| **Einladung**             | Du zu einem Workspace oder Projekt hinzugefügt wirst.                                   |
+| **Rolle geändert**        | Sich deine Rolle in einem Workspace oder Projekt ändert.                                |
+| **Aufgabe geteilt**       | Jemand eine Aufgabe direkt mit dir teilt.                                               |
 
 Niemand wird über die eigenen Aktionen benachrichtigt. Wirst du in einem Kommentar erwähnt, bekommst du die Erwähnung, nicht zusätzlich noch einen „neuen Kommentar“.
 
@@ -45,10 +46,10 @@ Niemand wird über die eigenen Aktionen benachrichtigt. Wirst du in einem Kommen
 
 Jedes Ereignis kann **in der App**, **per E-Mail**, beides oder keines von beiden kommen. Das bestimmst du unter _Persönliche Einstellungen → Benachrichtigungen_:
 
-| Ereignis | In der App | Per E-Mail |
-| --- | :---: | :---: |
-| Aufgabe zugewiesen, Erwähnung, Antwort, Einladung, Rolle geändert, Aufgabe geteilt | an | an |
-| Neuer Kommentar, Status geändert | an | **aus** |
+| Ereignis                                                                           | In der App | Per E-Mail |
+| ---------------------------------------------------------------------------------- | :--------: | :--------: |
+| Aufgabe zugewiesen, Erwähnung, Antwort, Einladung, Rolle geändert, Aufgabe geteilt |     an     |     an     |
+| Neuer Kommentar, Status geändert                                                   |     an     |  **aus**   |
 
 Kommentare und Statusänderungen sind standardmäßig aus, weil sie häufig sein können. Schalte sie ein, wenn du E-Mail dem Posteingang vorziehst.
 

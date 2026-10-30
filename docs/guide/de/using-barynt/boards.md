@@ -1,8 +1,9 @@
 ---
+
 title: "Board und Liste"
 description: "Dieselben Aufgaben als Spalten oder als Zeilen sehen, dann filtern, gruppieren und sortieren, bis das Bild stimmt."
 sidebar:
-  order: 5
+order: 5
 ---
 
 Barynt hat zwei Grundlayouts für Aufgaben. Sie zeigen dieselben Daten, nimm also, was gerade passt: das **Board**, um Arbeit voranzubringen, die **Liste**, um viele Aufgaben zu überblicken, zu sortieren und abzuarbeiten.
@@ -34,17 +35,17 @@ Mit `J` und `K` gehst du nach unten und oben, mit `Enter` öffnest du, wie in vi
 
 Die Schaltfläche **Anzeige** rechts öffnet ein kleines Menü. Deine Einstellungen werden für dich gemerkt, pro Projekt.
 
-| Einstellung | Was sie bewirkt |
-| --- | --- |
-| **Board / Liste** | Wechselt das Layout. |
-| **Spalten / Gruppierung** | Nach _Status_ (voreingestellt), _Priorität_, _Typ_, _Zuständig_ oder _Story Points_ gruppieren. Auf dem Workspace-Board auch nach _Projekt_. |
-| **Bahnen** (Swimlanes) | Eine zweite Gruppierung als horizontale Reihen, etwa Spalten nach Status und eine Reihe pro Person. |
-| **Sortierung** | _Standard_ (deine manuelle Ordnung) oder sortiert nach Priorität, Typ, Status, Story Points, Fälligkeit, Zeitschätzung, letzter Änderung, Erstellung, Titel oder Zuständigkeit, auf- oder absteigend. |
-| **Angezeigte Gruppen** | Spalten ausblenden, die du nicht brauchst, etwa Rückstand, und die übrigen umsortieren. |
-| **Leere Gruppen automatisch ausblenden** | Klappt Spalten ohne Aufgaben zu. |
-| **Unteraufgaben anzeigen** | Zeigt Unteraufgaben neben ihren übergeordneten. Standardmäßig aus. |
-| **Angezeigte Felder** | Welche Details Karten zeigen: Priorität, Labels, Story Points, Fälligkeitsdatum. |
-| **Zurücksetzen** | Zurück zu den Voreinstellungen. |
+| Einstellung                              | Was sie bewirkt                                                                                                                                                                                       |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Board / Liste**                        | Wechselt das Layout.                                                                                                                                                                                  |
+| **Spalten / Gruppierung**                | Nach _Status_ (voreingestellt), _Priorität_, _Typ_, _Zuständig_ oder _Story Points_ gruppieren. Auf dem Workspace-Board auch nach _Projekt_.                                                          |
+| **Bahnen** (Swimlanes)                   | Eine zweite Gruppierung als horizontale Reihen, etwa Spalten nach Status und eine Reihe pro Person.                                                                                                   |
+| **Sortierung**                           | _Standard_ (deine manuelle Ordnung) oder sortiert nach Priorität, Typ, Status, Story Points, Fälligkeit, Zeitschätzung, letzter Änderung, Erstellung, Titel oder Zuständigkeit, auf- oder absteigend. |
+| **Angezeigte Gruppen**                   | Spalten ausblenden, die du nicht brauchst, etwa Rückstand, und die übrigen umsortieren.                                                                                                               |
+| **Leere Gruppen automatisch ausblenden** | Klappt Spalten ohne Aufgaben zu.                                                                                                                                                                      |
+| **Unteraufgaben anzeigen**               | Zeigt Unteraufgaben neben ihren übergeordneten. Standardmäßig aus.                                                                                                                                    |
+| **Angezeigte Felder**                    | Welche Details Karten zeigen: Priorität, Labels, Story Points, Fälligkeitsdatum.                                                                                                                      |
+| **Zurücksetzen**                         | Zurück zu den Voreinstellungen.                                                                                                                                                                       |
 
 Willst du eine dieser Einstellungen morgen wieder haben oder mit deinem Team teilen, speichere sie als [View](views.md).
 

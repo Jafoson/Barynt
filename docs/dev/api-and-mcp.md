@@ -1,7 +1,7 @@
 # API and MCP internals
 
 How the public REST API (`/api/v1`), the MCP server (`/api/mcp`) and the webhooks are
-built, and the checklists for extending them. For *using* them, see the user guide's
+built, and the checklists for extending them. For _using_ them, see the user guide's
 [REST API](../guide/en/integrations/api.md), [MCP server](../guide/en/integrations/mcp.md),
 [Webhooks](../guide/en/integrations/webhooks.md) and the generated
 [API reference](../guide/en/api-reference/workspaces.md).
@@ -14,16 +14,16 @@ built, and the checklists for extending them. For *using* them, see the user gui
  lib/mcp/tools.ts ───────┘
 ```
 
-REST routes and MCP tools are thin shells. The behaviour (what a request *does*, which
+REST routes and MCP tools are thin shells. The behaviour (what a request _does_, which
 fields mean what, which permission it needs) lives in `features/api-v1/`:
 
-| File | Content |
-| --- | --- |
-| `queries.ts` | Reads, named `*ForUser(userId, …)`: lists, single objects, comments, attachments, members. |
+| File           | Content                                                                                                                               |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `queries.ts`   | Reads, named `*ForUser(userId, …)`: lists, single objects, comments, attachments, members.                                            |
 | `mutations.ts` | Writes, also `*ForUser`, returning a `MutationResult<T>`: `{ ok: true, data }` or `{ ok: false, status: 403 \| 404 \| 422, error? }`. |
-| `options.ts` | Statuses, priorities, issue types. |
-| `views.ts` | Saved views, on top of `features/views`. |
-| `richtext.ts` | Markdown in, ProseMirror out (and `@handle`, `#WEB-12`, `//date` chips). |
+| `options.ts`   | Statuses, priorities, issue types.                                                                                                    |
+| `views.ts`     | Saved views, on top of `features/views`.                                                                                              |
+| `richtext.ts`  | Markdown in, ProseMirror out (and `@handle`, `#WEB-12`, `//date` chips).                                                              |
 
 Because both transports call the same `*ForUser` function, they cannot drift apart on
 behaviour; only the packaging differs.
@@ -83,7 +83,7 @@ calls the same `*ForUser` function.
 Three things describe the same API and must agree:
 
 1. the real routes and tools (the truth),
-2. the **reference data** the app shows on the *API keys* and *MCP* pages, written by hand in
+2. the **reference data** the app shows on the _API keys_ and _MCP_ pages, written by hand in
    `features/account/components/AccountApiKeys/apiDocsData.ts` (REST endpoints and webhook
    events), `filterDocsData.ts` and `AccountMcp/mcpDocsData.ts` (tool descriptions), in both languages,
 3. the **user guide's API reference**, `docs/guide/{en,de}/api-reference/`, **generated** from (2)
@@ -124,7 +124,7 @@ migration. Then use it in the routes and tools, and describe it in the user guid
 
 1. Add the name to `WEBHOOK_EVENTS` in `lib/webhooks/events.ts`.
 2. Call `fireWebhookEvent(workspaceId, "<event>", data)` where the change happens, **after** it has
-   succeeded, in **every** place that can cause it (a Server Function *and* the matching API/MCP
+   succeeded, in **every** place that can cause it (a Server Function _and_ the matching API/MCP
    mutation; issues fire from both `features/issues/actions.ts` and `features/api-v1/mutations.ts`).
    Do not `await` it, and never let it throw into the caller.
 3. Use the public shape for `data` (`ApiIssue`, the comment shape, a view's stored shape) so

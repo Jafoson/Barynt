@@ -1,8 +1,9 @@
 ---
+
 title: "Erste Schritte"
 description: "Von der Anmeldung bis zur ersten Aufgabe und zum ersten Teammitglied, in etwa zehn Minuten."
 sidebar:
-  order: 2
+order: 2
 ---
 
 Dieser Rundgang führt dich von der Anmeldung zu einer ersten Aufgabe und einem ersten Teammitglied. Wenn jemand deinen Workspace schon eingerichtet hat, spring direkt zu [Schritt 4](#4-schreibe-deine-erste-aufgabe).

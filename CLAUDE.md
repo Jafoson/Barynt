@@ -214,9 +214,9 @@ _down_ (`@use "breakpoints" as bp;`). Test widths: 375 / 768 / 1280px.
 `Issue.description` and `Comment.body` are **ProseMirror documents** (`Json`),
 not strings. Reading and writing are separate:
 
-|         | Component                            | Environment                                |
-| ------- | ------------------------------------ | ------------------------------------------ |
-| Display | `components/ui/atoms/RichText`       | Server Component, **no** dependency        |
+|         | Component                             | Environment                                |
+| ------- | ------------------------------------- | ------------------------------------------ |
+| Display | `components/ui/atoms/RichText`        | Server Component, **no** dependency        |
 | Edit    | `components/ui/layout/RichTextEditor` | `"use client"`, Tiptap, via `next/dynamic` |
 - Display translates the JSON to React by hand — no `generateHTML`, no
   `dangerouslySetInnerHTML`. Whoever adds a node type there must ship the

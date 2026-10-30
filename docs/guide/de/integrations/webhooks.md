@@ -1,8 +1,9 @@
 ---
+
 title: "Webhooks"
 description: "Lass Barynt andere Systeme informieren, wenn etwas passiert: eine signierte Nachricht an eine Adresse deiner Wahl, sobald sich ein Issue, ein Kommentar oder eine geteilte View ändert."
 sidebar:
-  order: 3
+order: 3
 ---
 
 Bei einem **Webhook** ruft Barynt **dich** an. Sobald im Workspace etwas passiert, das dich interessiert, schickt es eine Nachricht an eine Adresse, die du festlegst. So postest du neue Bugs in einen Chat-Kanal, startest einen Build, wenn ein Issue auf _In Review_ rückt, oder hältst ein anderes System aktuell, ohne ständig nachzufragen.
@@ -36,13 +37,13 @@ Webhooks gehören zu **einem Workspace** und melden nur Ereignisse dieses Worksp
 
 ## Ereignisse
 
-| Ereignis | Wann |
-| --- | --- |
-| `issue.created` | Ein Issue wird angelegt. |
-| `issue.updated` | Ein Issue ändert sich. Die Nachricht enthält das **ganze aktuelle Issue**, nicht nur den Unterschied. |
-| `issue.deleted` | Ein Issue wird gelöscht. Die Nachricht ist eine kurze Momentaufnahme (ID, Kennung, Projekt, Titel). |
-| `comment.created` | Ein Kommentar wird geschrieben (auch eine Antwort). Bearbeiten oder Löschen eines Kommentars sendet nichts. |
-| `view.created`, `view.updated`, `view.deleted` | Eine **geteilte** View ändert sich. Private Views lösen nie etwas aus. |
+| Ereignis                                       | Wann                                                                                                        |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `issue.created`                                | Ein Issue wird angelegt.                                                                                    |
+| `issue.updated`                                | Ein Issue ändert sich. Die Nachricht enthält das **ganze aktuelle Issue**, nicht nur den Unterschied.       |
+| `issue.deleted`                                | Ein Issue wird gelöscht. Die Nachricht ist eine kurze Momentaufnahme (ID, Kennung, Projekt, Titel).         |
+| `comment.created`                              | Ein Kommentar wird geschrieben (auch eine Antwort). Bearbeiten oder Löschen eines Kommentars sendet nichts. |
+| `view.created`, `view.updated`, `view.deleted` | Eine **geteilte** View ändert sich. Private Views lösen nie etwas aus.                                      |
 
 Jedes Ereignis mit einer vollständigen Beispiel-Nachricht steht auf der Seite [Webhook-Ereignisse](../api-reference/webhook-events.md).
 
@@ -50,11 +51,11 @@ Jedes Ereignis mit einer vollständigen Beispiel-Nachricht steht auf der Seite [
 
 Barynt sendet einen HTTP-`POST` mit diesen Headern und einem JSON-Body:
 
-| Header | Inhalt |
-| --- | --- |
-| `Content-Type` | `application/json` |
+| Header               | Inhalt                                                         |
+| -------------------- | -------------------------------------------------------------- |
+| `Content-Type`       | `application/json`                                             |
 | `X-Barynt-Timestamp` | Wann die Nachricht gesendet wurde, in Millisekunden seit 1970. |
-| `X-Barynt-Signature` | Die Signatur der Nachricht, mit deinem Secret erzeugt. |
+| `X-Barynt-Signature` | Die Signatur der Nachricht, mit deinem Secret erzeugt.         |
 
 ```json
 {
@@ -118,17 +119,29 @@ Ein kompletter kleiner Empfänger mit Express:
 import express from "express";
 
 const app = express();
-app.post("/webhooks/barynt", express.raw({ type: "application/json" }), (req, res) => {
-  const timestamp = req.get("X-Barynt-Timestamp");
-  const signature = req.get("X-Barynt-Signature");
-  const fresh = Math.abs(Date.now() - Number(timestamp)) < 5 * 60 * 1000;
-  if (!fresh || !isGenuine(process.env.BARYNT_WEBHOOK_SECRET, timestamp, req.body.toString(), signature)) {
-    return res.sendStatus(401);
-  }
-  const { event, data } = JSON.parse(req.body);
-  console.log(event, data.ref ?? data.id);
-  res.sendStatus(204); // schnell antworten, Langsames danach erledigen
-});
+app.post(
+  "/webhooks/barynt",
+  express.raw({ type: "application/json" }),
+  (req, res) => {
+    const timestamp = req.get("X-Barynt-Timestamp");
+    const signature = req.get("X-Barynt-Signature");
+    const fresh = Math.abs(Date.now() - Number(timestamp)) < 5 * 60 * 1000;
+    if (
+      !fresh ||
+      !isGenuine(
+        process.env.BARYNT_WEBHOOK_SECRET,
+        timestamp,
+        req.body.toString(),
+        signature,
+      )
+    ) {
+      return res.sendStatus(401);
+    }
+    const { event, data } = JSON.parse(req.body);
+    console.log(event, data.ref ?? data.id);
+    res.sendStatus(204); // schnell antworten, Langsames danach erledigen
+  },
+);
 app.listen(3000);
 ```
 
@@ -149,12 +162,12 @@ app.listen(3000);
 
 ## Wenn nichts ankommt
 
-| Was du siehst | Wahrscheinliche Ursache |
-| --- | --- |
-| „Noch nie zugestellt“ | Es ist noch nichts passiert, worauf der Webhook hört, er ist ausgeschaltet, oder er gehört zu einem anderen Workspace. |
-| Ein Fehler wie `fetch failed` oder `The operation was aborted` | Der Empfänger war nicht erreichbar oder brauchte länger als zehn Sekunden. Prüfe Adresse, Firewall und TLS-Zertifikate. |
-| Ein Status `4xx`/`5xx` | Der Empfänger wurde erreicht, hat die Nachricht aber abgelehnt. Schau in sein Protokoll: Meist ist es die Signaturprüfung, weil der Body vor dem Prüfen verändert wurde. |
-| Signaturen passen nie | Der Body wurde geparst und neu serialisiert, bevor geprüft wurde, das falsche Secret wurde benutzt, oder der Timestamp fehlt im signierten Text. |
+| Was du siehst                                                  | Wahrscheinliche Ursache                                                                                                                                                  |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| „Noch nie zugestellt“                                          | Es ist noch nichts passiert, worauf der Webhook hört, er ist ausgeschaltet, oder er gehört zu einem anderen Workspace.                                                   |
+| Ein Fehler wie `fetch failed` oder `The operation was aborted` | Der Empfänger war nicht erreichbar oder brauchte länger als zehn Sekunden. Prüfe Adresse, Firewall und TLS-Zertifikate.                                                  |
+| Ein Status `4xx`/`5xx`                                         | Der Empfänger wurde erreicht, hat die Nachricht aber abgelehnt. Schau in sein Protokoll: Meist ist es die Signaturprüfung, weil der Body vor dem Prüfen verändert wurde. |
+| Signaturen passen nie                                          | Der Body wurde geparst und neu serialisiert, bevor geprüft wurde, das falsche Secret wurde benutzt, oder der Timestamp fehlt im signierten Text.                         |
 
 Mehr in der [Fehlersuche](../administration/troubleshooting.md).
 

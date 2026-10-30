@@ -1,8 +1,9 @@
 ---
+
 title: "Docker Compose (manual)"
 description: "Barynt ships as one docker-compose.yml for local development and production, split by Compose profiles. The images are prebuilt and multi-arch on ghcr.io/jafoson/barynt."
 sidebar:
-  order: 6
+order: 6
 ---
 
 ## Requirements
@@ -25,12 +26,12 @@ curl -o .env https://raw.githubusercontent.com/Jafoson/Barynt/main/example.env
 
 Generate a secret and paste it into `AUTH_SECRET`. For a real deployment also set these:
 
-| Variable | Purpose |
-| --- | --- |
-| `AUTH_SECRET` | Signs sessions. `bunx auth secret` creates one. |
-| `POSTGRES_PASSWORD` | Password for the bundled database. |
-| `DOMAIN` | Caddy requests a Let's Encrypt certificate for it. |
-| `SMTP_HOST` | Optional. Without it Barynt sends no mail; invite links can still be copied. |
+| Variable            | Purpose                                                                      |
+| ------------------- | ---------------------------------------------------------------------------- |
+| `AUTH_SECRET`       | Signs sessions. `bunx auth secret` creates one.                              |
+| `POSTGRES_PASSWORD` | Password for the bundled database.                                           |
+| `DOMAIN`            | Caddy requests a Let's Encrypt certificate for it.                           |
+| `SMTP_HOST`         | Optional. Without it Barynt sends no mail; invite links can still be copied. |
 
 ## Start the stack
 
