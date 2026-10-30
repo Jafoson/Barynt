@@ -5,7 +5,7 @@
 Please **do not open a public issue** for a security problem.
 
 Report it privately through GitHub:
-[Report a vulnerability](https://github.com/barynt-dev/Barynt/security/advisories/new).
+[Report a vulnerability](https://github.com/barynt-dev/barynt-web/security/advisories/new).
 
 Include what you found, how to reproduce it, which version it affects (shown in
 the sidebar under your name) and, if you can, what an attacker could do with it.

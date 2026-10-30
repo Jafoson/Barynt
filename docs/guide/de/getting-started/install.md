@@ -15,7 +15,7 @@ sidebar:
 ## Installation
 
 ```bash
-curl -fsSL https://github.com/barynt-dev/Barynt/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/barynt-dev/barynt-web/releases/latest/download/install.sh | sh
 ```
 
 Der Installer fragt nach deiner Domain und der für hochgeladene Dateien. Lässt du die Domain leer, läuft Barynt lokal auf `http://localhost:3000`.
@@ -30,7 +30,7 @@ Der Installer fragt nach deiner Domain und der für hochgeladene Dateien. Lässt
 Für cloud-init oder ein Provisioning-Skript gibst du die Antworten als Optionen mit:
 
 ```bash
-curl -fsSL https://github.com/barynt-dev/Barynt/releases/latest/download/install.sh \
+curl -fsSL https://github.com/barynt-dev/barynt-web/releases/latest/download/install.sh \
   | sh -s -- --domain issues.example.com --yes
 ```
 

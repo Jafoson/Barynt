@@ -60,7 +60,7 @@ Versions and release notes are semi-automated, see `releases/README.md`.
   between the `changes:` markers.
 - If `main` is protected the push needs the secret `RELEASE_TOKEN` (a PAT that
   may bypass it).
-- The last job rebuilds the website ([barynt-site](https://github.com/barynt-dev/barynt-site))
+- The last job rebuilds the website ([barynt-homepage](https://github.com/barynt-dev/barynt-homepage))
   for the new version via `repository_dispatch`; it needs the secret
   `SITE_DISPATCH_TOKEN` and only warns without it. The site reads the notes
   from `releases/<version>.md` / `.de.md` at the tag, so they serve both.
@@ -79,7 +79,7 @@ Versions and release notes are semi-automated, see `releases/README.md`.
 ## User docs (`docs/guide/`)
 
 The docs on the website are Markdown in `docs/guide/`, published by
-[barynt-site](https://github.com/barynt-dev/barynt-site) (Starlight) from the
+[barynt-homepage](https://github.com/barynt-dev/barynt-homepage) (Starlight) from the
 release tag — so they ship with the version they describe. How to write a
 page is in `docs/guide/README.md`; in short:
 
@@ -99,7 +99,7 @@ page is in `docs/guide/README.md`; in short:
   `features/account/components/AccountApiKeys/` / `AccountMcp/` and the
   generated pages; `tests/unit/docs` fails while they are stale.
 - **Developer docs** live in `docs/dev/` (English only, read on GitHub and
-  published by barynt-site as the "Development" section; no front matter): setup, architecture, data model, authentication, permissions
+  published by barynt-homepage as the "Development" section; no front matter): setup, architecture, data model, authentication, permissions
   (`permissions.md`, formerly `docs/rbac.md`), frontend, services, API/MCP
   internals, testing, build/release, contributing. A change in how something
   works updates its page in the same PR; `tests/unit/docs` checks that every

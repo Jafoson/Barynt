@@ -16,9 +16,9 @@ sidebar:
 Ein Deployment braucht genau drei Dateien. Das Repository musst du nicht klonen.
 
 ```bash
-curl -O https://raw.githubusercontent.com/barynt-dev/Barynt/main/docker-compose.yml
-curl -O https://raw.githubusercontent.com/barynt-dev/Barynt/main/Caddyfile
-curl -o .env https://raw.githubusercontent.com/barynt-dev/Barynt/main/example.env
+curl -O https://raw.githubusercontent.com/barynt-dev/barynt-web/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/barynt-dev/barynt-web/main/Caddyfile
+curl -o .env https://raw.githubusercontent.com/barynt-dev/barynt-web/main/example.env
 ```
 
 ## .env einrichten

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 
-// docs/guide/ is published by barynt-site (Starlight). These checks catch what
+// docs/guide/ is published by barynt-homepage (Starlight). These checks catch what
 // would break there: a page without front matter, a group the sidebar doesn't
 // know, a link or image that points nowhere.
 const ROOT = resolve(import.meta.dir, "../../../docs/guide");

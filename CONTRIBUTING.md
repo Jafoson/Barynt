@@ -3,7 +3,7 @@
 Thank you for helping. Issues and pull requests are welcome, whether it is a
 typo, a bug or a feature.
 
-- **Found a bug or have an idea?** [Open an issue](https://github.com/barynt-dev/Barynt/issues/new/choose)
+- **Found a bug or have an idea?** [Open an issue](https://github.com/barynt-dev/barynt-web/issues/new/choose)
   and pick the form that fits. For anything bigger than a fix, open an issue
   first so we can talk about it before you build it.
 - **Security problem?** Do not open an issue, see [SECURITY.md](SECURITY.md).

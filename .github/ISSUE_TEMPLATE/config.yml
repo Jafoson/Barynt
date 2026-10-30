@@ -4,5 +4,5 @@ contact_links:
     url: https://barynt.dev/docs/
     about: How to install, use and run Barynt. Most questions are answered here.
   - name: Report a security problem
-    url: https://github.com/barynt-dev/Barynt/security/advisories/new
+    url: https://github.com/barynt-dev/barynt-web/security/advisories/new
     about: Please report vulnerabilities privately, not as a public issue.

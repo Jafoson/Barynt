@@ -2,7 +2,7 @@
 # Barynt installer and management CLI.
 #
 # Install (newest release):
-#   curl -fsSL https://github.com/barynt-dev/Barynt/releases/latest/download/install.sh | sh
+#   curl -fsSL https://github.com/barynt-dev/barynt-web/releases/latest/download/install.sh | sh
 #
 # Without questions, e.g. from cloud-init:
 #   curl -fsSL .../install.sh | sh -s -- --domain issues.example.com --yes
@@ -21,7 +21,7 @@
 
 set -eu
 
-REPO="barynt-dev/Barynt"
+REPO="barynt-dev/barynt-web"
 # Every file a running installation needs. `barynt` is this script itself.
 RELEASE_FILES="docker-compose.yml Caddyfile example.env install.sh"
 HEALTH_TIMEOUT=300

@@ -141,6 +141,6 @@ and its licence (Barynt is MIT). Pin consistently; the Docker `migrate-deps` set
 
 ## Reporting a problem
 
-[Open an issue](https://github.com/barynt-dev/Barynt/issues/new/choose) and pick the form that fits: a bug report asks for
+[Open an issue](https://github.com/barynt-dev/barynt-web/issues/new/choose) and pick the form that fits: a bug report asks for
 what you did, what you expected and the version (shown under the user card in the sidebar). For a security problem, do not open a
 public issue, see [SECURITY.md](../../SECURITY.md).

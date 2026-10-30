@@ -9,7 +9,7 @@ Barynt ist Open Source (MIT) und freut sich über Beiträge: ein korrigierter Ti
 
 ## Helfen ohne Code
 
-- **Melde einen Fehler oder eine Idee** als Issue auf [GitHub](https://github.com/barynt-dev/Barynt/issues). Sag, was du getan hast, was du erwartet hast und was passiert ist. Ein Screenshot hilft.
+- **Melde einen Fehler oder eine Idee** als Issue auf [GitHub](https://github.com/barynt-dev/barynt-web/issues). Sag, was du getan hast, was du erwartet hast und was passiert ist. Ein Screenshot hilft.
 - **Verbessere diese Doku.** Jede Seite hat unten einen Link **Seite bearbeiten**, der die Datei auf GitHub öffnet. Korrigiere, was falsch oder unklar ist, und schlage die Änderung vor. Siehe [Die Doku schreiben](#die-doku-schreiben) unten.
 - **Übersetze.** Die App spricht Englisch und Deutsch, und diese Doku auch. Ein fehlender oder holpriger deutscher Satz ist ein guter erster Beitrag.
 
@@ -18,7 +18,7 @@ Barynt ist Open Source (MIT) und freut sich über Beiträge: ein korrigierter Ti
 Du brauchst [Bun](https://bun.sh) 1.3 oder neuer und [Docker](https://www.docker.com) (für die Datenbank).
 
 ```bash
-git clone https://github.com/barynt-dev/Barynt.git
+git clone https://github.com/barynt-dev/barynt-web.git
 cd Barynt
 bun install
 cp example.env .env          # dann ein Secret in AUTH_SECRET eintragen: bunx auth secret

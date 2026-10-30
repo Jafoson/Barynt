@@ -9,7 +9,7 @@ docs/guide/
 ```
 
 Everything in this folder (except this file) is published as the docs on the
-website ([barynt-site](https://github.com/barynt-dev/barynt-site), built with
+website ([barynt-homepage](https://github.com/barynt-dev/barynt-homepage), built with
 [Starlight](https://starlight.astro.build)). The site reads the folder at the
 release tag `vX.Y.Z`, so the docs always match the version people run. Change
 the docs in the same PR as the feature.
@@ -82,8 +82,8 @@ is the order in the sidebar.
 ## Preview
 
 ```bash
-git clone https://github.com/barynt-dev/barynt-site ../barynt-site
-cd ../barynt-site && bun install
+git clone https://github.com/barynt-dev/barynt-homepage ../barynt-homepage
+cd ../barynt-homepage && bun install
 BARYNT_DOCS_DIR=../Barynt/docs/guide bun run dev   # http://localhost:4321/docs/
 ```
 
