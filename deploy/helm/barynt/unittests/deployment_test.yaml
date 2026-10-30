@@ -18,7 +18,7 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: ghcr.io/jafoson/barynt@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          value: ghcr.io/barynt-dev/barynt@sha256:0000000000000000000000000000000000000000000000000000000000000000
 
   - it: uses the app version as tag by default
     template: templates/deployment.yaml
@@ -27,7 +27,7 @@ tests:
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
-          value: ghcr.io/jafoson/barynt:9.9.9
+          value: ghcr.io/barynt-dev/barynt:9.9.9
 
   - it: spreads two replicas across nodes by default
     template: templates/deployment.yaml

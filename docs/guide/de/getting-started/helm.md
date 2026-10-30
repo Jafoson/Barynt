@@ -8,7 +8,7 @@ sidebar:
 ## Schnellstart
 
 ```bash
-Helm install barynt oci://ghcr.io/jafoson/charts/barynt --version {{version}} \
+Helm install barynt oci://ghcr.io/barynt-dev/charts/barynt --version {{version}} \
   -n barynt --create-namespace
 kubectl port-forward -n barynt svc/barynt 3000:80
 ```

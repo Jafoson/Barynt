@@ -215,7 +215,7 @@ services:
     # BARYNT_VERSION pins a release (the installer writes it to .env and
     # `barynt upgrade` moves it); unset, it's the newest one. BARYNT_IMAGE
     # only exists for testing a locally built image.
-    image: "${BARYNT_IMAGE:-ghcr.io/jafoson/barynt}:${BARYNT_VERSION:-latest}"
+    image: "${BARYNT_IMAGE:-ghcr.io/barynt-dev/barynt}:${BARYNT_VERSION:-latest}"
     # build:
     #   context: .
     #   dockerfile: Dockerfile

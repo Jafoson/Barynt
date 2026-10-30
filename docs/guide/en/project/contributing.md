@@ -9,7 +9,7 @@ Barynt is open source (MIT) and welcomes contributions: a fixed typo, a better s
 
 ## Ways to help without writing code
 
-- **Report a bug or an idea** as an issue on [GitHub](https://github.com/Jafoson/Barynt/issues). Say what you did, what you expected and what happened. A screenshot helps.
+- **Report a bug or an idea** as an issue on [GitHub](https://github.com/barynt-dev/Barynt/issues). Say what you did, what you expected and what happened. A screenshot helps.
 - **Improve these docs.** Every page has an **Edit page** link at the bottom that opens the file on GitHub. Fix what is wrong or unclear, and propose the change. See [Writing the docs](#writing-the-docs) below.
 - **Translate.** The app speaks English and German, and so do these docs. A missing or awkward German sentence is a good first contribution.
 
@@ -18,7 +18,7 @@ Barynt is open source (MIT) and welcomes contributions: a fixed typo, a better s
 You need [Bun](https://bun.sh) 1.3 or newer and [Docker](https://www.docker.com) (for the database).
 
 ```bash
-git clone https://github.com/Jafoson/Barynt.git
+git clone https://github.com/barynt-dev/Barynt.git
 cd Barynt
 bun install
 cp example.env .env          # then put a secret into AUTH_SECRET: bunx auth secret

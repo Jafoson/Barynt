@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Thanks for taking the time. Please look through the
-        [open issues](https://github.com/Jafoson/Barynt/issues) and the
+        [open issues](https://github.com/barynt-dev/Barynt/issues) and the
         [documentation](https://barynt.dev/docs/) first.
   - type: textarea
     id: what

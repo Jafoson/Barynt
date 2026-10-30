@@ -84,9 +84,9 @@ jobs:
             "oci://ghcr.io/${{ steps.vars.outputs.owner }}/charts"
 
       # Wie das App-Image (docker-build.yml): keyless signiert, nachprüfbar mit
-      #   cosign verify ghcr.io/jafoson/charts/barynt:<version> \
+      #   cosign verify ghcr.io/barynt-dev/charts/barynt:<version> \
       #     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-      #     --certificate-identity-regexp '^https://github.com/Jafoson/Barynt/'
+      #     --certificate-identity-regexp '^https://github.com/barynt-dev/Barynt/'
       - name: Log in to GitHub Container Registry (for cosign)
         uses: docker/login-action@v4
         with:

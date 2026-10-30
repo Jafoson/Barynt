@@ -15,7 +15,7 @@ sidebar:
 ## Install
 
 ```bash
-curl -fsSL https://github.com/Jafoson/Barynt/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/barynt-dev/Barynt/releases/latest/download/install.sh | sh
 ```
 
 The installer asks for your domain and the one for uploaded files. Leave the domain empty to run Barynt locally on `http://localhost:3000`.
@@ -30,7 +30,7 @@ The installer asks for your domain and the one for uploaded files. Leave the dom
 For cloud-init or a provisioning script, pass the answers as options:
 
 ```bash
-curl -fsSL https://github.com/Jafoson/Barynt/releases/latest/download/install.sh \
+curl -fsSL https://github.com/barynt-dev/Barynt/releases/latest/download/install.sh \
   | sh -s -- --domain issues.example.com --yes
 ```
 

@@ -33,7 +33,7 @@ describe("getAvailableUpdate", () => {
     answer({ tag_name: "v99.0.0" });
     expect(await getAvailableUpdate()).toEqual({
       version: "99.0.0",
-      url: "https://github.com/Jafoson/Barynt/releases/tag/v99.0.0",
+      url: "https://github.com/barynt-dev/Barynt/releases/tag/v99.0.0",
     });
   });
 

@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://github.com/Jafoson/Barynt">
+  <a href="https://github.com/barynt-dev/Barynt">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="public/Logo/white/Logo_horizontal.svg">
       <img src="public/Logo/color/Logo_horizontal.svg" alt="Barynt" width="360">
@@ -15,12 +15,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Jafoson/Barynt/releases/latest"><img src="https://img.shields.io/github/v/release/Jafoson/Barynt?label=release&color=2a9d8f" alt="Latest release"></a>
-  <a href="https://github.com/Jafoson/Barynt/actions/workflows/tests.yml"><img src="https://github.com/Jafoson/Barynt/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
-  <a href="https://github.com/Jafoson/Barynt/actions/workflows/docker-build.yml"><img src="https://github.com/Jafoson/Barynt/actions/workflows/docker-build.yml/badge.svg" alt="Docker Build"></a>
-  <a href="https://github.com/Jafoson/Barynt/actions/workflows/security.yml"><img src="https://github.com/Jafoson/Barynt/actions/workflows/security.yml/badge.svg" alt="Security"></a>
+  <a href="https://github.com/barynt-dev/Barynt/releases/latest"><img src="https://img.shields.io/github/v/release/barynt-dev/Barynt?label=release&color=2a9d8f" alt="Latest release"></a>
+  <a href="https://github.com/barynt-dev/Barynt/actions/workflows/tests.yml"><img src="https://github.com/barynt-dev/Barynt/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+  <a href="https://github.com/barynt-dev/Barynt/actions/workflows/docker-build.yml"><img src="https://github.com/barynt-dev/Barynt/actions/workflows/docker-build.yml/badge.svg" alt="Docker Build"></a>
+  <a href="https://github.com/barynt-dev/Barynt/actions/workflows/security.yml"><img src="https://github.com/barynt-dev/Barynt/actions/workflows/security.yml/badge.svg" alt="Security"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
-  <a href="https://github.com/Jafoson/Barynt/stargazers"><img src="https://img.shields.io/github/stars/Jafoson/Barynt" alt="GitHub Stars"></a>
+  <a href="https://github.com/barynt-dev/Barynt/stargazers"><img src="https://img.shields.io/github/stars/barynt-dev/Barynt" alt="GitHub Stars"></a>
 </p>
 
 <p align="center">
@@ -153,18 +153,18 @@ Press <kbd>⌘K</kbd> anywhere to jump to an issue, a page or an action.
 On any Linux server with Docker, point a domain at it and run:
 
 ```bash
-curl -fsSL https://github.com/Jafoson/Barynt/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/barynt-dev/Barynt/releases/latest/download/install.sh | sh
 ```
 
 The installer asks a few questions, sets up Barynt with HTTPS (Caddy, automatic Let's Encrypt) and waits until it is healthy. Afterwards the same script is your `barynt` command: `barynt upgrade`, `backup`, `restore`, `logs`, `doctor` and more. No questions, for automation: add `-s -- --domain issues.example.com --yes`. Want to read it first? Download it, `less install.sh`, then `sh install.sh`.
 
 ### Prefer something else?
 
-| You want                   | Do this                                                                                                                     |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Docker Compose** by hand | Three files, no clone: see [Docker Compose](docs/guide/en/getting-started/compose.md)                                       |
-| **Kubernetes**             | `helm install barynt oci://ghcr.io/jafoson/charts/barynt` (signed chart), see [Helm](docs/guide/en/getting-started/helm.md) |
-| **Try it on your laptop**  | [Local development](#-develop-locally), five minutes with Bun and Docker                                                    |
+| You want                   | Do this                                                                                                                        |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Docker Compose** by hand | Three files, no clone: see [Docker Compose](docs/guide/en/getting-started/compose.md)                                          |
+| **Kubernetes**             | `helm install barynt oci://ghcr.io/barynt-dev/charts/barynt` (signed chart), see [Helm](docs/guide/en/getting-started/helm.md) |
+| **Try it on your laptop**  | [Local development](#-develop-locally), five minutes with Bun and Docker                                                       |
 
 New to it? Start with the [first steps](docs/guide/en/getting-started/first-steps.md): create a workspace, a project and your first issue.
 
@@ -228,7 +228,7 @@ Issues and pull requests are very welcome, whether it is a typo, a bug or a feat
 3. A change to `prisma/schema.prisma` comes with its migration
 4. A change users can see updates the [user guide](docs/guide/) in the same pull request
 
-Found a bug? [Open an issue](https://github.com/Jafoson/Barynt/issues) with what you did, what you expected and the version (shown under your name in the sidebar).
+Found a bug? [Open an issue](https://github.com/barynt-dev/Barynt/issues) with what you did, what you expected and the version (shown under your name in the sidebar).
 
 ## 📄 License
 

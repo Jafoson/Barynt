@@ -1,6 +1,6 @@
 ---
 title: "Docker Compose (manuell)"
-description: "Barynt kommt als eine docker-compose.yml für lokale Entwicklung und Produktion, aufgeteilt in Compose-Profile. Die Images sind fertig gebaut und multi-arch auf ghcr.io/jafoson/barynt."
+description: "Barynt kommt als eine docker-compose.yml für lokale Entwicklung und Produktion, aufgeteilt in Compose-Profile. Die Images sind fertig gebaut und multi-arch auf ghcr.io/barynt-dev/barynt."
 sidebar:
   order: 6
 ---
@@ -16,9 +16,9 @@ sidebar:
 Ein Deployment braucht genau drei Dateien. Das Repository musst du nicht klonen.
 
 ```bash
-curl -O https://raw.githubusercontent.com/Jafoson/Barynt/main/docker-compose.yml
-curl -O https://raw.githubusercontent.com/Jafoson/Barynt/main/Caddyfile
-curl -o .env https://raw.githubusercontent.com/Jafoson/Barynt/main/example.env
+curl -O https://raw.githubusercontent.com/barynt-dev/Barynt/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/barynt-dev/Barynt/main/Caddyfile
+curl -o .env https://raw.githubusercontent.com/barynt-dev/Barynt/main/example.env
 ```
 
 ## .env einrichten

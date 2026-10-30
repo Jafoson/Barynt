@@ -337,7 +337,7 @@ export function withChartVersion(chartYaml: string, version: string): string {
     .replace(/^version:.*$/m, `version: ${version}`)
     .replace(/^appVersion:.*$/m, `appVersion: "${version}"`)
     .replace(
-      /(image: ghcr\.io\/jafoson\/barynt:)[^\s]+/,
+      /(image: ghcr\.io\/barynt-dev\/barynt:)[^\s]+/,
       (_, prefix: string) => `${prefix}${version}`,
     );
 }

@@ -60,7 +60,7 @@ Versions and release notes are semi-automated, see `releases/README.md`.
   between the `changes:` markers.
 - If `main` is protected the push needs the secret `RELEASE_TOKEN` (a PAT that
   may bypass it).
-- The last job rebuilds the website ([barynt-site](https://github.com/Jafoson/barynt-site))
+- The last job rebuilds the website ([barynt-site](https://github.com/barynt-dev/barynt-site))
   for the new version via `repository_dispatch`; it needs the secret
   `SITE_DISPATCH_TOKEN` and only warns without it. The site reads the notes
   from `releases/<version>.md` / `.de.md` at the tag, so they serve both.
@@ -79,7 +79,7 @@ Versions and release notes are semi-automated, see `releases/README.md`.
 ## User docs (`docs/guide/`)
 
 The docs on the website are Markdown in `docs/guide/`, published by
-[barynt-site](https://github.com/Jafoson/barynt-site) (Starlight) from the
+[barynt-site](https://github.com/barynt-dev/barynt-site) (Starlight) from the
 release tag — so they ship with the version they describe. How to write a
 page is in `docs/guide/README.md`; in short:
 

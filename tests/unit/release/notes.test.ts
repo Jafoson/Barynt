@@ -262,7 +262,7 @@ kubeVersion: ">=1.25.0-0"
 annotations:
   artifacthub.io/images: |
     - name: barynt
-      image: ghcr.io/jafoson/barynt:1.0.12
+      image: ghcr.io/barynt-dev/barynt:1.0.12
     - name: postgres
       image: postgres:17-alpine
 `;
@@ -271,7 +271,7 @@ annotations:
     const next = withChartVersion(chart, "1.0.13");
     expect(next).toContain("\nversion: 1.0.13\n");
     expect(next).toContain('\nappVersion: "1.0.13"\n');
-    expect(next).toContain("image: ghcr.io/jafoson/barynt:1.0.13");
+    expect(next).toContain("image: ghcr.io/barynt-dev/barynt:1.0.13");
   });
 
   test("leaves everything else alone", () => {

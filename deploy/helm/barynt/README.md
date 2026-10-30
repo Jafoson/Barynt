@@ -1,7 +1,7 @@
 # barynt (Helm-Chart)
 
 Rollt dasselbe Image aus, das `docker-compose.yml` auf einem
-Single-Host-Deployment fährt (`ghcr.io/jafoson/barynt`), für einen
+Single-Host-Deployment fährt (`ghcr.io/barynt-dev/barynt`), für einen
 Kubernetes-Cluster. Das Image migriert die Datenbank beim Start selbst. Siehe
 BARY-22.
 
@@ -12,7 +12,7 @@ Das Chart liegt als öffentliches OCI-Artefakt auf GHCR (`Helm Release`,
 dieses Repos reicht:
 
 ```sh
-helm install barynt oci://ghcr.io/jafoson/charts/barynt --version 1.0.13 \
+helm install barynt oci://ghcr.io/barynt-dev/charts/barynt --version 1.0.13 \
   -n barynt --create-namespace
 kubectl port-forward -n barynt svc/barynt 3000:80
 ```
@@ -396,7 +396,7 @@ statt `latest`, für reproduzierbare Rollouts/Rollbacks.
 `Chart.yaml`s `version` erhöhen, committen, dann in GitHub Actions
 `Helm Release` manuell auslösen (`gh workflow run helm-release.yml`, analog
 zu `Docker Build`) — packt das Chart und pusht es als OCI-Artefakt nach
-`oci://ghcr.io/jafoson/charts/barynt`. Das Package ist direkt nach dem
+`oci://ghcr.io/barynt-dev/charts/barynt`. Das Package ist direkt nach dem
 ersten Push öffentlich pullbar (getestet per anonymem `helm pull`, ohne
 `helm registry login`) — kein manueller Sichtbarkeits-Schritt nötig.
 

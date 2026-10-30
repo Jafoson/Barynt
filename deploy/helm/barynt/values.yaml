@@ -8,7 +8,7 @@ fullnameOverride: ""
 
 image:
   app:
-    repository: ghcr.io/jafoson/barynt
+    repository: ghcr.io/barynt-dev/barynt
     # Leer = .Chart.AppVersion (die Release-Version, z. B. "1.0.10"). Das App-Image
     # migriert die Datenbank beim Start selbst (docker/entrypoint.sh) — ein
     # Update ist nur ein anderes Tag. In Produktion auf ein Release pinnen statt

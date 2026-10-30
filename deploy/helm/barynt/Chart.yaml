@@ -18,7 +18,7 @@ keywords:
   - nextjs
 home: https://barynt.dev
 sources:
-  - https://github.com/Jafoson/Barynt
+  - https://github.com/barynt-dev/Barynt
 maintainers:
   - name: Jason Mund
 
@@ -30,12 +30,12 @@ annotations:
     - name: Documentation
       url: https://barynt.dev/docs/
     - name: Source
-      url: https://github.com/Jafoson/Barynt
+      url: https://github.com/barynt-dev/Barynt
     - name: support
-      url: https://github.com/Jafoson/Barynt/issues
+      url: https://github.com/barynt-dev/Barynt/issues
   artifacthub.io/images: |
     - name: barynt
-      image: ghcr.io/jafoson/barynt:1.0.12
+      image: ghcr.io/barynt-dev/barynt:1.0.12
     - name: postgres
       image: postgres:17-alpine
     - name: redis

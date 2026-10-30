@@ -65,7 +65,7 @@ by **profiles**:
 - `dev`: `mailpit` (SMTP on 1025, UI on 8025).
 - `app`: `app`, `rustfs` (S3-compatible storage), `rustfs-init` (buckets and CORS) and `caddy` (HTTPS).
 
-`app` defaults to the published image `ghcr.io/jafoson/barynt` and its database URL is built from
+`app` defaults to the published image `ghcr.io/barynt-dev/barynt` and its database URL is built from
 `POSTGRES_*`; set `COMPOSE_DATABASE_URL`, `COMPOSE_S3_ENDPOINT`, `COMPOSE_SMTP_HOST` to point at
 external services. Everything except Caddy binds to `127.0.0.1` by default. The variables and their
 reasons are commented in the file and in `example.env`.
@@ -100,7 +100,7 @@ A release is **started by hand**: Actions → **Release** → *Run workflow* fro
    signature of `install.sh`;
 3. builds, scans, pushes and signs the Docker image on the tag (`X.Y.Z` and `latest`, amd64 and arm64);
 4. publishes the signed Helm chart;
-5. tells [barynt-site](https://github.com/Jafoson/barynt-site) to rebuild for the new version
+5. tells [barynt-site](https://github.com/barynt-dev/barynt-site) to rebuild for the new version
    (`repository_dispatch`, needs the secret `SITE_DISPATCH_TOKEN`; without it this step only warns).
 
 **Commits drive the version.** Use Conventional Commits (`type(scope): summary`). `fix` bumps the patch,
@@ -116,7 +116,7 @@ and shows only the hand-written part, so write them for the person who upgraded.
 ## Documentation pipeline
 
 The user guide in `docs/guide/` is published by
-[barynt-site](https://github.com/Jafoson/barynt-site) (Astro with Starlight). At build time the site fetches
+[barynt-site](https://github.com/barynt-dev/barynt-site) (Astro with Starlight). At build time the site fetches
 `docs/guide/` **at the release tag**, so the docs always match the version people run; `DOCS_REF` is the
 fallback for a tag from before the docs existed, and `BARYNT_DOCS_DIR` points a local preview at your working
 copy. English pages come from `docs/guide/en/`, German from `docs/guide/de/`, a missing German image

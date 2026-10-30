@@ -16,7 +16,7 @@ name: Release
 # und eine Sigstore-Signatur von install.sh. Danach laufen, in dieser
 # Reihenfolge, der Docker-Build auf dem Tag (Tags X.Y.Z und latest) und das
 # signierte Chart-Release — `curl … | sh` und `helm install` holen also
-# sofort die neue Version. Zum Schluss wird die Website (Jafoson/barynt-site)
+# sofort die neue Version. Zum Schluss wird die Website (barynt-dev/barynt-site)
 # für diese Version neu gebaut (Secret SITE_DISPATCH_TOKEN).
 #
 # Ist main geschützt, braucht der Push das Secret RELEASE_TOKEN (PAT mit
@@ -141,7 +141,7 @@ jobs:
       # Nachprüfbar mit
       #   cosign verify-blob install.sh --bundle install.sh.sigstore.json \
       #     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-      #     --certificate-identity-regexp '^https://github.com/Jafoson/Barynt/'
+      #     --certificate-identity-regexp '^https://github.com/barynt-dev/Barynt/'
       - name: Sign install.sh (keyless)
         if: ${{ inputs.publish }}
         working-directory: ${{ runner.temp }}/assets
@@ -190,7 +190,7 @@ jobs:
       version: ${{ needs.release.outputs.version }}
       ref: v${{ needs.release.outputs.version }}
 
-  # Zuletzt die Website (Jafoson/barynt-site): neu bauen für genau diese
+  # Zuletzt die Website (barynt-dev/barynt-site): neu bauen für genau diese
   # Version, wenn Release, Image und Chart draußen sind. Braucht das Secret
   # SITE_DISPATCH_TOKEN (fine-grained, für barynt-site, Contents: read and
   # write); fehlt es, bleibt die Website auf ihrem Stand und das Release ist
@@ -211,7 +211,7 @@ jobs:
             echo "::warning::SITE_DISPATCH_TOKEN fehlt — die Website wird nicht neu gebaut."
             exit 0
           fi
-          gh api repos/Jafoson/barynt-site/dispatches \
+          gh api repos/barynt-dev/barynt-site/dispatches \
             -f event_type=barynt-release \
             -f "client_payload[version]=${VERSION}"
-          echo "Website wird für v${VERSION} neu gebaut: https://github.com/Jafoson/barynt-site/actions" >> "$GITHUB_STEP_SUMMARY"
+          echo "Website wird für v${VERSION} neu gebaut: https://github.com/barynt-dev/barynt-site/actions" >> "$GITHUB_STEP_SUMMARY"
