@@ -7,6 +7,7 @@ typo, a bug or a feature.
   and pick the form that fits. For anything bigger than a fix, open an issue
   first so we can talk about it before you build it.
 - **Security problem?** Do not open an issue, see [SECURITY.md](SECURITY.md).
+- **Question or need help?** See [where to get help](https://github.com/barynt-dev/.github/blob/main/SUPPORT.md).
 - **Want to change code or docs?** Everything you need is in the
   [contributing guide](docs/dev/contributing.md): workflow, commit style,
   checklists for common changes. To run Barynt locally, start with
@@ -15,3 +16,6 @@ typo, a bug or a feature.
 In short: branch from `main`, keep commits [Conventional](https://www.conventionalcommits.org)
 (`fix(issues): ...`), make `bun run lint`, `bun x tsc --noEmit` and
 `bun run test` pass, and update the docs in the same pull request.
+
+Everyone taking part follows our
+[Code of Conduct](https://github.com/barynt-dev/.github/blob/main/CODE_OF_CONDUCT.md).
