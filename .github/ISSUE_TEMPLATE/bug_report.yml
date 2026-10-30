@@ -28,7 +28,7 @@ body:
     id: version
     attributes:
       label: Barynt version
-      description: Shown in the sidebar under your name, for example 1.0.13.
+      description: Shown in the sidebar under your name, for example 1.0.0.
     validations:
       required: true
   - type: dropdown

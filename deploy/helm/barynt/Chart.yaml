@@ -8,8 +8,8 @@ type: application
 # README.md "Versionierung". Kein `dependencies:`-Block: Postgres, Redis und
 # RustFS sind eigene, minimale Templates statt externer Subcharts (siehe
 # README.md "Warum keine Bitnami-Subcharts").
-version: 1.0.12
-appVersion: "1.0.12"
+version: 1.0.0
+appVersion: "1.0.0"
 # PodDisruptionBudget policy/v1, HPA autoscaling/v2, Pod Security Admission.
 kubeVersion: ">=1.25.0-0"
 
@@ -35,7 +35,7 @@ annotations:
       url: https://github.com/barynt-dev/barynt-web/issues
   artifacthub.io/images: |
     - name: barynt
-      image: ghcr.io/barynt-dev/barynt:1.0.12
+      image: ghcr.io/barynt-dev/barynt:1.0.0
     - name: postgres
       image: postgres:17-alpine
     - name: redis

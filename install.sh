@@ -360,7 +360,7 @@ cmd_install() {
   if [ -z "$VERSION" ]; then
     VERSION=$(latest_version)
   fi
-  [ -n "$SOURCE" ] || valid_version "$VERSION" || die "Not a version: $VERSION (expected e.g. 1.0.13)." 10
+  [ -n "$SOURCE" ] || valid_version "$VERSION" || die "Not a version: $VERSION (expected e.g. 1.0.0)." 10
 
   say ""
   say "${C_BOLD}Barynt $VERSION${C_RESET} ${C_DIM}· $OS $ARCH · $(dk --version 2>/dev/null | sed 's/,.*//') · $DIR${C_RESET}"

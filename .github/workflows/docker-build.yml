@@ -50,7 +50,7 @@ jobs:
       - name: Determine image tag and name
         id: vars
         run: |
-          # The tag is the bare version — "1.0.10", never "v1.0.10": a leading
+          # The tag is the bare version — "1.0.0", never "v1.0.0": a leading
           # "v" (the git tag's own, or typed in) is dropped.
           if [ -n "${{ inputs.tag }}" ]; then
             tag="${{ inputs.tag }}"

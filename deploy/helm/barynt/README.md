@@ -12,7 +12,7 @@ Das Chart liegt als öffentliches OCI-Artefakt auf GHCR (`Helm Release`,
 dieses Repos reicht:
 
 ```sh
-helm install barynt oci://ghcr.io/barynt-dev/charts/barynt --version 1.0.13 \
+helm install barynt oci://ghcr.io/barynt-dev/charts/barynt --version 1.0.0 \
   -n barynt --create-namespace
 kubectl port-forward -n barynt svc/barynt 3000:80
 ```
@@ -386,9 +386,9 @@ Läuft auch automatisiert in CI, siehe `.github/workflows/helm-lint.yml`
 ## Versionierung
 
 Chart-Version (`Chart.yaml: version`, SemVer) und `appVersion` sind getrennte
-Zähler (seit 1.0.10 laufen sie gleich: Chart `1.0.10`, `appVersion` `"1.0.10"`).
+Zähler (sie laufen gleich: Chart `1.0.0`, `appVersion` `"1.0.0"`).
 `image.app.tag` fällt auf `appVersion` zurück, wenn leer — in Produktion
-trotzdem explizit auf ein Release pinnen (z. B. `1.0.10`, kein `v`-Präfix)
+trotzdem explizit auf ein Release pinnen (z. B. `1.0.0`, kein `v`-Präfix)
 statt `latest`, für reproduzierbare Rollouts/Rollbacks.
 
 ## Chart veröffentlichen

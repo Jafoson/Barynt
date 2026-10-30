@@ -9,7 +9,7 @@ fullnameOverride: ""
 image:
   app:
     repository: ghcr.io/barynt-dev/barynt
-    # Leer = .Chart.AppVersion (die Release-Version, z. B. "1.0.10"). Das App-Image
+    # Leer = .Chart.AppVersion (die Release-Version, z. B. "1.0.0"). Das App-Image
     # migriert die Datenbank beim Start selbst (docker/entrypoint.sh) — ein
     # Update ist nur ein anderes Tag. In Produktion auf ein Release pinnen statt
     # "latest" zu übernehmen — reproduzierbare Rollouts/Rollbacks.
@@ -126,8 +126,8 @@ probes:
   # Liveness fragt nur, ob der Prozess antwortet — hinge sie an der
   # Datenbank, würde Kubernetes bei einem DB-Ausfall alle Pods in Schleife
   # neu starten. Readiness und Startup warten, bis die Datenbank antwortet.
-  # Beide Endpunkte gibt es ab App-Version 1.0.13; wer ein älteres Image
-  # pinnt, setzt `path: /` (gilt dann für alle drei Probes).
+  # Beide Endpunkte gibt es in jeder Version; nur ein eigenes Image ohne sie
+  # braucht `path: /` (gilt dann für alle drei Probes).
   livenessPath: /api/health/live
   readinessPath: /api/health
   path: ""

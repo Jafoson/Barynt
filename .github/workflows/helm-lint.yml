@@ -156,7 +156,7 @@ jobs:
   # zogen sie `ghcr.io/barynt-dev/barynt:<appVersion>` — direkt nach dem
   # Hochsetzen der Chart-Version gibt es dieses Tag noch nicht (der
   # Docker-Build läuft erst nach dem Release), und beide Jobs scheiterten mit
-  # ImagePullBackOff (1.0.12). Gleicher Build wie docker-build.yml (Ziel
+  # ImagePullBackOff. Gleicher Build wie docker-build.yml (Ziel
   # `runner`, amd64, derselbe GHA-Cache), nur nicht gepusht.
   image:
     name: build app image for kind

@@ -39,7 +39,7 @@ BARYNT_SOURCED=1
 
 # The defaults `main` would set.
 reset() {
-  COMMAND='' DIR="$WORK/$1" VERSION=1.0.13 DOMAIN='' FILES_DOMAIN='' SOURCE='' IMAGE='' OUTPUT=''
+  COMMAND='' DIR="$WORK/$1" VERSION=1.0.0 DOMAIN='' FILES_DOMAIN='' SOURCE='' IMAGE='' OUTPUT=''
   ASSUME_YES=1 DRY_RUN=0 NO_START=0 NO_BACKUP=0 PURGE=0 FORCE=0 INSTALL_DOCKER=0
   DOCKER='' CLI=barynt OS='' ARCH='' TMP="$WORK/tmp-$1"
   mkdir -p "$DIR" "$TMP"
@@ -54,7 +54,7 @@ eq "domain is cleaned of scheme and path" "Issues.example.com" "$(env_get DOMAIN
 eq "files domain defaults to files.<domain>" "files.Issues.example.com" "$(env_get FILES_DOMAIN)"
 eq "AUTH_URL is https" "https://Issues.example.com" "$(env_get AUTH_URL)"
 eq "S3 public endpoint is the files domain" "https://files.Issues.example.com" "$(env_get COMPOSE_S3_PUBLIC_ENDPOINT)"
-eq "version pinned" "1.0.13" "$(env_get BARYNT_VERSION)"
+eq "version pinned" "1.0.0" "$(env_get BARYNT_VERSION)"
 matches "AUTH_SECRET is 64 hex" '^[0-9a-f]{64}$' "$(env_get AUTH_SECRET)"
 matches "POSTGRES_PASSWORD is 64 hex" '^[0-9a-f]{64}$' "$(env_get POSTGRES_PASSWORD)"
 matches "S3 secret is 64 hex" '^[0-9a-f]{64}$' "$(env_get S3_SECRET_ACCESS_KEY)"
@@ -95,16 +95,16 @@ eq "missing key is empty" "" "$(env_get NOPE)"
 
 # ─── versions ────────────────────────────────────────────────────────────────
 
-if valid_version 1.0.13; then pass; else fail "1.0.13 is a version"; fi
+if valid_version 1.0.0; then pass; else fail "1.0.0 is a version"; fi
 if valid_version 1.0; then fail "1.0 isn't a version"; else pass; fi
-if valid_version v1.0.13; then fail "v1.0.13 isn't (the v is stripped earlier)"; else pass; fi
-if valid_version "1.0.13; rm -rf /"; then fail "injection isn't a version"; else pass; fi
+if valid_version v1.0.0; then fail "v1.0.0 isn't (the v is stripped earlier)"; else pass; fi
+if valid_version "1.0.0; rm -rf /"; then fail "injection isn't a version"; else pass; fi
 
 # ─── fetch_release from a local source ───────────────────────────────────────
 
 reset fetch
 SOURCE=$ROOT
-fetch_release 1.0.13 "$DIR" >/dev/null
+fetch_release 1.0.0 "$DIR" >/dev/null
 for f in docker-compose.yml Caddyfile example.env install.sh; do
   if [ -f "$DIR/$f" ]; then pass; else fail "fetch_release copies $f"; fi
 done
