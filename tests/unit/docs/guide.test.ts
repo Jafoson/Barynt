@@ -34,8 +34,15 @@ const pages = walk(ROOT).map((path) => {
 const frontMatter = (text: string) =>
   text.match(/^---\n([\s\S]*?)\n---\n/)?.[1];
 // Links and images outside code blocks and comments.
-const prose = (text: string) =>
-  text.replace(/```[\s\S]*?```/g, "").replace(/<!--[\s\S]*?-->/g, "");
+const prose = (text: string) => {
+  let out = text.replace(/```[\s\S]*?```/g, "");
+  // Repeat until stable, so nested markers like `<!<!-- -->--` can't survive.
+  for (let prev = ""; prev !== out; ) {
+    prev = out;
+    out = out.replace(/<!--[\s\S]*?-->/g, "");
+  }
+  return out;
+};
 
 describe("docs/guide", () => {
   test("has pages", () => {

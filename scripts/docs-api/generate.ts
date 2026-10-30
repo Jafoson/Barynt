@@ -59,6 +59,7 @@ const doc = (text: DocText, lang: Lang) =>
 const cell = (text: string) =>
   text
     .replace(/\s*\n\s*/g, " ")
+    .replace(/\\/g, "\\\\")
     .replace(/\|/g, "\\|")
     .trim();
 const fence = (code: string, lang = "json") => `\`\`\`${lang}\n${code}\n\`\`\``;
