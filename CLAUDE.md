@@ -98,8 +98,12 @@ page is in `docs/guide/README.md`; in short:
   route, tool or webhook event updates the data in
   `features/account/components/AccountApiKeys/` / `AccountMcp/` and the
   generated pages; `tests/unit/docs` fails while they are stale.
-- `docs/rbac.md` and `docs/permissions-audit.md` are developer notes, not
-  published.
+- **Developer docs** live in `docs/dev/` (English only, read on GitHub, not
+  published): setup, architecture, data model, authentication, permissions
+  (`permissions.md`, formerly `docs/rbac.md`), frontend, services, API/MCP
+  internals, testing, build/release, contributing. A change in how something
+  works updates its page in the same PR; `tests/unit/docs` checks that every
+  link and `#anchor` there resolves.
 
 ## Stack
 
@@ -213,7 +217,7 @@ not strings. Reading and writing are separate:
 |         | Component                            | Environment                                |
 | ------- | ------------------------------------ | ------------------------------------------ |
 | Display | `components/ui/atoms/RichText`       | Server Component, **no** dependency        |
-| Edit    | `components/ui/atoms/RichTextEditor` | `"use client"`, Tiptap, via `next/dynamic` |
+| Edit    | `components/ui/layout/RichTextEditor` | `"use client"`, Tiptap, via `next/dynamic` |
 - Display translates the JSON to React by hand — no `generateHTML`, no
   `dangerouslySetInnerHTML`. Whoever adds a node type there must ship the
   matching extension in the editor (and vice versa).

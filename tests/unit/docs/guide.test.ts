@@ -112,3 +112,60 @@ describe("docs/guide/*/api-reference", () => {
     expect(stale, "run `bun run docs:api` and commit the result").toEqual([]);
   }, 30000);
 });
+
+// ─── docs/dev ────────────────────────────────────────────────────────────
+// Developer docs are read on GitHub, so what has to hold is simple: every
+// link points at a file that exists, and a link to a heading in a Markdown
+// file points at a heading that is there.
+
+const DEV = resolve(import.meta.dir, "../../../docs/dev");
+const REPO = resolve(DEV, "../..");
+
+/** GitHub's anchor for a heading. */
+const slug = (heading: string) =>
+  heading
+    .toLowerCase()
+    .replace(/[`*]/g, "")
+    .replace(/[^\p{L}\p{N}\s_-]/gu, "")
+    .trim()
+    .replace(/\s/g, "-");
+
+const anchorsOf = (file: string) =>
+  new Set(
+    [...prose(readFileSync(file, "utf8")).matchAll(/^#{1,6}\s+(.+)$/gm)].map(
+      (m) => slug(m[1]),
+    ),
+  );
+
+describe("docs/dev", () => {
+  const files = readdirSync(DEV).filter((f) => f.endsWith(".md"));
+
+  test("has an index that lists every page", () => {
+    const index = readFileSync(join(DEV, "README.md"), "utf8");
+    for (const file of files.filter((f) => f !== "README.md"))
+      expect(index, `README.md should link ${file}`).toContain(`(${file})`);
+  });
+
+  for (const file of files) {
+    test(`${file}: links point at files and headings that exist`, () => {
+      const path = join(DEV, file);
+      const text = prose(readFileSync(path, "utf8"));
+      const targets = [...text.matchAll(/!?\[[^\]]*\]\(([^)\s]+)\)/g)].map(
+        (m) => m[1],
+      );
+      for (const target of targets) {
+        if (/^(https?:|mailto:)/.test(target)) continue;
+        const [rel, anchor] = target.split("#");
+        const dest = rel
+          ? resolve(dirname(path), decodeURIComponent(rel))
+          : path;
+        expect(existsSync(dest), `${target} in docs/dev/${file}`).toBe(true);
+        if (anchor && dest.endsWith(".md"))
+          expect(
+            anchorsOf(dest),
+            `#${anchor} in ${relative(REPO, dest)} (linked from docs/dev/${file})`,
+          ).toContain(anchor);
+      }
+    });
+  }
+});

@@ -206,7 +206,7 @@ function withIssueAttachments(
 // ── Cached queries (deduplicated per request) ─────────────────────────────────
 //
 // Every query checks for itself — a layout only protects the pages beneath
-// it, not every function call (see docs/rbac.md, "Enforcement"). Two checks
+// it, not every function call (see docs/dev/permissions.md, "Enforcement"). Two checks
 // occur here:
 //
 //   `currentUserCanEnterWorkspace`  does this person belong in the workspace at all?

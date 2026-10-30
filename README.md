@@ -24,7 +24,7 @@ Barynt is a Linear/Jira-style issue tracker you run yourself. Workspaces contain
 
 - **Workspaces & projects** — multiple workspaces per instance, each with its own members, teams, projects, and settings
 - **Issues** — rich-text descriptions and comments (Tiptap/ProseMirror), custom statuses, priorities, and issue types per workspace, labels, drag-and-drop ranking, file attachments
-- **Role-based access control** — permissions are composed at the platform, workspace, and project scope, with built-in and custom roles (see [docs/rbac.md](docs/rbac.md))
+- **Role-based access control** — permissions are composed at the platform, workspace, and project scope, with built-in and custom roles (see [docs/dev/permissions.md](docs/dev/permissions.md))
 - **Teams** — group members and projects for scoped visibility and assignment
 - **Notifications** — in-app inbox plus optional email delivery per event type, with per-user preferences
 - **Invitations** — invite by email or shareable link, to a workspace or directly into a project
@@ -132,9 +132,9 @@ Tests use Vitest-style APIs on Bun's test runner. Always use `bun run test`, not
 
 ## Documentation
 
-- [CLAUDE.md](CLAUDE.md) — project conventions (architecture, styling, Prisma workflow, testing, mail)
-- [docs/rbac.md](docs/rbac.md) — the permissions/roles model
-- [docs/permissions-audit.md](docs/permissions-audit.md) — permission audit notes
+- [User guide](docs/guide/) — for people who use and administer Barynt (published at the [website](https://github.com/Jafoson/barynt-site), English and German)
+- [Developer docs](docs/dev/) — setup, architecture, data model, authentication, permissions, frontend, services, API/MCP internals, testing, build and release
+- [CLAUDE.md](CLAUDE.md) — the project's rules in condensed form (also read by AI coding assistants)
 
 ## Contributing
 
