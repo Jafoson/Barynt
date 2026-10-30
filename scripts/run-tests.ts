@@ -59,8 +59,9 @@ const SEGMENTS: string[][] = [
   ["tests/unit/realtime"],
   ["tests/unit/session"],
   ["tests/unit/richtext", "tests/unit/table", "tests/unit/ui"],
-  // Release automation (scripts/release): pure functions, no mocks.
-  ["tests/unit/release"],
+  // Release automation (scripts/release) and the published docs (docs/guide):
+  // pure functions and file checks, no mocks.
+  ["tests/unit/release", "tests/unit/docs"],
   ["tests/unit/account"],
   ["tests/unit/notifications"],
   ["tests/unit/mail/send.test.ts"],

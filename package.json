@@ -3,6 +3,7 @@
   "version": "1.0.12",
   "private": true,
   "license": "MIT",
+  "homepage": "https://barynt.dev",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -19,6 +20,8 @@
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && docker compose up -d --wait && bun prisma generate && bun prisma migrate deploy && bun prisma db seed",
     "db:logs": "docker compose logs -f postgres",
+    "docs:api": "bun scripts/docs-api/generate.ts",
+    "docs:api:check": "bun scripts/docs-api/generate.ts --check",
     "test": "bun run scripts/run-tests.ts",
     "test:watch": "bun test --watch tests/",
     "test:coverage": "bun run scripts/run-tests.ts --coverage"

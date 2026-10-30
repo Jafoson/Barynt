@@ -76,6 +76,35 @@ Versions and release notes are semi-automated, see `releases/README.md`.
   `package.json`'s are hidden. After an update the window opens once on its own:
   the cookie `barynt_seen_release` holds the version this browser has seen.
 
+## User docs (`docs/guide/`)
+
+The docs on the website are Markdown in `docs/guide/`, published by
+[barynt-site](https://github.com/Jafoson/barynt-site) (Starlight) from the
+release tag — so they ship with the version they describe. How to write a
+page is in `docs/guide/README.md`; in short:
+
+- One file per page, `en/<group>/<page>.md` with `title`, `description` and
+  `sidebar.order` in the front matter; groups and their names in
+  `_groups.json`. The German page sits at the same path under `de/` and is
+  optional (the site falls back to English).
+- Plain Markdown that also reads on GitHub: GitHub alerts (`> [!NOTE]`) for
+  callouts, relative `.md` links, images in `assets/en/` and `assets/de/`
+  (dark theme only; a picture missing in one language falls back to the
+  other), `{{version}}` for the release.
+- **A feature that changes what users see or do updates its page in the same
+  PR.** `tests/unit/docs/` checks front matter, groups, links and images.
+- `docs/guide/{en,de}/api-reference/` is **generated** (`bun run docs:api`)
+  from the in-app API/MCP reference data and the MCP tool schemas. A changed
+  route, tool or webhook event updates the data in
+  `features/account/components/AccountApiKeys/` / `AccountMcp/` and the
+  generated pages; `tests/unit/docs` fails while they are stale.
+- **Developer docs** live in `docs/dev/` (English only, read on GitHub and
+  published by barynt-site as the "Development" section; no front matter): setup, architecture, data model, authentication, permissions
+  (`permissions.md`, formerly `docs/rbac.md`), frontend, services, API/MCP
+  internals, testing, build/release, contributing. A change in how something
+  works updates its page in the same PR; `tests/unit/docs` checks that every
+  link and `#anchor` there resolves.
+
 ## Stack
 
 - **Next.js 16** (App Router) with TypeScript
@@ -185,10 +214,10 @@ _down_ (`@use "breakpoints" as bp;`). Test widths: 375 / 768 / 1280px.
 `Issue.description` and `Comment.body` are **ProseMirror documents** (`Json`),
 not strings. Reading and writing are separate:
 
-|         | Component                            | Environment                                |
-| ------- | ------------------------------------ | ------------------------------------------ |
-| Display | `components/ui/atoms/RichText`       | Server Component, **no** dependency        |
-| Edit    | `components/ui/atoms/RichTextEditor` | `"use client"`, Tiptap, via `next/dynamic` |
+|         | Component                             | Environment                                |
+| ------- | ------------------------------------- | ------------------------------------------ |
+| Display | `components/ui/atoms/RichText`        | Server Component, **no** dependency        |
+| Edit    | `components/ui/layout/RichTextEditor` | `"use client"`, Tiptap, via `next/dynamic` |
 - Display translates the JSON to React by hand — no `generateHTML`, no
   `dangerouslySetInnerHTML`. Whoever adds a node type there must ship the
   matching extension in the editor (and vice versa).

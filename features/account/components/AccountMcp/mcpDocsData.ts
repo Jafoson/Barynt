@@ -141,6 +141,22 @@ export const MCP_TOOL_GROUPS: McpToolGroup[] = [
           de: "Ändert Titel, Beschreibung, Status, Priorität, Zuständigen, Labels oder Typ eines Issues. Die Beschreibung kennt dieselbe Syntax für Erwähnung, Issue-Link, Datum und Link-Chip wie create_issue.",
         },
       },
+      {
+        name: "add_issue_relation",
+        scope: "issues:write",
+        desc: {
+          en: "Link two issues with a typed edge: BLOCKS, RELATES_TO or DUPLICATES. Seen from issueId: for BLOCKS and DUPLICATES, issueId blocks / duplicates relatedId.",
+          de: "Verknüpft zwei Issues mit einer typisierten Beziehung: BLOCKS, RELATES_TO oder DUPLICATES. Aus Sicht von issueId: Bei BLOCKS und DUPLICATES blockiert bzw. dupliziert issueId das Issue relatedId.",
+        },
+      },
+      {
+        name: "remove_issue_relation",
+        scope: "issues:write",
+        desc: {
+          en: "Remove a relation by its own id (from an issue's relations). Works from either issue it connects.",
+          de: "Entfernt eine Beziehung über ihre eigene ID (aus den relations eines Issues). Geht von beiden verbundenen Issues aus.",
+        },
+      },
     ],
   },
   {

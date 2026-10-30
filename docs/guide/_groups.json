@@ -1,0 +1,8 @@
+{
+  "getting-started": { "en": "Getting started", "de": "Erste Schritte" },
+  "using-barynt": { "en": "Using Barynt", "de": "Barynt benutzen" },
+  "administration": { "en": "Administration", "de": "Verwaltung" },
+  "integrations": { "en": "Integrations", "de": "Integrationen" },
+  "api-reference": { "en": "API reference", "de": "API-Referenz" },
+  "project": { "en": "Project", "de": "Projekt" }
+}

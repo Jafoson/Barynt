@@ -15,7 +15,8 @@
       "!build",
       "!deploy",
       "!**/*.svg",
-      "!lib/icons/bundle.generated.ts"
+      "!lib/icons/bundle.generated.ts",
+      "!docs"
     ]
   },
   "formatter": {
