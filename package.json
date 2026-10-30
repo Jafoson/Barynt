@@ -3,6 +3,7 @@
   "version": "1.0.12",
   "private": true,
   "license": "MIT",
+  "homepage": "https://barynt.dev",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

@@ -36,8 +36,8 @@ More detail that is useful once you are deeper in:
 
 | For | Lives in | Language |
 | --- | --- | --- |
-| People who use and run Barynt | [`docs/guide/`](../guide/), published on the website | English and German |
-| People who change Barynt | `docs/dev/` (here), read on GitHub and published as "Development" on the website | English |
+| People who use and run Barynt | [`docs/guide/`](../guide/), published on [barynt.dev](https://barynt.dev/docs/) | English and German |
+| People who change Barynt | `docs/dev/` (here), read on GitHub and published as "Development" on [barynt.dev](https://barynt.dev/docs/development/) | English |
 | AI coding assistants | [`CLAUDE.md`](../../CLAUDE.md) and `AGENTS.md`: the rules in condensed form | English |
 | The reasons behind a piece of code | Comments in the code itself | English |
 

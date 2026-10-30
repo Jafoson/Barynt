@@ -16,7 +16,7 @@ kubeVersion: ">=1.25.0-0"
 keywords:
   - issue-tracker
   - nextjs
-home: https://github.com/Jafoson/Barynt
+home: https://barynt.dev
 sources:
   - https://github.com/Jafoson/Barynt
 maintainers:
@@ -27,6 +27,8 @@ maintainers:
 annotations:
   artifacthub.io/license: MIT
   artifacthub.io/links: |
+    - name: Documentation
+      url: https://barynt.dev/docs/
     - name: Source
       url: https://github.com/Jafoson/Barynt
     - name: support

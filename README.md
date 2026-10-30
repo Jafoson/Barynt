@@ -24,9 +24,10 @@
 </p>
 
 <p align="center">
+  <a href="https://barynt.dev"><b>Website</b></a> ·
   <a href="#-quick-start"><b>Quick start</b></a> ·
   <a href="#-what-you-get"><b>Features</b></a> ·
-  <a href="docs/guide/en/getting-started/intro.md"><b>User guide</b></a> ·
+  <a href="https://barynt.dev/docs/"><b>Docs</b></a> ·
   <a href="docs/dev/README.md"><b>Developer docs</b></a> ·
   <a href="#-contributing"><b>Contribute</b></a>
 </p>
@@ -187,6 +188,8 @@ Change the image tag (or run `barynt upgrade`). The app applies pending database
 One app, one database, no microservices. [How it fits together](docs/dev/architecture.md).
 
 ## 📚 Documentation
+
+Everything is on **[barynt.dev/docs](https://barynt.dev/docs/)** (English and German, searchable), and lives in this repository as Markdown, so it always matches the version you run:
 
 | | |
 | --- | --- |
