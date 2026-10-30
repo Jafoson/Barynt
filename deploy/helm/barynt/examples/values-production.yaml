@@ -9,7 +9,7 @@ replicaCount: 3
 
 image:
   app:
-    tag: "1.0.10" # in Produktion immer auf ein konkretes Release pinnen, nie "latest"
+    tag: "1.0.0" # in Produktion immer auf ein konkretes Release pinnen, nie "latest"
 
 ingress:
   enabled: true

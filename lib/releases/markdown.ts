@@ -1,4 +1,9 @@
-import { CHANGES_END, CHANGES_START } from "@/scripts/release/notes";
+import {
+  CHANGES_END,
+  CHANGES_START,
+  GITHUB_ONLY_END,
+  GITHUB_ONLY_START,
+} from "@/scripts/release/notes";
 
 /**
  * A release file (`releases/<version>.md`) as the in-app window shows it: the
@@ -24,8 +29,22 @@ function stripComments(markdown: string): string {
   return text;
 }
 
-export function toAppMarkdown(markdown: string): string {
+/** Drops every `github-only` block, content included. */
+function stripGithubOnly(markdown: string): string {
   let text = markdown;
+  for (;;) {
+    const start = text.indexOf(GITHUB_ONLY_START);
+    if (start === -1) return text;
+    const end = text.indexOf(GITHUB_ONLY_END, start);
+    // An unclosed block hides everything after it, never leaks into the app.
+    text =
+      text.slice(0, start) +
+      (end === -1 ? "" : text.slice(end + GITHUB_ONLY_END.length));
+  }
+}
+
+export function toAppMarkdown(markdown: string): string {
+  let text = stripGithubOnly(markdown);
   const start = text.indexOf(CHANGES_START);
   const end = text.indexOf(CHANGES_END);
   if (start !== -1 && end > start) {

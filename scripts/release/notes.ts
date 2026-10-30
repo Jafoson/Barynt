@@ -13,6 +13,15 @@
 export const CHANGES_START = "<!-- changes:start -->";
 export const CHANGES_END = "<!-- changes:end -->";
 
+/**
+ * Text between these markers is for the GitHub release (and the website) only:
+ * the in-app release notes window leaves the whole block out, for things only
+ * the people who run Barynt care about, like how to install it. Everywhere else
+ * the markers are plain HTML comments and vanish.
+ */
+export const GITHUB_ONLY_START = "<!-- github-only:start -->";
+export const GITHUB_ONLY_END = "<!-- github-only:end -->";
+
 export type Lang = "en" | "de";
 export type Bump = "major" | "minor" | "patch";
 
@@ -313,4 +322,22 @@ export function renderReleaseBody(options: {
   if (!options.de) return `${en}\n`;
   const de = body(options.de, options.repo, options.tag);
   return `${en}\n\n<details>\n<summary>Deutsch</summary>\n\n${de}\n\n</details>\n`;
+}
+
+// ─── The Helm chart ──────────────────────────────────────────────────────────
+
+/**
+ * `deploy/helm/barynt/Chart.yaml` at `version`: the chart version and
+ * `appVersion` (they move together — the chart's default image tag is
+ * `appVersion`), and the app image Artifact Hub lists. A line-based edit, so
+ * comments and layout stay exactly as written.
+ */
+export function withChartVersion(chartYaml: string, version: string): string {
+  return chartYaml
+    .replace(/^version:.*$/m, `version: ${version}`)
+    .replace(/^appVersion:.*$/m, `appVersion: "${version}"`)
+    .replace(
+      /(image: ghcr\.io\/barynt-dev\/barynt:)[^\s]+/,
+      (_, prefix: string) => `${prefix}${version}`,
+    );
 }

@@ -8,11 +8,15 @@ on:
     paths:
       - "deploy/helm/barynt/**"
       - ".github/workflows/helm-lint.yml"
+      - "Dockerfile"
+      - "docker/**"
   pull_request:
     branches: [main]
     paths:
       - "deploy/helm/barynt/**"
       - ".github/workflows/helm-lint.yml"
+      - "Dockerfile"
+      - "docker/**"
 
 permissions:
   contents: read
@@ -34,6 +38,15 @@ jobs:
       - name: helm lint
         run: helm lint deploy/helm/barynt
 
+      # Template-Tests ohne Cluster (deploy/helm/barynt/unittests): PDB,
+      # Files-Ingress, NetworkPolicies, Backup, Scheduling-Felder, Probes.
+      # v1.0.3: die letzte Version ohne `platformHooks` in ihrer plugin.yaml,
+      # das kann Helm 3.16 (oben gepinnt) noch nicht lesen.
+      - name: helm-unittest
+        run: |
+          helm plugin install https://github.com/helm-unittest/helm-unittest --version v1.0.3
+          helm unittest -f 'unittests/*_test.yaml' deploy/helm/barynt
+
       # Zwei Renderdurchläufe: die gebündelten Defaults (values.yaml) und
       # das externe Produktions-Beispiel (examples/values-production.yaml)
       # — beide Zweige jedes bedingten Templates (postgresql.enabled,
@@ -47,6 +60,19 @@ jobs:
             -f deploy/helm/barynt/examples/values-production.yaml \
             > /tmp/rendered-production.yaml
 
+      # Alles Optionale auf einmal an, damit jedes neue Template mindestens
+      # einmal durch kubeconform muss.
+      - name: helm template (every optional feature on)
+        run: |
+          helm template barynt deploy/helm/barynt \
+            --set ingress.enabled=true --set ingress.tls.enabled=true \
+            --set ingress.filesHost=files.example.com \
+            --set networkPolicy.enabled=true --set backup.enabled=true \
+            --set autoscaling.enabled=true \
+            --set nodeSelector.pool=apps --set 'imagePullSecrets[0].name=regcred' \
+            --set priorityClassName=high \
+            > /tmp/rendered-features.yaml
+
       - name: Set up kubeconform
         run: |
           curl -fsSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
@@ -58,6 +84,9 @@ jobs:
 
       - name: kubeconform (production example)
         run: kubeconform -strict -summary /tmp/rendered-production.yaml
+
+      - name: kubeconform (every optional feature on)
+        run: kubeconform -strict -summary /tmp/rendered-features.yaml
 
       # Der eigentliche GitOps-Vertrag: ArgoCD/Flux rendern IMMER per
       # `helm template`, nie mit Cluster-Zugriff — jede Kombination von
@@ -123,8 +152,43 @@ jobs:
           fi
           grep -q "externalRedis.host fehlt" err.log
 
+  # Das App-Image aus genau diesem Commit, für die kind-Jobs unten. Vorher
+  # zogen sie `ghcr.io/barynt-dev/barynt:<appVersion>` — direkt nach dem
+  # Hochsetzen der Chart-Version gibt es dieses Tag noch nicht (der
+  # Docker-Build läuft erst nach dem Release), und beide Jobs scheiterten mit
+  # ImagePullBackOff. Gleicher Build wie docker-build.yml (Ziel
+  # `runner`, amd64, derselbe GHA-Cache), nur nicht gepusht.
+  image:
+    name: build app image for kind
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: runner
+          platforms: linux/amd64
+          tags: barynt:ci
+          outputs: type=docker,dest=/tmp/barynt-image.tar
+          cache-from: type=gha,scope=linux-amd64
+
+      - name: Upload image
+        uses: actions/upload-artifact@v4
+        with:
+          name: barynt-image
+          path: /tmp/barynt-image.tar
+          retention-days: 1
+
   restricted-pss:
     name: install against a restricted-PSS namespace (kind)
+    needs: image
     runs-on: ubuntu-latest
 
     steps:
@@ -146,6 +210,15 @@ jobs:
           cluster_name: barynt-pss
           wait: 120s
 
+      - name: Load the app image into kind
+        uses: actions/download-artifact@v4
+        with:
+          name: barynt-image
+          path: /tmp
+
+      - name: kind load
+        run: kind load image-archive /tmp/barynt-image.tar --name barynt-pss
+
       - name: Create restricted-PSS namespace
         run: |
           kubectl create ns barynt-pss
@@ -155,10 +228,22 @@ jobs:
             pod-security.kubernetes.io/warn=restricted
 
       - name: helm install --wait
-        run: helm install barynt deploy/helm/barynt -n barynt-pss --wait --timeout 5m
+        run: |
+          helm install barynt deploy/helm/barynt -n barynt-pss --wait --timeout 5m \
+            --set image.app.repository=barynt --set image.app.tag=ci \
+            --set backup.enabled=true --set networkPolicy.enabled=true
 
       - name: helm test
         run: helm test barynt -n barynt-pss
+
+      # Die Sicherung einmal wirklich laufen lassen — als uid 70 unter
+      # restricted PSS, durch die NetworkPolicy zu Postgres hindurch.
+      - name: Backup job runs
+        run: |
+          kubectl create job backup-now --from=cronjob/barynt-backup -n barynt-pss
+          kubectl wait --for=condition=complete job/backup-now -n barynt-pss --timeout=180s
+          kubectl logs job/backup-now -n barynt-pss | tee backup.log
+          grep -q "Backup: /backups/barynt-" backup.log
 
       - name: Check for admission violations
         if: always()
@@ -177,6 +262,7 @@ jobs:
 
   postgres-existing-secret:
     name: bundled Postgres with a pre-existing password (kind)
+    needs: image
     runs-on: ubuntu-latest
 
     steps:
@@ -202,6 +288,15 @@ jobs:
           cluster_name: barynt-pg-secret
           wait: 120s
 
+      - name: Load the app image into kind
+        uses: actions/download-artifact@v4
+        with:
+          name: barynt-image
+          path: /tmp
+
+      - name: kind load
+        run: kind load image-archive /tmp/barynt-image.tar --name barynt-pg-secret
+
       - name: Create namespace and pre-existing Postgres secret (password + matching URL)
         run: |
           kubectl create ns barynt-pg-secret
@@ -212,6 +307,7 @@ jobs:
       - name: helm install --wait
         run: |
           helm install barynt deploy/helm/barynt -n barynt-pg-secret --wait --timeout 5m \
+            --set image.app.repository=barynt --set image.app.tag=ci \
             --set postgresql.auth.existingSecret=my-postgres-secret \
             --set externalDatabase.existingSecret=my-postgres-secret \
             --set externalDatabase.existingSecretUrlKey=url

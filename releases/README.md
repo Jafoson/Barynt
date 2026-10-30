@@ -21,10 +21,28 @@ Actions → **Release** → _Run workflow_ (from `main`):
 | `publish`                         | Off: preview only, shown in the job summary, nothing is written. On: release                                           |
 
 Run it without `publish` first, read the preview, fix the inputs, run again with
-`publish`. The run then commits `package.json` and `releases/` to `main`, tags
-`vX.Y.Z` and creates the GitHub release: the English notes, the German ones
-folded underneath, relative image paths rewritten to the tag's raw files. The
-sidebar's update card compares against that release.
+`publish`. The run then:
+
+1. commits `package.json`, the Helm chart (`version`, `appVersion` and the
+   image Artifact Hub lists, all set to the release) and `releases/` to `main`;
+2. creates the GitHub release on tag `vX.Y.Z`: the English notes, the German
+   ones folded underneath, relative image paths rewritten to the tag's raw
+   files. Attached are the installer's files — `install.sh`,
+   `docker-compose.yml`, `Caddyfile`, `example.env` — their `SHA256SUMS` and
+   `install.sh.sigstore.json` (a keyless cosign signature of the installer);
+3. builds the Docker image on the tag (`docker-build.yml`): `X.Y.Z` and
+   `latest`, multi-arch, scanned and signed;
+4. after that, publishes the signed Helm chart (`helm-release.yml`);
+5. last, asks [barynt-homepage](https://github.com/barynt-dev/barynt-homepage) to rebuild
+   the start page and docs for this version (`repository_dispatch`
+   `barynt-release` with the version): header, commands, the "Latest release"
+   widget and the release notes page all follow the new release. Needs the
+   secret `SITE_DISPATCH_TOKEN` (fine-grained, for `barynt-dev/barynt-homepage`,
+   Contents: read and write); without it this step only warns.
+
+So once the run is green, `curl -fsSL https://github.com/barynt-dev/barynt-web/releases/latest/download/install.sh | sh`,
+`barynt upgrade` and `helm install oci://ghcr.io/barynt-dev/charts/barynt` all
+get the new version. The sidebar's update card compares against the release.
 
 Each file is the highlights you wrote (text, screenshots) above a generated
 block between `<!-- changes:start -->` and `<!-- changes:end -->`: the changes
@@ -45,3 +63,9 @@ card opens a window with these notes, one tab per version, in the viewer's
 language. The generated change block, the heading and HTML comments stay out of
 it; images are served from `releases/assets/`. After an update the window opens
 once by itself.
+
+Some things belong in the GitHub release but not in the app's window, for
+example how to install Barynt: the people reading the window already run it.
+Put them between `<!-- github-only:start -->` and `<!-- github-only:end -->`
+(the markers are comments, so they never show). The GitHub release (and the
+website) keep the block, the window leaves it out, content included.

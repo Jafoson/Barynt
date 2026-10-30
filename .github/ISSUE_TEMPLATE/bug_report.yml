@@ -1,0 +1,59 @@
+name: Bug report
+description: Something does not work as it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. Please look through the
+        [open issues](https://github.com/barynt-dev/barynt-web/issues) and the
+        [documentation](https://barynt.dev/docs/) first.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Barynt version
+      description: Shown in the sidebar under your name, for example 1.0.0.
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: How do you run Barynt?
+      options:
+        - Installer (install.sh)
+        - Docker Compose
+        - Helm chart (Kubernetes)
+        - Local development
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Browser, logs, screenshots
+      description: Anything that helps. Browser and device, error messages (`barynt logs app` or the browser console), screenshots or a short recording.
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before you send
+      options:
+        - label: I searched the existing issues and did not find this.
+          required: true
+        - label: I removed passwords, keys and tokens from everything I pasted.
+          required: true

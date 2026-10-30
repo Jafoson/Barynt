@@ -212,7 +212,10 @@ services:
     # bootstrap.ts) before the server starts (docker/entrypoint.sh).
     # Uncomment `build:` below instead if you're working on Barynt itself
     # and want your own changes reflected.
-    image: ghcr.io/jafoson/barynt:latest
+    # BARYNT_VERSION pins a release (the installer writes it to .env and
+    # `barynt upgrade` moves it); unset, it's the newest one. BARYNT_IMAGE
+    # only exists for testing a locally built image.
+    image: "${BARYNT_IMAGE:-ghcr.io/barynt-dev/barynt}:${BARYNT_VERSION:-latest}"
     # build:
     #   context: .
     #   dockerfile: Dockerfile
@@ -290,6 +293,9 @@ services:
       - "443:443"
     environment:
       DOMAIN: "${DOMAIN:-localhost}"
+      # The second site in the Caddyfile: bundled file storage on a host of
+      # its own (presigned URLs can't live under a path of DOMAIN).
+      FILES_DOMAIN: "${FILES_DOMAIN:-files.localhost}"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - orbit-caddy-data:/data

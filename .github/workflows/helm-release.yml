@@ -14,10 +14,22 @@ on:
         description: "Chart-Version (überschreibt Chart.yaml, ohne führendes 'v')"
         required: false
         type: string
+  # Von release.yml nach dem Docker-Build aufgerufen, auf dem Release-Tag —
+  # dessen Chart.yaml trägt die neue Version schon (scripts/release/cli.ts).
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        default: ""
+      ref:
+        type: string
+        default: ""
 
 permissions:
   contents: read
   packages: write
+  # Keyless-Signatur des Charts (cosign, OIDC-Token von GitHub).
+  id-token: write
 
 jobs:
   release:
@@ -27,6 +39,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
 
       - name: Set up Helm
         uses: azure/setup-helm@v4
@@ -68,6 +82,23 @@ jobs:
         run: |
           helm push /tmp/chart-package/barynt-${{ steps.vars.outputs.version }}.tgz \
             "oci://ghcr.io/${{ steps.vars.outputs.owner }}/charts"
+
+      # Wie das App-Image (docker-build.yml): keyless signiert, nachprüfbar mit
+      #   cosign verify ghcr.io/barynt-dev/charts/barynt:<version> \
+      #     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+      #     --certificate-identity-regexp '^https://github.com/barynt-dev/barynt-web/'
+      - name: Log in to GitHub Container Registry (for cosign)
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign chart (keyless)
+        run: cosign sign --yes "ghcr.io/${{ steps.vars.outputs.owner }}/charts/barynt:${{ steps.vars.outputs.version }}"
 
       - name: Summary
         run: |

@@ -1,0 +1,67 @@
+suite: network policies
+release:
+  name: barynt
+templates:
+  - templates/networkpolicy.yaml
+tests:
+  - it: is off by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: covers the app and every bundled service
+    set:
+      networkPolicy.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 4
+
+  - it: lets only the app and the backup job reach Postgres
+    set:
+      networkPolicy.enabled: true
+    documentIndex: 1
+    asserts:
+      - equal:
+          path: metadata.name
+          value: barynt-postgres
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels["app.kubernetes.io/component"]
+          value: app
+      - equal:
+          path: spec.ingress[0].from[1].podSelector.matchLabels["app.kubernetes.io/component"]
+          value: backup
+
+  - it: keeps RustFS internal without a files host
+    set:
+      networkPolicy.enabled: true
+    documentIndex: 3
+    asserts:
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels["app.kubernetes.io/component"]
+          value: app
+
+  - it: opens the RustFS API to the ingress controller with a files host
+    set:
+      networkPolicy.enabled: true
+      ingress.enabled: true
+      ingress.filesHost: files.example.com
+    documentIndex: 3
+    asserts:
+      - notExists:
+          path: spec.ingress[0].from
+      - equal:
+          path: spec.ingress[0].ports[0].port
+          value: 9000
+
+  - it: restricts the app to the given peers
+    set:
+      networkPolicy.enabled: true
+      networkPolicy.appFrom:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.ingress[0].from[0].namespaceSelector.matchLabels["kubernetes.io/metadata.name"]
+          value: ingress-nginx

@@ -1,0 +1,109 @@
+{{/*
+Nur eingehender Verkehr wird eingeschränkt: Postgres und Redis nehmen
+ausschließlich Verbindungen der App (Postgres zusätzlich des Backup-Jobs) an,
+RustFS nur von der App — und von außen (über den Ingress-Controller), wenn
+ingress.filesHost gesetzt ist. Ausgehend bleibt alles offen: SMTP, OIDC,
+Webhooks, externe Datenbank oder S3.
+*/}}
+{{- if .Values.networkPolicy.enabled }}
+{{- $selector := include "barynt.selectorLabels" . }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "barynt.fullname" . }}-app
+  labels:
+    {{- include "barynt.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- $selector | nindent 6 }}
+      app.kubernetes.io/component: app
+  policyTypes: ["Ingress"]
+  ingress:
+    - ports:
+        - port: http
+      {{- with .Values.networkPolicy.appFrom }}
+      from:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- if .Values.postgresql.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "barynt.fullname" . }}-postgres
+  labels:
+    {{- include "barynt.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- $selector | nindent 6 }}
+      app.kubernetes.io/component: postgres
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- $selector | nindent 14 }}
+              app.kubernetes.io/component: app
+        - podSelector:
+            matchLabels:
+              {{- $selector | nindent 14 }}
+              app.kubernetes.io/component: backup
+      ports:
+        - port: 5432
+{{- end }}
+{{- if .Values.redis.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "barynt.fullname" . }}-redis
+  labels:
+    {{- include "barynt.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- $selector | nindent 6 }}
+      app.kubernetes.io/component: redis
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- $selector | nindent 14 }}
+              app.kubernetes.io/component: app
+      ports:
+        - port: 6379
+{{- end }}
+{{- if .Values.rustfs.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "barynt.fullname" . }}-rustfs
+  labels:
+    {{- include "barynt.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- $selector | nindent 6 }}
+      app.kubernetes.io/component: rustfs
+  policyTypes: ["Ingress"]
+  ingress:
+    {{- if include "barynt.filesIngress" . }}
+    # Browser-Uploads kommen über den Ingress-Controller, dessen Namespace der
+    # Chart nicht kennt — die S3-API ist deshalb offen, die Konsole nicht.
+    - ports:
+        - port: 9000
+    {{- else }}
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- $selector | nindent 14 }}
+              app.kubernetes.io/component: app
+      ports:
+        - port: 9000
+    {{- end }}
+{{- end }}
+{{- end }}

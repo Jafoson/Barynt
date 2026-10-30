@@ -8,14 +8,39 @@ type: application
 # README.md "Versionierung". Kein `dependencies:`-Block: Postgres, Redis und
 # RustFS sind eigene, minimale Templates statt externer Subcharts (siehe
 # README.md "Warum keine Bitnami-Subcharts").
-version: 1.0.12
-appVersion: "1.0.12"
+version: 1.0.0
+appVersion: "1.0.0"
+# PodDisruptionBudget policy/v1, HPA autoscaling/v2, Pod Security Admission.
+kubeVersion: ">=1.25.0-0"
 
 keywords:
   - issue-tracker
   - nextjs
-home: https://github.com/Jafoson/Barynt
+home: https://barynt.dev
 sources:
-  - https://github.com/Jafoson/Barynt
+  - https://github.com/barynt-dev/barynt-web
 maintainers:
   - name: Jason Mund
+
+# Angaben für Artifact Hub (artifacthub.io) — Lizenz, Links und die Images,
+# die der Chart startet (für den Sicherheits-Scan dort).
+annotations:
+  artifacthub.io/license: MIT
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://barynt.dev/docs/
+    - name: Source
+      url: https://github.com/barynt-dev/barynt-web
+    - name: support
+      url: https://github.com/barynt-dev/barynt-web/issues
+  artifacthub.io/images: |
+    - name: barynt
+      image: ghcr.io/barynt-dev/barynt:1.0.0
+    - name: postgres
+      image: postgres:17-alpine
+    - name: redis
+      image: redis:7-alpine
+    - name: rustfs
+      image: rustfs/rustfs:latest
+    - name: aws-cli
+      image: amazon/aws-cli:latest

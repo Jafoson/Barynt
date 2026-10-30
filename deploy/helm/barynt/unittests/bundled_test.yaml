@@ -1,0 +1,35 @@
+suite: bundled services follow the scheduling settings
+release:
+  name: barynt
+templates:
+  - templates/postgres/statefulset.yaml
+  - templates/redis/statefulset.yaml
+  - templates/rustfs/deployment.yaml
+set:
+  nodeSelector: { pool: data }
+  imagePullSecrets: [{ name: regcred }]
+tests:
+  - it: puts Postgres on the selected nodes
+    template: templates/postgres/statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.pool
+          value: data
+      - equal:
+          path: spec.template.spec.imagePullSecrets[0].name
+          value: regcred
+
+  - it: puts Redis on the selected nodes
+    template: templates/redis/statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.pool
+          value: data
+
+  - it: puts RustFS on the selected nodes
+    template: templates/rustfs/deployment.yaml
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.pool
+          value: data

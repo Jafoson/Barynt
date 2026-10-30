@@ -190,8 +190,11 @@ COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/barynt-entrypoint
 EXPOSE 3000
 
 # The start period covers a first start that has migrations to apply.
+# `/api/health` answers 200 only once the database does (app/api/health) —
+# compose's `service_healthy` (Caddy waits on it) and the installer rely on
+# that, not just on the server being up.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD bun -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000),{redirect:'manual'}).then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))"
+    CMD bun -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 ENTRYPOINT ["barynt-entrypoint"]
 CMD ["bun", "server.js"]
