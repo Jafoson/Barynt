@@ -24,6 +24,7 @@
     "projects": "Projects",
     "signOut": "Sign out",
     "openOnGithub": "Open on GitHub",
+    "openDocs": "Open the documentation (barynt.dev)",
     "updateAvailable": "Update available",
     "updateVersion": "Version {version} is out",
     "admin": "Admin",

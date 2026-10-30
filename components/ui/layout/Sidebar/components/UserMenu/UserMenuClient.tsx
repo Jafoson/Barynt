@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@iconify/react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import {
   Avatar,
@@ -15,6 +15,7 @@ import { NavLink } from "@/components/ui/layout/NavLink/NavLink";
 import { logout } from "@/features/auth/actions";
 import { ReleaseNotesLine } from "@/features/releases/components/ReleaseNotesLine";
 import { Link } from "@/i18n/navigation";
+import { docsUrl } from "@/lib/docs-url";
 import type { AvailableUpdate } from "@/lib/update-check";
 import { fullName } from "@/lib/utils/string";
 import styles from "./UserMenu.module.scss";
@@ -71,6 +72,7 @@ function UserMenuClient({
   const ref = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const t = useTranslations("nav");
+  const locale = useLocale();
 
   return (
     <div className={styles.menu}>
@@ -194,6 +196,16 @@ function UserMenuClient({
             autoOpen={showReleaseNotes}
           />
         )}
+        <a
+          className={styles.footerLink}
+          href={docsUrl(locale)}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={t("openDocs")}
+          aria-label={t("openDocs")}
+        >
+          <Icon icon="lucide:book-open" height={14} />
+        </a>
       </div>
     </div>
   );
