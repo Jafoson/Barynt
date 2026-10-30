@@ -121,6 +121,11 @@ Most issue trackers make you pick: a slick tool that lives in someone else's clo
 
 ## See it
 
+<details>
+<summary><b>Show the gallery</b>: board, issue, views, inbox, roles, MCP</summary>
+
+<br>
+
 <table>
   <tr>
     <td width="50%"><img src="docs/readme/board.webp" alt="The board of a project"><br><sub><b>The board:</b> columns by status, cards with everything you need.</sub></td>
@@ -135,6 +140,8 @@ Most issue trackers make you pick: a slick tool that lives in someone else's clo
     <td><img src="docs/readme/mcp-settings.webp" alt="The MCP settings page"><br><sub><b>MCP:</b> hand your issue tracker to your AI assistant.</sub></td>
   </tr>
 </table>
+
+</details>
 
 Press <kbd>⌘K</kbd> anywhere to jump to an issue, a page or an action.
 
