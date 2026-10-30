@@ -121,7 +121,10 @@ The user guide in `docs/guide/` is published by
 fallback for a tag from before the docs existed, and `BARYNT_DOCS_DIR` points a local preview at your working
 copy. English pages come from `docs/guide/en/`, German from `docs/guide/de/`, a missing German image
 falls back to the English one. See [`docs/guide/README.md`](../guide/README.md) for writing pages and
-previewing them. These developer docs are **not** published; they are read on GitHub.
+previewing them. These developer docs (`docs/dev/`, English only) are published too, as the **Development** section of the same site: at build time
+the site turns each page into a page of the guide (title from the first heading, the first paragraph as the lead, links to other
+dev pages and to guide pages rewritten for the site, links to source files pointing at GitHub at the release tag). German visitors
+see them in English with a notice. They stay plain Markdown that reads fine on GitHub, so do not add front matter to them.
 
 ## The installer
 

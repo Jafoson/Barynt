@@ -98,8 +98,8 @@ page is in `docs/guide/README.md`; in short:
   route, tool or webhook event updates the data in
   `features/account/components/AccountApiKeys/` / `AccountMcp/` and the
   generated pages; `tests/unit/docs` fails while they are stale.
-- **Developer docs** live in `docs/dev/` (English only, read on GitHub, not
-  published): setup, architecture, data model, authentication, permissions
+- **Developer docs** live in `docs/dev/` (English only, read on GitHub and
+  published by barynt-site as the "Development" section; no front matter): setup, architecture, data model, authentication, permissions
   (`permissions.md`, formerly `docs/rbac.md`), frontend, services, API/MCP
   internals, testing, build/release, contributing. A change in how something
   works updates its page in the same PR; `tests/unit/docs` checks that every

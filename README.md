@@ -133,7 +133,7 @@ Tests use Vitest-style APIs on Bun's test runner. Always use `bun run test`, not
 ## Documentation
 
 - [User guide](docs/guide/) — for people who use and administer Barynt (published at the [website](https://github.com/Jafoson/barynt-site), English and German)
-- [Developer docs](docs/dev/) — setup, architecture, data model, authentication, permissions, frontend, services, API/MCP internals, testing, build and release
+- [Developer docs](docs/dev/) (also on the website, under Development) — setup, architecture, data model, authentication, permissions, frontend, services, API/MCP internals, testing, build and release
 - [CLAUDE.md](CLAUDE.md) — the project's rules in condensed form (also read by AI coding assistants)
 
 ## Contributing
