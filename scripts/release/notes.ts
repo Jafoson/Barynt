@@ -13,6 +13,15 @@
 export const CHANGES_START = "<!-- changes:start -->";
 export const CHANGES_END = "<!-- changes:end -->";
 
+/**
+ * Text between these markers is for the GitHub release (and the website) only:
+ * the in-app release notes window leaves the whole block out, for things only
+ * the people who run Barynt care about, like how to install it. Everywhere else
+ * the markers are plain HTML comments and vanish.
+ */
+export const GITHUB_ONLY_START = "<!-- github-only:start -->";
+export const GITHUB_ONLY_END = "<!-- github-only:end -->";
+
 export type Lang = "en" | "de";
 export type Bump = "major" | "minor" | "patch";
 

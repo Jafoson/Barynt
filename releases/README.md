@@ -63,3 +63,9 @@ card opens a window with these notes, one tab per version, in the viewer's
 language. The generated change block, the heading and HTML comments stay out of
 it; images are served from `releases/assets/`. After an update the window opens
 once by itself.
+
+Some things belong in the GitHub release but not in the app's window, for
+example how to install Barynt: the people reading the window already run it.
+Put them between `<!-- github-only:start -->` and `<!-- github-only:end -->`
+(the markers are comments, so they never show). The GitHub release (and the
+website) keep the block, the window leaves it out, content included.

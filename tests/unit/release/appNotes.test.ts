@@ -22,6 +22,37 @@ describe("toAppMarkdown", () => {
     "",
   ].join("\n");
 
+  test("leaves out github-only blocks, content included", () => {
+    const withBlock = [
+      "# Barynt 1.0.13",
+      "",
+      "Docs are here.",
+      "",
+      "<!-- github-only:start -->",
+      "Install with `curl … | sh`.",
+      "<!-- github-only:end -->",
+      "",
+      "More for everyone.",
+      "",
+      "<!-- github-only:start -->",
+      "Also hidden.",
+      "<!-- github-only:end -->",
+    ].join("\n");
+    const out = toAppMarkdown(withBlock);
+    expect(out).toContain("Docs are here.");
+    expect(out).toContain("More for everyone.");
+    expect(out).not.toContain("curl");
+    expect(out).not.toContain("Also hidden");
+    expect(out).not.toContain("github-only");
+  });
+
+  test("an unclosed github-only block hides the rest instead of leaking", () => {
+    const out = toAppMarkdown(
+      "# Barynt 1.0.13\n\nShown.\n\n<!-- github-only:start -->\nSecret.\n",
+    );
+    expect(out).toBe("Shown.");
+  });
+
   test("keeps the hand-written part only, without heading and comments", () => {
     const out = toAppMarkdown(file);
     expect(out).toStartWith("Big news.");

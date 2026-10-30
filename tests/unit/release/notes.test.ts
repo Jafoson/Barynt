@@ -282,3 +282,26 @@ annotations:
     expect(next.split("\n")).toHaveLength(chart.split("\n").length);
   });
 });
+
+describe("github-only blocks", () => {
+  test("stay in the GitHub release body, without their markers", () => {
+    const en = [
+      "# Barynt 1.0.13",
+      "",
+      "Docs.",
+      "",
+      "<!-- github-only:start -->",
+      "Install: `curl … | sh`",
+      "<!-- github-only:end -->",
+      "",
+    ].join("\n");
+    const out = renderReleaseBody({
+      en,
+      de: null,
+      repo: "o/r",
+      tag: "v1.0.13",
+    });
+    expect(out).toContain("Install: `curl … | sh`");
+    expect(out).not.toContain("github-only");
+  });
+});
