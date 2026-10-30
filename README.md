@@ -1,14 +1,21 @@
 <p align="center">
-  <img src="public/Logo/color/Logo_horizontal.svg" alt="Barynt" width="360">
+  <a href="https://github.com/Jafoson/Barynt">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="public/Logo/white/Logo_horizontal.svg">
+      <img src="public/Logo/color/Logo_horizontal.svg" alt="Barynt" width="360">
+    </picture>
+  </a>
 </p>
 
-<p align="center"><b>The open-source Linear/Jira alternative you self-host.</b></p>
+<h3 align="center">The issue tracker you host yourself.<br>Fast like Linear, flexible like Jira, yours like nothing else.</h3>
 
 <p align="center">
-  Workspaces, projects, issues, and role-based access control — run on your own infrastructure.
+  Boards, lists, dashboards and a keyboard-first workflow for your team, with roles, SSO and an API included.<br>
+  One <code>curl</code> to install. MIT licensed. No seats, no tiers, no tracking.
 </p>
 
 <p align="center">
+  <a href="https://github.com/Jafoson/Barynt/releases/latest"><img src="https://img.shields.io/github/v/release/Jafoson/Barynt?label=release&color=2a9d8f" alt="Latest release"></a>
   <a href="https://github.com/Jafoson/Barynt/actions/workflows/tests.yml"><img src="https://github.com/Jafoson/Barynt/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
   <a href="https://github.com/Jafoson/Barynt/actions/workflows/docker-build.yml"><img src="https://github.com/Jafoson/Barynt/actions/workflows/docker-build.yml/badge.svg" alt="Docker Build"></a>
   <a href="https://github.com/Jafoson/Barynt/actions/workflows/security.yml"><img src="https://github.com/Jafoson/Barynt/actions/workflows/security.yml/badge.svg" alt="Security"></a>
@@ -16,134 +23,203 @@
   <a href="https://github.com/Jafoson/Barynt/stargazers"><img src="https://img.shields.io/github/stars/Jafoson/Barynt" alt="GitHub Stars"></a>
 </p>
 
+<p align="center">
+  <a href="#-quick-start"><b>Quick start</b></a> ·
+  <a href="#-what-you-get"><b>Features</b></a> ·
+  <a href="docs/guide/en/getting-started/intro.md"><b>User guide</b></a> ·
+  <a href="docs/dev/README.md"><b>Developer docs</b></a> ·
+  <a href="#-contributing"><b>Contribute</b></a>
+</p>
+
+<p align="center">
+  <img src="docs/guide/assets/en/overview.webp" alt="Barynt: a project dashboard with open and overdue counts, created-and-closed chart, needs-attention list and saved views as tabs" width="100%">
+</p>
+
 ---
 
-Barynt is a Linear/Jira-style issue tracker you run yourself. Workspaces contain projects, projects contain issues, and everything — statuses, priorities, issue types, labels, roles — is configurable per workspace instead of hard-coded. It ships as a single Next.js app plus Postgres, with Redis and S3-compatible storage as optional add-ons, and a `docker compose` profile that stands up the whole stack (including HTTPS via Caddy) on one server.
+## Why Barynt?
 
-## Features
+Most issue trackers make you pick: a slick tool that lives in someone else's cloud, or a self-hosted one that feels like 2009. Barynt is neither.
 
-- **Workspaces & projects** — multiple workspaces per instance, each with its own members, teams, projects, and settings
-- **Issues** — rich-text descriptions and comments (Tiptap/ProseMirror), custom statuses, priorities, and issue types per workspace, labels, drag-and-drop ranking, file attachments
-- **Role-based access control** — permissions are composed at the platform, workspace, and project scope, with built-in and custom roles (see [docs/dev/permissions.md](docs/dev/permissions.md))
-- **Teams** — group members and projects for scoped visibility and assignment
-- **Notifications** — in-app inbox plus optional email delivery per event type, with per-user preferences
-- **Invitations** — invite by email or shareable link, to a workspace or directly into a project
-- **Audit log** — tracked changes across workspaces for accountability
-- **Public API** (`/api/v1`) — API keys with Redis-backed rate limiting
-- **MCP server** (`/api/mcp`) — a remote [Model Context Protocol](https://modelcontextprotocol.io) server exposing workspaces, projects, issues, comments, and labels as tools. Authenticates either with a personal API key (same keys as the REST API) or via OAuth 2.1 — a connector-based client (Claude.ai, Claude Desktop) discovers the OAuth flow automatically from the server URL alone, dynamic client registration included, no key to paste. Point Claude Desktop, Claude Code, or any other MCP client at it to manage issues from your AI assistant.
-- **Webhooks** — outgoing event notifications for integrating with other tools
-- **Keyboard-driven UI** — command palette (`⌘K`/`Ctrl+K`), Vim-style list navigation (`j`/`k`), single-key issue actions (status, priority, assignee, labels, …) and `g`+letter "go to" navigation, all listed in an in-app `?` shortcut reference
-- **Authentication, including SSO, at no extra cost** — passkeys (WebAuthn) by default, plus GitHub, Google, GitLab, Microsoft Entra ID, Apple, and any generic OIDC/SSO provider (Keycloak, Authentik, Okta, …), and email magic links via SMTP — every provider is a free config addition, not a paid/enterprise tier
-- **Object storage** — avatars and issue attachments via any S3-compatible provider (bundled: [RustFS](https://github.com/rustfs/rustfs))
-- **Internationalization** — English and German out of the box (`next-intl`)
-- **Admin panel** — instance-wide administration and permission auditing
+- **It is fast and it feels good.** Everything has a shortcut, `⌘K` finds anything, lists move with `j`/`k`, and it works just as well on a phone as on a desktop.
+- **It is yours.** One Docker image and one Postgres. Your data, your server, your rules. SSO with GitHub, Google, GitLab, Microsoft, Apple or any OIDC provider is **free**, not an enterprise upsell.
+- **It fits how teams really work.** Statuses, priorities, types and labels per workspace, saved views, sub-issues and relations, custom roles, private projects, public share links.
+- **It talks to your tools, and to your AI.** A documented REST API, signed webhooks, and a built-in **MCP server**, so Claude, ChatGPT or Cursor can read and update your issues, signing in as you, with your permissions.
 
-## Tech stack
+## ✨ What you get
 
-|                           |                                                                               |
-| ------------------------- | ----------------------------------------------------------------------------- |
-| Framework                 | [Next.js 16](https://nextjs.org) (App Router), React 19                       |
-| Language                  | TypeScript                                                                    |
-| Database                  | PostgreSQL via [Prisma 7](https://www.prisma.io)                              |
-| Auth                      | [Auth.js](https://authjs.dev) (passkeys, OAuth, OIDC, email)                  |
-| Styling                   | SCSS Modules (no Tailwind)                                                    |
-| Rich text                 | [Tiptap](https://tiptap.dev) / ProseMirror                                    |
-| Rate limiting             | Redis                                                                         |
-| Object storage            | S3-compatible (RustFS bundled, or any AWS S3-compatible provider)             |
-| AI integration            | [Model Context Protocol](https://modelcontextprotocol.io) server (`/api/mcp`) |
-| i18n                      | [next-intl](https://next-intl.dev)                                            |
-| Package manager / runtime | [Bun](https://bun.sh)                                                         |
-| Linting / formatting      | [Biome](https://biomejs.dev)                                                  |
-| Testing                   | [Vitest](https://vitest.dev)/Bun test runner                                  |
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h4>🗂 Boards, lists and views</h4>
+      Kanban board, dense list, group by anything, filter with a visual builder, save the result as a <b>view</b> and share it with the team.
+    </td>
+    <td width="50%" valign="top">
+      <h4>📊 Dashboards that answer questions</h4>
+      Open, overdue, created vs. closed, workload and flow metrics, with widgets you arrange yourself, per project or per workspace.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h4>✍️ A real editor</h4>
+      Rich text with a <code>/</code> menu, <code>@mentions</code>, <code>#issue</code> links, code blocks, images, reactions and threaded comments.
+    </td>
+    <td valign="top">
+      <h4>🔐 Roles and permissions done properly</h4>
+      Platform, workspace and project roles, custom roles, teams, private projects and invite links. Every check happens on the server.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h4>⌨️ Keyboard first</h4>
+      Command palette, single-key actions for status, priority, assignee and labels, <code>g</code>-then-letter navigation. Remap what you like.
+    </td>
+    <td valign="top">
+      <h4>🔔 Inbox and notifications</h4>
+      An in-app inbox plus optional email, per event and per person. Nobody gets pinged about their own actions.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h4>🤖 MCP server for AI assistants</h4>
+      Connect Claude, ChatGPT, Cursor or VS Code with just the server URL (OAuth 2.1, no key to paste). 37 tools, all permission-checked.
+    </td>
+    <td valign="top">
+      <h4>🔌 API and webhooks</h4>
+      A REST API with scoped keys, a documented filter language and rate limits, plus HMAC-signed webhooks for issues, comments and views.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h4>🧾 Audit log</h4>
+      Who signed in, who changed whose role, who deleted what. Plus break-glass access for support, always with a reason on the record.
+    </td>
+    <td valign="top">
+      <h4>🌍 English and German</h4>
+      The whole app and the user guide, in both languages. Dark and light theme, and more.
+    </td>
+  </tr>
+</table>
 
-## Getting started (local development)
+<details>
+<summary><b>And a lot more</b></summary>
 
-### Prerequisites
+<br>
 
-- [Bun](https://bun.sh) ≥ 1.3
-- [Docker](https://www.docker.com) (for Postgres/Redis via `docker compose`)
+- Sub-issues, blocks / relates-to / duplicates, estimates, story points, due dates
+- Drag-and-drop ranking that writes one row, not the whole column
+- Public, read-only share links for single issues, with optional email
+- Invitations by email or by link, to a workspace or straight into a project
+- Passkeys (WebAuthn) by default, magic-link sign-in, and invite-only mode
+- File attachments and avatars on any S3-compatible storage (RustFS bundled)
+- Workspace domains: people with your company address join automatically
+- Editable email templates, platform administration, account list with last-seen
+- Tabs like a browser: open issues and pages side by side
+- Health endpoints, a Helm chart, signed images and a signed installer
 
-### Setup
+</details>
+
+## See it
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/readme/board.webp" alt="The board of a project"><br><sub><b>The board:</b> columns by status, cards with everything you need.</sub></td>
+    <td width="50%"><img src="docs/readme/issue-detail.webp" alt="An issue with description, fields and comments"><br><sub><b>An issue:</b> the fields you need stay in reach while you scroll.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/readme/views-gallery.webp" alt="Saved views of a workspace"><br><sub><b>Views:</b> save a filter once, share it with everyone.</sub></td>
+    <td><img src="docs/readme/inbox.webp" alt="The inbox with notifications"><br><sub><b>Inbox:</b> what happened, and what needs you.</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/readme/roles.webp" alt="The role and permission matrix"><br><sub><b>Roles:</b> see exactly who can do what.</sub></td>
+    <td><img src="docs/readme/mcp-settings.webp" alt="The MCP settings page"><br><sub><b>MCP:</b> hand your issue tracker to your AI assistant.</sub></td>
+  </tr>
+</table>
+
+Press <kbd>⌘K</kbd> anywhere to jump to an issue, a page or an action.
+
+## 🚀 Quick start
+
+### Run it on your server (one command)
+
+On any Linux server with Docker, point a domain at it and run:
 
 ```bash
-# 1. Install dependencies
+curl -fsSL https://github.com/Jafoson/Barynt/releases/latest/download/install.sh | sh
+```
+
+The installer asks a few questions, sets up Barynt with HTTPS (Caddy, automatic Let's Encrypt) and waits until it is healthy. Afterwards the same script is your `barynt` command: `barynt upgrade`, `backup`, `restore`, `logs`, `doctor` and more. No questions, for automation: add `-s -- --domain issues.example.com --yes`. Want to read it first? Download it, `less install.sh`, then `sh install.sh`.
+
+### Prefer something else?
+
+| You want | Do this |
+| --- | --- |
+| **Docker Compose** by hand | Three files, no clone: see [Docker Compose](docs/guide/en/getting-started/compose.md) |
+| **Kubernetes** | `helm install barynt oci://ghcr.io/jafoson/charts/barynt` (signed chart), see [Helm](docs/guide/en/getting-started/helm.md) |
+| **Try it on your laptop** | [Local development](#-develop-locally), five minutes with Bun and Docker |
+
+New to it? Start with the [first steps](docs/guide/en/getting-started/first-steps.md): create a workspace, a project and your first issue.
+
+### Updating
+
+Change the image tag (or run `barynt upgrade`). The app applies pending database migrations itself before it starts, so there is nothing else to run. All details in [Manage your installation](docs/guide/en/getting-started/manage.md).
+
+## 🧰 Built with
+
+| | |
+| --- | --- |
+| App | [Next.js 16](https://nextjs.org) (App Router), React 19, TypeScript |
+| Data | PostgreSQL through [Prisma 7](https://www.prisma.io) |
+| Sign-in | [Auth.js](https://authjs.dev): passkeys, OAuth/OIDC, magic links |
+| Editor | [Tiptap](https://tiptap.dev) / ProseMirror |
+| Styling | SCSS Modules, no Tailwind |
+| Optional | Redis (API rate limit), any S3-compatible storage, SMTP |
+| AI | [Model Context Protocol](https://modelcontextprotocol.io) server at `/api/mcp` |
+| Tooling | [Bun](https://bun.sh), [Biome](https://biomejs.dev), Bun test runner |
+
+One app, one database, no microservices. [How it fits together](docs/dev/architecture.md).
+
+## 📚 Documentation
+
+| | |
+| --- | --- |
+| **[User guide](docs/guide/en/getting-started/intro.md)** | For people who use and run Barynt: concepts, every feature, administration, SSO, email, storage, troubleshooting. English and German. |
+| **[API reference](docs/guide/en/api-reference/workspaces.md)** | Every REST route with parameters and examples, the [filter language](docs/guide/en/api-reference/filters.md), [webhook events](docs/guide/en/api-reference/webhook-events.md) and [MCP tools](docs/guide/en/api-reference/mcp-tools.md). |
+| **[Developer docs](docs/dev/README.md)** | For people who change Barynt: setup, architecture, data model, authentication, permissions, testing, release. |
+| [`CLAUDE.md`](CLAUDE.md) | The project's rules in short form, also read by AI coding assistants. |
+
+## 🛠 Develop locally
+
+You need [Bun](https://bun.sh) and [Docker](https://www.docker.com).
+
+```bash
 bun install
-
-# 2. Configure environment variables
-cp example.env .env
-# At minimum, set AUTH_SECRET:
-bunx auth secret
-
-# 3. Start Postgres + Redis, run migrations, and seed the database
-bun run db:dev
-
-# 4. Start the dev server
-bun run dev
+cp example.env .env      # defaults match docker-compose.yml
+bun run db:dev           # Postgres + Redis, migrations, demo data
+bun run dev              # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Passkey login works with no further configuration; see [example.env](example.env) for optional OAuth providers, SMTP (needed to accept email invitations), and S3-compatible storage for avatars/attachments.
+The demo data is a workspace called **Nimbus** with a person for every role (`owner@nimbus.io`, `member1@nimbus.io`, …), so you can see what each of them may do. Barynt has no passwords: sign in with a passkey, or set up a mail catcher for magic links. The [getting started guide](docs/dev/getting-started.md) walks through it.
 
-### Useful scripts
+| Command | What it does |
+| --- | --- |
+| `bun run dev` | Dev server |
+| `bun run lint` · `bun x tsc --noEmit` | Lint and typecheck |
+| `bun run test` | The whole test suite (always this, not `bun test`; [why](docs/dev/testing.md)) |
+| `bun run db:dev` / `db:reset` | Services + migrate + seed / start from scratch |
+| `bun prisma migrate dev --name <what>` | New migration after a schema change |
 
-| Command                                       | What it does                                      |
-| --------------------------------------------- | ------------------------------------------------- |
-| `bun run dev`                                 | Start the dev server                              |
-| `bun run build` / `bun run start`             | Production build / start                          |
-| `bun run lint` / `bun run format`             | Biome check / format                              |
-| `bun run test`                                | Run the full test suite (see [Testing](#testing)) |
-| `bun run test:watch`                          | Tests in watch mode                               |
-| `bun run db:up`                               | Start Postgres + Redis only                       |
-| `bun run db:dev`                              | Start services, migrate, and seed                 |
-| `bun run db:reset`                            | Drop volumes and rebuild from scratch             |
-| `bun run db:logs`                             | Tail the Postgres container logs                  |
-| `bun prisma migrate dev --name <description>` | Create a new migration                            |
+## 🤝 Contributing
 
-## Deployment
+Issues and pull requests are very welcome, whether it is a typo, a bug or a feature. For anything bigger than a fix, open an issue first so we can talk about it.
 
-Barynt ships as a single `docker-compose.yml` used for both local dev and production, split by [Compose profiles](https://docs.docker.com/compose/how-tos/profiles/). `app`/`migrate` default to the prebuilt, multi-arch images CI publishes to `ghcr.io/jafoson/barynt` — no build step, and no full clone of this repo either: `docker-compose.yml`, `Caddyfile`, and a `.env` are the only three files a deployment actually needs.
+1. Read the [contributing guide](docs/dev/contributing.md) (workflow, commit style, checklists)
+2. `bun run lint`, `bun x tsc --noEmit` and `bun run test` should be green
+3. A change to `prisma/schema.prisma` comes with its migration
+4. A change users can see updates the [user guide](docs/guide/) in the same pull request
 
-```bash
-# Only these three files, no git clone required:
-curl -O https://raw.githubusercontent.com/Jafoson/Barynt/main/docker-compose.yml
-curl -O https://raw.githubusercontent.com/Jafoson/Barynt/main/Caddyfile
-curl -o .env https://raw.githubusercontent.com/Jafoson/Barynt/main/example.env
+Found a bug? [Open an issue](https://github.com/Jafoson/Barynt/issues) with what you did, what you expected and the version (shown under your name in the sidebar).
 
-bunx auth secret   # paste the result into AUTH_SECRET in .env
-# set POSTGRES_PASSWORD and DOMAIN in .env for a real deployment
+## 📄 License
 
-docker compose --profile app up -d
-```
-
-This pulls and starts the app, the app (which applies pending migrations and bootstraps the system data every workspace needs — see [prisma/bootstrap.ts](prisma/bootstrap.ts) — before it starts), bundled RustFS object storage, and [Caddy](https://caddyserver.com) as a reverse proxy with automatic Let's Encrypt HTTPS once `DOMAIN` points at the host. Every service besides Caddy binds to `127.0.0.1` by default — only ports 80/443 are meant to be exposed publicly. See the comments at the top of [docker-compose.yml](docker-compose.yml) and [example.env](example.env) for the full set of options (external Postgres/S3/SMTP, custom ports, etc.).
-
-**Updating** is changing the image tag (or `docker compose pull`) and restarting: the app container applies pending database migrations itself before the server starts (`docker/entrypoint.sh`), so there is nothing to run separately. Set `MIGRATE_ON_START=false` on the app if your database is migrated elsewhere, and `MIGRATE_DATABASE_URL` if migrations need a database user other than the app's `DATABASE_URL`.
-
-Working on Barynt itself? Clone the repo and uncomment the `build:` lines on `app` in `docker-compose.yml` to run your own changes instead: `docker compose --profile app up -d --build`.
-
-## Testing
-
-```bash
-bun run test           # full suite
-bun run test:watch     # watch mode
-bun run test:coverage  # with coverage report
-```
-
-Tests use Vitest-style APIs on Bun's test runner. Always use `bun run test`, not `bun test` directly — the suite is split across multiple isolated `bun test` processes (via [scripts/run-tests.ts](scripts/run-tests.ts)) because several test files intentionally mock modules that other files under test rely on for real; running everything in one process lets those mocks leak across files. See the [Testing](CLAUDE.md#testing) section in `CLAUDE.md` for the full rationale.
-
-## Documentation
-
-- [User guide](docs/guide/) — for people who use and administer Barynt (published at the [website](https://github.com/Jafoson/barynt-site), English and German)
-- [Developer docs](docs/dev/) (also on the website, under Development) — setup, architecture, data model, authentication, permissions, frontend, services, API/MCP internals, testing, build and release
-- [CLAUDE.md](CLAUDE.md) — the project's rules in condensed form (also read by AI coding assistants)
-
-## Contributing
-
-Issues and pull requests are welcome. Before opening a PR:
-
-1. `bun run lint` and `bun run format`
-2. `bun run test`
-3. If you touched `prisma/schema.prisma`, make sure a migration is included (`bun prisma migrate dev --name <description>`) and that the seed script still runs
-
-## License
-
-[MIT](LICENSE)
+[MIT](LICENSE). Use it, change it, host it, sell it. If Barynt is useful to you, a ⭐ on GitHub makes our day.

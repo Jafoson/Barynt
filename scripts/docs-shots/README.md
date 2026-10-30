@@ -32,3 +32,5 @@ The sign-in page with company logins (`login-sso`) is recorded by starting the
 app with `AUTH_GITHUB_*` / `AUTH_GOOGLE_*` set and running `capture.mjs login`.
 
 Only demo data ever ends up in a picture. Look at the result before you commit.
+
+The gallery of the repository README is cut from these pictures by `readme-images.mjs` (to `docs/readme/`).
